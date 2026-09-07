@@ -1,0 +1,39 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  garde:
+    name: Gardes de distribution
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Le garde de version lit l'état de la branche de base avec
+          # `git show` : à profondeur 1, ce commit n'est pas dans le clone et
+          # tout plugin passerait pour naissant — donc vert sur rien.
+          fetch-depth: 0
+
+      - name: Cohérence de la marketplace
+        run: python3 scripts/check_marketplace.py
+
+      - name: Garde de version des plugins
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_REF: origin/${{ github.base_ref }}
+        run: |
+          set -euo pipefail
+          # `--no-renames` : une ligne renommée sort en trois champs, que le
+          # garde ignore. Forcer la paire suppression/ajout garantit qu'un
+          # fichier de plugin déplacé compte comme un fichier touché.
+          git diff --no-renames --name-status "$BASE_REF...HEAD" \
+            > "$RUNNER_TEMP/pr-files.tsv"
+          python3 scripts/plugin_version_guard.py \
+            --changed-files "$RUNNER_TEMP/pr-files.tsv" \
+            --base-ref "$BASE_REF"

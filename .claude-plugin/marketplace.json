@@ -1,0 +1,20 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "atelier",
+  "owner": {
+    "name": "benjaminge73"
+  },
+  "description": "Marketplace personnelle de benjaminge73 : les plugins Claude Code qui doivent être chargés partout — sur tous les dépôts, en local comme en session cloud.",
+  "plugins": [
+    {
+      "name": "plans-notion",
+      "source": "./plugins/plans-notion",
+      "description": "Écrit, exécute et fait évoluer des plans de travail dans Notion plutôt que dans le chat."
+    },
+    {
+      "name": "methode-de-travail",
+      "source": "./plugins/methode-de-travail",
+      "description": "Dialoguer avant de créer, chercher la cause racine avant de corriger, prouver avant d'annoncer."
+    }
+  ]
+}
