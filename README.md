@@ -1,4 +1,4 @@
-# atelier — marketplace Claude Code de benjaminge73
+# mes-skills — la marketplace Claude Code `atelier` de benjaminge73
 
 Les plugins Claude Code qui doivent être chargés **partout** : sur tous les
 dépôts, en local comme en session cloud, et mis à jour tout seuls.
@@ -29,7 +29,7 @@ d'infrastructure, qui reste dans les dépôts privés.
 ### En local — une fois par machine, pas par dépôt
 
 ```bash
-claude plugin marketplace add benjaminge73/claude-atelier
+claude plugin marketplace add benjaminge73/mes-skills
 claude plugin install plans-notion@atelier
 claude plugin install methode-de-travail@atelier
 ```
@@ -53,7 +53,7 @@ sélecteur d'environnement → **Setup script** :
 
 ```bash
 #!/bin/bash
-claude plugin marketplace add benjaminge73/claude-atelier || true
+claude plugin marketplace add benjaminge73/mes-skills || true
 claude plugin install plans-notion@atelier || true
 claude plugin install methode-de-travail@atelier || true
 ```
@@ -77,7 +77,7 @@ et en cloud, l'instantané la gèle jusqu'à sa péremption. Ajouter `autoUpdate
 {
   "extraKnownMarketplaces": {
     "atelier": {
-      "source": { "source": "github", "repo": "benjaminge73/claude-atelier" },
+      "source": { "source": "github", "repo": "benjaminge73/mes-skills" },
       "autoUpdate": true
     }
   }
