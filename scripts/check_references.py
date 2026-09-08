@@ -36,7 +36,10 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[1]
 PLUGINS_DIR = REPO_ROOT / "plugins"
 
-REFERENCE_RE = re.compile(r"\$\{CLAUDE_PLUGIN_ROOT\}/([^`\s)]+)")
+# Un guillemet, simple ou double, ne fait jamais partie d'un chemin : sans
+# lui dans la classe exclue, `cat "${CLAUDE_PLUGIN_ROOT}/x.json"` capturait
+# `x.json"` et signalait un fichier introuvable qui existait (2026-09-08).
+REFERENCE_RE = re.compile(r"\$\{CLAUDE_PLUGIN_ROOT\}/([^`\s)\"']+)")
 
 
 def _relatif(chemin: Path) -> str:

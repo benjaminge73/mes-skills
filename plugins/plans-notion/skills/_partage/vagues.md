@@ -148,6 +148,16 @@ les sous-agents de la vague :
    ou sur un usage invalide, le shell peut enchaîner sur la suppression sans
    que personne n'ait relu le résultat.
 
+5. **Rejouer les preuves de toute la vague sur la branche du plan**, une
+   seconde fois, une fois le dernier report fait. Des étapes à fichiers
+   disjoints peuvent encore interagir : le 2026-09-08, une étape ajoutait un
+   contrôle (un script de CI qui vérifie les renvois entre fichiers) pendant
+   qu'une autre, en parallèle, ajoutait du texte que ce contrôle n'aimait pas
+   (un chemin entre guillemets doubles). Chaque preuve était verte dans son
+   worktree, et la branche du plan était rouge une fois les deux reportées.
+   La preuve dans le worktree dit « mon étape tient » ; celle sur la branche
+   dit « la vague tient » — et c'est la seconde qui compte.
+
 ## Regrouper deux étapes dans un seul sous-agent
 
 Décision de Benjamin (Q4) : deux étapes **consécutives** qui **partagent au
