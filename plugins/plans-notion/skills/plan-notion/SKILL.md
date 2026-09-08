@@ -88,7 +88,7 @@ Benjamin. Voir la sous-section « Les captures d'écran » du chapitre des contr
 
 Un plan qui découvre à l'exécution ce que le code disait déjà n'a pas planifié : il
 a deviné. **Avant d'écrire une question, une option ou une étape, aller chercher ce
-qui est déjà su.** Quatre gisements, du moins cher au plus cher :
+qui est déjà su.** Cinq gisements, du moins cher au plus cher :
 
 1. **La session en cours.** Une mesure faite il y a dix minutes reste vraie. C'est
    la source la plus souvent oubliée, parce qu'on rédige le plan dans la posture de
@@ -114,6 +114,12 @@ qui est déjà su.** Quatre gisements, du moins cher au plus cher :
 4. **L'historique.** `git log` sur les fichiers concernés, PR mergées, tests
    existants. Un comportement qui a déjà été changé l'a été pour une raison, et
    cette raison contraint le plan.
+5. **La carte du dépôt.** Engendrée quand un générateur existe — chercher
+   `docs/architecture.md`, un script `archi`, une commande `npm run archi` —
+   sinon dessinée à la main pendant l'enquête, selon les règles du fichier
+   partagé `_partage/schemas.md`. Une carte, même approximative, montre en un
+   coup d'œil les blocs et leurs liens là où une liste de fichiers ne montre
+   qu'un inventaire à plat.
 
 Le budget d'enquête est **proportionnel à l'enjeu**, pas à la longueur du plan : une
 étape qui touche un fichier et se relit d'un coup d'œil ne mérite pas une fouille
@@ -216,8 +222,9 @@ chaque URL avant de choisir, plutôt que de prendre la première trouvée.
 
 ## 3. Structure du plan
 
-Dans cet ordre : `Besoins` · `Contraintes techniques vérifiées` · `Questions
-ouvertes` · `La suite` · `Exécution` · `Journal d'exécution` · `Commentaires repris`.
+Dans cet ordre : `Cartes` · `Besoins` · `Contraintes techniques vérifiées` ·
+`Questions ouvertes` · `La suite` · `Exécution` · `Journal d'exécution` ·
+`Commentaires repris`.
 
 **Hiérarchie de titres pensée pour la table des matières.** Notion ne met dans le
 sommaire latéral que les blocs *heading* — jamais les encadrés, les listes ni les
@@ -231,6 +238,35 @@ sommaire, au lieu de faire défiler la page.
 dit qu'il se remplira à l'implémentation. C'est `executer-plan-notion` qui l'écrit ;
 le laisser absent obligerait ce skill-là à improviser une place dans la page. Sa
 forme, elle, se décide ici (troisième sous-section ci-dessous).
+
+### Le chapitre `Cartes`
+
+Un H2 **en tête de page**, avant `Besoins` : c'est le premier chapitre qu'on lit,
+et une carte se lit avant une liste de besoins, pas après. Il porte deux schémas :
+
+- **La carte du dépôt** — une vue d'ensemble du code touché, engendrée par un
+  générateur du dépôt s'il en existe un, sinon dessinée à la main.
+- **Le plan en un schéma** — les étapes du chapitre `Exécution` regroupées en
+  vagues, avec ce qui dépend de quoi et ce qui attend un geste de Benjamin.
+
+Présent **dès la première version du plan**, comme `Exécution` et pour la même
+raison : si on ne sait pas encore le dessiner, c'est qu'on ne sait pas encore ce
+qu'on va faire. Les deux schémas se remettent à jour à **chaque passe qui touche
+le chapitre `Exécution`** — une étape ajoutée, fusionnée ou reformulée les rend
+faux sinon.
+
+Le contenu de chaque schéma, son code couleur et ses pièges Notion vivent dans un
+fichier partagé, pas ici — le répéter ferait diverger les deux skills qui le
+lisent :
+
+📄 `${CLAUDE_PLUGIN_ROOT}/skills/_partage/schemas.md`
+
+**Sur un plan `Bounded`** (c'est `brainstorming` qui route une demande vers
+`Spike`, `Bounded` ou `Architectural` avant que le plan ne s'écrive ; ce skill ne
+décide pas du chemin, il applique la structure une fois le routage connu), la
+page s'écrit **allégée** : `Cartes` · `Besoins` · `Exécution` ·
+`Journal d'exécution` — `Questions ouvertes` ne s'ajoute que s'il reste une
+question à trancher.
 
 ### Le chapitre `Contraintes techniques vérifiées`
 
@@ -418,6 +454,9 @@ Sous chaque titre, le contenu de l'étape :
 
 - **Choix d'architecture** retenu — et celui qu'on écarte, avec la raison.
 - **Fichiers touchés**, chemin par chemin, en distinguant créé / modifié / supprimé.
+- **Blocs touchés** — les nœuds de la carte du dépôt (chapitre `Cartes`) que
+  l'étape modifie. « Aucun bloc de la carte » est une réponse valable, et il
+  faut l'écrire plutôt que laisser la ligne vide.
 - **Impact fonctionnel** : ce que l'utilisateur voit changer. « Rien » est une
   réponse valable, et il faut l'écrire plutôt que laisser la ligne vide.
 - **Impact technique** : migrations, dépendances, variables d'environnement,
@@ -519,6 +558,10 @@ la table ; lire la page, en revanche, reste permis.
    les réponses viennent de rendre faux.
 6. **Ne jamais résoudre un fil soi-même.** C'est l'accusé de réception de
    Benjamin, et c'est ce qui donne gratuitement la liste à traiter à la passe suivante.
+7. **Relire les schémas.** Une passe qui a touché `Exécution` a pu rendre « le
+   plan en un schéma » faux (chapitre `Cartes`, §3) — le rejouer, puis vérifier
+   mécaniquement que le nombre de nœuds d'étape égale le nombre de titres H3
+   `Étape N` de la page (contrôle détaillé dans `_partage/schemas.md`).
 
 Les pièges de l'API qui mordent ici — commentaire ni déplaçable ni résoluble,
 écriture qui échoue en silence après normalisation du texte par Notion — sont
