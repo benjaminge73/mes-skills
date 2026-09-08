@@ -117,6 +117,20 @@ Puis, dans le même tour, avant la première étape :
   complète de tests puis, tout vert, le merge par la CI : sans lui, ce dépôt ne
   joue que les tests unitaires).
 
+- **Calculer les vagues**, une fois pour tout le plan : lire le tableau de
+  chevauchement du chapitre `Exécution` (`Étape · Fichiers touchés · Dépend de
+  · Vague`) et déterminer quelles étapes peuvent tourner en parallèle, et
+  lesquelles se regroupent dans un seul sous-agent. Le calcul, l'isolation par
+  worktree et le report sur la branche du plan vivent dans un fichier
+  partagé :
+
+  📄 `${CLAUDE_PLUGIN_ROOT}/skills/_partage/vagues.md`
+
+  Le résultat — la liste des vagues, une ligne par vague — s'ajoute à l'entrée
+  `Ouverture` du journal (§4), à côté des trois réponses sur la CI ci-dessus :
+  les deux relevés commandent la suite de la même façon, et se lisent
+  ensemble.
+
 **Par défaut, un plan = une seule branche, et aucune PR tant que Benjamin ne la
 demande pas** (§3, §6). Les étapes sont des **commits** sur la branche du plan,
 pas des PR, et l'exécution **s'arrête à la branche** : travail complet, suite
@@ -222,9 +236,20 @@ plan au statut `valide`. Il n'y a pas à la redemander à Benjamin étape par é
 
 La session de pilotage reste en **Opus effort high** : elle lit le plan, découpe,
 brief, vérifie, écrit dans Notion. **Elle n'écrit pas elle-même le code des
-étapes déléguables.** Chaque étape part dans un sous-agent **Sonnet 5**, un par
-étape, **en séquence** — jamais en parallèle : les étapes d'un plan sont couplées,
-et deux sous-agents concurrents éditent les mêmes fichiers sans le savoir.
+étapes déléguables.** Chaque étape part dans un sous-agent **Sonnet 5** : **en
+séquence par défaut** — les étapes d'un plan sont couplées, et deux sous-agents
+concurrents peuvent éditer les mêmes fichiers sans le savoir —, **en parallèle
+par vagues** quand le calcul du §2 le permet, et **regroupées** dans un seul
+sous-agent quand il le prescrit. Le détail — calculer une vague, isoler chaque
+étape parallèle dans un worktree, reporter le travail sur la branche du plan
+dans l'ordre des numéros, regrouper deux étapes qui partagent un fichier — vit
+dans le fichier partagé du §2 :
+
+📄 `${CLAUDE_PLUGIN_ROOT}/skills/_partage/vagues.md`
+
+**À lire une fois, à l'ouverture, avant la première étape** — pas seulement au
+moment où une vague se présente : c'est le calcul du §2 qui dit s'il y en a
+une, et le relire à ce moment-là serait relire le plan à l'envers.
 
 Concrètement, **un appel de l'outil `Agent` par étape**, avec ces paramètres —
 ils ne sont pas indicatifs :
@@ -233,7 +258,7 @@ ils ne sont pas indicatifs :
 Agent({
   subagent_type: "general-purpose",   // il doit pouvoir écrire ; Explore et Plan sont en lecture seule
   model: "sonnet",                    // = Sonnet 5. Omettre ce champ fait hériter Opus : le coût du plan explose
-  run_in_background: false,           // séquentiel : on attend le rapport avant l'étape suivante
+  run_in_background: false,           // séquentiel — true pour les étapes d'une même vague (vagues.md)
   description: "Étape N — <titre court>",
   prompt: "<le brief ci-dessous>"
 })
@@ -254,14 +279,24 @@ et c'est ce qui donne ensuite l'envie de « faire soi-même ». Le brief porte d
 2. **Le contexte utile** : ce que les étapes précédentes ont produit (repris du
    `Journal d'exécution`, §4), la branche courante, les conventions du repo.
 3. **La liste fermée des fichiers qu'il a le droit de toucher**, et l'interdiction
-   d'en toucher d'autres.
+   d'en toucher d'autres — **même pour réparer un import qui casse en route**.
+   Un fichier touché « en passant », hors liste, est exactement ce qui rend une
+   vague dangereuse (`vagues.md`, les fichiers partagés non repérés) : le
+   signaler dans le rapport plutôt que le corriger soi-même.
 4. **La commande qui prouve que c'est fini**, à lancer, avec sa sortie à recopier
    telle quelle dans le rapport. Elle ne porte que sur **les tests des fichiers
    impactés** (§3, « précisément ») : ceux que l'étape écrit ou modifie, et ceux
    qui couvrent les sources qu'elle touche — jamais la suite complète.
+   **Le délai attendu quand elle est longue** : « `pytest` prend 4 minutes,
+   attends-le. » Sept abandons prématurés relevés sur l'historique viennent
+   d'un sous-agent qui rend la main pendant une commande encore en cours, faute
+   de savoir combien de temps l'attendre.
 5. **Ce qu'il ne fait pas** : ni `commit`, ni `push`, ni PR, ni élargissement du
-   périmètre, ni écriture dans Notion. En cas d'échec : **diagnostic, pas
-   correctif** — le debug revient à la session principale, seule à avoir le plan.
+   périmètre, ni écriture dans Notion — **sauf le regroupement de deux étapes**
+   (`vagues.md`), où il commite la première avant d'ouvrir la seconde, avec le
+   message fourni dans le brief : **la seule exception à cette règle.** En cas
+   d'échec : **diagnostic, pas correctif** — le debug revient à la session
+   principale, seule à avoir le plan.
 6. **Le format du rapport attendu** : fichiers réellement touchés, sortie de la
    commande, écarts par rapport au brief, blocages.
 
@@ -293,7 +328,10 @@ en disant quelles étapes ont été faites en direct et pourquoi.
   ou touché un fichier de plus que ce que la commande couvrait.
 - **Commiter l'étape sur la branche du plan**, et la pousser si le relevé du §2
   l'autorise (sous-section précédente). Pas de PR.
-- **Écrire l'entrée de journal de l'étape dans la page** (§4), sous son propre H3.
+- **Écrire l'entrée de journal de l'étape dans la page** (§4), sous son propre
+  H3. Pour une vague, les entrées se posent **dans l'ordre des numéros
+  d'étape**, jamais dans l'ordre d'arrivée des rapports de sous-agent
+  (`vagues.md`).
 - **Afficher un récap de l'étape dans la session** : ce qui a été fait, les
   fichiers touchés, le commit et le verdict de la preuve, les écarts, l'étape
   suivante.
@@ -331,6 +369,12 @@ avec un plan de suite (§7).
 Après **chaque** étape, écrire dans `Journal d'exécution` — et dans le miroir local
 du plan. C'est le briefing du sous-agent suivant, et c'est ce qui permet de
 reprendre après un compactage de contexte ou depuis une autre session.
+
+**Le journal s'écrit dans l'ordre des numéros d'étape, pas dans l'ordre
+d'arrivée des rapports.** Une vague de plusieurs étapes (`vagues.md`) rend ses
+rapports de sous-agent dans un ordre quelconque ; les entrées H3 se posent
+malgré tout en suivant N, pour que le journal reste lisible comme la suite du
+plan qu'il raconte, pas comme un journal des retours.
 
 **Une entrée = un titre H3**, repris mot pour mot du chapitre `Exécution` :
 `Étape N — <titre court de l'étape>`. Sans ce titre, l'entrée n'apparaît pas dans
@@ -572,6 +616,8 @@ celle qui la précède.
 - Il ne dépend d'aucun `CLAUDE.md`, d'aucun hook, d'aucun fichier du dépôt de
   travail. Ses compagnons sont les fichiers partagés
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/ecrire-dans-notion.md`,
+  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/vagues.md`,
+  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/schemas.md`,
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/remontee-sur-main.md` et
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/plan-de-suite.md`, livrés par le
   plugin `plans-notion` — pas par le dépôt de travail, quel qu'il soit.
