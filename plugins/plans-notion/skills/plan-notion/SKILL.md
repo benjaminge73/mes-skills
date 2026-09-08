@@ -444,6 +444,17 @@ C'est là que le plan cesse d'être une intention : si on ne sait pas encore
 l'écrire, c'est qu'on ne sait pas encore ce qu'on va faire, et c'est cette
 ignorance-là qu'il faut rendre visible.
 
+**En tête du chapitre, un tableau `Étape · Fichiers touchés · Dépend de ·
+Vague`**, une ligne par étape — le pre-flight scan du chapitre : il donne
+d'un coup d'œil ce qui se recoupe, avant même d'entrer dans le détail de
+chaque étape. La colonne `Vague` est **proposée** ici : deux étapes vont
+dans la même vague si elles ne partagent aucun fichier, si aucune ne dépend
+de l'autre, et si aucun fichier partagé (config, README, `CLAUDE.md`, test de
+décompte) n'est touché par les deux. Mais c'est `executer-plan-notion` qui la
+**calcule** à l'ouverture de l'exécution : le plan **déclare**, il
+n'**ordonnance** pas — calculer les vagues ici ferait mentir un plan qui
+change d'ordre en route sans que le tableau ne le sache.
+
 **Une étape = un titre H3** : `Étape 1 — Titre court de l'étape`. Comme pour les
 questions, c'est le H3 qui met l'étape dans la table des matières et permet d'y
 sauter directement ; une simple liste numérotée n'y apparaît pas. La numérotation
@@ -454,6 +465,13 @@ Sous chaque titre, le contenu de l'étape :
 
 - **Choix d'architecture** retenu — et celui qu'on écarte, avec la raison.
 - **Fichiers touchés**, chemin par chemin, en distinguant créé / modifié / supprimé.
+- **Dépend de** — les étapes et les questions dont l'étape a besoin, « — » si
+  aucune. C'est cette ligne, reprise dans le tableau de tête de chapitre, que
+  `executer-plan-notion` lit pour calculer les vagues d'exécution.
+- **Taille** — le nombre de fichiers touchés. Plus de cinq → découper l'étape :
+  l'enquête montre que tous les conflits d'exécution observés viennent d'un
+  fichier partagé non repéré, et une étape large le cache d'autant mieux
+  qu'elle est large.
 - **Blocs touchés** — les nœuds de la carte du dépôt (chapitre `Cartes`) que
   l'étape modifie. « Aucun bloc de la carte » est une réponse valable, et il
   faut l'écrire plutôt que laisser la ligne vide.
@@ -514,8 +532,10 @@ l'efface sans prévenir, parce que recréer un bloc `to-do` le rend vierge.
 
 Le protocole en cinq temps — relever avant d'écrire, éditer de façon ciblée,
 remettre les `- [x]` en cas de refonte, ne jamais reformuler Benjamin, vérifier
-après coup — et les trois pièges de l'API : `update_content` qui ne décoche pas,
-l'écriture qui échoue en silence, le commentaire qu'on ne résout jamais soi-même.
+après coup — et les cinq pièges de l'API : `update_content` qui ne décoche pas,
+l'écriture qui échoue en silence, le commentaire qu'on ne résout jamais
+soi-même, `replace_all_matches` sur un motif de balisage, et l'insertion
+ancrée au milieu d'un paragraphe formaté.
 
 Il porte aussi **« Le bleu des retouches »** : ce qui a bougé à la dernière passe
 s'écrit en bleu, et le bleu de la passe d'avant redevient neutre — dans cet ordre,
@@ -606,12 +626,31 @@ Quand Benjamin valide le plan :
    `Exécution` juste, ou il n'y passe pas : c'est ce chapitre-là, et pas les
    réponses éparpillées dans la page, qui part dans les briefs des sous-agents
    d'exécution.
-2. **Passer le plan au filtre de l'enquête.** Trois vérifications, et elles se
-   font page ouverte, pas de mémoire : plus aucune question ouverte dont la réponse
-   était vérifiable et n'a pas été vérifiée ; plus aucune option qui reporte une
-   mesure faisable aujourd'hui ; chaque chemin de « Fichiers touchés » qui existe
-   vraiment, ou qui est annoncé comme une création. Ce filtre coûte quelques minutes
-   ici et évite la découverte en pleine exécution, qui coûte une étape.
+2. **Passer le plan au filtre de l'enquête.** Sept vérifications, et elles se
+   font page ouverte, pas de mémoire :
+   1. plus aucune question ouverte dont la réponse était vérifiable et n'a pas
+      été vérifiée ;
+   2. plus aucune option qui reporte une mesure faisable aujourd'hui ;
+   3. chaque chemin de « Fichiers touchés » qui existe vraiment, ou qui est
+      annoncé comme une création ;
+   4. une relecture de **cohérence interne** : les renvois entre sections
+      pointent juste, l'ordre des étapes est le bon, et aucune prémisse ne
+      contredit une réponse tranchée plus loin dans la page ;
+   5. chaque « Preuve de fin » a été **jouée**, ou est **réfutable**, avant de
+      passer `valide` — une preuve qu'on ne peut ni jouer ni contredire ne
+      prouve rien à l'exécution ;
+   6. aucun chiffre n'est repris d'un plan `#N-1` **sans remesure** ;
+   7. toute question chiffrée porte, à côté de sa réponse, la commande jouée
+      et son résultat — sinon rien ne permet de la remesurer au point 6
+      suivant.
+
+   Les quatre derniers points viennent de l'enquête sur les plans passés : la
+   page du plan elle-même est la source de **11 %** des découvertes manquées à
+   l'exécution — ordre des étapes faux, preuve de fin impossible à jouer,
+   renvois périmés — et des chiffres recopiés d'un plan antérieur s'y sont
+   trouvés faux avec des écarts allant jusqu'à **80 %**. Ce filtre coûte
+   quelques minutes ici et évite la découverte en pleine exécution, qui coûte
+   une étape.
 3. Passer `Statut` à `valide`.
 4. Le dire en une ligne, et **invoquer `executer-plan-notion`** si l'implémentation
    enchaîne dans la foulée. Un skill n'en charge pas un autre tout seul : sans
