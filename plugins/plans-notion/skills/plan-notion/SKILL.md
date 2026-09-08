@@ -5,6 +5,31 @@ description: Écrit et fait évoluer un plan de travail dans Notion au lieu du c
 
 # Plan dans Notion
 
+## Suis-je la bonne version ?
+
+Le 2026-09-08, une session a chargé ce skill depuis une copie synchronisée
+périmée (`~/.claude/remote/plugins/<hash>/`, version 0.3.0 alors que 0.7.0
+était installée) et a travaillé tout un plan sur les mauvaises règles. Un
+skill ne choisit pas d'où il est chargé ; il peut seulement le constater.
+
+À vérifier au chargement, en une commande :
+
+```bash
+python3 -c 'import json,os;d=json.load(open(os.path.expanduser("~/.claude/plugins/installed_plugins.json")))["plugins"]["plans-notion@atelier"][0];print(d["version"],d["installPath"])'
+cat "${CLAUDE_PLUGIN_ROOT}/.claude-plugin/plugin.json" | grep '"version"'
+```
+
+Les deux versions doivent être identiques, et le chemin annoncé au chargement
+(« Base directory for this skill », soit `${CLAUDE_PLUGIN_ROOT}`) doit être
+l'`installPath` rendu ci-dessus. Écart → le dire à Benjamin en une ligne, puis
+lire ce `SKILL.md` et `_partage/` depuis cet `installPath`, pas depuis la
+copie chargée. Pour charger la plus récente : `claude plugin update
+plans-notion@atelier` (redémarrage requis) ; en session cloud, le setup
+script pose déjà la dernière version publiée — jamais plus loin que ce que
+`main` du dépôt porte. Ce que cette garde ne règle pas : une copie qui ne
+l'embarque pas ne préviendra jamais — elle protège à partir de la version qui
+la porte.
+
 ## Deux règles qui priment sur tout
 
 ### 1. Ne jamais cocher une case à la place de Benjamin
