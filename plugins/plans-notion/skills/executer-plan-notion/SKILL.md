@@ -95,9 +95,23 @@ Puis, dans le même tour, avant la première étape :
   implicite, plus personne ne saura ensuite distinguer ce qui a été choisi par
   accord de ce qui a été choisi faute de réponse.
 - `Statut` = `en cours`, propriété `Branche` renseignée.
-- Créer **la** branche du plan : `type/thème-en-kebab` (`feat/`, `fix/`, `chore/`,
-  `docs/`, `refactor/`), nommée d'après le sujet du plan et **dérivée de `main` à
+- Créer **la** branche du plan **dans un worktree**, jamais dans le checkout
+  principal : nom `type/thème-en-kebab` (`feat/`, `fix/`, `chore/`, `docs/`,
+  `refactor/`), nommée d'après le sujet du plan et **dérivée de `main` à
   jour**. Jamais de travail sur `main`.
+
+  ```bash
+  mkdir -p ~/repos/worktrees/<repo>
+  git worktree add ~/repos/worktrees/<repo>/<branche-kebab> -b <branche> origin/main
+  ```
+
+  Le checkout principal du dépôt peut être occupé par une autre session au
+  même moment ; y créer la branche du plan directement, c'est risquer que les
+  deux modifient le même répertoire sans le savoir — 7 incidents de checkout
+  partagé relevés sur l'historique, la raison même de la règle globale
+  `CLAUDE.md` sur les worktrees, qui entre ici dans le skill qui ouvre les
+  branches. Toute la suite de l'exécution (§3 et suivants) se joue dans ce
+  worktree ; il est retiré à la clôture (§6), pas avant.
 - **Relever ce qui déclenche la CI du dépôt**, une fois pour tout le plan :
 
   ```bash
@@ -212,8 +226,12 @@ Le défaut, sauf avis contraire de Benjamin :
   données, un contrat d'API, une dépendance, ou déborder sur des fichiers hors du
   périmètre de l'étape. Dans ce cas : **le travail de l'étape ne monte pas sur la
   branche du plan** — il part sur une branche de côté
-  `<branche-du-plan>/etape-N-en-echec`, sans PR (donc sans CI), pour n'être ni
-  perdu ni mêlé à ce qui est livré ; entrée de journal avec la sortie de la
+  `<branche-du-plan>-etape-N-en-echec` (tiret, pas `/` : cette dernière forme
+  est **impossible** en git dès que `<branche-du-plan>` existe déjà comme
+  branche — `refs/heads/<branche-du-plan>` ne peut pas être à la fois un
+  fichier et un dossier sous `refs/heads/`, cf. `vagues.md`), sans PR (donc
+  sans CI), pour n'être ni perdu ni mêlé à ce qui est livré ; entrée de journal
+  avec la sortie de la
   preuve, le nom de cette branche **et le correctif envisagé** ; l'exécution
   continue sur les étapes qui n'en dépendent pas ; et l'arbitrage part dans le
   plan de suite (§7). Ce n'est pas à moi de trancher un correctif structurant en
@@ -297,8 +315,22 @@ et c'est ce qui donne ensuite l'envie de « faire soi-même ». Le brief porte d
    message fourni dans le brief : **la seule exception à cette règle.** En cas
    d'échec : **diagnostic, pas correctif** — le debug revient à la session
    principale, seule à avoir le plan.
-6. **Le format du rapport attendu** : fichiers réellement touchés, sortie de la
-   commande, écarts par rapport au brief, blocages.
+6. **Le format du rapport attendu** — quatre pièces, toujours dans cet ordre :
+   - **Un état, un seul, parmi quatre** : `DONE` (fait, prouvé, rien à
+     signaler), `DONE_WITH_CONCERNS` (fait et prouvé, mais quelque chose mérite
+     un regard — un écart, un choix rendu sans arbitrage), `NEEDS_CONTEXT` (le
+     brief manque d'une information pour continuer), `BLOCKED` (bloqué, en
+     disant sur quoi). Un rapport sans état explicite se lit comme
+     `DONE_WITH_CONCERNS` par défaut, jamais comme `DONE`.
+   - **Fichiers réellement touchés** et le SHA du commit s'il y en a un
+     (regroupement, `vagues.md`).
+   - **La sortie de la commande de preuve**, telle quelle.
+   - **Les écarts par rapport au brief**, et **chaque décision prise en
+     route** au format : « quoi — pourquoi — ce que ça coûte si c'est faux. »
+     Un sous-agent tranche parfois un détail que le brief ne couvrait pas
+     (l'ordre de deux paramètres, le nom d'une variable locale) ; ce format
+     dit à la session principale ce qui a été décidé sans elle, sans qu'elle
+     ait à rejouer le diff pour le retrouver.
 
 ### Ce qui reste dans la session principale
 
@@ -388,7 +420,9 @@ l'existant par étape et en posant les H3 au-dessus, **sans reformuler une ligne
 Sous ce titre, l'entrée porte :
 
 - **ce qui a été fait**, dans le détail — assez pour comprendre sans relire le diff ;
-- les **décisions prises en route**, et ce qu'elles écartent ;
+- les **décisions prises en route**, chacune au format « quoi — pourquoi — ce
+  que ça coûte si c'est faux » (§3, « Le format du rapport attendu »), qu'elle
+  vienne du sous-agent ou de la session de pilotage elle-même ;
 - les **fichiers réellement touchés** ;
 - la **preuve** : commande jouée en local, les tests qu'elle couvre — ceux de
   l'étape, ceux des fichiers impactés — et sa sortie ;
@@ -431,6 +465,14 @@ Le libellé se complète par **l'endroit où c'était trouvable** — `fichier:l
 page du plan antérieur, la commande qui l'aurait dit. C'est ce qui transforme un
 regret en consigne : la prochaine enquête sait où regarder.
 
+**Cas particulier, à distinguer explicitement** : quand l'information était
+lisible **sur la page du plan elle-même** — une réponse à une question, une
+remarque dans le corps, un texte après `Autre / complément →` — le libellé se
+précise en `découverte — trouvable au plan — sur la page`. 11 % des découvertes
+manquées de l'historique étaient de ce cas précis : l'enquête préalable avait
+lu le dépôt sans se relire elle-même. Ce libellé-là dit à la prochaine synthèse
+combien de fois le manque venait de la page et pas du code.
+
 **Dans le doute, écrire `trouvable`.** Le biais doit pousser vers plus d'enquête, pas
 vers l'auto-absolution. Et un libellé posé ne se rétro-classe pas à la clôture,
 quand l'étape est réussie et que tout paraît moins grave.
@@ -454,8 +496,11 @@ Une écriture maladroite les efface sans rien signaler.
 
 Le protocole en cinq temps — relever avant d'écrire, éditer de façon ciblée,
 remettre les `- [x]` en cas de refonte, ne jamais reformuler Benjamin, vérifier
-après coup — et les trois pièges de l'API : `update_content` qui ne décoche pas,
-l'écriture qui échoue en silence, le commentaire qu'on ne résout jamais soi-même.
+après coup — et les cinq pièges de l'API : `update_content` qui ne décoche pas,
+l'écriture qui échoue en silence, le commentaire qu'on ne résout jamais
+soi-même, `replace_all_matches` jamais employé sur un motif fait de caractères
+de balisage, et une insertion jamais ancrée au milieu d'un paragraphe formaté —
+toujours sur une frontière de bloc.
 
 Il porte aussi **« Le bleu des retouches »**, et cette règle-là s'applique ici pour
 une raison précise : **la remise à jour du chapitre `Exécution` en ouverture est une
@@ -509,7 +554,30 @@ Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard » :
 - `Journal d'exécution` clos par une entrée `État final` (H3, comme les autres,
   §4) : ce qui est livré, le verdict de la suite complète (point 1 ci-dessous),
   les écarts, le reste à faire s'il y en a, et le lien vers le plan de suite s'il
-  y en a un (§7).
+  y en a un (§7). Cette entrée porte aussi :
+  - **le décompte des découvertes, vérifié mécaniquement** — jamais recompté
+    de tête : `grep -c 'découverte — trouvable' <journal>` et
+    `grep -c 'découverte — pas trouvable' <journal>` sur le texte du journal,
+    chiffres recopiés tels quels dans la ligne `3 découvertes, dont 1
+    trouvable au plan` (§4). Neuf décomptes faux sur 34 dans l'historique
+    venaient d'un compte de tête ;
+  - **un verdict par étape, `verified` ou `unverifiable`** — jamais un
+    troisième mot. `verified` : la preuve du brief a été rejouée par la
+    session et elle est verte (§3). `unverifiable` : une preuve qu'on n'a pas
+    pu jouer — poste sans navigateur pour des e2e, service externe
+    indisponible — **n'est pas verte** ; elle se nomme comme telle, avec la
+    raison, plutôt que de se fondre dans un compte rendu qui donne l'illusion
+    que tout est passé ;
+  - **une rétrospective en cinq questions**, courte : qu'est-ce qui s'est
+    passé, qu'est-ce qui a marché, qu'est-ce qui a surpris, une note sur 10,
+    qu'est-ce qu'on ferait autrement. C'est ce qui nourrira la prochaine
+    relecture d'historique sans re-dépouiller les plans passés un par un ;
+  - **les schémas relus** — contrôle de `schemas.md` : autant de nœuds
+    d'étape dans « le plan en un schéma » que de titres H3 `Étape N` sur la
+    page, et les vagues réellement déroulées (§3 ci-dessus, `vagues.md`)
+    reportées dans les `subgraph` si elles diffèrent de ce qui était prévu.
+
+    📄 `${CLAUDE_PLUGIN_ROOT}/skills/_partage/schemas.md`
 - Le compte rendu dit **quelles étapes sont parties en sous-agent Sonnet** et,
   pour celles faites en direct, pourquoi (§3). Il dit aussi, en une ligne, que
   **la PR n'est pas ouverte et qu'elle le sera sur demande** — avec le label
@@ -533,6 +601,12 @@ Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard » :
      que sur un disque. La sortie de la preuve va au journal (`État final`).
   3. **Ne pas ouvrir la PR.** Ni la merger, ni la préparer « pour gagner du
      temps ». Le compte rendu s'arrête sur la branche, prouvée et poussée.
+  4. **Retirer le worktree**, `git worktree remove ~/repos/worktrees/<repo>/
+     <branche-kebab>` — **la branche, elle, reste** : c'est le hook
+     `SessionStart` qui la nettoiera après le merge éventuel, et **une branche
+     encore checked-out dans un worktree n'est jamais nettoyée par ce hook**
+     tant que le worktree existe. Retirer le worktree avant le hook, jamais la
+     branche à sa place.
 
 Un plan laissé à `en cours` raconte que le travail est en suspens alors qu'il est
 livré, et c'est la page qui fait foi. Ce statut s'oublie exactement comme la règle
@@ -595,7 +669,13 @@ celle qui la précède.
   clôture (§7), qui repart ensuite en `plan-notion` comme n'importe quel brouillon.
 - Il ne code pas si le statut n'est pas `valide`.
 - Il n'écrit pas lui-même le code des étapes déléguables : ça part en sous-agent
-  `general-purpose` **Sonnet 5** (§3). Piloter, ce n'est pas coder.
+  `general-purpose` **Sonnet 5** — un par étape en séquence par défaut, mais
+  pas absolument : en parallèle par vagues, ou regroupées, quand `vagues.md`
+  le permet ou le prescrit (§3). Piloter, ce n'est pas coder.
+- Il ne code jamais dans le checkout principal du dépôt : la branche du plan
+  vit dans un worktree dédié dès sa création (§2), retiré à la clôture (§6) —
+  jamais avant, et jamais à la place de la branche elle-même, que le hook
+  `SessionStart` nettoie après le merge.
 - Il n'ouvre **aucune PR de sa propre initiative** — ni d'étape, ni de
   clôture (§6). L'exécution s'arrête à la branche du plan, prouvée en local et
   poussée. Chaque PR est un run de CI, et le quota GitHub Actions est la
