@@ -1,7 +1,7 @@
 {
   "$schema": "https://anthropic.com/claude-code/plugin.schema.json",
   "name": "methode-de-travail",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Trois disciplines qui s'appliquent avant d'agir : dialoguer avant de créer (brainstorming), trouver la cause racine avant de corriger (systematic-debugging), produire la preuve avant d'annoncer que c'est fini (verification-before-completion).",
   "author": {
     "name": "benjaminge73"

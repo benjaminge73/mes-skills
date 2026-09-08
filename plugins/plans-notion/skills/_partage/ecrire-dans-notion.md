@@ -78,7 +78,7 @@ appel n'échoue.
   fragile à écrire et illisible à relire ; on veut repérer *où* regarder, pas rejouer
   la modification.
 
-### Quatre choses que le bleu ne touche jamais
+### Cinq choses que le bleu ne touche jamais
 
 - **Une couleur qui porte déjà un sens.** Les encadrés de questions disent leur état
   par leur fond — orange = ouverte, vert = tranchée. Repeindre un tel encadré en bleu
@@ -94,6 +94,10 @@ appel n'échoue.
   pourquoi la correction datée reste obligatoire et n'est pas un doublon du bleu : le
   bleu dit **où** regarder, la ligne `_maj AAAA-MM-JJ — …_` dit **quoi** et
   **pourquoi**.
+- **Un bloc de code, Mermaid compris.** Un ```` ```mermaid ```` est un bloc de code :
+  ni `{color="blue"}` ni un `<span>` n'y ont d'effet, et un `<span>` glissé à
+  l'intérieur casserait le diagramme lui-même. C'est la légende juste au-dessus du
+  bloc qui porte le bleu, et qui dit ce qui a changé dans le schéma.
 
 ### Ce que ça coûte, et ce que ça ne risque pas
 
@@ -109,7 +113,11 @@ Et parce qu'une passe de couleur touche beaucoup de blocs d'un coup, le recompta
 l'étape 5 du protocole n'est pas une formalité : c'est le seul contrôle qui attrape une
 case perdue au milieu d'une repeinte.
 
-## Trois pièges de l'API Notion, vérifiés sur pièce le 2026-08-17
+## Cinq pièges de l'API Notion, vérifiés sur pièce
+
+Les trois premiers datent du 2026-08-17. Les deux derniers viennent du journal
+du plan « Carte d'architecture engendrée » (dépôt Vahiny), vérifiés le
+2026-09-07.
 
 1. **`update_content` ne décoche pas.** Il ne change pas l'attribut coché d'un
    bloc `to-do` : il remplace son texte, et **l'appel rend un succès** même si la
@@ -126,6 +134,24 @@ case perdue au milieu d'une repeinte.
    Benjamin, et c'est ce qui donne gratuitement la liste à traiter à la passe
    suivante. Un commentaire dont l'ancre n'a pas survécu à une refonte se recopie
    — son texte et la réponse — dans la section `Commentaires repris` de la page.
+4. **`replace_all_matches` ne s'emploie jamais sur un motif fait de caractères
+   de balisage** (`*`, un accent grave) : le motif atteint aussi l'intérieur
+   d'un bloc de code inline, et le remplacement global y altère un fait, pas
+   de la mise en forme. Dégât réel : un motif cru anodin a changé un fragment
+   de code au passage, sans que rien ne le signale. Geste sûr : cibler chaque
+   occurrence une par une, avec un `old_str` qui inclut du texte voisin non
+   balisé — jamais le motif balisé seul.
+5. **Une insertion s'ancre sur une frontière de bloc, jamais au milieu d'un
+   paragraphe formaté.** L'appel **rend un succès** et casse l'italique (ou le
+   gras) du paragraphe visé. Geste sûr : ancrer le `old_str` sur la fin
+   complète d'un bloc — son dernier caractère — et faire commencer le
+   `new_str` par ce même texte suivi d'un saut de ligne, jamais en plein
+   milieu d'une phrase balisée.
+
+**Remarque, vérifiée le 2026-09-08** sur la page du plan qui commande cette
+étape : Notion transforme un nom de fichier nu comme `CLAUDE.md` ou
+`SKILL.md` en lien `http://…` dès qu'il n'est pas entre accents graves.
+Toujours écrire ces noms en code inline, jamais en texte nu.
 
 ## Rappel de vocabulaire
 

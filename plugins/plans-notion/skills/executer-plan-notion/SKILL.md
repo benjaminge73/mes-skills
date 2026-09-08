@@ -1,9 +1,35 @@
 ---
 name: executer-plan-notion
-description: Implémente un plan de travail cadré dans Notion — vérification du statut avant de coder, découpe en étapes, sous-agents, journal d'exécution écrit sur la page, statut final. À charger AVANT d'écrire la moindre ligne de code dès que Benjamin donne le feu vert sur un travail déjà cadré, par exemple « go », « vas-y », « on y va », « attaque », « tu peux coder », « lance l'implémentation », « déroule le plan », « on passe à la réalisation », « c'est bon pour moi ». À charger aussi pour reprendre un chantier commencé — « reprends là où on s'est arrêté », « continue le refacto », « t'en étais à l'étape 2 », « on continue l'exécution ». À charger aussi quand Benjamin demande la PR ou la remontée sur `main` d'un travail déjà livré — « ouvre la PR », « merge sur main », « tu peux merger directement », « pousse ça sur main » — y compris dans une session où rien n'a été codé : la PR du plan ne s'ouvre que sur sa demande, et c'est ce skill qui fait passer la page de `a merger` à `execute`, sans quoi le merge a lieu mais la page ment. Vaut même si ni Notion ni le mot « plan » ne sont cités, même si seule une partie des étapes est demandée, et même si le plan n'est pas encore validé, car c'est ce skill qui dit quoi faire dans ce cas. Commence toujours par remettre le chapitre Exécution du plan à jour des dernières réponses et commentaires de Benjamin, y compris quand il a validé la page lui-même sans repasser par plan-notion. Ne couvre pas la conception du plan, qui relève du skill plan-notion, ni une tâche isolée sans plan derrière.
+description: >-
+  Implémente un plan de travail cadré dans Notion — vérification du statut avant de coder, découpe en étapes, sous-agents, journal d'exécution écrit sur la page, statut final. À charger AVANT d'écrire la moindre ligne de code dès que Benjamin donne le feu vert sur un travail déjà cadré, par exemple « go », « vas-y », « on y va », « attaque », « tu peux coder », « lance l'implémentation », « déroule le plan », « on passe à la réalisation », « c'est bon pour moi ». À charger aussi pour reprendre un chantier commencé — « reprends là où on s'est arrêté », « continue le refacto », « t'en étais à l'étape 2 », « on continue l'exécution ». À charger aussi quand Benjamin demande la PR ou la remontée sur `main` d'un travail déjà livré — « ouvre la PR », « merge sur main », « tu peux merger directement », « pousse ça sur main » — y compris dans une session où rien n'a été codé : la PR du plan ne s'ouvre que sur sa demande, et c'est ce skill qui fait passer la page de `a merger` à `execute`, sans quoi le merge a lieu mais la page ment. Vaut même si ni Notion ni le mot « plan » ne sont cités, même si seule une partie des étapes est demandée, et même si le plan n'est pas encore validé, car c'est ce skill qui dit quoi faire dans ce cas. Commence toujours par remettre le chapitre Exécution du plan à jour des dernières réponses et commentaires de Benjamin, y compris quand il a validé la page lui-même sans repasser par plan-notion. Ne couvre pas la conception du plan, qui relève du skill plan-notion, ni une tâche isolée sans plan derrière.
 ---
 
 # Exécuter un plan Notion
+
+## Suis-je la bonne version ?
+
+Le 2026-09-08, une session a chargé ce skill depuis une copie synchronisée
+périmée (`~/.claude/remote/plugins/<hash>/`, version 0.3.0 alors que 0.7.0
+était installée) et a travaillé tout un plan sur les mauvaises règles. Un
+skill ne choisit pas d'où il est chargé ; il peut seulement le constater.
+
+À vérifier au chargement, en une commande :
+
+```bash
+python3 -c 'import json,os;d=json.load(open(os.path.expanduser("~/.claude/plugins/installed_plugins.json")))["plugins"]["plans-notion@atelier"][0];print(d["version"],d["installPath"])'
+cat "${CLAUDE_PLUGIN_ROOT}/.claude-plugin/plugin.json" | grep '"version"'
+```
+
+Les deux versions doivent être identiques, et le chemin annoncé au chargement
+(« Base directory for this skill », soit `${CLAUDE_PLUGIN_ROOT}`) doit être
+l'`installPath` rendu ci-dessus. Écart → le dire à Benjamin en une ligne, puis
+lire ce `SKILL.md` et `_partage/` depuis cet `installPath`, pas depuis la
+copie chargée. Pour charger la plus récente : `claude plugin update
+plans-notion@atelier` (redémarrage requis) ; en session cloud, le setup
+script pose déjà la dernière version publiée — jamais plus loin que ce que
+`main` du dépôt porte. Ce que cette garde ne règle pas : une copie qui ne
+l'embarque pas ne préviendra jamais — elle protège à partir de la version qui
+la porte.
 
 ## La porte d'entrée
 
@@ -95,9 +121,23 @@ Puis, dans le même tour, avant la première étape :
   implicite, plus personne ne saura ensuite distinguer ce qui a été choisi par
   accord de ce qui a été choisi faute de réponse.
 - `Statut` = `en cours`, propriété `Branche` renseignée.
-- Créer **la** branche du plan : `type/thème-en-kebab` (`feat/`, `fix/`, `chore/`,
-  `docs/`, `refactor/`), nommée d'après le sujet du plan et **dérivée de `main` à
+- Créer **la** branche du plan **dans un worktree**, jamais dans le checkout
+  principal : nom `type/thème-en-kebab` (`feat/`, `fix/`, `chore/`, `docs/`,
+  `refactor/`), nommée d'après le sujet du plan et **dérivée de `main` à
   jour**. Jamais de travail sur `main`.
+
+  ```bash
+  mkdir -p ~/repos/worktrees/<repo>
+  git worktree add ~/repos/worktrees/<repo>/<branche-kebab> -b <branche> origin/main
+  ```
+
+  Le checkout principal du dépôt peut être occupé par une autre session au
+  même moment ; y créer la branche du plan directement, c'est risquer que les
+  deux modifient le même répertoire sans le savoir — 7 incidents de checkout
+  partagé relevés sur l'historique, la raison même de la règle globale
+  `CLAUDE.md` sur les worktrees, qui entre ici dans le skill qui ouvre les
+  branches. Toute la suite de l'exécution (§3 et suivants) se joue dans ce
+  worktree ; il est retiré à la clôture (§6), pas avant.
 - **Relever ce qui déclenche la CI du dépôt**, une fois pour tout le plan :
 
   ```bash
@@ -116,6 +156,20 @@ Puis, dans le même tour, avant la première étape :
   remonter sur `main` — sur `vahiny`, `review-required` commande la suite
   complète de tests puis, tout vert, le merge par la CI : sans lui, ce dépôt ne
   joue que les tests unitaires).
+
+- **Calculer les vagues**, une fois pour tout le plan : lire le tableau de
+  chevauchement du chapitre `Exécution` (`Étape · Fichiers touchés · Dépend de
+  · Vague`) et déterminer quelles étapes peuvent tourner en parallèle, et
+  lesquelles se regroupent dans un seul sous-agent. Le calcul, l'isolation par
+  worktree et le report sur la branche du plan vivent dans un fichier
+  partagé :
+
+  📄 `${CLAUDE_PLUGIN_ROOT}/skills/_partage/vagues.md`
+
+  Le résultat — la liste des vagues, une ligne par vague — s'ajoute à l'entrée
+  `Ouverture` du journal (§4), à côté des trois réponses sur la CI ci-dessus :
+  les deux relevés commandent la suite de la même façon, et se lisent
+  ensemble.
 
 **Par défaut, un plan = une seule branche, et aucune PR tant que Benjamin ne la
 demande pas** (§3, §6). Les étapes sont des **commits** sur la branche du plan,
@@ -198,8 +252,12 @@ Le défaut, sauf avis contraire de Benjamin :
   données, un contrat d'API, une dépendance, ou déborder sur des fichiers hors du
   périmètre de l'étape. Dans ce cas : **le travail de l'étape ne monte pas sur la
   branche du plan** — il part sur une branche de côté
-  `<branche-du-plan>/etape-N-en-echec`, sans PR (donc sans CI), pour n'être ni
-  perdu ni mêlé à ce qui est livré ; entrée de journal avec la sortie de la
+  `<branche-du-plan>-etape-N-en-echec` (tiret, pas `/` : cette dernière forme
+  est **impossible** en git dès que `<branche-du-plan>` existe déjà comme
+  branche — `refs/heads/<branche-du-plan>` ne peut pas être à la fois un
+  fichier et un dossier sous `refs/heads/`, cf. `vagues.md`), sans PR (donc
+  sans CI), pour n'être ni perdu ni mêlé à ce qui est livré ; entrée de journal
+  avec la sortie de la
   preuve, le nom de cette branche **et le correctif envisagé** ; l'exécution
   continue sur les étapes qui n'en dépendent pas ; et l'arbitrage part dans le
   plan de suite (§7). Ce n'est pas à moi de trancher un correctif structurant en
@@ -222,9 +280,20 @@ plan au statut `valide`. Il n'y a pas à la redemander à Benjamin étape par é
 
 La session de pilotage reste en **Opus effort high** : elle lit le plan, découpe,
 brief, vérifie, écrit dans Notion. **Elle n'écrit pas elle-même le code des
-étapes déléguables.** Chaque étape part dans un sous-agent **Sonnet 5**, un par
-étape, **en séquence** — jamais en parallèle : les étapes d'un plan sont couplées,
-et deux sous-agents concurrents éditent les mêmes fichiers sans le savoir.
+étapes déléguables.** Chaque étape part dans un sous-agent **Sonnet 5** : **en
+séquence par défaut** — les étapes d'un plan sont couplées, et deux sous-agents
+concurrents peuvent éditer les mêmes fichiers sans le savoir —, **en parallèle
+par vagues** quand le calcul du §2 le permet, et **regroupées** dans un seul
+sous-agent quand il le prescrit. Le détail — calculer une vague, isoler chaque
+étape parallèle dans un worktree, reporter le travail sur la branche du plan
+dans l'ordre des numéros, regrouper deux étapes qui partagent un fichier — vit
+dans le fichier partagé du §2 :
+
+📄 `${CLAUDE_PLUGIN_ROOT}/skills/_partage/vagues.md`
+
+**À lire une fois, à l'ouverture, avant la première étape** — pas seulement au
+moment où une vague se présente : c'est le calcul du §2 qui dit s'il y en a
+une, et le relire à ce moment-là serait relire le plan à l'envers.
 
 Concrètement, **un appel de l'outil `Agent` par étape**, avec ces paramètres —
 ils ne sont pas indicatifs :
@@ -233,7 +302,7 @@ ils ne sont pas indicatifs :
 Agent({
   subagent_type: "general-purpose",   // il doit pouvoir écrire ; Explore et Plan sont en lecture seule
   model: "sonnet",                    // = Sonnet 5. Omettre ce champ fait hériter Opus : le coût du plan explose
-  run_in_background: false,           // séquentiel : on attend le rapport avant l'étape suivante
+  run_in_background: false,           // séquentiel — true pour les étapes d'une même vague (vagues.md)
   description: "Étape N — <titre court>",
   prompt: "<le brief ci-dessous>"
 })
@@ -254,16 +323,40 @@ et c'est ce qui donne ensuite l'envie de « faire soi-même ». Le brief porte d
 2. **Le contexte utile** : ce que les étapes précédentes ont produit (repris du
    `Journal d'exécution`, §4), la branche courante, les conventions du repo.
 3. **La liste fermée des fichiers qu'il a le droit de toucher**, et l'interdiction
-   d'en toucher d'autres.
+   d'en toucher d'autres — **même pour réparer un import qui casse en route**.
+   Un fichier touché « en passant », hors liste, est exactement ce qui rend une
+   vague dangereuse (`vagues.md`, les fichiers partagés non repérés) : le
+   signaler dans le rapport plutôt que le corriger soi-même.
 4. **La commande qui prouve que c'est fini**, à lancer, avec sa sortie à recopier
    telle quelle dans le rapport. Elle ne porte que sur **les tests des fichiers
    impactés** (§3, « précisément ») : ceux que l'étape écrit ou modifie, et ceux
    qui couvrent les sources qu'elle touche — jamais la suite complète.
+   **Le délai attendu quand elle est longue** : « `pytest` prend 4 minutes,
+   attends-le. » Sept abandons prématurés relevés sur l'historique viennent
+   d'un sous-agent qui rend la main pendant une commande encore en cours, faute
+   de savoir combien de temps l'attendre.
 5. **Ce qu'il ne fait pas** : ni `commit`, ni `push`, ni PR, ni élargissement du
-   périmètre, ni écriture dans Notion. En cas d'échec : **diagnostic, pas
-   correctif** — le debug revient à la session principale, seule à avoir le plan.
-6. **Le format du rapport attendu** : fichiers réellement touchés, sortie de la
-   commande, écarts par rapport au brief, blocages.
+   périmètre, ni écriture dans Notion — **sauf le regroupement de deux étapes**
+   (`vagues.md`), où il commite la première avant d'ouvrir la seconde, avec le
+   message fourni dans le brief : **la seule exception à cette règle.** En cas
+   d'échec : **diagnostic, pas correctif** — le debug revient à la session
+   principale, seule à avoir le plan.
+6. **Le format du rapport attendu** — quatre pièces, toujours dans cet ordre :
+   - **Un état, un seul, parmi quatre** : `DONE` (fait, prouvé, rien à
+     signaler), `DONE_WITH_CONCERNS` (fait et prouvé, mais quelque chose mérite
+     un regard — un écart, un choix rendu sans arbitrage), `NEEDS_CONTEXT` (le
+     brief manque d'une information pour continuer), `BLOCKED` (bloqué, en
+     disant sur quoi). Un rapport sans état explicite se lit comme
+     `DONE_WITH_CONCERNS` par défaut, jamais comme `DONE`.
+   - **Fichiers réellement touchés** et le SHA du commit s'il y en a un
+     (regroupement, `vagues.md`).
+   - **La sortie de la commande de preuve**, telle quelle.
+   - **Les écarts par rapport au brief**, et **chaque décision prise en
+     route** au format : « quoi — pourquoi — ce que ça coûte si c'est faux. »
+     Un sous-agent tranche parfois un détail que le brief ne couvrait pas
+     (l'ordre de deux paramètres, le nom d'une variable locale) ; ce format
+     dit à la session principale ce qui a été décidé sans elle, sans qu'elle
+     ait à rejouer le diff pour le retrouver.
 
 ### Ce qui reste dans la session principale
 
@@ -293,7 +386,10 @@ en disant quelles étapes ont été faites en direct et pourquoi.
   ou touché un fichier de plus que ce que la commande couvrait.
 - **Commiter l'étape sur la branche du plan**, et la pousser si le relevé du §2
   l'autorise (sous-section précédente). Pas de PR.
-- **Écrire l'entrée de journal de l'étape dans la page** (§4), sous son propre H3.
+- **Écrire l'entrée de journal de l'étape dans la page** (§4), sous son propre
+  H3. Pour une vague, les entrées se posent **dans l'ordre des numéros
+  d'étape**, jamais dans l'ordre d'arrivée des rapports de sous-agent
+  (`vagues.md`).
 - **Afficher un récap de l'étape dans la session** : ce qui a été fait, les
   fichiers touchés, le commit et le verdict de la preuve, les écarts, l'étape
   suivante.
@@ -332,6 +428,12 @@ Après **chaque** étape, écrire dans `Journal d'exécution` — et dans le mir
 du plan. C'est le briefing du sous-agent suivant, et c'est ce qui permet de
 reprendre après un compactage de contexte ou depuis une autre session.
 
+**Le journal s'écrit dans l'ordre des numéros d'étape, pas dans l'ordre
+d'arrivée des rapports.** Une vague de plusieurs étapes (`vagues.md`) rend ses
+rapports de sous-agent dans un ordre quelconque ; les entrées H3 se posent
+malgré tout en suivant N, pour que le journal reste lisible comme la suite du
+plan qu'il raconte, pas comme un journal des retours.
+
 **Une entrée = un titre H3**, repris mot pour mot du chapitre `Exécution` :
 `Étape N — <titre court de l'étape>`. Sans ce titre, l'entrée n'apparaît pas dans
 la table des matières de Notion — qui n'indexe que les *headings* — et le journal
@@ -344,7 +446,9 @@ l'existant par étape et en posant les H3 au-dessus, **sans reformuler une ligne
 Sous ce titre, l'entrée porte :
 
 - **ce qui a été fait**, dans le détail — assez pour comprendre sans relire le diff ;
-- les **décisions prises en route**, et ce qu'elles écartent ;
+- les **décisions prises en route**, chacune au format « quoi — pourquoi — ce
+  que ça coûte si c'est faux » (§3, « Le format du rapport attendu »), qu'elle
+  vienne du sous-agent ou de la session de pilotage elle-même ;
 - les **fichiers réellement touchés** ;
 - la **preuve** : commande jouée en local, les tests qu'elle couvre — ceux de
   l'étape, ceux des fichiers impactés — et sa sortie ;
@@ -387,6 +491,14 @@ Le libellé se complète par **l'endroit où c'était trouvable** — `fichier:l
 page du plan antérieur, la commande qui l'aurait dit. C'est ce qui transforme un
 regret en consigne : la prochaine enquête sait où regarder.
 
+**Cas particulier, à distinguer explicitement** : quand l'information était
+lisible **sur la page du plan elle-même** — une réponse à une question, une
+remarque dans le corps, un texte après `Autre / complément →` — le libellé se
+précise en `découverte — trouvable au plan — sur la page`. 11 % des découvertes
+manquées de l'historique étaient de ce cas précis : l'enquête préalable avait
+lu le dépôt sans se relire elle-même. Ce libellé-là dit à la prochaine synthèse
+combien de fois le manque venait de la page et pas du code.
+
 **Dans le doute, écrire `trouvable`.** Le biais doit pousser vers plus d'enquête, pas
 vers l'auto-absolution. Et un libellé posé ne se rétro-classe pas à la clôture,
 quand l'étape est réussie et que tout paraît moins grave.
@@ -410,8 +522,11 @@ Une écriture maladroite les efface sans rien signaler.
 
 Le protocole en cinq temps — relever avant d'écrire, éditer de façon ciblée,
 remettre les `- [x]` en cas de refonte, ne jamais reformuler Benjamin, vérifier
-après coup — et les trois pièges de l'API : `update_content` qui ne décoche pas,
-l'écriture qui échoue en silence, le commentaire qu'on ne résout jamais soi-même.
+après coup — et les cinq pièges de l'API : `update_content` qui ne décoche pas,
+l'écriture qui échoue en silence, le commentaire qu'on ne résout jamais
+soi-même, `replace_all_matches` jamais employé sur un motif fait de caractères
+de balisage, et une insertion jamais ancrée au milieu d'un paragraphe formaté —
+toujours sur une frontière de bloc.
 
 Il porte aussi **« Le bleu des retouches »**, et cette règle-là s'applique ici pour
 une raison précise : **la remise à jour du chapitre `Exécution` en ouverture est une
@@ -465,7 +580,30 @@ Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard » :
 - `Journal d'exécution` clos par une entrée `État final` (H3, comme les autres,
   §4) : ce qui est livré, le verdict de la suite complète (point 1 ci-dessous),
   les écarts, le reste à faire s'il y en a, et le lien vers le plan de suite s'il
-  y en a un (§7).
+  y en a un (§7). Cette entrée porte aussi :
+  - **le décompte des découvertes, vérifié mécaniquement** — jamais recompté
+    de tête : `grep -c 'découverte — trouvable' <journal>` et
+    `grep -c 'découverte — pas trouvable' <journal>` sur le texte du journal,
+    chiffres recopiés tels quels dans la ligne `3 découvertes, dont 1
+    trouvable au plan` (§4). Neuf décomptes faux sur 34 dans l'historique
+    venaient d'un compte de tête ;
+  - **un verdict par étape, `verified` ou `unverifiable`** — jamais un
+    troisième mot. `verified` : la preuve du brief a été rejouée par la
+    session et elle est verte (§3). `unverifiable` : une preuve qu'on n'a pas
+    pu jouer — poste sans navigateur pour des e2e, service externe
+    indisponible — **n'est pas verte** ; elle se nomme comme telle, avec la
+    raison, plutôt que de se fondre dans un compte rendu qui donne l'illusion
+    que tout est passé ;
+  - **une rétrospective en cinq questions**, courte : qu'est-ce qui s'est
+    passé, qu'est-ce qui a marché, qu'est-ce qui a surpris, une note sur 10,
+    qu'est-ce qu'on ferait autrement. C'est ce qui nourrira la prochaine
+    relecture d'historique sans re-dépouiller les plans passés un par un ;
+  - **les schémas relus** — contrôle de `schemas.md` : autant de nœuds
+    d'étape dans « le plan en un schéma » que de titres H3 `Étape N` sur la
+    page, et les vagues réellement déroulées (§3 ci-dessus, `vagues.md`)
+    reportées dans les `subgraph` si elles diffèrent de ce qui était prévu.
+
+    📄 `${CLAUDE_PLUGIN_ROOT}/skills/_partage/schemas.md`
 - Le compte rendu dit **quelles étapes sont parties en sous-agent Sonnet** et,
   pour celles faites en direct, pourquoi (§3). Il dit aussi, en une ligne, que
   **la PR n'est pas ouverte et qu'elle le sera sur demande** — avec le label
@@ -489,6 +627,12 @@ Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard » :
      que sur un disque. La sortie de la preuve va au journal (`État final`).
   3. **Ne pas ouvrir la PR.** Ni la merger, ni la préparer « pour gagner du
      temps ». Le compte rendu s'arrête sur la branche, prouvée et poussée.
+  4. **Retirer le worktree**, `git worktree remove ~/repos/worktrees/<repo>/
+     <branche-kebab>` — **la branche, elle, reste** : c'est le hook
+     `SessionStart` qui la nettoiera après le merge éventuel, et **une branche
+     encore checked-out dans un worktree n'est jamais nettoyée par ce hook**
+     tant que le worktree existe. Retirer le worktree avant le hook, jamais la
+     branche à sa place.
 
 Un plan laissé à `en cours` raconte que le travail est en suspens alors qu'il est
 livré, et c'est la page qui fait foi. Ce statut s'oublie exactement comme la règle
@@ -551,7 +695,13 @@ celle qui la précède.
   clôture (§7), qui repart ensuite en `plan-notion` comme n'importe quel brouillon.
 - Il ne code pas si le statut n'est pas `valide`.
 - Il n'écrit pas lui-même le code des étapes déléguables : ça part en sous-agent
-  `general-purpose` **Sonnet 5** (§3). Piloter, ce n'est pas coder.
+  `general-purpose` **Sonnet 5** — un par étape en séquence par défaut, mais
+  pas absolument : en parallèle par vagues, ou regroupées, quand `vagues.md`
+  le permet ou le prescrit (§3). Piloter, ce n'est pas coder.
+- Il ne code jamais dans le checkout principal du dépôt : la branche du plan
+  vit dans un worktree dédié dès sa création (§2), retiré à la clôture (§6) —
+  jamais avant, et jamais à la place de la branche elle-même, que le hook
+  `SessionStart` nettoie après le merge.
 - Il n'ouvre **aucune PR de sa propre initiative** — ni d'étape, ni de
   clôture (§6). L'exécution s'arrête à la branche du plan, prouvée en local et
   poussée. Chaque PR est un run de CI, et le quota GitHub Actions est la
@@ -572,6 +722,8 @@ celle qui la précède.
 - Il ne dépend d'aucun `CLAUDE.md`, d'aucun hook, d'aucun fichier du dépôt de
   travail. Ses compagnons sont les fichiers partagés
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/ecrire-dans-notion.md`,
+  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/vagues.md`,
+  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/schemas.md`,
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/remontee-sur-main.md` et
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/plan-de-suite.md`, livrés par le
   plugin `plans-notion` — pas par le dépôt de travail, quel qu'il soit.

@@ -37,3 +37,31 @@ jobs:
           python3 scripts/plugin_version_guard.py \
             --changed-files "$RUNNER_TEMP/pr-files.tsv" \
             --base-ref "$BASE_REF"
+
+  validation:
+    name: Validation des plugins
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Installer la CLI Claude Code
+        # Non épinglée volontairement : si le format des manifestes de plugin
+        # change en amont, on veut que cette étape le dise (schéma qui bouge,
+        # validation qui échoue) plutôt que de valider indéfiniment contre un
+        # schéma qu'on aurait figé et qui serait devenu périmé.
+        run: npm install -g @anthropic-ai/claude-code
+
+      - name: Validation des plugins par la CLI
+        run: |
+          set -euo pipefail
+          claude plugin validate .
+          for d in plugins/*/; do
+            claude plugin validate "$d"
+          done
+
+      - name: Renvois entre fichiers
+        run: python3 scripts/check_references.py

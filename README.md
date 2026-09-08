@@ -5,8 +5,8 @@ dépôts, en local comme en session cloud, et mis à jour tout seuls.
 
 | Plugin | Ce qu'il apporte |
 |---|---|
-| `plans-notion` | Skills `plan-notion` et `executer-plan-notion`, agent `enqueteur`. Les plans de travail s'écrivent, se relisent et s'exécutent dans Notion plutôt que dans le chat. |
-| `methode-de-travail` | Skills `brainstorming`, `systematic-debugging`, `verification-before-completion`. Dialoguer avant de créer, chercher la cause racine avant de corriger, prouver avant d'annoncer que c'est fini. |
+| `plans-notion` | Skills `plan-notion` et `executer-plan-notion`, agent `enqueteur`. Les plans de travail s'écrivent, se relisent et s'exécutent dans Notion plutôt que dans le chat : chaque plan porte un chapitre `Cartes` (carte du dépôt et carte du plan en schémas Mermaid, tenues à jour à chaque passe) et un tableau de chevauchement avec `Dépend de` / `Taille` / `Blocs touchés` par étape ; l'exécution en tire des **vagues** — étapes parallèles dans des worktrees, étapes voisines regroupées dans un même sous-agent — avec rapport de sous-agent à quatre états, décompte des découvertes vérifié et rétrospective en cinq questions ; l'enquêteur est passé de six à douze gestes d'investigation. |
+| `methode-de-travail` | Skills `brainstorming`, `systematic-debugging`, `verification-before-completion`. Dialoguer avant de créer, chercher la cause racine avant de corriger, prouver avant d'annoncer que c'est fini : `brainstorming` route désormais chaque demande en Spike / Bounded / Architectural et proportionne la sortie — réponse dans le chat, page de plan allégée, ou page complète. |
 
 ## Pourquoi ce dépôt est public
 
@@ -120,12 +120,38 @@ et quatre PR invisibles.
 Deux cas seulement n'exigent aucun bump : un plugin qui naît (pas de version
 de base à dépasser) et un plugin qui disparaît.
 
+### La CI, et pourquoi il n'y a pas de CD
+
+`.github/workflows/ci.yml` joue deux jobs. `garde` vérifie la cohérence de la
+marketplace (`scripts/check_marketplace.py`, le manifeste et le disque
+concordent) et, sur une PR, que la version d'un plugin touché a bien bougé
+(`scripts/plugin_version_guard.py`, la règle ci-dessus). `validation` fait
+valider chaque manifeste par la CLI Claude Code elle-même (`claude plugin
+validate` sur la racine, puis sur chaque `plugins/<nom>/`) et fait tourner
+`scripts/check_references.py`, qui attrape les renvois `${CLAUDE_PLUGIN_ROOT}/…`
+pointant dans le vide entre fichiers de skill, ainsi que les frontmatters de
+skill et d'agent incomplets ou mal nommés.
+
+Il n'y a pas de job de déploiement (CD, *continuous delivery*) parce qu'il n'y
+a rien à déployer : ce dépôt n'est pas un service qui tourne quelque part, il
+est tiré directement par les clients (`claude plugin update`, ou l'`autoUpdate`
+de la marketplace décrit plus haut). Le bump de version *est* la mise à
+disposition — dès qu'il est sur `main`, le plugin est disponible.
+
+Un détail à connaître avant de chercher une régression dans son propre diff :
+l'étape « Installer la CLI Claude Code » du job `validation` n'épingle
+délibérément aucune version (`npm install -g @anthropic-ai/claude-code`). Un
+job `validation` qui devient rouge sans qu'aucun fichier de la PR n'y touche
+peut donc signaler que le format des manifestes de plugin a changé en amont,
+pas une régression introduite ici — à vérifier avant de fouiller le diff.
+
 ### Vérifier avant de pousser
 
 ```bash
 python3 scripts/check_marketplace.py     # le manifeste et le disque concordent
 claude plugin validate .                 # le schéma de la marketplace
 claude plugin validate plugins/<nom>     # le schéma d'un plugin
+python3 scripts/check_references.py      # renvois ${CLAUDE_PLUGIN_ROOT}/… et frontmatters
 ```
 
 Pour essayer une version en cours sans la publier :

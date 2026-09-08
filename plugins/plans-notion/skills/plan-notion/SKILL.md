@@ -5,6 +5,31 @@ description: Écrit et fait évoluer un plan de travail dans Notion au lieu du c
 
 # Plan dans Notion
 
+## Suis-je la bonne version ?
+
+Le 2026-09-08, une session a chargé ce skill depuis une copie synchronisée
+périmée (`~/.claude/remote/plugins/<hash>/`, version 0.3.0 alors que 0.7.0
+était installée) et a travaillé tout un plan sur les mauvaises règles. Un
+skill ne choisit pas d'où il est chargé ; il peut seulement le constater.
+
+À vérifier au chargement, en une commande :
+
+```bash
+python3 -c 'import json,os;d=json.load(open(os.path.expanduser("~/.claude/plugins/installed_plugins.json")))["plugins"]["plans-notion@atelier"][0];print(d["version"],d["installPath"])'
+cat "${CLAUDE_PLUGIN_ROOT}/.claude-plugin/plugin.json" | grep '"version"'
+```
+
+Les deux versions doivent être identiques, et le chemin annoncé au chargement
+(« Base directory for this skill », soit `${CLAUDE_PLUGIN_ROOT}`) doit être
+l'`installPath` rendu ci-dessus. Écart → le dire à Benjamin en une ligne, puis
+lire ce `SKILL.md` et `_partage/` depuis cet `installPath`, pas depuis la
+copie chargée. Pour charger la plus récente : `claude plugin update
+plans-notion@atelier` (redémarrage requis) ; en session cloud, le setup
+script pose déjà la dernière version publiée — jamais plus loin que ce que
+`main` du dépôt porte. Ce que cette garde ne règle pas : une copie qui ne
+l'embarque pas ne préviendra jamais — elle protège à partir de la version qui
+la porte.
+
 ## Deux règles qui priment sur tout
 
 ### 1. Ne jamais cocher une case à la place de Benjamin
@@ -88,7 +113,7 @@ Benjamin. Voir la sous-section « Les captures d'écran » du chapitre des contr
 
 Un plan qui découvre à l'exécution ce que le code disait déjà n'a pas planifié : il
 a deviné. **Avant d'écrire une question, une option ou une étape, aller chercher ce
-qui est déjà su.** Quatre gisements, du moins cher au plus cher :
+qui est déjà su.** Cinq gisements, du moins cher au plus cher :
 
 1. **La session en cours.** Une mesure faite il y a dix minutes reste vraie. C'est
    la source la plus souvent oubliée, parce qu'on rédige le plan dans la posture de
@@ -114,6 +139,12 @@ qui est déjà su.** Quatre gisements, du moins cher au plus cher :
 4. **L'historique.** `git log` sur les fichiers concernés, PR mergées, tests
    existants. Un comportement qui a déjà été changé l'a été pour une raison, et
    cette raison contraint le plan.
+5. **La carte du dépôt.** Engendrée quand un générateur existe — chercher
+   `docs/architecture.md`, un script `archi`, une commande `npm run archi` —
+   sinon dessinée à la main pendant l'enquête, selon les règles du fichier
+   partagé `_partage/schemas.md`. Une carte, même approximative, montre en un
+   coup d'œil les blocs et leurs liens là où une liste de fichiers ne montre
+   qu'un inventaire à plat.
 
 Le budget d'enquête est **proportionnel à l'enjeu**, pas à la longueur du plan : une
 étape qui touche un fichier et se relit d'un coup d'œil ne mérite pas une fouille
@@ -216,8 +247,9 @@ chaque URL avant de choisir, plutôt que de prendre la première trouvée.
 
 ## 3. Structure du plan
 
-Dans cet ordre : `Besoins` · `Contraintes techniques vérifiées` · `Questions
-ouvertes` · `La suite` · `Exécution` · `Journal d'exécution` · `Commentaires repris`.
+Dans cet ordre : `Cartes` · `Besoins` · `Contraintes techniques vérifiées` ·
+`Questions ouvertes` · `La suite` · `Exécution` · `Journal d'exécution` ·
+`Commentaires repris`.
 
 **Hiérarchie de titres pensée pour la table des matières.** Notion ne met dans le
 sommaire latéral que les blocs *heading* — jamais les encadrés, les listes ni les
@@ -231,6 +263,35 @@ sommaire, au lieu de faire défiler la page.
 dit qu'il se remplira à l'implémentation. C'est `executer-plan-notion` qui l'écrit ;
 le laisser absent obligerait ce skill-là à improviser une place dans la page. Sa
 forme, elle, se décide ici (troisième sous-section ci-dessous).
+
+### Le chapitre `Cartes`
+
+Un H2 **en tête de page**, avant `Besoins` : c'est le premier chapitre qu'on lit,
+et une carte se lit avant une liste de besoins, pas après. Il porte deux schémas :
+
+- **La carte du dépôt** — une vue d'ensemble du code touché, engendrée par un
+  générateur du dépôt s'il en existe un, sinon dessinée à la main.
+- **Le plan en un schéma** — les étapes du chapitre `Exécution` regroupées en
+  vagues, avec ce qui dépend de quoi et ce qui attend un geste de Benjamin.
+
+Présent **dès la première version du plan**, comme `Exécution` et pour la même
+raison : si on ne sait pas encore le dessiner, c'est qu'on ne sait pas encore ce
+qu'on va faire. Les deux schémas se remettent à jour à **chaque passe qui touche
+le chapitre `Exécution`** — une étape ajoutée, fusionnée ou reformulée les rend
+faux sinon.
+
+Le contenu de chaque schéma, son code couleur et ses pièges Notion vivent dans un
+fichier partagé, pas ici — le répéter ferait diverger les deux skills qui le
+lisent :
+
+📄 `${CLAUDE_PLUGIN_ROOT}/skills/_partage/schemas.md`
+
+**Sur un plan `Bounded`** (c'est `brainstorming` qui route une demande vers
+`Spike`, `Bounded` ou `Architectural` avant que le plan ne s'écrive ; ce skill ne
+décide pas du chemin, il applique la structure une fois le routage connu), la
+page s'écrit **allégée** : `Cartes` · `Besoins` · `Exécution` ·
+`Journal d'exécution` — `Questions ouvertes` ne s'ajoute que s'il reste une
+question à trancher.
 
 ### Le chapitre `Contraintes techniques vérifiées`
 
@@ -408,6 +469,17 @@ C'est là que le plan cesse d'être une intention : si on ne sait pas encore
 l'écrire, c'est qu'on ne sait pas encore ce qu'on va faire, et c'est cette
 ignorance-là qu'il faut rendre visible.
 
+**En tête du chapitre, un tableau `Étape · Fichiers touchés · Dépend de ·
+Vague`**, une ligne par étape — le pre-flight scan du chapitre : il donne
+d'un coup d'œil ce qui se recoupe, avant même d'entrer dans le détail de
+chaque étape. La colonne `Vague` est **proposée** ici : deux étapes vont
+dans la même vague si elles ne partagent aucun fichier, si aucune ne dépend
+de l'autre, et si aucun fichier partagé (config, README, `CLAUDE.md`, test de
+décompte) n'est touché par les deux. Mais c'est `executer-plan-notion` qui la
+**calcule** à l'ouverture de l'exécution : le plan **déclare**, il
+n'**ordonnance** pas — calculer les vagues ici ferait mentir un plan qui
+change d'ordre en route sans que le tableau ne le sache.
+
 **Une étape = un titre H3** : `Étape 1 — Titre court de l'étape`. Comme pour les
 questions, c'est le H3 qui met l'étape dans la table des matières et permet d'y
 sauter directement ; une simple liste numérotée n'y apparaît pas. La numérotation
@@ -418,6 +490,16 @@ Sous chaque titre, le contenu de l'étape :
 
 - **Choix d'architecture** retenu — et celui qu'on écarte, avec la raison.
 - **Fichiers touchés**, chemin par chemin, en distinguant créé / modifié / supprimé.
+- **Dépend de** — les étapes et les questions dont l'étape a besoin, « — » si
+  aucune. C'est cette ligne, reprise dans le tableau de tête de chapitre, que
+  `executer-plan-notion` lit pour calculer les vagues d'exécution.
+- **Taille** — le nombre de fichiers touchés. Plus de cinq → découper l'étape :
+  l'enquête montre que tous les conflits d'exécution observés viennent d'un
+  fichier partagé non repéré, et une étape large le cache d'autant mieux
+  qu'elle est large.
+- **Blocs touchés** — les nœuds de la carte du dépôt (chapitre `Cartes`) que
+  l'étape modifie. « Aucun bloc de la carte » est une réponse valable, et il
+  faut l'écrire plutôt que laisser la ligne vide.
 - **Impact fonctionnel** : ce que l'utilisateur voit changer. « Rien » est une
   réponse valable, et il faut l'écrire plutôt que laisser la ligne vide.
 - **Impact technique** : migrations, dépendances, variables d'environnement,
@@ -475,8 +557,10 @@ l'efface sans prévenir, parce que recréer un bloc `to-do` le rend vierge.
 
 Le protocole en cinq temps — relever avant d'écrire, éditer de façon ciblée,
 remettre les `- [x]` en cas de refonte, ne jamais reformuler Benjamin, vérifier
-après coup — et les trois pièges de l'API : `update_content` qui ne décoche pas,
-l'écriture qui échoue en silence, le commentaire qu'on ne résout jamais soi-même.
+après coup — et les cinq pièges de l'API : `update_content` qui ne décoche pas,
+l'écriture qui échoue en silence, le commentaire qu'on ne résout jamais
+soi-même, `replace_all_matches` sur un motif de balisage, et l'insertion
+ancrée au milieu d'un paragraphe formaté.
 
 Il porte aussi **« Le bleu des retouches »** : ce qui a bougé à la dernière passe
 s'écrit en bleu, et le bleu de la passe d'avant redevient neutre — dans cet ordre,
@@ -519,6 +603,10 @@ la table ; lire la page, en revanche, reste permis.
    les réponses viennent de rendre faux.
 6. **Ne jamais résoudre un fil soi-même.** C'est l'accusé de réception de
    Benjamin, et c'est ce qui donne gratuitement la liste à traiter à la passe suivante.
+7. **Relire les schémas.** Une passe qui a touché `Exécution` a pu rendre « le
+   plan en un schéma » faux (chapitre `Cartes`, §3) — le rejouer, puis vérifier
+   mécaniquement que le nombre de nœuds d'étape égale le nombre de titres H3
+   `Étape N` de la page (contrôle détaillé dans `_partage/schemas.md`).
 
 Les pièges de l'API qui mordent ici — commentaire ni déplaçable ni résoluble,
 écriture qui échoue en silence après normalisation du texte par Notion — sont
@@ -563,12 +651,31 @@ Quand Benjamin valide le plan :
    `Exécution` juste, ou il n'y passe pas : c'est ce chapitre-là, et pas les
    réponses éparpillées dans la page, qui part dans les briefs des sous-agents
    d'exécution.
-2. **Passer le plan au filtre de l'enquête.** Trois vérifications, et elles se
-   font page ouverte, pas de mémoire : plus aucune question ouverte dont la réponse
-   était vérifiable et n'a pas été vérifiée ; plus aucune option qui reporte une
-   mesure faisable aujourd'hui ; chaque chemin de « Fichiers touchés » qui existe
-   vraiment, ou qui est annoncé comme une création. Ce filtre coûte quelques minutes
-   ici et évite la découverte en pleine exécution, qui coûte une étape.
+2. **Passer le plan au filtre de l'enquête.** Sept vérifications, et elles se
+   font page ouverte, pas de mémoire :
+   1. plus aucune question ouverte dont la réponse était vérifiable et n'a pas
+      été vérifiée ;
+   2. plus aucune option qui reporte une mesure faisable aujourd'hui ;
+   3. chaque chemin de « Fichiers touchés » qui existe vraiment, ou qui est
+      annoncé comme une création ;
+   4. une relecture de **cohérence interne** : les renvois entre sections
+      pointent juste, l'ordre des étapes est le bon, et aucune prémisse ne
+      contredit une réponse tranchée plus loin dans la page ;
+   5. chaque « Preuve de fin » a été **jouée**, ou est **réfutable**, avant de
+      passer `valide` — une preuve qu'on ne peut ni jouer ni contredire ne
+      prouve rien à l'exécution ;
+   6. aucun chiffre n'est repris d'un plan `#N-1` **sans remesure** ;
+   7. toute question chiffrée porte, à côté de sa réponse, la commande jouée
+      et son résultat — sinon rien ne permet de la remesurer au point 6
+      suivant.
+
+   Les quatre derniers points viennent de l'enquête sur les plans passés : la
+   page du plan elle-même est la source de **11 %** des découvertes manquées à
+   l'exécution — ordre des étapes faux, preuve de fin impossible à jouer,
+   renvois périmés — et des chiffres recopiés d'un plan antérieur s'y sont
+   trouvés faux avec des écarts allant jusqu'à **80 %**. Ce filtre coûte
+   quelques minutes ici et évite la découverte en pleine exécution, qui coûte
+   une étape.
 3. Passer `Statut` à `valide`.
 4. Le dire en une ligne, et **invoquer `executer-plan-notion`** si l'implémentation
    enchaîne dans la foulée. Un skill n'en charge pas un autre tout seul : sans
