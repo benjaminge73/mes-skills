@@ -65,3 +65,30 @@ jobs:
 
       - name: Renvois entre fichiers
         run: python3 scripts/check_references.py
+
+  merge-auto:
+    name: Merge automatique si tout est vert
+    # Sur ce dépôt, merger c'est publier : les postes tirent `main` et le bump
+    # de version que le job `garde` impose est la mise à disposition. Ce job
+    # n'ajoute donc pas une commodité, il retire un geste — celui qui séparait
+    # « la CI est verte » de « c'est en ligne ». Trois garde-fous le bornent :
+    # l'auteur (une PR venant d'ailleurs ne se merge jamais seule), le brouillon
+    # (une PR en `draft` attend), et le label `ne-pas-merger`, qui est la porte
+    # de sortie quand on veut relire malgré le vert.
+    needs: [garde, validation]
+    if: >-
+      github.event_name == 'pull_request'
+      && github.event.pull_request.user.login == 'benjaminge73'
+      && github.event.pull_request.draft == false
+      && !contains(github.event.pull_request.labels.*.name, 'ne-pas-merger')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Merger, puis supprimer la branche distante
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh pr merge "${{ github.event.pull_request.number }}" \
+            --repo "${{ github.repository }}" --merge --delete-branch
