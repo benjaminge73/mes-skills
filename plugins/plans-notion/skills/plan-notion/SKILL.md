@@ -126,7 +126,8 @@ qui est déjà su.** Cinq gisements, du moins cher au plus cher :
    `découverte — trouvable au plan` sont à lire en premier : elles disent, noir sur
    blanc, ce que l'enquête d'un plan précédent a manqué sur ce projet-là.
 3. **Le code.** Invoquer l'agent **`enqueteur`** (outil `Agent`,
-   `subagent_type: "enqueteur"`) plutôt que fouiller soi-même : il porte déjà
+   `subagent_type: "plans-notion:enqueteur"` — le nom qualifié par le plugin,
+   le nom court ne résout pas) plutôt que fouiller soi-même : il porte déjà
    les six gestes qui évitent les angles morts de voisinage — couverture de
    l'index, `codebase-memory` en priorité sur la lecture de fichiers entiers,
    `grep` en défaut sur les zones que le graphe exclut, et surtout la

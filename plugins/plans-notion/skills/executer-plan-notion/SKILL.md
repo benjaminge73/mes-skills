@@ -300,17 +300,33 @@ ils ne sont pas indicatifs :
 
 ```
 Agent({
-  subagent_type: "general-purpose",   // il doit pouvoir écrire ; Explore et Plan sont en lecture seule
-  model: "sonnet",                    // = Sonnet 5. Omettre ce champ fait hériter Opus : le coût du plan explose
-  run_in_background: false,           // séquentiel — true pour les étapes d'une même vague (vagues.md)
+  subagent_type: "plans-notion:executant",  // nom qualifié par le plugin — le nom court ne résout pas
+  run_in_background: false,                 // séquentiel — true pour les étapes d'une même vague (vagues.md)
   description: "Étape N — <titre court>",
   prompt: "<le brief ci-dessous>"
 })
 ```
 
-`model: "sonnet"` est le point qui saute en premier quand on est absorbé par le
-travail. Sans lui, l'étape part quand même — mais en Opus, et le seul écart
-visible est la facture.
+**Aucun paramètre `model` ici, et c'est voulu.** L'agent `executant` porte
+`model: sonnet` dans son propre fichier de définition :
+
+📄 `${CLAUDE_PLUGIN_ROOT}/agents/executant.md`
+
+Le modèle est donc garanti par construction, sur toutes les machines et en
+session cloud, au lieu de dépendre d'un champ à ne pas oublier à chaque appel.
+C'est le remplacement d'une discipline par un mécanisme : le champ `model` était
+le premier à sauter quand on est absorbé par le travail, et sans lui l'étape
+partait quand même — en Opus, avec la facture pour seul signal.
+
+⚠️ **Le nom court `"executant"` ne résout pas.** Un agent fourni par un plugin
+s'invoque avec son nom qualifié, `plugin:agent` — `"plans-notion:executant"` ici.
+Le nom nu rend `Agent type 'executant' not found` et l'étape ne part pas du tout.
+
+Ce fichier de définition porte ce qui ne change **jamais** d'une étape à
+l'autre : le périmètre fermé, l'interdiction de commiter, le diagnostic plutôt
+que le correctif devant une preuve rouge, le format de rapport. Le brief
+ci-dessous porte ce qui change à chaque étape. Les deux arrivent au sous-agent ;
+il est donc inutile de recopier dans le brief ce que la définition dit déjà.
 
 ### Le brief du sous-agent
 
@@ -695,7 +711,8 @@ celle qui la précède.
   clôture (§7), qui repart ensuite en `plan-notion` comme n'importe quel brouillon.
 - Il ne code pas si le statut n'est pas `valide`.
 - Il n'écrit pas lui-même le code des étapes déléguables : ça part en sous-agent
-  `general-purpose` **Sonnet 5** — un par étape en séquence par défaut, mais
+  `plans-notion:executant`, **Sonnet 5 par définition** — un par étape en
+  séquence par défaut, mais
   pas absolument : en parallèle par vagues, ou regroupées, quand `vagues.md`
   le permet ou le prescrit (§3). Piloter, ce n'est pas coder.
 - Il ne code jamais dans le checkout principal du dépôt : la branche du plan
