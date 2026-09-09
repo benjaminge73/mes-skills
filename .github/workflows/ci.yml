@@ -73,14 +73,15 @@ jobs:
     # n'ajoute donc pas une commodité, il retire un geste — celui qui séparait
     # « la CI est verte » de « c'est en ligne ». Trois garde-fous le bornent :
     # l'auteur (une PR venant d'ailleurs ne se merge jamais seule), le brouillon
-    # (une PR en `draft` attend), et le label `ne-pas-merger`, qui est la porte
-    # de sortie quand on veut relire malgré le vert.
+    # (une PR en `draft` attend), et le label `review-required`, qui est la
+    # porte de sortie quand on veut relire malgré le vert — même nom et même
+    # sens que sur `vahiny` et `kanban_mAIster_ATI4`.
     needs: [garde, validation]
     if: >-
       github.event_name == 'pull_request'
       && github.event.pull_request.user.login == 'benjaminge73'
       && github.event.pull_request.draft == false
-      && !contains(github.event.pull_request.labels.*.name, 'ne-pas-merger')
+      && !contains(github.event.pull_request.labels.*.name, 'review-required')
     runs-on: ubuntu-latest
     permissions:
       contents: write
