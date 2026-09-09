@@ -66,8 +66,9 @@ est la demande**, puisqu'il n'y a plus de geste entre le vert et la mise en
 ligne.
 
 Trois choses la retiennent : une PR en brouillon, une PR ouverte par quelqu'un
-d'autre, et le label **`ne-pas-merger`**, qui est la porte de sortie quand on
-veut relire malgré le vert. Poser ce label est le geste correct pour une
+d'autre, et le label **`review-required`**, qui est la porte de sortie quand on
+veut relire malgré le vert. C'est le même nom et le même sens que sur `vahiny`
+et `kanban_mAIster_ATI4`. Poser ce label est le geste correct pour une
 modification dont on n'est pas sûr ; ouvrir la PR sans lui vaut publication.
 
 ⚠️ Ce que la CI vérifie, ce sont des manifestes, des renvois et un numéro de
