@@ -57,6 +57,23 @@ espace dans une `description` non citée casse le parsing, et le skill se charge
 alors avec des métadonnées vides, **sans rien dire**. En cas de doute, une
 description longue s'écrit en bloc (`description: >-`).
 
+## Ouvrir une PR ici, c'est demander la publication
+
+La CI merge seule toute PR verte (job `merge-auto`, décision de Benjamin du
+2026-09-09). Sur ce dépôt, la règle générale « aucune PR vers `main` sans
+demande explicite » se lit donc autrement : **c'est l'ouverture de la PR qui
+est la demande**, puisqu'il n'y a plus de geste entre le vert et la mise en
+ligne.
+
+Trois choses la retiennent : une PR en brouillon, une PR ouverte par quelqu'un
+d'autre, et le label **`ne-pas-merger`**, qui est la porte de sortie quand on
+veut relire malgré le vert. Poser ce label est le geste correct pour une
+modification dont on n'est pas sûr ; ouvrir la PR sans lui vaut publication.
+
+⚠️ Ce que la CI vérifie, ce sont des manifestes, des renvois et un numéro de
+version. **Elle ne dit rien de la justesse d'une consigne.** Une phrase fausse
+dans un `SKILL.md` passe au vert et part dans toutes les sessions.
+
 ## Pas de déploiement
 
 Rien ne se déploie depuis ce dépôt : les postes **tirent** `main`, par
