@@ -8,26 +8,89 @@ scope `user` sur le poste et arrivent dans **toutes** les sessions, cloud
 comprise. Le README dit l'installation, la mise à jour automatique et la licence ;
 ce fichier ne dit que ce qui surprend une session qui travaille **ici**.
 
-## Le piège propre à ce dépôt : deux copies du même skill
+## Le piège propre à ce dépôt : trois copies du même skill
 
-Le skill que tu édites dans ce dépôt n'est **pas** celui qui pilote ta session.
-Celui qui te pilote est la copie installée, sous
-`~/.claude/plugins/cache/atelier/<plugin>/<version>/`, figée à la version que
-`~/.claude/plugins/installed_plugins.json` déclare.
+Le skill que tu édites dans ce dépôt n'est **pas forcément** celui qui pilote ta
+session. Trois copies coexistent, jamais garanties identiques :
 
-Deux conséquences, et elles vont dans les deux sens :
+1. **L'arbre de travail** — ce dépôt, ici même.
+2. **La copie installée**, sous
+   `~/.claude/plugins/cache/atelier/<plugin>/<version>/`, figée à la version que
+   `~/.claude/plugins/installed_plugins.json` déclare.
+3. **Un instantané `@inline`**, sous `~/.claude/remote/plugins/<hash>/<plugin>/`.
+   `@inline` est le nom d'une **marketplace synthétique** : celle des plugins
+   passés en ligne de commande par `--plugin-dir` (`@skills-dir` pour
+   l'auto-chargement de `~/.claude/skills/` et `@synced` pour les copies poussées
+   par `claude.ai` sont deux autres marketplaces du même genre — **pas** des
+   marketplaces installées ; binaire `claude` 2.1.267 : `var Mp="inline",
+   fu="skills-dir", ip="synced", Op="builtin"`, message « This `--plugin-dir`
+   copy did not load »). Ces `--plugin-dir` sont passés par la surface
+   `claude.ai` / Claude Code Desktop : le lanceur `~/.claude/remote/ccd-cli/`
+   démarre avec `--plugin-dir ~/.claude/remote/plugins/<hash>` répété dix-sept
+   fois, un par instantané — **aucun ne pointe vers un arbre de travail**.
 
-- **Une modification ici ne change rien à ta session en cours.** Elle prend effet
-  après merge sur `main`, `claude plugin update <plugin>@atelier`, et un
-  redémarrage. Ne cherche pas à vérifier un changement de règle en te regardant
-  travailler : lis le fichier.
-- **Pour savoir quelle règle te gouverne à cette seconde, lis la copie
-  installée**, pas l'arbre de travail. Les deux divergent dès qu'une branche est
-  ouverte ici, et c'est normal.
+⚠️ **Ce dépôt n'y est pour rien, et c'est la correction à retenir.** On a cru un
+temps que travailler dans `mes-skills` faisait charger le plugin depuis l'arbre
+de travail à cause de son `.claude-plugin/marketplace.json`. **C'est faux** :
+`mes-skills` n'a même pas de répertoire `.claude/`, et rien dans le dépôt
+n'enregistre de marketplace à l'ouverture. Le chargement `@inline` vient de la
+surface `claude.ai`, pas d'ici.
 
-Chaque `SKILL.md` porte en tête une section « Suis-je la bonne version ? » avec
-la commande qui compare les deux. Elle existe parce qu'une session a travaillé un
-plan entier sur une copie périmée, le 2026-09-08.
+**Une modification ici ne change rien à ta session en cours**, quelle que soit
+la copie qui te gouverne. Elle prend effet après merge sur `main`, `claude
+plugin update <plugin>@atelier`, et un redémarrage. Ne cherche pas à vérifier un
+changement de règle en te regardant travailler : lis le fichier.
+
+**Laquelle gagne, et comment le savoir — le seul geste fiable** : chaque
+`SKILL.md` porte en tête une section « Suis-je la bonne version ? » dont
+l'en-tête annonce le chemin depuis lequel le skill a été chargé. C'est le seul
+endroit où la réponse est factuelle.
+
+- chemin sous `~/.claude/plugins/cache/atelier/` → copie installée ;
+- chemin sous `~/.claude/remote/plugins/` → instantané `@inline` ;
+- chemin dans le dépôt → arbre de travail.
+
+**`ListPlugins` ne peut pas répondre à cette question.** Il n'interroge que les
+plugins côté `claude.ai`, jamais un instantané `@inline` ni une marketplace
+GitHub installée sur la machine. Seul
+`~/.claude/plugins/installed_plugins.json` fait foi pour la copie installée —
+et il ne connaît pas les instantanés. **Aucun outil ne montre les trois copies
+d'un coup.**
+
+**Deux incidents mesurés :**
+
+- **2026-09-08** : une session a travaillé un plan entier sur une copie
+  périmée (copie installée contre arbre de travail).
+- **2026-09-10** : le skill `plan-notion` d'une session s'est chargé depuis
+  `~/.claude/remote/plugins/f06304eb81541a26/skills/plan-notion` — un instantané
+  `@inline` — et son texte prescrivait encore `subagent_type: "enqueteur"`, le
+  nom court corrigé la veille en 0.9.0 parce qu'il ne résout pas. La copie
+  installée, elle, était à jour ; c'est l'instantané qui gagnait.
+
+**Le détail qui rend le piège vicieux** : l'instantané du 2026-09-10 avait déjà
+été **purgé du disque** dans la même session, qui continuait pourtant de servir
+la copie supprimée — le registre des skills est construit au démarrage, la
+purge ne l'invalide pas. **Le disque est propre et le comportement reste faux,
+jusqu'au redémarrage.**
+
+**Les compteurs d'usage n'aident pas à trancher** : ce sont des totaux de vie,
+jamais remis à zéro. `~/.claude.json` (clé `pluginUsage`) porte
+`plans-notion@inline` à 47 usages alors que cet instantané n'existe plus,
+contre 6 pour `plans-notion@atelier`.
+
+**Ce qui a été écarté** : `disableSideloadFlags` rejette `--plugin-dir`, mais
+fait sortir la CLI en erreur — donc casserait Remote Control et Desktop, qui en
+passent toujours. Il est en plus de portée « managed settings »
+(`/etc/claude-code/managed-settings.json`), absente de ce poste.
+
+**Le remède en cours d'essai** : déclarer le plugin dans le
+`.claude/settings.json` **versionné** d'un dépôt (portée projet) — la seule
+portée qui voyage jusqu'au cloud, où `/plugin` n'existe pas. Un premier essai
+vient d'être posé sur `vahiny`. ⚠️ **Son effet n'est pas prouvé** : ni `claude
+plugin list` ni `claude plugin marketplace list` ne lisent ce fichier (sondé le
+2026-09-11 avec un fichier volontairement cassé, puis un plugin bidon — aucune
+des deux commandes ne bronche). À traiter comme un essai en cours, pas une
+solution acquise.
 
 ## La règle qui refuse une PR : bouger la version
 
