@@ -113,11 +113,12 @@ Et parce qu'une passe de couleur touche beaucoup de blocs d'un coup, le recompta
 l'étape 5 du protocole n'est pas une formalité : c'est le seul contrôle qui attrape une
 case perdue au milieu d'une repeinte.
 
-## Cinq pièges de l'API Notion, vérifiés sur pièce
+## Six pièges de l'API Notion, vérifiés sur pièce
 
-Les trois premiers datent du 2026-08-17. Les deux derniers viennent du journal
-du plan « Carte d'architecture engendrée » (dépôt Vahiny), vérifiés le
-2026-09-07.
+Les trois premiers datent du 2026-08-17. Les quatrième et cinquième viennent du
+journal du plan « Carte d'architecture engendrée » (dépôt Vahiny), vérifiés le
+2026-09-07. Le sixième vient du plan « Le design system en deux exemplaires »,
+vérifié le 2026-09-11.
 
 1. **`update_content` ne décoche pas.** Il ne change pas l'attribut coché d'un
    bloc `to-do` : il remplace son texte, et **l'appel rend un succès** même si la
@@ -147,6 +148,20 @@ du plan « Carte d'architecture engendrée » (dépôt Vahiny), vérifiés le
    complète d'un bloc — son dernier caractère — et faire commencer le
    `new_str` par ce même texte suivi d'un saut de ligne, jamais en plein
    milieu d'une phrase balisée.
+
+6. **Insérer des lignes juste avant une liste de `to-do`, dans un encadré, fait
+   recréer cette liste — et redistribue les cases cochées.** C'est le pire dégât
+   du fichier, parce qu'il fabrique une décision de Benjamin qui n'existe pas.
+   Vérifié le 2026-09-11 : trois lignes ajoutées en tête d'un encadré de
+   question, et à la relecture la coche de Benjamin était passée sur **l'option
+   voisine** dans une question, tandis qu'une autre question, où **rien** n'était
+   coché, en portait une. **L'appel rend un succès**, et les `to-do` se
+   retrouvent en prime indentés d'un cran de trop, enfants du dernier paragraphe
+   inséré. Geste sûr : **écrire après la liste, jamais avant** — ancrer le
+   `old_str` sur la dernière option de l'encadré. Si le dégât est déjà fait, la
+   réparation passe par un aller-retour `to-do` → paragraphe → `to-do` : c'est
+   le seul moyen connu de décocher (piège 1), et elle exige le relevé du §1 sous
+   les yeux pour réécrire les bons états, option par option.
 
 **Remarque, vérifiée le 2026-09-08** sur la page du plan qui commande cette
 étape : Notion transforme un nom de fichier nu comme `CLAUDE.md` ou
