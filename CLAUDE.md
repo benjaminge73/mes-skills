@@ -57,7 +57,7 @@ GitHub installée sur la machine. Seul
 et il ne connaît pas les instantanés. **Aucun outil ne montre les trois copies
 d'un coup.**
 
-**Deux incidents mesurés :**
+**Trois incidents mesurés :**
 
 - **2026-09-08** : une session a travaillé un plan entier sur une copie
   périmée (copie installée contre arbre de travail).
@@ -66,6 +66,11 @@ d'un coup.**
   `@inline` — et son texte prescrivait encore `subagent_type: "enqueteur"`, le
   nom court corrigé la veille en 0.9.0 parce qu'il ne résout pas. La copie
   installée, elle, était à jour ; c'est l'instantané qui gagnait.
+- **2026-09-11** : un plan de neuf étapes a été exécuté **en entier** sur
+  l'instantané `plans-notion` **0.3.0**, alors que la **0.9.0** était installée.
+  Six mineures de règles en arrière, dont la garde « Suis-je la bonne version ? »
+  qui aurait justement attrapé le cas. C'est le contrôle d'hygiène écrit à la
+  dernière étape de ce plan qui l'a signalé — sur la session qui l'écrivait.
 
 **Le détail qui rend le piège vicieux** : l'instantané du 2026-09-10 avait déjà
 été **purgé du disque** dans la même session, qui continuait pourtant de servir
@@ -78,19 +83,70 @@ jamais remis à zéro. `~/.claude.json` (clé `pluginUsage`) porte
 `plans-notion@inline` à 47 usages alors que cet instantané n'existe plus,
 contre 6 pour `plans-notion@atelier`.
 
+Ce qu'ils disent en revanche sans ambiguïté, c'est **qui gagne**. Relevé du
+2026-09-11 sur un compte système où les deux copies coexistaient :
+`plans-notion@inline` à **3** usages, `plans-notion@atelier` à **0**. La copie
+correctement installée depuis la marketplace n'avait jamais servi une seule
+fois : l'instantané la masquait par collision de nom, à chaque démarrage.
+
+## D'où vient un instantané, et pourquoi rien ne le rattrape
+
+Établi le 2026-09-11, en remontant le `0.3.0` de l'incident ci-dessus.
+
+**`plans-notion` n'a jamais été en 0.3.0 dans ce dépôt.** `mes-skills` démarre le
+plugin à **0.7.0**, le 2026-09-07. La version 0.3.0 vient d'ailleurs : de
+l'historique de `hermes-custom`, sous `plugins/plans-notion/`, autour du
+2026-09-03 — l'époque où **ce dépôt-là** était sa propre marketplace. Elle en est
+sortie le 2026-09-07 par le commit `1f105b0`, « les skills et le plugin partent
+dans mes-skills ».
+
+Un instantané `@inline` est donc **un fossile** : une capture figée, prise à un
+instant donné, d'une source qui peut avoir déménagé ou disparu depuis. Trois
+conséquences qui se déduisent de là et qu'il faut avoir en tête :
+
+- **`autoUpdate` ne peut rien pour lui.** Il n'a aucun lien avec la marketplace
+  `atelier` : ce n'est pas une installation en retard, c'est une copie sans
+  canal. Attendre qu'elle se mette à jour, c'est attendre indéfiniment.
+- **Le supprimer du disque ne sert à rien.** Les instantanés sont
+  **retéléchargés à chaque démarrage** : mesuré le 2026-09-11, dix-sept dossiers
+  sous `~/.claude/remote/plugins/<hash>/` tous écrits dans la même seconde que le
+  boot de la session, à ~200 ms d'intervalle.
+- **Quinze de ces dix-sept sont les plugins officiels d'Anthropic** (`github`,
+  `vercel`, `design`, `engineering`, `playwright`, `typescript-lsp`…). Les deux
+  autres seulement sont ceux de Benjamin. C'est ce qui rend le tri possible :
+  un nom qui n'est pas dans le catalogue officiel et qui apparaît là est, par
+  construction, une inscription faite côté `claude.ai`.
+
+**Le traitement est donc côté `claude.ai`, jamais dans un dépôt** : retirer ou
+resynchroniser l'inscription sur la surface qui pousse ces `--plugin-dir`.
+⚠️ Préférer « mettre à jour » à « supprimer » quand l'option existe : dans une
+surface où la marketplace `atelier` n'est pas installée, l'instantané peut être
+la **seule** copie présente.
+
 **Ce qui a été écarté** : `disableSideloadFlags` rejette `--plugin-dir`, mais
 fait sortir la CLI en erreur — donc casserait Remote Control et Desktop, qui en
 passent toujours. Il est en plus de portée « managed settings »
 (`/etc/claude-code/managed-settings.json`), absente de ce poste.
 
-**Le remède en cours d'essai** : déclarer le plugin dans le
-`.claude/settings.json` **versionné** d'un dépôt (portée projet) — la seule
-portée qui voyage jusqu'au cloud, où `/plugin` n'existe pas. Un premier essai
-vient d'être posé sur `vahiny`. ⚠️ **Son effet n'est pas prouvé** : ni `claude
-plugin list` ni `claude plugin marketplace list` ne lisent ce fichier (sondé le
-2026-09-11 avec un fichier volontairement cassé, puis un plugin bidon — aucune
-des deux commandes ne bronche). À traiter comme un essai en cours, pas une
-solution acquise.
+**La portée projet a été essayée, et elle est écartée** : déclarer le plugin
+dans le `.claude/settings.json` **versionné** d'un dépôt n'enregistre rien —
+Claude Code exige le scope `user` ou `managed` pour une marketplace sur source
+réseau. C'était séduisant parce que c'est la seule portée qui voyage jusqu'au
+cloud, où `/plugin` n'existe pas. Deux sources concordantes le referment :
+
+- `hermes-custom`, commit `1f105b0` du **2026-09-07** : l'essai y avait déjà été
+  fait et avait déjà échoué — « la déclaration existait ici et n'installait
+  rien » — au point d'être l'une des trois raisons de la scission qui a créé ce
+  dépôt-ci ;
+- deux sondes du **2026-09-11** : un `.claude/settings.json` volontairement
+  cassé, puis un plugin bidon activé en portée projet — ni `claude plugin list`
+  ni `claude plugin marketplace list` ne bronchent.
+
+Un essai avait malgré tout été posé sur `vahiny` le 2026-09-11, faute d'avoir lu
+l'historique de `hermes-custom` ; il a été annulé le jour même. **Un fichier qui
+a l'air de configurer quelque chose et ne configure rien est pire que pas de
+fichier** — c'est une dérive silencieuse de plus, dans un dépôt dont tout le
+travail du jour consistait à en fermer une.
 
 ## La règle qui refuse une PR : bouger la version
 
