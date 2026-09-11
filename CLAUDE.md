@@ -134,10 +134,14 @@ Claude Code exige le scope `user` ou `managed` pour une marketplace sur source
 réseau. C'était séduisant parce que c'est la seule portée qui voyage jusqu'au
 cloud, où `/plugin` n'existe pas. Deux sources concordantes le referment :
 
-- `hermes-custom`, commit `1f105b0` du **2026-09-07** : l'essai y avait déjà été
-  fait et avait déjà échoué — « la déclaration existait ici et n'installait
-  rien » — au point d'être l'une des trois raisons de la scission qui a créé ce
-  dépôt-ci ;
+- **le README de ce dépôt**, section « Installation → En local », depuis le
+  **2026-09-07** : il cite le refus mot pour mot — *« a marketplace on a network
+  location must be declared under `extraKnownMarketplaces` in USER or managed
+  settings (project/local scope cannot vouch for it) »*. C'est la source la plus
+  proche et la plus lisible, et c'est celle qu'on a manqué de relire ;
+- `hermes-custom`, commit `1f105b0` du même jour : l'essai y avait déjà été fait
+  et avait déjà échoué — « la déclaration existait ici et n'installait rien » —
+  au point d'être l'une des trois raisons de la scission qui a créé ce dépôt-ci ;
 - deux sondes du **2026-09-11** : un `.claude/settings.json` volontairement
   cassé, puis un plugin bidon activé en portée projet — ni `claude plugin list`
   ni `claude plugin marketplace list` ne bronchent.

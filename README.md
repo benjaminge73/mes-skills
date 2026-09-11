@@ -53,13 +53,21 @@ sélecteur d'environnement → **Setup script** :
 
 ```bash
 #!/bin/bash
-claude plugin marketplace add benjaminge73/mes-skills || true
-claude plugin install plans-notion@atelier || true
-claude plugin install methode-de-travail@atelier || true
+claude plugin marketplace add benjaminge73/mes-skills || echo "!! marketplace add : ECHEC"
+claude plugin install plans-notion@atelier          || echo "!! install plans-notion : ECHEC"
+claude plugin install methode-de-travail@atelier    || echo "!! install methode-de-travail : ECHEC"
 ```
 
-Le `|| true` n'est pas décoratif : un setup script qui sort non-zéro fait
-**échouer le démarrage de la session**.
+**Ne jamais laisser une de ces lignes sortir non-zéro** : un setup script qui
+échoue fait **échouer le démarrage de la session**. Chaque ligne est donc
+rattrapée — `echo` rend 0, exactement comme `|| true`.
+
+⚠️ **Mais `|| true` seul est un piège**, et c'est la leçon du 2026-09-11 : si
+`marketplace add` échoue (réseau, dépôt injoignable), les deux `install`
+échouent avec lui, **silencieusement**, et la session démarre sans plugin de
+méthode sans qu'un mot n'apparaisse dans le log. Le `echo` ne change rien au
+comportement et rend l'échec lisible — c'est toute la différence, et elle vaut
+la peine.
 
 Le script tourne à la première session de l'environnement, puis son résultat
 est capturé dans un instantané de filesystem que les sessions suivantes
@@ -92,15 +100,37 @@ d'option en ligne de commande : cette clé s'écrit dans le fichier. En cloud,
 la faire écrire par le setup script, après les installations :
 
 ```bash
-python3 - <<'PY' || true
+python3 - <<'PY' || echo "!! autoUpdate : ECHEC"
 import json, pathlib
 p = pathlib.Path.home() / ".claude" / "settings.json"
 d = json.loads(p.read_text()) if p.exists() else {}
-d.setdefault("extraKnownMarketplaces", {}).setdefault("atelier", {})["autoUpdate"] = True
+entry = d.setdefault("extraKnownMarketplaces", {}).setdefault("atelier", {})
+entry.setdefault("source", {"source": "github", "repo": "benjaminge73/mes-skills"})
+entry["autoUpdate"] = True
 p.parent.mkdir(parents=True, exist_ok=True)
 p.write_text(json.dumps(d, indent=2) + "\n")
 PY
 ```
+
+La ligne `entry.setdefault("source", …)` n'est pas de la ceinture-bretelles.
+Normalement `marketplace add` a déjà écrit la `source`, et ce `setdefault` ne
+fait rien. Mais si cette commande a échoué, la version d'avant écrivait
+`{"atelier": {"autoUpdate": true}}` — une entrée de marketplace **sans
+source**, donc irrésoluble : elle a l'air déclarée et ne pointe nulle part.
+
+Enfin, **finir le setup script par une vérification**. Sans elle, rien ne dit
+jamais si tout ce qui précède a abouti :
+
+```bash
+echo "== plugins réellement installés =="
+claude plugin list || true
+```
+
+Le log du setup devient alors la preuve, au lieu d'une suite de commandes dont
+on ne saura jamais le sort. ⚠️ `claude plugin list` ne montre que les plugins
+**installés depuis une marketplace** : il est aveugle aux copies poussées par
+`--plugin-dir`, qui peuvent masquer celles-ci (voir `CLAUDE.md`, « trois copies
+du même skill »).
 
 ## Contribuer
 
