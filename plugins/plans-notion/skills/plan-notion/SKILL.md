@@ -626,11 +626,22 @@ le miroir : c'est précisément entre deux sessions que Benjamin coche.
 
 ## 7. Maquettes HTML
 
-Si le plan touche à du design, produire une maquette et la référencer dans la
-page. Le déploiement Vercel et ses pièges vérifiés (Deployment Protection,
-premier déploiement qui part en prod, contenu factice obligatoire, pleine
-largeur pour l'iframe Notion, fichier HTML unique) vivent dans un fichier
-partagé :
+Si le plan touche à du design, **chercher d'abord le design system du
+dépôt** — un fichier de tokens, un dossier de composants, une section dédiée
+du `CLAUDE.md` (exemple concret, `vahiny` : `src/styles/tokens.css`,
+`src/ds/`) — avant même d'esquisser la maquette :
+
+- **s'il existe**, la maquette s'en sert — ses composants, ses tokens — et
+  dit d'où viennent ses valeurs, comme une contrainte vérifiée, pas une
+  affirmation ;
+- **s'il n'existe pas**, une question ouverte le dit dans le plan, et la
+  maquette assume d'être une proposition, pas un écran garanti.
+
+Produire ensuite la maquette et la référencer dans la page. Le déploiement
+Vercel et ses pièges vérifiés (Deployment Protection, premier déploiement qui
+part en prod, contenu factice obligatoire, pleine largeur pour l'iframe
+Notion, fichier HTML unique, poids du fichier, intégration Claude Design)
+vivent dans un fichier partagé :
 
 📄 `${CLAUDE_PLUGIN_ROOT}/skills/_partage/maquettes-vercel.md`
 
