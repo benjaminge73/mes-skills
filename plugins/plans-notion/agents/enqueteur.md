@@ -218,12 +218,13 @@ constante, seulement sa cardinalité. ⚠️ Le `grep` du geste 12
 (`'== [0-9]\{3,\}'`) a un plancher de **trois chiffres** et laisse donc
 passer `49`, `7`, `12` — exactement les tailles d'un vocabulaire métier.
 
-Commande :
+Geste : **l'outil `Grep`, pas un shell** — tu n'as ni `Bash` ni pipe, une
+commande enchaînée par `|` ne s'exécute pas chez toi.
 
-```bash
-grep -rn '<valeur>' --include='*' . | grep -v '^\./\.git/'   # la valeur, pas le nom
-grep -rn 'toHaveLength([0-9]\+)\|== [0-9]\+\|len(.*) == [0-9]\+' <dossiers de tests>
-```
+- La valeur plutôt que le nom, sur tout le dépôt :
+  `Grep({pattern: "<la valeur>", output_mode: "content", "-n": true})`
+- Les comptes figés dans les tests, que le nom ne trahit jamais :
+  `Grep({pattern: "toHaveLength\\(\\d+\\)|==\\s*\\d+|len\\(.*\\)\\s*==\\s*\\d+", path: "<dossier de tests>", output_mode: "content", "-n": true})`
 
 Fiche : liste **tous** les points de déclaration trouvés, un `fichier:ligne`
 par ligne, même ceux que le plan ne mentionne pas — c'est leur absence du
