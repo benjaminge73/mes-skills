@@ -8,90 +8,33 @@ scope `user` sur le poste et arrivent dans **toutes** les sessions, cloud
 comprise. Le README dit l'installation, la mise à jour automatique et la licence ;
 ce fichier ne dit que ce qui surprend une session qui travaille **ici**.
 
-## Le piège propre à ce dépôt : trois copies du même skill
+## Les trois copies du même plugin : voir le README
 
-Le skill que tu édites dans ce dépôt n'est **pas forcément** celui qui pilote ta
-session. Trois copies coexistent, jamais garanties identiques :
+Ce piège concerne **toutes** les sessions, pas seulement celles qui
+travaillent ici : le tableau des trois copies, le fait qui les met en
+collision, le levier qui neutralise un instantané et la commande de
+diagnostic (`python3 scripts/copies_installees.py`) vivent désormais dans le
+[README](README.md), chapitre « Les trois copies du même plugin ». C'est là
+qu'il faut chercher, mettre à jour et lire — pas ici.
 
-1. **L'arbre de travail** — ce dépôt, ici même.
-2. **La copie installée**, sous
-   `~/.claude/plugins/cache/atelier/<plugin>/<version>/`, figée à la version que
-   `~/.claude/plugins/installed_plugins.json` déclare.
-3. **Un instantané `@inline`**, sous `~/.claude/remote/plugins/<hash>/<plugin>/`.
-   `@inline` est le nom d'une **marketplace synthétique** : celle des plugins
-   passés en ligne de commande par `--plugin-dir` (`@skills-dir` pour
-   l'auto-chargement de `~/.claude/skills/` et `@synced` pour les copies poussées
-   par `claude.ai` sont deux autres marketplaces du même genre — **pas** des
-   marketplaces installées ; binaire `claude` 2.1.267 : `var Mp="inline",
-   fu="skills-dir", ip="synced", Op="builtin"`, message « This `--plugin-dir`
-   copy did not load »). Ces `--plugin-dir` sont passés par la surface
-   `claude.ai` / Claude Code Desktop : le lanceur `~/.claude/remote/ccd-cli/`
-   démarre avec `--plugin-dir ~/.claude/remote/plugins/<hash>` répété dix-sept
-   fois, un par instantané — **aucun ne pointe vers un arbre de travail**.
+Ce qui reste propre à une session qui travaille **dans ce dépôt** :
 
-⚠️ **Ce dépôt n'y est pour rien, et c'est la correction à retenir.** On a cru un
-temps que travailler dans `mes-skills` faisait charger le plugin depuis l'arbre
-de travail à cause de son `.claude-plugin/marketplace.json`. **C'est faux** :
-`mes-skills` n'a même pas de répertoire `.claude/`, et rien dans le dépôt
-n'enregistre de marketplace à l'ouverture. Le chargement `@inline` vient de la
-surface `claude.ai`, pas d'ici.
+⚠️ **Ce dépôt n'y est pour rien, et c'est la correction à retenir.** On a cru
+un temps que travailler dans `mes-skills` faisait charger le plugin depuis
+l'arbre de travail à cause de son `.claude-plugin/marketplace.json`. **C'est
+faux** : `mes-skills` n'a même pas de répertoire `.claude/`, et rien dans le
+dépôt n'enregistre de marketplace à l'ouverture. Le chargement `@inline`
+vient de la surface `claude.ai`, pas d'ici.
 
-**Une modification ici ne change rien à ta session en cours**, quelle que soit
-la copie qui te gouverne. Elle prend effet après merge sur `main`, `claude
-plugin update <plugin>@atelier`, et un redémarrage. Ne cherche pas à vérifier un
-changement de règle en te regardant travailler : lis le fichier.
-
-**Laquelle gagne, et comment le savoir — le seul geste fiable** : chaque
-`SKILL.md` porte en tête une section « Suis-je la bonne version ? » dont
-l'en-tête annonce le chemin depuis lequel le skill a été chargé. C'est le seul
-endroit où la réponse est factuelle.
-
-- chemin sous `~/.claude/plugins/cache/atelier/` → copie installée ;
-- chemin sous `~/.claude/remote/plugins/` → instantané `@inline` ;
-- chemin dans le dépôt → arbre de travail.
-
-**`ListPlugins` ne peut pas répondre à cette question.** Il n'interroge que les
-plugins côté `claude.ai`, jamais un instantané `@inline` ni une marketplace
-GitHub installée sur la machine. Seul
-`~/.claude/plugins/installed_plugins.json` fait foi pour la copie installée —
-et il ne connaît pas les instantanés. **Aucun outil ne montre les trois copies
-d'un coup.**
-
-**Trois incidents mesurés :**
-
-- **2026-09-08** : une session a travaillé un plan entier sur une copie
-  périmée (copie installée contre arbre de travail).
-- **2026-09-10** : le skill `plan-notion` d'une session s'est chargé depuis
-  `~/.claude/remote/plugins/f06304eb81541a26/skills/plan-notion` — un instantané
-  `@inline` — et son texte prescrivait encore `subagent_type: "enqueteur"`, le
-  nom court corrigé la veille en 0.9.0 parce qu'il ne résout pas. La copie
-  installée, elle, était à jour ; c'est l'instantané qui gagnait.
-- **2026-09-11** : un plan de neuf étapes a été exécuté **en entier** sur
-  l'instantané `plans-notion` **0.3.0**, alors que la **0.9.0** était installée.
-  Six mineures de règles en arrière, dont la garde « Suis-je la bonne version ? »
-  qui aurait justement attrapé le cas. C'est le contrôle d'hygiène écrit à la
-  dernière étape de ce plan qui l'a signalé — sur la session qui l'écrivait.
-
-**Le détail qui rend le piège vicieux** : l'instantané du 2026-09-10 avait déjà
-été **purgé du disque** dans la même session, qui continuait pourtant de servir
-la copie supprimée — le registre des skills est construit au démarrage, la
-purge ne l'invalide pas. **Le disque est propre et le comportement reste faux,
-jusqu'au redémarrage.**
-
-**Les compteurs d'usage n'aident pas à trancher** : ce sont des totaux de vie,
-jamais remis à zéro. `~/.claude.json` (clé `pluginUsage`) porte
-`plans-notion@inline` à 47 usages alors que cet instantané n'existe plus,
-contre 6 pour `plans-notion@atelier`.
-
-Ce qu'ils disent en revanche sans ambiguïté, c'est **qui gagne**. Relevé du
-2026-09-11 sur un compte système où les deux copies coexistaient :
-`plans-notion@inline` à **3** usages, `plans-notion@atelier` à **0**. La copie
-correctement installée depuis la marketplace n'avait jamais servi une seule
-fois : l'instantané la masquait par collision de nom, à chaque démarrage.
+**Une modification ici ne change rien à ta session en cours**, quelle que
+soit la copie qui te gouverne. Elle prend effet après merge sur `main`,
+`claude plugin update <plugin>@atelier`, et un redémarrage. Ne cherche pas à
+vérifier un changement de règle en te regardant travailler : lis le fichier.
 
 ## D'où vient un instantané, et pourquoi rien ne le rattrape
 
-Établi le 2026-09-11, en remontant le `0.3.0` de l'incident ci-dessus.
+Établi le 2026-09-11, en remontant le `0.3.0` de l'incident du même jour —
+voir README, chapitre « Les trois copies du même plugin ».
 
 **`plans-notion` n'a jamais été en 0.3.0 dans ce dépôt.** `mes-skills` démarre le
 plugin à **0.7.0**, le 2026-09-07. La version 0.3.0 vient d'ailleurs : de
@@ -123,10 +66,16 @@ resynchroniser l'inscription sur la surface qui pousse ces `--plugin-dir`.
 surface où la marketplace `atelier` n'est pas installée, l'instantané peut être
 la **seule** copie présente.
 
-**Ce qui a été écarté** : `disableSideloadFlags` rejette `--plugin-dir`, mais
-fait sortir la CLI en erreur — donc casserait Remote Control et Desktop, qui en
-passent toujours. Il est en plus de portée « managed settings »
-(`/etc/claude-code/managed-settings.json`), absente de ce poste.
+**Ce qui a été écarté** : mesuré le 2026-09-22, `disableSideloadFlags` ne fait
+**pas** sortir la CLI en erreur — une affirmation antérieure de ce fichier le
+disait à tort, et c'est corrigé ici. Le binaire installé porte le message
+`disableSideloadFlags: dropping @inline plugin specs at load time` : il
+**ignore** silencieusement les specs `--plugin-dir` au lieu d'échouer. Le
+réglage reste écarté malgré tout, pour deux raisons qui tiennent sans cette
+erreur : il est de portée « managed settings »
+(`/etc/claude-code/managed-settings.json`, absente de ce poste), et il
+tuerait aussi les quinze plugins officiels d'Anthropic qui arrivent par le
+même mécanisme `--plugin-dir`.
 
 **La portée projet a été essayée, et elle est écartée** : déclarer le plugin
 dans le `.claude/settings.json` **versionné** d'un dépôt n'enregistre rien —
