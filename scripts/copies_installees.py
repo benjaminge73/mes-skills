@@ -37,6 +37,7 @@ HOME = Path(os.path.expanduser("~"))
 INSTALLED_PLUGINS = HOME / ".claude" / "plugins" / "installed_plugins.json"
 REMOTE_PLUGINS_DIR = HOME / ".claude" / "remote" / "plugins"
 MANIFEST_GLOB = ".claude-plugin/plugin.json"
+SETTINGS = HOME / ".claude" / "settings.json"
 
 #: Suffixe des clés de `installed_plugins.json` pour la marketplace qui nous
 #: intéresse ici. Les copies `synced` (sous `~/.claude/plugins/synced/`,
@@ -187,6 +188,29 @@ def plugin_dirs_processus_vivants() -> tuple[list[str], str | None]:
     return chemins, None
 
 
+def plugins_inline_desactives() -> set[str]:
+    """Noms des plugins qu'un `"<nom>@inline": false` de `settings.json` désactive.
+
+    Un instantané présent sur le disque n'est pas forcément chargé : les réglages
+    utilisateur peuvent le désactiver, et c'est le seul levier local qui existe
+    pour ça. Sans cette lecture, le diagnostic annoncerait un masquage qui n'a
+    plus lieu — un faux positif qui ferait rouvrir un problème déjà réglé. La
+    présence du fossile reste signalée (et le code de sortie reste 1) : il est
+    toujours retéléchargé à chaque démarrage, seulement plus chargé.
+    """
+    reglages = _lire_json(SETTINGS)
+    if reglages is None:
+        return set()
+    actives = reglages.get("enabledPlugins")
+    if not isinstance(actives, dict):
+        return set()
+    return {
+        cle.split("@")[0]
+        for cle, valeur in actives.items()
+        if cle.endswith("@inline") and valeur is False
+    }
+
+
 def main() -> int:
     installes = plugins_installes()
     instantanes = instantanes_inline()
@@ -209,6 +233,7 @@ def main() -> int:
     if not instantanes:
         print("  aucun trouvé.")
     else:
+        desactives = plugins_inline_desactives()
         for instantane in instantanes:
             if instantane["erreur"]:
                 print(f"  ? {instantane['chemin']} — {instantane['erreur']}")
@@ -219,10 +244,15 @@ def main() -> int:
 
             if correspondance is not None and version is not None and version != correspondance["version"]:
                 conflit = True
+                etat = (
+                    "désactivé par settings.json, il ne se charge plus"
+                    if nom in desactives
+                    else "il masque la copie installée au démarrage"
+                )
                 print(
                     f"  ⚠ {nom} {version} — {chemin} "
-                    f"(la copie installée est en {correspondance['version']} : "
-                    "cet instantané la masque au démarrage)"
+                    f"(la copie installée est en {correspondance['version']} ; "
+                    f"{etat})"
                 )
             else:
                 print(f"  {nom} {version} — {chemin}")
@@ -238,8 +268,9 @@ def main() -> int:
     print()
     if conflit:
         print(
-            "Résultat : au moins un instantané @inline masque une copie "
-            "atelier installée à une version différente."
+            "Résultat : au moins un instantané @inline double une copie "
+            "atelier installée à une version différente. Chaque ligne dit "
+            "s'il la masque, ou s'il est désactivé par settings.json."
         )
         return 1
 
