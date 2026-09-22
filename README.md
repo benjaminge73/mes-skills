@@ -118,6 +118,28 @@ fait rien. Mais si cette commande a échoué, la version d'avant écrivait
 `{"atelier": {"autoUpdate": true}}` — une entrée de marketplace **sans
 source**, donc irrésoluble : elle a l'air déclarée et ne pointe nulle part.
 
+Une session cloud repart d'une VM neuve : elle n'hérite ni de
+`~/.claude/settings.json`, ni des hooks du poste. Le setup script est donc
+aussi le **seul** levier qui atteint le cloud pour désactiver un instantané
+`@inline` qui masquerait `plans-notion@atelier` (voir plus bas, « Les trois
+copies du même plugin », pour ce que ça neutralise et ce que ça ne fait pas).
+L'écrire à la suite de l'`autoUpdate` ci-dessus, dans le même setup script :
+
+```bash
+python3 - <<'PY' || echo "!! enabledPlugins plans-notion@inline : ECHEC"
+import json, pathlib
+p = pathlib.Path.home() / ".claude" / "settings.json"
+d = json.loads(p.read_text()) if p.exists() else {}
+d.setdefault("enabledPlugins", {})["plans-notion@inline"] = False
+p.parent.mkdir(parents=True, exist_ok=True)
+p.write_text(json.dumps(d, indent=2) + "\n")
+PY
+```
+
+Cette écriture est idempotente — rejouer le setup script réécrit `False` sur
+`False`, sans effet de bord — et suit le même schéma lire-modifier-écrire que
+le bloc `autoUpdate` ci-dessus, pour ne pas écraser le reste du fichier.
+
 Enfin, **finir le setup script par une vérification**. Sans elle, rien ne dit
 jamais si tout ce qui précède a abouti :
 
@@ -127,10 +149,125 @@ claude plugin list || true
 ```
 
 Le log du setup devient alors la preuve, au lieu d'une suite de commandes dont
-on ne saura jamais le sort. ⚠️ `claude plugin list` ne montre que les plugins
-**installés depuis une marketplace** : il est aveugle aux copies poussées par
-`--plugin-dir`, qui peuvent masquer celles-ci (voir `CLAUDE.md`, « trois copies
-du même skill »).
+on ne saura jamais le sort. ⚠️ Attention à la façon de lire sa sortie.
+`claude plugin list` a **trois** sections, et celle qui montre les copies
+poussées par `--plugin-dir` — `Session-only plugins` — n'apparaît **que dans
+une invocation qui en a elle-même reçu**. Lancée depuis un setup script qui
+n'en reçoit aucun, elle est absente, et la liste paraît saine alors qu'une
+copie figée peut masquer la version installée (voir plus bas, « Les trois
+copies du même plugin »).
+
+## Les trois copies du même plugin
+
+Un plugin installé depuis cette marketplace n'est **pas forcément** celui
+qui pilote une session donnée. Trois copies peuvent coexister, jamais
+garanties identiques :
+
+| Copie | Où elle vit | Son canal de mise à jour | Comment savoir si c'est elle qui gagne |
+|---|---|---|---|
+| **installée** (`@atelier`) | `~/.claude/plugins/cache/atelier/<plugin>/<version>/`, déclarée dans `~/.claude/plugins/installed_plugins.json` | la marketplace `atelier`, avec `autoUpdate: true` dans `~/.claude/settings.json` — elle se met à jour seule | `claude plugin list`, section `Installed plugins` |
+| **instantané** (`@inline`) | `~/.claude/remote/plugins/<hash>/` ou `<hash>/<hash>/` | **aucun** — le lanceur `~/.claude/remote/ccd-cli/<version>` la repousse telle quelle à chaque démarrage via des arguments `--plugin-dir`. Supprimer le dossier ne sert à rien, il revient | `claude plugin list`, section `Session-only plugins`, qui **n'apparaît que dans une invocation ayant elle-même reçu des `--plugin-dir`** |
+| **synchronisée** (`@synced`) | `~/.claude/plugins/synced/<bucket>/`, pilotée par un `manifest.json` | `claude.ai` | `claude plugin list`, section `Synced from claude.ai` |
+
+`@inline` est le nom d'une **marketplace synthétique** : celle des plugins
+passés en ligne de commande par `--plugin-dir` (`@skills-dir`, pour
+l'auto-chargement de `~/.claude/skills/`, en est une autre du même genre —
+pas une marketplace installée). Ces `--plugin-dir` sont passés par la
+surface `claude.ai` / Claude Code Desktop : le lanceur
+`~/.claude/remote/ccd-cli/` démarre avec un `--plugin-dir` répété une
+quinzaine de fois, un par instantané — aucun ne pointe vers un arbre de
+travail.
+
+**Le fait central** : quand deux copies portent le **même nom de plugin**,
+l'instantané masque l'installée. Mesuré le 2026-09-22 : trois instantanés
+`plans-notion` **0.3.0** masquent la **0.11.0** installée — une version qui
+n'a jamais existé dans ce dépôt (il démarre le plugin à 0.7.0), héritée de
+l'historique de `hermes-custom` d'avant la scission (voir `CLAUDE.md`,
+« D'où vient un instantané, et pourquoi rien ne le rattrape »).
+
+### Le diagnostic en une commande
+
+```bash
+python3 scripts/copies_installees.py
+```
+
+Il réunit, en lecture seule, les trois vues qu'aucun outil existant ne
+montre d'un coup : les plugins `atelier` installés, tous les instantanés
+`@inline` trouvés sous `~/.claude/remote/plugins/` avec leur version, et les
+`--plugin-dir` réellement passés aux processus `claude` vivants (lus dans
+`/proc`). Il sort en **code 1** dès qu'un instantané masque une copie
+installée à une version différente — le cas qui masque silencieusement une
+mise à jour — et en **0** sinon, y compris quand rien n'a été trouvé du
+tout.
+
+### Le levier qui neutralise un instantané
+
+Une ligne dans `~/.claude/settings.json` suffit à désactiver un instantané :
+
+```json
+"enabledPlugins": { "plans-notion@inline": false }
+```
+
+Elle est en scope utilisateur, donc elle vaut pour toutes les sessions
+locales. ⚠️ Elle **désactive**, elle ne **supprime** pas : l'instantané
+continue d'être retéléchargé à chaque démarrage, il n'est simplement plus
+chargé. La clé est **exacte**, pas un motif : un instantané qui reviendrait
+sous un autre nom passerait au travers. Et seule la valeur `false` est
+honorée depuis des réglages **utilisateur** : activer un plugin par cette
+clé exige des réglages administrateur.
+
+En session cloud, `~/.claude/settings.json` ne survit pas d'une VM à
+l'autre — c'est le setup script (« Installation → En session cloud »
+ci-dessus) qui doit écrire cette ligne à chaque démarrage d'environnement ;
+le bloc exact est reproduit là-bas, à la suite de l'`autoUpdate`.
+
+### Comment le repérer autrement
+
+**Laquelle gagne, et comment le savoir — le geste le plus fiable** : chaque
+`SKILL.md` porte en tête une section « Suis-je la bonne version ? » dont
+l'en-tête annonce le chemin depuis lequel le skill a été chargé. C'est le
+seul endroit où la réponse est factuelle :
+
+- chemin sous `~/.claude/plugins/cache/atelier/` → copie installée ;
+- chemin sous `~/.claude/remote/plugins/` → instantané `@inline` ;
+- chemin dans un dépôt de travail → arbre de travail (le cas d'un
+  contributeur de ce dépôt, pas d'un usage normal du plugin).
+
+**`ListPlugins` ne peut pas répondre à cette question.** Il n'interroge que
+les plugins côté `claude.ai`, jamais un instantané `@inline` ni une
+marketplace GitHub installée sur la machine. Seul
+`~/.claude/plugins/installed_plugins.json` fait foi pour la copie installée
+— et il ne connaît pas les instantanés. **Aucun outil ne montre les trois
+copies d'un coup** — c'est pour ça que `scripts/copies_installees.py`
+existe.
+
+**Les compteurs d'usage n'aident pas à trancher quelle version est à jour**
+— ce sont des totaux de vie, jamais remis à zéro — mais ils disent sans
+ambiguïté **qui a gouverné les sessions passées**. `~/.claude.json` (clé
+`pluginUsage`) a porté `plans-notion@inline` à 47 usages alors que cet
+instantané n'existait déjà plus sur le disque. Et relevé du 2026-09-11 sur
+un compte où les deux copies coexistaient : `plans-notion@inline` à **3**
+usages, `plans-notion@atelier` à **0** — la copie correctement installée
+depuis la marketplace n'avait jamais servi une seule fois, masquée par
+collision de nom à chaque démarrage.
+
+### Incidents mesurés
+
+- **2026-09-08** : une session a travaillé un plan entier sur une copie
+  périmée (copie installée contre arbre de travail, pour un contributeur de
+  ce dépôt).
+- **2026-09-10** : un skill s'est chargé depuis
+  `~/.claude/remote/plugins/f06304eb81541a26/skills/plan-notion` — un
+  instantané `@inline`, déjà purgé du disque dans la même session sans que
+  ça change quoi que ce soit : le registre des skills est construit au
+  démarrage, la purge ne l'invalide pas — et son texte prescrivait encore un
+  nom de sous-agent corrigé la veille sur la copie installée. L'instantané
+  gagnait quand même.
+- **2026-09-11** : un plan de neuf étapes a été exécuté **en entier** sur
+  l'instantané `plans-notion` **0.3.0**, alors que la **0.9.0** était
+  installée — six mineures de règles en arrière, dont la garde « Suis-je la
+  bonne version ? » qui aurait justement attrapé le cas. C'est un contrôle
+  d'hygiène écrit à la dernière étape de ce même plan qui l'a signalé.
 
 ## Contribuer
 
