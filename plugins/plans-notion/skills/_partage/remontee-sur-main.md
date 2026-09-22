@@ -18,17 +18,36 @@ Dans les trois cas, même séquence — et **elle ne s'arrête pas au merge** :
    une branche à moitié faite rejoue la CI à chaque push.
    - Titre = titre du plan ; corps = une ligne par étape reprise du journal,
      lien vers la page Notion.
-   - **Le label `review-required`, dès la création, si le dépôt a des tests
-     e2e** (relevé du §2) : `gh pr create --base main --label review-required …`.
-     Toujours, ceinture et bretelles : la suite complète a tourné en local à la
-     clôture (ceinture), le label la fait rejouer par la CI (bretelles). Sur
-     `vahiny`, il commande précisément ça — `tools`, `e2e`, que la CI n'y joue
-     pas sur une PR ordinaire — puis, tout vert, le merge sur `main` par le job
-     `auto-merge` : une PR de plan ouverte sans ce label y serait mergée sur la
-     seule foi des tests unitaires. Le label doit exister dans le dépôt
-     (`gh label list`) ; s'il manque sur un dépôt qui a des e2e, le dire à
-     Benjamin plutôt que d'ouvrir sans — c'est un trou dans la CI, pas un détail
-     à contourner.
+   - **Le label `review-required` : la question se tranche dépôt par dépôt, en
+     regardant, jamais de mémoire.** Le réflexe « le dépôt a des e2e, donc je
+     pose le label » est faux, et il a coûté un aller-retour le 2026-09-22. Ce
+     label n'a d'effet **que là où un workflow le lit**, et cet effet **change de
+     signe d'un dépôt à l'autre**. Deux commandes y répondent, toutes deux
+     jouables avant d'ouvrir :
+
+     ```bash
+     gh label list | grep review-required            # existe-t-il seulement ?
+     grep -rn 'review-required' .github/workflows/   # un job le lit, et pour quoi faire ?
+     ```
+
+     Les trois cas relevés à ce jour :
+     - **`vahiny` — le poser.** `gh pr create --base main --label review-required …`.
+       Il y commande `tools` et `e2e`, que la CI ne joue pas sur une PR ordinaire,
+       puis, tout vert, le merge sur `main` par le job `auto-merge`. Une PR de plan
+       ouverte sans ce label y serait mergée sur la seule foi des tests unitaires.
+     - **`mes-skills` — ne pas le poser.** Le job `merge-auto` en est **exclu** :
+       le label y *empêcherait* le merge au lieu de renforcer la preuve. C'est
+       l'inverse exact de `vahiny`, et le dépôt n'a pas d'e2e de toute façon.
+     - **`hermes-custom` — le label n'existe pas**, et aucun de ses workflows ne
+       le mentionne ; `gh pr create --label` y échoue. Le dépôt a pourtant des
+       e2e : c'est un trou connu de sa CI.
+
+     **Ce qui reste vrai partout** : la ceinture, c'est la suite complète jouée
+     **en local** à la clôture (§6). Le label n'est que la bretelle, et une
+     bretelle n'existe que si le dépôt en a une — ne jamais la supposer depuis la
+     règle générale. Sur un dépôt qui a des e2e et où le label manque, le dire à
+     Benjamin plutôt que d'ouvrir en silence : c'est un trou dans la CI, pas un
+     détail à contourner.
    - `PR` renseignée sur la page dès l'ouverture.
 2. **Attendre la CI, et lire son verdict.** Rouge → corriger **tout** en local,
    rejouer la suite complète, puis repousser une seule fois (chaque `push` sur la

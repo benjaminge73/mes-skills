@@ -150,8 +150,10 @@ Puis, dans le même tour, avant la première étape :
   qu'elles commandent la suite : **un `push` sur une branche autre que `main`
   lance-t-il un run ?** (si oui, la branche ne se pousse qu'à la clôture, §6 ;
   sinon, elle se pousse après chaque étape, §3) ; **le dépôt a-t-il des tests
-  e2e ?** (si oui, ils passent en local à la clôture, §6, et la PR du plan — le
-  jour où Benjamin la demande — s'ouvre avec le label `review-required`, §6) ;
+  e2e ?** (si oui, ils passent en local à la clôture, §6) ; **que fait ce dépôt
+  du label `review-required` ?** — `gh label list` et `grep -rn 'review-required'
+  .github/workflows/`, parce que son effet change de signe d'un dépôt à l'autre
+  et qu'il n'existe pas partout (§6) ;
   **un job merge-t-il tout seul les PR vertes ?** (si oui, ouvrir la PR, c'est
   remonter sur `main` — sur `vahiny`, `review-required` commande la suite
   complète de tests puis, tout vert, le merge par la CI : sans lui, ce dépôt ne
@@ -622,8 +624,9 @@ Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard » :
     📄 `${CLAUDE_PLUGIN_ROOT}/skills/_partage/schemas.md`
 - Le compte rendu dit **quelles étapes sont parties en sous-agent Sonnet** et,
   pour celles faites en direct, pourquoi (§3). Il dit aussi, en une ligne, que
-  **la PR n'est pas ouverte et qu'elle le sera sur demande** — avec le label
-  `review-required` si le dépôt a des tests e2e (relevé du §2).
+  **la PR n'est pas ouverte et qu'elle le sera sur demande** — avec ou sans le
+  label `review-required` selon ce que ce dépôt-là en fait (relevé du §2, les
+  trois cas connus au §6).
 - **Livrer la branche, et s'arrêter là.** Pas de PR : la remontée vers `main`
   est un geste vers l'extérieur, et il n'a lieu que sur demande explicite de
   Benjamin — décision du 2026-09-04, qui revient sur la PR de clôture
@@ -661,12 +664,13 @@ Benjamin demande la suite quand il le décide : « ouvre la PR », « merge sur
 main », « tu peux merger directement », « pousse ça sur main ». Deux demandes
 distinctes, et il faut entendre laquelle est faite :
 
-- **« ouvre la PR »** → une seule PR, de la branche du plan vers `main`, **avec
-  le label `review-required` dès la création si le dépôt a des tests e2e**
-  (relevé du §2) — toujours, ceinture et bretelles : la suite complète a tourné
-  en local à la clôture, le label la fait rejouer par la CI. Sur `vahiny`, ce
-  label commande aussi le merge par la CI une fois tout vert : y demander la PR,
-  c'est demander la remontée, et Benjamin le sait.
+- **« ouvre la PR »** → une seule PR, de la branche du plan vers `main`. **Le
+  label `review-required` se décide en regardant ce dépôt-là**, jamais depuis la
+  règle générale : il n'existe pas partout, et là où il existe son effet change
+  de signe (§6, trois cas relevés). La ceinture reste la suite complète jouée en
+  local à la clôture ; le label n'est que la bretelle. Sur `vahiny`, il commande
+  aussi le merge par la CI une fois tout vert : y demander la PR, c'est demander
+  la remontée, et Benjamin le sait.
 - **« merge sur main »** → la PR (ouverte à cette occasion si elle ne l'est
   pas), CI verte, merge, vérification sur pièce, `execute`.
 
@@ -725,7 +729,8 @@ celle qui la précède.
   contrainte qui a fixé cette règle (§2) ; la remontée vers `main` est un geste
   vers l'extérieur, et c'est Benjamin qui en décide le moment.
 - Il ouvre **la** PR du plan — une seule, de la branche vers `main` — **quand
-  Benjamin la demande**, avec `review-required` si le dépôt a des tests e2e ;
+  Benjamin la demande**, avec ou sans `review-required` selon ce que ce dépôt-là
+  en fait (§6) ;
   il merge sur `main` **quand Benjamin le demande** — et pose alors `execute`
   dans le même tour, une fois le merge vérifié (§6). Là où la CI du dépôt merge
   seule la PR (`vahiny` sur `review-required`), il **vérifie** le merge et pose
