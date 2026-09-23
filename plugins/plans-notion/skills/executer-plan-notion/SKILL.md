@@ -273,6 +273,17 @@ Le défaut, sauf avis contraire de Benjamin :
   cette suite que sur la PR que Benjamin demande — c'est la seconde ceinture,
   pas la première.
 
+**Pour une étape qui écrit du code testé, l'étape = deux commits, rouge puis
+vert.** L'exécutant commite d'abord les tests seuls, rouges, puis le code qui
+les fait passer — jamais dans le même commit. La preuve rejouée par le
+pilote comprend le rouge : rejouer la commande de preuve sur le premier
+commit avant de regarder le second, et vérifier que le second ne touche
+aucun fichier de test. Le geste exact, les trois issues (rouge attendu, vert
+qui dit que le test ne mord pas, `git diff` non vide) et la combinaison avec
+une vague ou un regroupement vivent dans un fichier partagé :
+
+📄 `${CLAUDE_PLUGIN_ROOT}/skills/_partage/preuve-du-rouge.md`
+
 ### La délégation est la règle, pas une faveur
 
 **Charger ce skill vaut demande explicite de déléguer.** Certains harnais portent
@@ -356,9 +367,12 @@ et c'est ce qui donne ensuite l'envie de « faire soi-même ». Le brief porte d
 5. **Ce qu'il ne fait pas** : ni `commit`, ni `push`, ni PR, ni élargissement du
    périmètre, ni écriture dans Notion — **sauf le regroupement de deux étapes**
    (`vagues.md`), où il commite la première avant d'ouvrir la seconde, avec le
-   message fourni dans le brief : **la seule exception à cette règle.** En cas
-   d'échec : **diagnostic, pas correctif** — le debug revient à la session
-   principale, seule à avoir le plan.
+   message fourni dans le brief, **et sauf une étape testée**
+   (`preuve-du-rouge.md`), où il commite le rouge puis le vert sur ordre du
+   brief, sans jamais toucher un fichier de test dans le commit vert : les deux
+   seules exceptions à cette règle. En cas d'échec : **diagnostic, pas
+   correctif** — le debug revient à la session principale, seule à avoir le
+   plan.
 6. **Le format du rapport attendu** — quatre pièces, toujours dans cet ordre :
    - **Un état, un seul, parmi quatre** : `DONE` (fait, prouvé, rien à
      signaler), `DONE_WITH_CONCERNS` (fait et prouvé, mais quelque chose mérite
@@ -746,6 +760,7 @@ celle qui la précède.
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/ecrire-dans-notion.md`,
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/vagues.md`,
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/schemas.md`,
-  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/remontee-sur-main.md` et
-  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/plan-de-suite.md`, livrés par le
+  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/remontee-sur-main.md`,
+  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/plan-de-suite.md` et
+  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/preuve-du-rouge.md`, livrés par le
   plugin `plans-notion` — pas par le dépôt de travail, quel qu'il soit.
