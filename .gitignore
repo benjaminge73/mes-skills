@@ -2,3 +2,4 @@
 *.bak
 *.bak.*
 .codebase-memory/
+__pycache__/

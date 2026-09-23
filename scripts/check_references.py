@@ -106,6 +106,48 @@ def _valeur_champ(bloc: list[str], champ: str) -> str | None:
     return None
 
 
+# Une valeur YAML « nue » (sans guillemets) ne peut ni commencer par un
+# indicateur réservé, ni contenir `: ` (lu comme une nouvelle clé), ni ` #`
+# (lu comme un commentaire). Le 2026-09-23, « son existence : écart au plan »
+# dans la description de l'agent relecteur a cassé tout le frontmatter : Claude
+# Code chargeait alors l'agent sans aucune métadonnée — ni `model`, ni `effort`,
+# ni `disallowedTools` — et la CLI locale ne le signalait pas.
+_INDICATEURS_DE_DEBUT = tuple("`@%!&*")
+_DEBUTS_NON_NUS = ("\"", "'", "|", ">", "[", "{")
+
+
+def erreurs_yaml_scalaires(bloc: list[str]) -> list[str]:
+    """Signale les valeurs nues de premier niveau qu'un parseur YAML refuserait.
+
+    Sans PyYAML : ne regarde que les lignes `clé: valeur` non indentées, et
+    laisse passer tout ce qui est cité, en bloc (`|`, `>`) ou en flux (`[`, `{`).
+    """
+    erreurs: list[str] = []
+    for ligne in bloc:
+        if not ligne or ligne[0] in " \t-#" or ":" not in ligne:
+            continue
+        cle, _, valeur = ligne.partition(":")
+        valeur = valeur.strip()
+        if not valeur or valeur.startswith(_DEBUTS_NON_NUS):
+            continue
+        if valeur.startswith(_INDICATEURS_DE_DEBUT):
+            erreurs.append(
+                f"`{cle}` commence par `{valeur[0]}`, réservé en YAML : "
+                "mettre la valeur entre guillemets"
+            )
+        elif ": " in valeur or valeur.endswith(":"):
+            erreurs.append(
+                f"`{cle}` contient « : » hors guillemets, que YAML lit comme "
+                "une nouvelle clé : remplacer par « — » ou citer la valeur"
+            )
+        elif " #" in valeur:
+            erreurs.append(
+                f"`{cle}` contient « #» précédé d'une espace, que YAML lit "
+                "comme un commentaire : citer la valeur"
+            )
+    return erreurs
+
+
 def verifier_frontmatters() -> tuple[list[str], int]:
     """SKILL.md et agents/*.md : frontmatter exploitable, `name` cohérent."""
     problemes: list[str] = []
@@ -128,6 +170,9 @@ def verifier_frontmatters() -> tuple[list[str], int]:
         if erreur_bloc is not None:
             problemes.append(f"{rel}:1 — {erreur_bloc}")
             continue
+
+        for erreur_yaml in erreurs_yaml_scalaires(bloc):
+            problemes.append(f"{rel}:1 — frontmatter YAML invalide : {erreur_yaml}")
 
         nom = _valeur_champ(bloc, "name")
         if nom is None:
