@@ -666,7 +666,22 @@ Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard » :
      que sur un disque. La sortie de la preuve va au journal (`État final`).
   3. **Ne pas ouvrir la PR.** Ni la merger, ni la préparer « pour gagner du
      temps ». Le compte rendu s'arrête sur la branche, prouvée et poussée.
-  4. **Retirer le worktree**, `git worktree remove ~/repos/worktrees/<repo>/
+  4. **Contrôle bloquant, avant de poser `a merger`** :
+     ```bash
+     git branch --list '<branche-du-plan>-etape-*'
+     git worktree list
+     ```
+     Rien d'autre que les branches `<branche-du-plan>-etape-N-en-echec`
+     déclarées au journal, ni le worktree du plan (retiré au point suivant).
+     Le 2026-09-23 sur `vahiny`, 8 branches de vague ont survécu à leur plan,
+     sans filet après coup : plan parent squash-mergé, `git cherry` y rend
+     `+` pour tout. Survivance → vérifier le report (`git log
+     <branche-du-plan>`, `git cherry <branche-du-plan> <branche-d-etape>` :
+     que des `-`), puis nettoyer. Sortie des deux commandes dans l'entrée
+     `État final`.
+
+     📄 `${CLAUDE_PLUGIN_ROOT}/skills/_partage/vagues.md`
+  5. **Retirer le worktree**, `git worktree remove ~/repos/worktrees/<repo>/
      <branche-kebab>` — **la branche, elle, reste** : c'est le hook
      `SessionStart` qui la nettoiera après le merge éventuel, et **une branche
      encore checked-out dans un worktree n'est jamais nettoyée par ce hook**

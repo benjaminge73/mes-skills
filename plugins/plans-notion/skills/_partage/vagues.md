@@ -148,6 +148,23 @@ les sous-agents de la vague :
    ou sur un usage invalide, le shell peut enchaîner sur la suppression sans
    que personne n'ait relu le résultat.
 
+   Le nettoyage a lieu **dans le même tour** que cette vérification — deux
+   appels séparés, la règle ci-dessus reste entière, mais rien ne s'intercale
+   entre les deux : ni rédaction du journal, ni passage à l'étape suivante.
+   Relevé le 2026-09-23 sur `vahiny` : 8 branches de vague avaient survécu à
+   leur plan alors que `vagues.md` prescrivait déjà leur suppression — un
+   nettoyage qui n'est pas fait tout de suite finit par ne pas être fait. Aucun filet ne les rattrape après coup : les plans parents ont
+   été squash-mergés puis supprimés, et `git cherry origin/main <branche>`
+   rend `+` pour toutes — le squash casse l'équivalence de patch. Le seul
+   moment où la suppression se prouve facilement, c'est ici, tant que la
+   branche du plan existe encore et n'est pas squashée.
+
+   La revue de l'étape (`revue.md`, « Pour une étape de vague ») se joue
+   entre le commit (point 2) et le report (point 3), dans le worktree et sur
+   la branche d'étape : ses correctifs y sont commités et partent avec le
+   report. Au moment de ce nettoyage, il ne reste donc rien de relu qui ne
+   soit déjà sur la branche du plan.
+
 5. **Rejouer les preuves de toute la vague sur la branche du plan**, une
    seconde fois, une fois le dernier report fait. Des étapes à fichiers
    disjoints peuvent encore interagir : le 2026-09-08, une étape ajoutait un
