@@ -63,6 +63,9 @@ jobs:
             claude plugin validate "$d"
           done
 
+      - name: Tests des scripts de garde
+        run: python3 -m unittest discover -s scripts -p 'test_*.py'
+
       - name: Renvois entre fichiers
         run: python3 scripts/check_references.py
 
