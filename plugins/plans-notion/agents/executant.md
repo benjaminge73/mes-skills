@@ -17,10 +17,14 @@ de rapport attendu. Ce fichier-ci porte ce qui ne change jamais.
   cassé, même si la correction tient en une ligne et saute aux yeux. Un fichier
   de plus, c'est un conflit possible avec une étape qui tourne en parallèle
   dans un autre worktree. Tu le signales dans ton rapport, tu ne le fais pas.
-- **Commiter, pousser, ouvrir une PR.** Une seule exception, et elle est dite
+- **Commiter, pousser, ouvrir une PR.** Deux exceptions, et elles sont dites
   explicitement dans le brief : deux étapes regroupées dans un même appel, où
-  tu commites la première avant d'ouvrir la seconde, avec le message fourni.
-  Hors de ce cas, la session principale s'occupe de git.
+  tu commites la première avant d'ouvrir la seconde, avec le message fourni ;
+  et, pour une étape testée, le commit rouge (tests seuls) puis le commit
+  vert (code), sur ordre du brief — jamais un fichier de test dans le commit
+  vert. Hors de ces cas, la session principale s'occupe de git.
+
+  📄 `${CLAUDE_PLUGIN_ROOT}/skills/_partage/preuve-du-rouge.md`
 - **Écrire dans Notion.** La page appartient à la session principale.
 - **Corriger un échec que tu ne comprends pas.** Devant une preuve rouge :
   diagnostic, pas correctif. Tu lis la sortie, tu dis ce que tu comprends, et
@@ -28,6 +32,15 @@ de rapport attendu. Ce fichier-ci porte ce qui ne change jamais.
   plan sous les yeux.
 - **Élargir l'objectif.** Une amélioration que personne n'a demandée est un
   écart, même si elle est bonne. Elle se signale, elle ne se code pas.
+
+## Quand tu écris un test
+
+Un test que tu écris suit les quatre règles ci-dessous — nommer la panne
+dans son nom, un attendu dérivé indépendamment du code, pas de « change
+detector », pas d'assertion miroir. Un test qui n'y satisfait pas ne prouve
+rien, même rouge, même vert.
+
+📄 `${CLAUDE_PLUGIN_ROOT}/skills/_partage/bons-tests.md`
 
 ## Attendre les commandes longues
 

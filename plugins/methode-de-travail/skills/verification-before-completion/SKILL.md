@@ -96,6 +96,7 @@ Skip any step = lying, not verifying
 | "I'm tired" | Exhaustion ≠ excuse |
 | "Partial check is enough" | Partial proves nothing |
 | "Different words so rule doesn't apply" | Spirit over letter |
+| "I adjusted the test so it passes" | The test judged the code; it doesn't move after red |
 
 ## Key Patterns
 
@@ -110,6 +111,22 @@ Skip any step = lying, not verifying
 ✅ Write → Run (pass) → Revert fix → Run (MUST FAIL) → Restore → Run (pass)
 ❌ "I've written a regression test" (without red-green verification)
 ```
+
+**New feature tests (red-first proof):**
+```
+✅ Write test → Run (MUST FAIL, red — copy the output) → Implement → Run (pass, green)
+   → confirm the test file didn't change between red and green:
+   `git diff <red-commit>..HEAD -- <test files>` empty once both states are committed;
+   otherwise, no edit to the test between the two runs
+❌ Write test and code together, run once, call it "tested"
+❌ Test went red → green, but the test itself was edited in between
+```
+
+Why: a test never seen red may test nothing. A test edited between red and green
+proves nothing about the code — it proves the test was tuned until it agreed.
+ImpossibleBench (arXiv 2510.20270) found GPT-5 cheated its way past the tests in 76% of
+cases on OneOff-SWEbench when the task was actually impossible; read-only tests
+drove that rate back toward zero.
 
 **Build:**
 ```
@@ -147,5 +164,7 @@ Skip any step = lying, not verifying
 
 ---
 
-*Repris tel quel de [obra/superpowers](https://github.com/obra/superpowers) (MIT, Jesse Vincent /
-Prime Radiant). Récupéré le 2026-08-03.*
+*Adapté de [obra/superpowers](https://github.com/obra/superpowers) (MIT, Jesse Vincent / Prime
+Radiant). Récupéré le 2026-08-03. Modifications : ajout de la section « Suis-je la bonne
+version ? » en tête, 2026-09-22 ; ajout du motif « red-first proof » (test inchangé entre
+rouge et vert), 2026-09-23.*

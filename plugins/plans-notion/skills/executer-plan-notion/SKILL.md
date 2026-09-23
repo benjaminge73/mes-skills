@@ -273,6 +273,17 @@ Le défaut, sauf avis contraire de Benjamin :
   cette suite que sur la PR que Benjamin demande — c'est la seconde ceinture,
   pas la première.
 
+**Pour une étape qui écrit du code testé, l'étape = deux commits, rouge puis
+vert.** L'exécutant commite d'abord les tests seuls, rouges, puis le code qui
+les fait passer — jamais dans le même commit. La preuve rejouée par le
+pilote comprend le rouge : rejouer la commande de preuve sur le premier
+commit avant de regarder le second, et vérifier que le second ne touche
+aucun fichier de test. Le geste exact, les trois issues (rouge attendu, vert
+qui dit que le test ne mord pas, `git diff` non vide) et la combinaison avec
+une vague ou un regroupement vivent dans un fichier partagé :
+
+📄 `${CLAUDE_PLUGIN_ROOT}/skills/_partage/preuve-du-rouge.md`
+
 ### La délégation est la règle, pas une faveur
 
 **Charger ce skill vaut demande explicite de déléguer.** Certains harnais portent
@@ -356,9 +367,12 @@ et c'est ce qui donne ensuite l'envie de « faire soi-même ». Le brief porte d
 5. **Ce qu'il ne fait pas** : ni `commit`, ni `push`, ni PR, ni élargissement du
    périmètre, ni écriture dans Notion — **sauf le regroupement de deux étapes**
    (`vagues.md`), où il commite la première avant d'ouvrir la seconde, avec le
-   message fourni dans le brief : **la seule exception à cette règle.** En cas
-   d'échec : **diagnostic, pas correctif** — le debug revient à la session
-   principale, seule à avoir le plan.
+   message fourni dans le brief, **et sauf une étape testée**
+   (`preuve-du-rouge.md`), où il commite le rouge puis le vert sur ordre du
+   brief, sans jamais toucher un fichier de test dans le commit vert : les deux
+   seules exceptions à cette règle. En cas d'échec : **diagnostic, pas
+   correctif** — le debug revient à la session principale, seule à avoir le
+   plan.
 6. **Le format du rapport attendu** — quatre pièces, toujours dans cet ordre :
    - **Un état, un seul, parmi quatre** : `DONE` (fait, prouvé, rien à
      signaler), `DONE_WITH_CONCERNS` (fait et prouvé, mais quelque chose mérite
@@ -404,6 +418,12 @@ en disant quelles étapes ont été faites en direct et pourquoi.
   ou touché un fichier de plus que ce que la commande couvrait.
 - **Commiter l'étape sur la branche du plan**, et la pousser si le relevé du §2
   l'autorise (sous-section précédente). Pas de PR.
+- **Faire relire l'étape par l'agent `relecteur`**, et boucler jusqu'à
+  `RIEN À SIGNALER` : chaque remarque se vérifie avant d'être retenue (correctif
+  délégué) ou écartée (raison écrite). Le brief, la boucle et le garde-fou à
+  trois tours vivent dans un fichier partagé :
+
+  📄 `${CLAUDE_PLUGIN_ROOT}/skills/_partage/revue.md`
 - **Écrire l'entrée de journal de l'étape dans la page** (§4), sous son propre
   H3. Pour une vague, les entrées se posent **dans l'ordre des numéros
   d'étape**, jamais dans l'ordre d'arrivée des rapports de sous-agent
@@ -646,7 +666,22 @@ Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard » :
      que sur un disque. La sortie de la preuve va au journal (`État final`).
   3. **Ne pas ouvrir la PR.** Ni la merger, ni la préparer « pour gagner du
      temps ». Le compte rendu s'arrête sur la branche, prouvée et poussée.
-  4. **Retirer le worktree**, `git worktree remove ~/repos/worktrees/<repo>/
+  4. **Contrôle bloquant, avant de poser `a merger`** :
+     ```bash
+     git branch --list '<branche-du-plan>-etape-*'
+     git worktree list
+     ```
+     Rien d'autre que les branches `<branche-du-plan>-etape-N-en-echec`
+     déclarées au journal, ni le worktree du plan (retiré au point suivant).
+     Le 2026-09-23 sur `vahiny`, 8 branches de vague ont survécu à leur plan,
+     sans filet après coup : plan parent squash-mergé, `git cherry` y rend
+     `+` pour tout. Survivance → vérifier le report (`git log
+     <branche-du-plan>`, `git cherry <branche-du-plan> <branche-d-etape>` :
+     que des `-`), puis nettoyer. Sortie des deux commandes dans l'entrée
+     `État final`.
+
+     📄 `${CLAUDE_PLUGIN_ROOT}/skills/_partage/vagues.md`
+  5. **Retirer le worktree**, `git worktree remove ~/repos/worktrees/<repo>/
      <branche-kebab>` — **la branche, elle, reste** : c'est le hook
      `SessionStart` qui la nettoiera après le merge éventuel, et **une branche
      encore checked-out dans un worktree n'est jamais nettoyée par ce hook**
@@ -719,6 +754,10 @@ celle qui la précède.
   séquence par défaut, mais
   pas absolument : en parallèle par vagues, ou regroupées, quand `vagues.md`
   le permet ou le prescrit (§3). Piloter, ce n'est pas coder.
+- Il ne relit pas lui-même le diff d'une étape à la place de l'agent
+  `plans-notion:relecteur` : un regard qui a piloté l'étape partage ses angles
+  morts avec celui qui l'a écrite. Il **fait relire** (§3, `revue.md`), et
+  vérifie chaque remarque avant d'agir dessus.
 - Il ne code jamais dans le checkout principal du dépôt : la branche du plan
   vit dans un worktree dédié dès sa création (§2), retiré à la clôture (§6) —
   jamais avant, et jamais à la place de la branche elle-même, que le hook
@@ -746,6 +785,8 @@ celle qui la précède.
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/ecrire-dans-notion.md`,
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/vagues.md`,
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/schemas.md`,
-  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/remontee-sur-main.md` et
-  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/plan-de-suite.md`, livrés par le
-  plugin `plans-notion` — pas par le dépôt de travail, quel qu'il soit.
+  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/remontee-sur-main.md`,
+  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/plan-de-suite.md`,
+  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/preuve-du-rouge.md` et
+  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/revue.md`, livrés par le plugin
+  `plans-notion` — pas par le dépôt de travail, quel qu'il soit.

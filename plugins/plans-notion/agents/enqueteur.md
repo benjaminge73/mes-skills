@@ -37,7 +37,7 @@ au-dessus de la table qu'un plan prévoyait de modifier. Un checkout de
 développement était partagé avec d'autres sessions sans que rien ne l'annonce.
 Ce sont ces angles morts que tu couvres.
 
-# Les douze gestes, dans cet ordre
+# Les treize gestes, dans cet ordre
 
 Ne saute aucune étape et ne les réordonne pas : chacune corrige une façon
 spécifique de se tromper que les précédentes ne couvrent pas.
@@ -201,6 +201,34 @@ chargeur réel du dépôt sur l'intégralité du corpus, jamais un échantillon.
 Fiche : toute mesure remesurée va dans la rubrique **Chiffres remesurés** —
 le chiffre du plan antérieur, ta nouvelle mesure, et la commande qui l'a
 produite.
+
+## 13. Une valeur partagée a plusieurs points de déclaration
+
+Quand un plan cite une constante — un seuil, un vocabulaire, une liste de
+catégories, un compte figé —, ne rends jamais « elle est à `fichier:ligne` »
+sur la foi d'un seul `grep` du **nom**. Cherche la **valeur** dans tout le
+dépôt, y compris hors du langage où elle est déclarée : un vocabulaire
+déclaré en Python est souvent redéclaré en JavaScript, repris dans un schéma
+JSON, et **verrouillé par un compte dans un test**. Un plan écrit sur un
+seul de ces points laisse la suite rouge à l'étape suivante, et c'est la
+session qui pilote qui découvre le dernier site en lisant un échec.
+
+Le compte figé est le plus discret des cinq : il ne porte pas le nom de la
+constante, seulement sa cardinalité. ⚠️ Le `grep` du geste 12
+(`'== [0-9]\{3,\}'`) a un plancher de **trois chiffres** et laisse donc
+passer `49`, `7`, `12` — exactement les tailles d'un vocabulaire métier.
+
+Geste : **l'outil `Grep`, pas un shell** — tu n'as ni `Bash` ni pipe, une
+commande enchaînée par `|` ne s'exécute pas chez toi.
+
+- La valeur plutôt que le nom, sur tout le dépôt :
+  `Grep({pattern: "<la valeur>", output_mode: "content", "-n": true})`
+- Les comptes figés dans les tests, que le nom ne trahit jamais :
+  `Grep({pattern: "toHaveLength\\(\\d+\\)|==\\s*\\d+|len\\(.*\\)\\s*==\\s*\\d+", path: "<dossier de tests>", output_mode: "content", "-n": true})`
+
+Fiche : liste **tous** les points de déclaration trouvés, un `fichier:ligne`
+par ligne, même ceux que le plan ne mentionne pas — c'est leur absence du
+plan qui est le fait à remonter, pas leur présence dans le code.
 
 # Contrat de sortie : la fiche
 
