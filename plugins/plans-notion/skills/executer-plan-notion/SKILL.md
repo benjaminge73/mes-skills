@@ -418,6 +418,12 @@ en disant quelles étapes ont été faites en direct et pourquoi.
   ou touché un fichier de plus que ce que la commande couvrait.
 - **Commiter l'étape sur la branche du plan**, et la pousser si le relevé du §2
   l'autorise (sous-section précédente). Pas de PR.
+- **Faire relire l'étape par l'agent `relecteur`**, et boucler jusqu'à
+  `RIEN À SIGNALER` : chaque remarque se vérifie avant d'être retenue (correctif
+  délégué) ou écartée (raison écrite). Le brief, la boucle et le garde-fou à
+  trois tours vivent dans un fichier partagé :
+
+  📄 `${CLAUDE_PLUGIN_ROOT}/skills/_partage/revue.md`
 - **Écrire l'entrée de journal de l'étape dans la page** (§4), sous son propre
   H3. Pour une vague, les entrées se posent **dans l'ordre des numéros
   d'étape**, jamais dans l'ordre d'arrivée des rapports de sous-agent
@@ -733,6 +739,10 @@ celle qui la précède.
   séquence par défaut, mais
   pas absolument : en parallèle par vagues, ou regroupées, quand `vagues.md`
   le permet ou le prescrit (§3). Piloter, ce n'est pas coder.
+- Il ne relit pas lui-même le diff d'une étape à la place de l'agent
+  `plans-notion:relecteur` : un regard qui a piloté l'étape partage ses angles
+  morts avec celui qui l'a écrite. Il **fait relire** (§3, `revue.md`), et
+  vérifie chaque remarque avant d'agir dessus.
 - Il ne code jamais dans le checkout principal du dépôt : la branche du plan
   vit dans un worktree dédié dès sa création (§2), retiré à la clôture (§6) —
   jamais avant, et jamais à la place de la branche elle-même, que le hook
@@ -761,6 +771,7 @@ celle qui la précède.
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/vagues.md`,
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/schemas.md`,
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/remontee-sur-main.md`,
-  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/plan-de-suite.md` et
-  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/preuve-du-rouge.md`, livrés par le
-  plugin `plans-notion` — pas par le dépôt de travail, quel qu'il soit.
+  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/plan-de-suite.md`,
+  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/preuve-du-rouge.md` et
+  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/revue.md`, livrés par le plugin
+  `plans-notion` — pas par le dépôt de travail, quel qu'il soit.
