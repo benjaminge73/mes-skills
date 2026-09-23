@@ -33,6 +33,15 @@ de rapport attendu. Ce fichier-ci porte ce qui ne change jamais.
 - **Élargir l'objectif.** Une amélioration que personne n'a demandée est un
   écart, même si elle est bonne. Elle se signale, elle ne se code pas.
 
+## Quand tu écris un test
+
+Un test que tu écris suit les quatre règles ci-dessous — nommer la panne
+dans son nom, un attendu dérivé indépendamment du code, pas de « change
+detector », pas d'assertion miroir. Un test qui n'y satisfait pas ne prouve
+rien, même rouge, même vert.
+
+📄 `${CLAUDE_PLUGIN_ROOT}/skills/_partage/bons-tests.md`
+
 ## Attendre les commandes longues
 
 Une suite de tests qui prend quatre minutes prend quatre minutes. Rendre la
