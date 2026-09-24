@@ -46,6 +46,13 @@ maquette qui en dépend le vérifie d'abord.
    Relue ensuite, la page montre `src="file://%7B…attachment…%7D"` à la place :
    c'est le signe que le fichier est bien attaché au bloc.
 
+⚠️ **La légende va entre `<embed …>` et `</embed>`, jamais dans un paragraphe
+séparé.** Vu le 2026-09-24, sur un plan de test : l'embed avait été posé vide,
+et l'id était écrit dans le paragraphe du dessous. Le texte reste lisible, mais
+le bloc lui-même ne porte plus rien. La règle vaut aussi pour un fichier envoyé
+par `curl` (« La voie sans tokens », plus bas) : le `suggested_markdown` rendu
+par l'envoi arrive **sans** légende, c'est à nous de l'ajouter.
+
 ⚠️ **Les deux appels dans la même passe.** Un fichier envoyé mais jamais posé
 dans une page reste temporaire et expire : on le perd sans message.
 
@@ -95,12 +102,32 @@ sur `vahiny`) ne coûte rien tant qu'elle reste sur le disque ; c'est l'envoi
 qui la fait passer dans le contexte. Un dépôt qui a son outil de rendu s'en
 sert plutôt que de faire réécrire la maquette à la main.
 
-**La voie sans tokens existe, mais pas en session cloud.** `create-file-upload`
-rend une URL d'envoi : un `curl -F file=@maquette.html` y pose le fichier sans
-qu'il passe par le contexte, et la réponse donne le `<embed>` à poser. Mesuré le
-2026-09-24 : depuis une session cloud, le proxy sortant refuse `api.notion.com`
-(CONNECT 403). En local ou sur le VPS, **non essayé** — la tenter une fois, et
-reporter ici ce qu'elle donne, avant d'en faire une règle.
+**La voie sans tokens : oui sur le VPS, non en session cloud.**
+`create-file-upload` rend une URL d'envoi à usage unique, et le fichier y part
+sans passer par le contexte :
+
+```bash
+curl -sS -w '\nHTTP %{http_code}\n' -X POST '<upload_url>' \
+  -H 'authorization: <upload_headers.authorization>' \
+  -F "file=@maquette.html;type=text/html; charset=utf-8"
+```
+
+La réponse porte un `suggested_markdown` en `<embed src="file-upload://<id>">`,
+à poser **avec sa légende** (voir plus haut).
+
+Mesuré le 2026-09-24 :
+- **depuis le VPS, la voie marche** : `HTTP 200`, `status: uploaded`, puis le
+  bloc est relu attaché à la page ;
+- **mais pas toujours au premier essai.** Trois envois HTML sur deux URL ont
+  échoué, avec `HTTP 500` et
+  `{"name":"MemcachedCrossCellError","debugMessage":"Cross-cell memcached access is not allowed"}`.
+  C'est une erreur interne à Notion, pas un blocage réseau. Le quatrième envoi
+  est passé, sur une URL neuve avec le type complet ci-dessus. On ne sait pas si
+  c'est le type qui a joué ou si la panne était passagère. La parade : un nouveau
+  `create-file-upload`, puis un nouvel essai. Si ça échoue encore, on se
+  rabat sur `create-attachment`, qui fait passer le HTML en tokens ;
+- **depuis une session cloud, la voie est fermée** : le proxy sortant refuse
+  `api.notion.com` (CONNECT 403). On y reste à `create-attachment`.
 
 ## La mise en page
 
@@ -139,9 +166,11 @@ l'`Impact fonctionnel` n'est pas « Rien ».
 `file_upload_id` de la légende rend le fichier entier ; l'écrire dans le miroir
 local du plan, hors du dépôt. Vérifié le 2026-09-24 sur la page du POC : l'`id`
 rendu par `create-attachment` répond, l'identifiant visible dans le `src` de la
-page répond 404. Ce qui n'a **pas** été vérifié : la relecture depuis une autre
-session que celle qui a envoyé le fichier — si elle échoue, le dire au journal,
-et la comparaison passe à Benjamin, qui voit la maquette dans la page.
+page répond 404. **La relecture depuis une autre session marche aussi** :
+vérifié le 2026-09-24 depuis le VPS, sur un fichier envoyé par une session
+cloud. L'`id` de la légende a rendu le fichier entier (643 octets). Si elle
+échoue malgré tout, le dire au journal : la comparaison passe alors à Benjamin,
+qui voit la maquette dans la page.
 
 **Le brief** d'une telle étape donne au sous-agent le chemin local de la
 maquette et la partie qu'il doit réaliser — celle que nomme la ligne
@@ -159,11 +188,19 @@ L'entrée de journal de l'étape porte alors :
   voulu*. Un écart pas voulu se corrige dans l'étape, comme une preuve rouge ;
 - « Aucun écart » s'écrit, plutôt que de laisser la ligne vide.
 
-⚠️ **Poser une image depuis une session cloud ne marche pas toujours.** Une
-image passe par `create-file-upload` puis un envoi `curl` vers
-`api.notion.com`, et c'est ce même envoi que le proxy d'une session cloud a
-refusé le 2026-09-24 (CONNECT 403) ; `create-attachment` ne prend un binaire
-que par une URL publique, qu'une capture locale n'a pas.
+**Poser une capture depuis le VPS marche.** Mesuré le 2026-09-24 : la capture
+PNG est passée par `create-file-upload` + `curl` (`HTTP 200` au premier envoi),
+puis `<image src="file-upload://<id>">` l'a posée dans la page. L'outil utilisé
+était Chromium headless :
+`chromium-browser --headless --no-sandbox --disable-gpu --window-size=L,H --screenshot=<chemin> file://<maquette>`.
+⚠️ Ce Chromium est installé en snap, un format de paquet isolé, et il ne voit
+pas `/tmp` : il échoue avec « Failed to write file … No such file or directory ».
+Il faut écrire la capture et le fichier source sous `~`.
+
+⚠️ **Poser une image depuis une session cloud ne marche pas.** C'est le même
+envoi `curl` vers `api.notion.com`, et le proxy d'une session cloud l'a refusé
+le 2026-09-24 (CONNECT 403). `create-attachment` ne prend un binaire que par
+une URL publique, et une capture locale n'en a pas.
 Dans ce cas, la comparaison s'écrit en mots — les écarts, qualifiés — et le
 journal dit que la capture n'a pas pu être posée. Rien de cela n'empêche de
 **regarder** la capture dans la session pour comparer : c'est la poser dans la
