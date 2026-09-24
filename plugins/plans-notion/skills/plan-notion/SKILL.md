@@ -98,9 +98,11 @@ d'avance coûte un tour pour rien.
 
 ## Outils nécessaires
 
-Le connecteur **Notion** est indispensable, le connecteur **Vercel** l'est dès
-qu'il y a une maquette. En session cloud, les connecteurs se choisissent
-**par session** : s'ils manquent, le dire immédiatement plutôt que de contourner.
+Le connecteur **Notion** est indispensable ; il suffit aussi pour les
+maquettes, qui vivent dans la page en bloc HTML. Le connecteur **Vercel** ne
+sert plus qu'au repli décrit dans le fichier des maquettes (§7). En session
+cloud, les connecteurs se choisissent **par session** : s'ils manquent, le dire
+immédiatement plutôt que de contourner.
 
 De quoi **rendre une page dans un navigateur et en tirer une image** est nécessaire dès
 qu'une contrainte est visuelle — navigateur piloté par MCP, binaire de navigateur en
@@ -642,17 +644,17 @@ du `CLAUDE.md` (exemple concret, `vahiny` : `src/styles/tokens.css`,
 - **s'il n'existe pas**, une question ouverte le dit dans le plan, et la
   maquette assume d'être une proposition, pas un écran garanti.
 
-Produire ensuite la maquette et la référencer dans la page. Le déploiement
-Vercel et ses pièges vérifiés (Deployment Protection, premier déploiement qui
-part en prod, contenu factice obligatoire, pleine largeur pour l'iframe
-Notion, fichier HTML unique, poids du fichier, intégration Claude Design)
+Produire ensuite la maquette et la **poser dans la page, en bloc HTML** — un
+fichier `.html` joint par `create-attachment` et affiché par `<embed>`, sans
+Vercel. Le geste en deux appels, le remplacement d'une passe à l'autre, le
+poids, la mise en page, ce que le bac à sable permet et le repli Vercel
 vivent dans un fichier partagé :
 
-📄 `${CLAUDE_PLUGIN_ROOT}/skills/_partage/maquettes-vercel.md`
+📄 `${CLAUDE_PLUGIN_ROOT}/skills/_partage/maquettes-html.md`
 
-**À lire avant tout déploiement de maquette**, pas de mémoire : chacun de ces
-pièges a déjà produit une maquette invisible ou un domaine de production
-écrasé.
+**À lire avant de poser une maquette**, pas de mémoire : un envoi jamais
+attaché à la page expire sans prévenir, et un bloc de code affiche la source
+au lieu de l'écran.
 
 ## 8. Passer la main à l'exécution
 
@@ -725,5 +727,5 @@ comment de la séance de code.
 - Il ne dépend d'aucun `CLAUDE.md`, d'aucun hook, d'aucun fichier du dépôt de
   travail. Ses compagnons sont les fichiers partagés
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/ecrire-dans-notion.md` et
-  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/maquettes-vercel.md`, livrés par le
+  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/maquettes-html.md`, livrés par le
   plugin `plans-notion` — pas par le dépôt de travail, quel qu'il soit.
