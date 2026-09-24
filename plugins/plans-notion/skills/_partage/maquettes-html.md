@@ -1,7 +1,9 @@
 # Maquettes HTML pour un plan Notion
 
-Fichier référencé par `plan-notion` (§7), à lire dès que le plan touche à du
-design, pour produire une maquette et la poser dans la page.
+Fichier référencé par `plan-notion` (§3 et §7), à lire dès que le chapitre
+`Maquette` d'un plan en exige une — une étape au moins change ce qui
+s'affiche —, pour la produire et la poser dans la page. `executer-plan-notion`
+le lit aussi, pour la section « À l'exécution » en fin de fichier.
 
 **La maquette vit dans la page, en bloc HTML.** Un fichier `.html` joint à la
 page, affiché par un bloc `<embed>` que Notion rend dans un iframe isolé. Ni
@@ -34,8 +36,12 @@ maquette qui en dépend le vérifie d'abord.
 2. **Poser le bloc dans la page** — `create-pages` ou `update-page` :
 
    ```
-   <embed src="file-upload://<id>">Légende de la maquette</embed>
+   <embed src="file-upload://<id>">Maquette — passe N · AAAA-MM-JJ · file_upload_id <id></embed>
    ```
+
+   L'`id` recopié dans la légende est le `file_upload_id` rendu par
+   `create-attachment`. C'est la seule prise qu'aura une autre session pour
+   relire le HTML (« À l'exécution », plus bas).
 
    Relue ensuite, la page montre `src="file://%7B…attachment…%7D"` à la place :
    c'est le signe que le fichier est bien attaché au bloc.
@@ -58,10 +64,10 @@ Pour garder la version d'avant consultable, `new_str` la reprend telle quelle
 dans un bloc repliable, sous le nouveau :
 
 ```
-<embed src="file-upload://<nouvel-id>">Maquette — passe N</embed>
+<embed src="file-upload://<nouvel-id>">Maquette — passe N · AAAA-MM-JJ · file_upload_id <nouvel-id></embed>
 <details>
 <summary>Maquette de la passe précédente</summary>
-	<embed src="file://…recopié tel quel…">Maquette — passe N-1</embed>
+	<embed src="file://…recopié tel quel…">…sa légende, recopiée telle quelle…</embed>
 </details>
 ```
 
@@ -123,6 +129,51 @@ l'artefact **public** de la galerie `vahiny` — le cas le plus permissif — le
 navigateur rend « claude.ai ne permettra pas à Firefox d'afficher la page si
 celle-ci est intégrée par un autre site ». Pour le montrer dans le plan, on en
 reprend le HTML dans un fichier joint.
+
+## À l'exécution : relire, puis comparer
+
+Ce que `executer-plan-notion` fait de la maquette, pour les étapes dont
+l'`Impact fonctionnel` n'est pas « Rien ».
+
+**Relire le HTML une fois, à l'ouverture.** `download-attachment` avec le
+`file_upload_id` de la légende rend le fichier entier ; l'écrire dans le miroir
+local du plan, hors du dépôt. Vérifié le 2026-09-24 sur la page du POC : l'`id`
+rendu par `create-attachment` répond, l'identifiant visible dans le `src` de la
+page répond 404. Ce qui n'a **pas** été vérifié : la relecture depuis une autre
+session que celle qui a envoyé le fichier — si elle échoue, le dire au journal,
+et la comparaison passe à Benjamin, qui voit la maquette dans la page.
+
+**Le brief** d'une telle étape donne au sous-agent le chemin local de la
+maquette et la partie qu'il doit réaliser — celle que nomme la ligne
+`Impact fonctionnel` de l'étape. Il ne l'a pas autrement : un sous-agent n'a
+pas la page.
+
+**Comparer après l'étape.** Rendre le résultat — app qui tourne, page de revue,
+harnais de test, par les voies de la sous-section « Les captures d'écran » de
+`plan-notion` — et le mettre en regard de la partie de maquette visée.
+L'entrée de journal de l'étape porte alors :
+
+- la capture du résultat, si on sait la poser (plus bas) ;
+- **les écarts avec la maquette, un par ligne, chacun qualifié** : *voulu*
+  (une contrainte découverte en route l'impose — dire laquelle) ou *pas
+  voulu*. Un écart pas voulu se corrige dans l'étape, comme une preuve rouge ;
+- « Aucun écart » s'écrit, plutôt que de laisser la ligne vide.
+
+⚠️ **Poser une image depuis une session cloud ne marche pas toujours.** Une
+image passe par `create-file-upload` puis un envoi `curl` vers
+`api.notion.com`, et c'est ce même envoi que le proxy d'une session cloud a
+refusé le 2026-09-24 (CONNECT 403) ; `create-attachment` ne prend un binaire
+que par une URL publique, qu'une capture locale n'a pas.
+Dans ce cas, la comparaison s'écrit en mots — les écarts, qualifiés — et le
+journal dit que la capture n'a pas pu être posée. Rien de cela n'empêche de
+**regarder** la capture dans la session pour comparer : c'est la poser dans la
+page qui échoue, pas la prendre.
+
+**Pas de maquette dans un plan qui en exige une** — une étape change ce qui
+s'affiche, le chapitre `Maquette` est vide ou sa dispense ne tient pas : on ne
+la fabrique pas à l'exécution. Dessiner l'écran, c'est une décision que
+Benjamin doit voir avant qu'on code. C'est la porte d'entrée
+d'`executer-plan-notion` qui arrête le plan.
 
 ## Vercel, en repli seulement
 

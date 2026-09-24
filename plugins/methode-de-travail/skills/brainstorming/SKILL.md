@@ -88,7 +88,9 @@ mesure du chemin classifié :
 - **Spike** → aucune page Notion. La réponse — trouvaille, recommandation, code
   jetable explicitement étiqueté comme tel — reste dans le chat.
 - **Bounded** → une page `plan-notion` **allégée** : chapitres `Cartes`,
-  `Besoins`, `Exécution`, `Journal d'exécution`. Le chapitre `Questions
+  `Besoins`, `Maquette`, `Exécution`, `Journal d'exécution`. `Maquette` porte
+  la maquette dès qu'une étape change ce qui s'affiche, une dispense écrite
+  sinon (`plan-notion`, §3). Le chapitre `Questions
   ouvertes` ne s'ouvre que s'il y a effectivement une question en suspens, pas
   par défaut. Elle reste soumise à la même règle que toute page `plan-notion` :
   rien ne se code avant le statut `valide`, allégée ou non.
@@ -139,8 +141,8 @@ context" — on an indexed repo, use the `codebase-memory` MCP (`get_architectur
 4. **Get approval** — STOP and wait for an explicit yes; presenting the design
    and starting in the same breath is skipping the gate
 5. **Hand over to `plan-notion`** — lightweight page (`Cartes` · `Besoins` ·
-   `Exécution` · `Journal d'exécution`); implementation starts once it reaches
-   `valide`
+   `Maquette` · `Exécution` · `Journal d'exécution`); implementation starts once
+   it reaches `valide`
 
 **Architectural:**
 1. **Explore project context** — check files, docs, recent commits

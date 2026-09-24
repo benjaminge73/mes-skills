@@ -250,9 +250,9 @@ chaque URL avant de choisir, plutôt que de prendre la première trouvée.
 
 ## 3. Structure du plan
 
-Dans cet ordre : `Cartes` · `Besoins` · `Contraintes techniques vérifiées` ·
-`Questions ouvertes` · `La suite` · `Exécution` · `Journal d'exécution` ·
-`Commentaires repris`.
+Dans cet ordre : `Cartes` · `Besoins` · `Maquette` ·
+`Contraintes techniques vérifiées` · `Questions ouvertes` · `La suite` ·
+`Exécution` · `Journal d'exécution` · `Commentaires repris`.
 
 **Hiérarchie de titres pensée pour la table des matières.** Notion ne met dans le
 sommaire latéral que les blocs *heading* — jamais les encadrés, les listes ni les
@@ -292,9 +292,59 @@ lisent :
 **Sur un plan `Bounded`** (c'est `brainstorming` qui route une demande vers
 `Spike`, `Bounded` ou `Architectural` avant que le plan ne s'écrive ; ce skill ne
 décide pas du chemin, il applique la structure une fois le routage connu), la
-page s'écrit **allégée** : `Cartes` · `Besoins` · `Exécution` ·
+page s'écrit **allégée** : `Cartes` · `Besoins` · `Maquette` · `Exécution` ·
 `Journal d'exécution` — `Questions ouvertes` ne s'ajoute que s'il reste une
-question à trancher.
+question à trancher. `Maquette` ne s'allège pas : un petit changement d'écran
+est justement celui qu'on croit pouvoir décrire en mots.
+
+### Le chapitre `Maquette`
+
+Un H2 juste après `Besoins` : les besoins disent ce qu'on veut, la maquette
+montre l'écran qui y répond, avant qu'on descende dans les contraintes et les
+étapes.
+
+**Présent dès la première version, sur tout plan, allégé compris.** Il porte
+l'une de deux choses, jamais rien :
+
+- **La maquette**, dès qu'une étape change ce qui s'affiche — c'est-à-dire dès
+  que sa ligne `Impact fonctionnel` (chapitre `Exécution`) dit autre chose que
+  « Rien » : un écran, un composant, un état (vide, erreur, chargement), un
+  libellé, un enchaînement d'écrans. La taille du changement ne dispense pas :
+  un libellé qui change se montre en une maquette de vingt lignes.
+- **Une dispense écrite**, en une ligne : `Pas de maquette — <raison>`. Deux
+  raisons seulement sont recevables : **aucune étape ne change ce qui
+  s'affiche** (serveur, refacto front sans effet visible, tests, outillage), ou
+  **Benjamin l'a demandé**, ses mots recopiés. « C'est petit », « c'est
+  évident », « le design system suffit » ne sont pas des raisons.
+
+Pourquoi un chapitre toujours présent, même pour dire « rien » : jusqu'au
+2026-09-24, la maquette dépendait d'un « si le plan touche à du design » que
+rien ne faisait relire, et elle manquait sur des plans qui changeaient un
+écran. Un chapitre obligatoire pose la question à chaque plan, et une
+dispense devient une phrase que Benjamin lit et peut contester, au lieu d'un
+silence.
+
+**Ce que la maquette montre** : les écrans et les états que les étapes
+changent, dans leur **état cible** — pas l'application entière. L'état actuel,
+quand il compte, est déjà dans `Contraintes techniques vérifiées` sous forme de
+capture. Plusieurs écrans touchés : **un seul fichier**, avec des onglets ou
+des sections, pour qu'une passe n'ait qu'un bloc à remplacer.
+
+**La légende** porte `Maquette — passe N · AAAA-MM-JJ · file_upload_id <id>`,
+l'`id` étant celui que `create-attachment` a rendu. C'est **la seule prise**
+qu'aura une autre session pour relire le HTML — à l'exécution notamment :
+l'identifiant visible dans le `src` de la page ne sert pas à ça (mesuré le
+2026-09-24, `download-attachment` le refuse en 404).
+
+**Chaque étape qui change ce qui s'affiche dit, dans son `Impact fonctionnel`,
+quelle partie de la maquette elle réalise.** C'est ce qui permet, à
+l'exécution, de comparer une étape à sa cible au lieu de comparer le tout au
+tout.
+
+Le chapitre se remet à jour à **chaque passe qui change ce qu'une étape
+affiche** — une maquette qui montre l'écran d'avant la dernière réponse de
+Benjamin est pire qu'aucune. Le comment — design system, geste en deux
+appels, remplacement, poids — est au §7.
 
 ### Le chapitre `Contraintes techniques vérifiées`
 
@@ -504,7 +554,9 @@ Sous chaque titre, le contenu de l'étape :
   l'étape modifie. « Aucun bloc de la carte » est une réponse valable, et il
   faut l'écrire plutôt que laisser la ligne vide.
 - **Impact fonctionnel** : ce que l'utilisateur voit changer. « Rien » est une
-  réponse valable, et il faut l'écrire plutôt que laisser la ligne vide.
+  réponse valable, et il faut l'écrire plutôt que laisser la ligne vide. Toute
+  autre réponse exige une maquette et dit **quelle partie** de la maquette
+  l'étape réalise (chapitre `Maquette`).
 - **Impact technique** : migrations, dépendances, variables d'environnement,
   contrats d'API, effet sur les tests existants.
 - **Preuve de fin** : la commande ou l'observation qui dit que l'étape est faite.
@@ -633,8 +685,8 @@ le miroir : c'est précisément entre deux sessions que Benjamin coche.
 
 ## 7. Maquettes HTML
 
-Si le plan touche à du design, **chercher d'abord le design system du
-dépôt** — un fichier de tokens, un dossier de composants, une section dédiée
+Dès que le chapitre `Maquette` en exige une (§3) — une étape au moins change
+ce qui s'affiche —, **chercher d'abord le design system du dépôt** — un fichier de tokens, un dossier de composants, une section dédiée
 du `CLAUDE.md` (exemple concret, `vahiny` : `src/styles/tokens.css`,
 `src/ds/`) — avant même d'esquisser la maquette :
 
@@ -670,22 +722,26 @@ Quand Benjamin valide le plan :
    `Exécution` juste, ou il n'y passe pas : c'est ce chapitre-là, et pas les
    réponses éparpillées dans la page, qui part dans les briefs des sous-agents
    d'exécution.
-2. **Passer le plan au filtre de l'enquête.** Sept vérifications, et elles se
+2. **Passer le plan au filtre de l'enquête.** Huit vérifications, et elles se
    font page ouverte, pas de mémoire :
    1. plus aucune question ouverte dont la réponse était vérifiable et n'a pas
       été vérifiée ;
    2. plus aucune option qui reporte une mesure faisable aujourd'hui ;
    3. chaque chemin de « Fichiers touchés » qui existe vraiment, ou qui est
       annoncé comme une création ;
-   4. une relecture de **cohérence interne** : les renvois entre sections
+   4. le chapitre `Maquette` tient : aucune étape dont l'`Impact fonctionnel`
+      dit autre chose que « Rien » sans maquette qui la montre **dans la
+      version courante des étapes**, légende avec son `file_upload_id` — ou
+      une dispense dont la raison est l'une des deux recevables (§3) ;
+   5. une relecture de **cohérence interne** : les renvois entre sections
       pointent juste, l'ordre des étapes est le bon, et aucune prémisse ne
       contredit une réponse tranchée plus loin dans la page ;
-   5. chaque « Preuve de fin » a été **jouée**, ou est **réfutable**, avant de
+   6. chaque « Preuve de fin » a été **jouée**, ou est **réfutable**, avant de
       passer `valide` — une preuve qu'on ne peut ni jouer ni contredire ne
       prouve rien à l'exécution ;
-   6. aucun chiffre n'est repris d'un plan `#N-1` **sans remesure** ;
-   7. toute question chiffrée porte, à côté de sa réponse, la commande jouée
-      et son résultat — sinon rien ne permet de la remesurer au point 6
+   7. aucun chiffre n'est repris d'un plan `#N-1` **sans remesure** ;
+   8. toute question chiffrée porte, à côté de sa réponse, la commande jouée
+      et son résultat — sinon rien ne permet de la remesurer au point 7
       suivant.
 
    Les quatre derniers points viennent de l'enquête sur les plans passés : la
