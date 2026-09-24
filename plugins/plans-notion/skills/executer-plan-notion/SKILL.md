@@ -115,6 +115,18 @@ en cause l'approche elle-même — pas une étape, l'approche — ce n'est plus 
 
 Puis, dans le même tour, avant la première étape :
 
+- **Vérifier le chapitre `Maquette`.** Si une étape au moins a un
+  `Impact fonctionnel` autre que « Rien », le chapitre doit porter une
+  maquette — ou une dispense dont la raison tient (`plan-notion`, §3). Sinon,
+  **s'arrêter et le dire**, sans coder et sans fabriquer la maquette ici :
+  dessiner l'écran est une décision que Benjamin doit voir avant qu'on code,
+  et elle revient à une passe de `plan-notion`. Une seule sortie sans cette
+  passe : Benjamin dit, dans son message, d'y aller sans maquette — ses mots
+  se recopient alors en dispense datée dans le chapitre. Maquette présente :
+  la relire une fois dans le miroir local, par le `file_upload_id` de sa
+  légende. Le geste, et ce qu'on fait s'il échoue, sont dans
+  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/maquettes-html.md`, section
+  « À l'exécution ».
 - **Les questions restées orange passent au vert**, réponse recopiée en gras dans
   le titre de l'encadré, avec la mention `(reco appliquée par défaut)`. C'est le
   moment précis où l'absence de réponse devient une décision. Si ça reste
@@ -351,6 +363,9 @@ et c'est ce qui donne ensuite l'envie de « faire soi-même ». Le brief porte d
 1. **L'objectif de l'étape**, recopié du chapitre `Exécution` — pas résumé.
 2. **Le contexte utile** : ce que les étapes précédentes ont produit (repris du
    `Journal d'exécution`, §4), la branche courante, les conventions du repo.
+   Pour une étape qui change ce qui s'affiche : **le chemin local de la
+   maquette** et la partie qu'elle doit réaliser, recopiée de sa ligne
+   `Impact fonctionnel` — le sous-agent n'a pas la page, donc pas la maquette.
 3. **La liste fermée des fichiers qu'il a le droit de toucher**, et l'interdiction
    d'en toucher d'autres — **même pour réparer un import qui casse en route**.
    Un fichier touché « en passant », hors liste, est exactement ce qui rend une
@@ -424,6 +439,15 @@ en disant quelles étapes ont été faites en direct et pourquoi.
   trois tours vivent dans un fichier partagé :
 
   📄 `${CLAUDE_PLUGIN_ROOT}/skills/_partage/revue.md`
+- **Pour une étape qui change ce qui s'affiche, comparer le résultat à la
+  maquette** : rendre l'écran, le mettre en regard de la partie de maquette
+  visée, et porter dans l'entrée de journal la capture si on sait la poser,
+  puis les écarts un par ligne, chacun *voulu* (quelle contrainte l'impose)
+  ou *pas voulu* — ou « Aucun écart ». Un écart pas voulu se corrige dans
+  l'étape, comme une preuve rouge. Le détail, et le cas des sessions qui ne
+  peuvent pas poser d'image :
+
+  📄 `${CLAUDE_PLUGIN_ROOT}/skills/_partage/maquettes-html.md`
 - **Écrire l'entrée de journal de l'étape dans la page** (§4), sous son propre
   H3. Pour une vague, les entrées se posent **dans l'ordre des numéros
   d'étape**, jamais dans l'ordre d'arrivée des rapports de sous-agent
@@ -787,6 +811,7 @@ celle qui la précède.
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/schemas.md`,
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/remontee-sur-main.md`,
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/plan-de-suite.md`,
-  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/preuve-du-rouge.md` et
+  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/preuve-du-rouge.md`,
+  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/maquettes-html.md` et
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/revue.md`, livrés par le plugin
   `plans-notion` — pas par le dépôt de travail, quel qu'il soit.
