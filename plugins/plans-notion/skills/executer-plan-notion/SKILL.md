@@ -361,6 +361,13 @@ et c'est ce qui donne ensuite l'envie de « faire soi-même ». Le brief porte d
 à chaque fois :
 
 1. **L'objectif de l'étape**, recopié du chapitre `Exécution` — pas résumé.
+
+   ⚠️ **Une prémisse du brief se vérifie par une commande dont la sortie est
+   recopiée dans le brief, jamais de mémoire.** Constaté le 2026-09-24 : un
+   brief affirmait « aucun des trois guides n'a encore ce champ » sur la foi
+   d'un `grep` à la mauvaise forme (`^champ:` au lieu de `- champ:`) —
+   l'exécutant l'a vu et signalé, mais il aurait tout aussi bien pu refaire un
+   travail déjà fait, pour rien.
 2. **Le contexte utile** : ce que les étapes précédentes ont produit (repris du
    `Journal d'exécution`, §4), la branche courante, les conventions du repo.
    Pour une étape qui change ce qui s'affiche : **le chemin local de la

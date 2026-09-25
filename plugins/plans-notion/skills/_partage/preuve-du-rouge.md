@@ -152,6 +152,18 @@ prescrit déjà le regroupement ; le pilote rejoue la preuve du rouge sur les
 deux commits rouges séparément, et vérifie le `git diff` sur chacune des deux
 paires.
 
+## Une preuve d'idempotence compare le contenu, pas les compteurs
+
+Le même principe — une affirmation ne vaut que rejouée, jamais recopiée de
+mémoire — s'applique à une preuve d'idempotence (rejouer un traitement deux
+fois doit produire le même résultat) : elle compare le **contenu réel** des
+fichiers produits, `cmp -s` en main, cartes et propositions comprises —
+jamais un compteur de bilan. Constaté deux fois : un compteur passé de « 64 à
+3 » a fait croire à une perte, alors qu'il ne comptait que les nouveautés du
+tour (fausse alerte) ; à l'inverse, des compteurs identiques d'une passe à
+l'autre cachaient un champ qui dérivait réellement — un vrai bug, trouvé
+seulement en comparant les fichiers eux-mêmes.
+
 ## Exceptions : pas de commit rouge
 
 - **Étape de doc ou de config** : la preuve est le lint ou le build des
