@@ -77,6 +77,14 @@ vague utilisent en même temps.
 
 - **Chemin** : `~/repos/worktrees/<repo>/etape-N`, sous `mkdir -p
   ~/repos/worktrees/<repo>` créé avant si besoin.
+
+  ⚠️ **Un worktree neuf n'a pas les données ignorées par git** — gros
+  fichiers source, `node_modules`, tout ce qu'un `.gitignore` tient à l'écart
+  du dépôt. Poser des liens symboliques vers le checkout principal pour ces
+  chemins-là, et le dire dans le brief (« ces liens existent déjà, laisse-les,
+  ne les commite pas ») : sans eux, les tests sautent en silence et les
+  comptes passed/skipped mentent sur ce qui a réellement tourné. Constaté le
+  2026-09-24.
 - **Branche** : `<branche-du-plan>-etape-N`, créée depuis la **tête de la
   branche du plan** au moment où la vague s'ouvre — pas depuis `main`, sans
   quoi l'étape ne verrait pas ce que les étapes précédentes (hors vague) ont
@@ -100,6 +108,25 @@ vague utilisent en même temps.
   passe de `false` à `true` pour les étapes d'une même vague, tout le reste du
   gabarit et du brief (§3) reste identique, worktree en plus dans le contexte
   donné au sous-agent.
+
+  ⚠️ **Un sous-agent hérite du répertoire courant du pilote au moment de
+  l'appel `Agent`, pas du worktree qu'on vient de lui décrire en prose.** Le
+  `cd` vers le worktree de l'étape doit avoir lieu **avant** l'appel, dans la
+  session de pilotage, et le brief doit le dire explicitement — « fais `cd
+  <worktree>` avant toute commande » — plutôt que de compter sur le seul
+  chemin mentionné dans le contexte. Constaté le 2026-09-24 : une étape a
+  commité sur la branche du plan, dans le checkout partagé, au lieu de sa
+  propre branche dans son propre worktree.
+
+## Le plafond de concurrence
+
+Une vague n'ouvre pas tous ses sous-agents d'un coup au-delà d'une douzaine
+environ. Constaté le 2026-09-25 : vers une vingtaine d'appels `Agent`
+simultanés, le classifieur de permissions sature — `Bash` et `SendMessage` se
+mettent à être refusés, et des agents calent sans qu'aucun n'ait échoué
+proprement. Pour une longue campagne (une lecture d'environ 165 lots, par
+exemple) : lancement glissant, un lot qui termine libère la place d'un
+nouveau lot, plutôt qu'une vague unique de toute la campagne.
 
 ## Au retour
 
@@ -209,6 +236,22 @@ séquentiel, **le journal s'écrit dans l'ordre des numéros d'étape** (§4 du
 skill) — jamais dans l'ordre d'arrivée des rapports de sous-agent. Une vague de
 quatre étapes peut rendre ses rapports dans n'importe quel ordre ; les entrées
 H3 `Étape N` se posent dans la page en suivant N, pas l'heure de retour.
+
+## Plusieurs sous-agents, un même dossier de sortie
+
+Quand une vague fait écrire plusieurs sous-agents dans un même dossier
+partagé — chacun sa liste de fichiers à produire, tous au même endroit — le
+brief dit explicitement : **n'écris que les fichiers de ta liste, ne
+supprime jamais rien.** Un sous-agent qui range ou nettoie « en passant »
+efface le travail d'un autre lot sans le savoir.
+
+Le pilote juge l'avancement par l'**inventaire du dossier** (`ls`), jamais
+par la ligne de fin que rend le sous-agent. Constaté le 2026-09-25 : un
+sous-agent a supprimé deux réponses produites par un autre lot, et un autre a
+annoncé « OK 462, 463, 464 » alors qu'il venait de traiter les pages
+464-466 — les fichiers sur le disque étaient corrects, seul le résumé était
+faux. Un résumé de sous-agent est une déclaration d'intention, pas une preuve
+de ce qui a été écrit.
 
 ## Ce que ça coûte, et ce que ça protège
 

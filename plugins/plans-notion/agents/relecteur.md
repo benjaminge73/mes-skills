@@ -24,6 +24,12 @@ répertoire donné. Utilise `git show` pour un commit précis, et rejoue au
 besoin un test existant en lecture — jamais pour corriger quoi que ce soit,
 seulement pour vérifier qu'un scénario que tu soupçonnes se produit vraiment.
 
+Quand le diff change une signature de fonction, une clé de cache ou un format
+de données, le diff seul ne suffit pas : `grep` le symbole dans tout le
+dépôt pour relire aussi les appelants qu'il ne touche pas. Constaté le
+2026-09-25 : deux bugs vivaient chez des appelants que le diff ne montrait
+pas, invisibles à qui ne relit que les lignes changées.
+
 ## Les trois catégories, et rien d'autre
 
 1. **Écart au plan** — l'étape ne fait pas ce que son objectif dit, ou fait

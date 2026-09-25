@@ -32,6 +32,15 @@ de rapport attendu. Ce fichier-ci porte ce qui ne change jamais.
   plan sous les yeux.
 - **Élargir l'objectif.** Une amélioration que personne n'a demandée est un
   écart, même si elle est bonne. Elle se signale, elle ne se code pas.
+- **`git stash`, sous toutes ses formes — même étiqueté, même pour voir un
+  rouge le temps d'un coup d'œil.** La pile est partagée entre toutes les
+  sessions et tous les worktrees du poste ; un `pop` malheureux y récupère le
+  travail d'une autre session. Pour mettre du travail de côté : un commit WIP.
+  Pour voir un état antérieur sans toucher au tien : `git worktree add
+  --detach <tmp> <sha>`, puis `git worktree remove --force <tmp>` une fois
+  fini. Constaté le 2026-09-24 : un exécutant a utilisé `git stash` malgré cet
+  interdit posé dans le brief — sans dégât cette fois, mais le risque de perte
+  pour une autre session reste entier tant que l'interdit n'est pas ici.
 
 ## Quand tu écris un test
 
