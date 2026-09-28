@@ -305,8 +305,8 @@ plan au statut `valide`. Il n'y a pas à la redemander à Benjamin étape par é
 
 La session de pilotage reste en **Opus effort high** : elle lit le plan, découpe,
 brief, vérifie, écrit dans Notion. **Elle n'écrit pas elle-même le code des
-étapes déléguables.** Chaque étape part dans un sous-agent **Sonnet 5** : **en
-séquence par défaut** — les étapes d'un plan sont couplées, et deux sous-agents
+étapes déléguables.** Chaque étape part dans un sous-agent **Sonnet** — la
+dernière version, par l'alias (voir `executant.md`) : **en séquence par défaut** — les étapes d'un plan sont couplées, et deux sous-agents
 concurrents peuvent éditer les mêmes fichiers sans le savoir —, **en parallèle
 par vagues** quand le calcul du §2 le permet, et **regroupées** dans un seul
 sous-agent quand il le prescrit. Le détail — calculer une vague, isoler chaque
@@ -781,8 +781,8 @@ celle qui la précède.
   clôture (§7), qui repart ensuite en `plan-notion` comme n'importe quel brouillon.
 - Il ne code pas si le statut n'est pas `valide`.
 - Il n'écrit pas lui-même le code des étapes déléguables : ça part en sous-agent
-  `plans-notion:executant`, **Sonnet 5 par définition** — un par étape en
-  séquence par défaut, mais
+  `plans-notion:executant`, **Sonnet par définition**, dans sa dernière
+  version — un par étape en séquence par défaut, mais
   pas absolument : en parallèle par vagues, ou regroupées, quand `vagues.md`
   le permet ou le prescrit (§3). Piloter, ce n'est pas coder.
 - Il ne relit pas lui-même le diff d'une étape à la place de l'agent

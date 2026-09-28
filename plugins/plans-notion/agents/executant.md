@@ -91,3 +91,12 @@ une discipline, et une discipline s'oublie exactement quand on est absorbé par
 le travail. Ici la garantie est structurelle : elle voyage avec le plugin, elle
 vaut sur toutes les machines et en session cloud, et elle ne peut pas être
 oubliée puisqu'il n'y a plus rien à ne pas oublier.
+
+**`sonnet` est un alias, et c'est voulu : ne jamais l'épingler.** Claude Code
+le résout au lancement vers la dernière version de Sonnet — mesuré le
+2026-09-28 sur l'`enqueteur`, qui porte le même champ : le transcript du
+sous-agent indique `claude-sonnet-5-5`. Écrire un identifiant daté
+(`claude-sonnet-5-5`) figerait le modèle et obligerait à rééditer les agents à
+chaque sortie ; l'alias suit seul. Même règle pour `opus` chez le relecteur.
+Par la même logique, la prose des skills dit « Sonnet », jamais un numéro de
+version.
