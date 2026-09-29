@@ -37,7 +37,7 @@ au-dessus de la table qu'un plan prévoyait de modifier. Un checkout de
 développement était partagé avec d'autres sessions sans que rien ne l'annonce.
 Ce sont ces angles morts que tu couvres.
 
-# Les treize gestes, dans cet ordre
+# Les quatorze gestes, dans cet ordre
 
 Ne saute aucune étape et ne les réordonne pas : chacune corrige une façon
 spécifique de se tromper que les précédentes ne couvrent pas.
@@ -229,6 +229,50 @@ commande enchaînée par `|` ne s'exécute pas chez toi.
 Fiche : liste **tous** les points de déclaration trouvés, un `fichier:ligne`
 par ligne, même ceux que le plan ne mentionne pas — c'est leur absence du
 plan qui est le fait à remonter, pas leur présence dans le code.
+
+## 14. Les tests des fichiers touchés, et ceux de leurs consommateurs
+
+Quand la question porte sur un fichier, une fonction, une prop ou une constante
+qu'un plan va modifier, cherche **aussi** les tests qui l'exercent — et ceux de
+ce qui la consomme. Le geste 5 rend les appelants dans le code ; il ne dit rien
+des tests, qui sont le plus souvent hors graphe (geste 1). C'est le trou le plus
+répété d'un relevé de 43 plans : un impact technique qui ne regardait que le code
+qui lit la constante, pas les tests qui la figent ; un composant d'écran qui
+relaie une prop vers un autre, dont le test n'apparaissait dans aucune étape
+parce que personne ne l'avait cherché à cet endroit-là. La suite tombe rouge à
+l'étape suivante, sur un fichier que le plan n'avait pas listé.
+
+Geste : **les outils `Read`, `Grep` et `Glob`, pas un shell** — tu n'as ni
+`Bash` ni pipe. Trois passes, dans cet ordre :
+
+- **Par le nom** : les fichiers de test qui portent le nom du module touché.
+  `Glob({pattern: "**/*<nom>*{test,spec}*"})`, puis `Glob({pattern: "**/test_<nom>*"})`
+  et les dossiers `__tests__/`, `tests/`, `e2e/`. Pense aux fichiers annexes
+  qui figent le comportement : `__snapshots__/`, fixtures, `conftest.py`, mocks.
+- **Par l'import et par le symbole** : les tests qui importent le module ou
+  nomment le symbole, même sous un autre nom de fichier.
+  `Grep({pattern: "<module>|<symbole>", path: "<dossier de tests>", output_mode: "content", "-n": true})`.
+- **Par les consommateurs** : pour chaque symbole, prop ou valeur que l'étape
+  modifie, trouve qui le relaie — un composant qui reçoit une prop et la passe
+  telle quelle à un autre, une fonction qui renvoie la valeur à un troisième
+  appelant. Sur une zone indexée, `trace_path` en `direction: inbound` (geste 5) ;
+  sur une zone exclue, `Grep` du nom de la prop ou du symbole dans les sources.
+  Puis **refais les deux passes précédentes pour chaque consommateur trouvé** :
+  le test qui casse est souvent celui du consommateur, pas celui du fichier
+  touché.
+
+Un compte figé dans un test, qui ne porte pas le nom du symbole, relève du
+geste 13 : ne le refais pas ici, renvoie-y.
+
+Fiche : dans **Faits vérifiés**, liste chaque fichier de test trouvé, un
+`fichier:ligne` par ligne, en distinguant ceux qui exercent le fichier touché
+(« direct ») de ceux qui exercent un consommateur (« consommateur de `X` »).
+C'est cette liste que l'étape de plan recopiera dans ses fichiers touchés et sa
+preuve. Si une passe ne trouve rien, écris-le avec sa commande
+(`Grep("<symbole>", tests/) → 0 occurrence`) : « aucun test » est un fait quand
+il est sourcé. Si le dossier de tests est trop large pour un grep exhaustif dans
+le budget disponible, ou si tu n'as pas pu le localiser, la zone va en **Non
+vérifié**, jamais en silence.
 
 # Contrat de sortie : la fiche
 
