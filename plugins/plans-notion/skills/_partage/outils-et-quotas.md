@@ -78,163 +78,101 @@ s'écrit « aucun connu au <date> », elle ne disparaît pas.
 
 ## Fiche — Google Places
 
-**Quota ou coût** (relevé au 2026-09-29, console du fournisseur et incidents
+**Quota ou coût** (relevé au 2026-09-29, d'après les incidents datés
 ci-dessous) :
 
 - **4 000 requêtes `SearchTextRequest` par jour et par projet**, remise à zéro
   vers 09 h heure de Paris (07 h UTC).
 - **Palier de facturation : 5 000 par mois** au niveau Pro.
-- **Champs du palier Enterprise** (téléphone, site web) : **1 000 gratuits par
-  mois**, payants au-delà.
-- Les quotas sont **distincts selon le chemin d'accès** : passer par un
-  connecteur tiers et passer par un relais serveur propre consomme deux
-  quotas séparés. Épuisé d'un côté, l'autre peut rester disponible.
-- **Aucun plafond dur n'est posé en console** : rien côté fournisseur
-  n'arrête une campagne qui s'emballe. Seul un `--max-appels` posé dans le
-  script protège.
+- **Champs du palier Enterprise** (téléphone, site) : **1 000 gratuits par
+  mois**.
+- Les quotas sont **distincts entre deux chemins d'accès au même service**.
+- **Aucun plafond dur n'est posé en console** : seul `--max-appels` protège.
 
 **Pièges datés** :
 
-- **Quota journalier épuisé les 2026-09-04 et 2026-09-05, puis le
-  2026-09-25** : chaque fois au milieu d'une campagne, sans alerte préalable.
-- **`fieldMask` par défaut sans position ni contact** : la réponse ne porte
-  ni coordonnées ni téléphone. Le découvrir après coup a failli coûter
-  **98 appels** de plus.
-- **`detail: true` bascule au palier Enterprise** : un seul champ demandé
-  suffit à faire facturer la requête au tarif du palier supérieur.
+- **Quota journalier bloquant les 2026-09-04 et 2026-09-05, puis le
+  2026-09-25.**
+- **`fieldMask` par défaut sans position ni contact.** Le découvrir après coup
+  a failli coûter **98 appels**.
+- **`detail: true` bascule au palier Enterprise.**
 
 **Bonne pratique** :
 
-- Toujours poser `--max-appels` dans le script d'un lot, à une valeur
-  inférieure au quota restant, jamais « illimité ».
-- Écrire le `fieldMask` explicitement, champ par champ, et décider **avant** le
-  lot si le palier Enterprise est voulu.
-- Lire le quota restant avant de lancer, et l'heure de remise à zéro : ne pas
-  lancer un lot de 3 000 appels à 08 h 30 heure de Paris.
+- Toujours poser `--max-appels` dans le script d'un lot.
+- Écrire le `fieldMask` explicitement, et décider **avant** le lot si le
+  palier Enterprise est voulu.
 
-**Repli** : basculer sur l'autre chemin d'accès (connecteur tiers ou relais
-propre) dont le quota est distinct, ou reporter le lot après 09 h heure de
-Paris. Ne pas contourner en multipliant les projets : ce n'est pas un
-repli, c'est un détournement du quota.
+**Repli** : passer par l'autre chemin d'accès, dont le quota est distinct, ou
+reporter le lot après la remise à zéro (09 h heure de Paris).
 
 ## Fiche — Nominatim, Photon et Overpass
 
-Trois services publics de cartographie ouverte, traités ensemble parce qu'ils
-échouent pour la même raison : ce sont des serveurs communautaires, sans
-contrat, dimensionnés pour un usage léger.
-
 **Quota ou coût** (relevé au 2026-09-29) :
 
-- **Nominatim** : gratuit, **1 requête par seconde par adresse IP**. Politique
-  d'usage publiée par le service ; le dépasser mène au blocage.
-- **Photon** : gratuit, sans quota chiffré publié, même logique d'usage
-  raisonnable.
-- **Overpass** : gratuit, quota dépendant de la charge du serveur au moment de
-  l'appel — une même requête peut passer à 10 h et échouer à 14 h.
+- **Nominatim** : **1 requête par seconde par adresse IP**.
+- **Photon** : aucun quota chiffré consigné au 2026-09-29.
+- **Overpass** : aucun quota chiffré consigné au 2026-09-29.
 
 **Pièges datés** :
 
-- **2026-09-26** : **429 (trop de requêtes) dès 5 agents en parallèle** sur
-  Nominatim, l'IP étant partagée par tous les agents d'une même machine.
-  **2 agents au maximum, avec `sleep 5`** entre les requêtes, ont tenu.
-- **2026-09-08** : Nominatim **bloqué depuis une session cloud** — les plages
-  d'adresses des hébergeurs sont refusées en bloc.
-- **2026-09-28** : **Overpass en 504** (délai dépassé côté serveur) sur une
-  requête qui avait passé la veille.
+- **2026-09-26** : Nominatim répond **429 dès 5 agents en parallèle**.
+  **2 agents au maximum, avec `sleep 5`.**
+- **2026-09-08** : Nominatim **bloqué depuis une session cloud**.
+- **2026-09-28** : **Overpass en 504.**
 
-**Bonne pratique** :
-
-- Une seule file de requêtes par IP, jamais une file par agent : le quota se
-  partage entre tous les processus de la machine.
-- Envoyer un en-tête `User-Agent` identifiable (nom du projet, contact
-  générique) — c'est exigé par la politique de Nominatim.
-- Mettre en cache tout ce qui a déjà été résolu : une adresse géocodée une fois
-  ne se redemande pas.
-- Sur un 429 ou un 504, attendre et **réessayer avec délai croissant**, pas
-  relancer en boucle.
+**Bonne pratique** : ne pas dépasser **2 agents en parallèle** sur Nominatim,
+avec `sleep 5` entre les requêtes.
 
 **Repli** : **Photon tolère l'orthographe** approximative là où Nominatim
-échoue — l'utiliser quand une adresse saisie à la main ne se résout pas. Pour
-un volume qui dépasse durablement 1 requête par seconde, ou depuis une session
-cloud, monter une instance propre plutôt que de forcer le service public.
+échoue. Pour Nominatim depuis une session cloud et pour Overpass en 504 :
+aucun repli connu au 2026-09-29.
 
 ## Fiche — Jev
 
-**Jev** est le modèle d'évaluation interne : il note des descriptions, une
-note par description. Il n'a pas de tarif public : c'est un service maison.
-
 **Quota ou coût** (relevé au 2026-09-29, sur trois campagnes réelles) :
 
-- **Quasi gratuit** à l'appel : le coût ne limite pas le volume.
+- **Quasi gratuit** à l'appel.
 - **Ordres de grandeur réels** : **4 177**, **3 076** et **796 appels** sur
-  trois campagnes. Un lot de plusieurs milliers d'appels est donc normal, et
-  franchit à chaque fois le seuil de 100 appels de la règle « outil absent » —
-  celle-ci ne s'applique plus, puisque l'outil a une fiche.
+  trois campagnes. Chacune franchit le seuil de 100 appels de la règle
+  « outil absent » — celle-ci ne s'applique plus, puisque l'outil a une
+  fiche.
 
 **Pièges datés** :
 
 - **Un lot de 35 descriptions dans un seul appel rend des notes
-  constantes** : mesuré, **AUC de 0,49** — c'est-à-dire le hasard pur. L'appel
-  répond, le format est correct, les notes ne valent rien. Rien ne signale
-  l'échec dans la réponse ; seule la mesure du pouvoir discriminant le révèle.
+  constantes** : mesuré, **AUC de 0,49**, soit le hasard (0,5).
 
-**Bonne pratique** :
+**Bonne pratique** : **une description par appel.**
 
-- **Une description par appel**, sans exception.
-- Mesurer l'AUC (ou un équivalent) sur un échantillon **avant** de lancer la
-  campagne complète, et refuser un résultat dont la mesure est proche du
-  hasard (0,5).
-- Lancement glissant plutôt qu'en un bloc si la campagne dépasse une douzaine
-  d'agents (voir `vagues.md`).
-
-**Repli** : aucun connu au 2026-09-29. En cas d'indisponibilité, reporter la
-campagne : une note produite par un autre modèle n'est pas comparable à celles
-déjà obtenues.
+**Repli** : aucun connu au 2026-09-29.
 
 ## Fiche — Sessions Claude
 
-Les sessions Claude elles-mêmes sont un outil à quota : un plan qui délègue
-beaucoup consomme le même plafond que la session de pilotage.
-
 **Quota ou coût** (relevé au 2026-09-29) :
 
-- **Limite par fenêtre glissante** : **429 vers 23 h UTC**, remise à zéro à
-  **00 h 30 UTC**.
-- **Limite hebdomadaire par famille de modèle** : la limite hebdomadaire de
-  **Sonnet** a été **atteinte le 2026-09-26**.
-- **Plafond de concurrence** : au-delà d'**une vingtaine d'appels `Agent`
-  simultanés**, le classifieur de permissions sature (2026-09-25).
+- **429 vers 23 h UTC**, remise à zéro à **00 h 30 UTC**.
+- Limite hebdomadaire de **Sonnet** **atteinte le 2026-09-26**.
+- Vers **une vingtaine d'appels `Agent` simultanés**, le classifieur de
+  permissions sature (2026-09-25).
 
 **Pièges datés** :
 
-- **2026-09-25** : vers une vingtaine d'appels `Agent` en même temps, `Bash` et
-  `SendMessage` se mettent à être refusés, et des agents calent sans qu'aucun
-  n'ait échoué proprement.
-- **2026-09-26** : limite hebdomadaire **Sonnet** atteinte. Le quota
-  hebdomadaire est propre à une famille de modèles : l'épuiser ne dit rien de
-  ce qui reste sur les autres.
+- **2026-09-25** : saturation du classifieur de permissions vers une vingtaine
+  d'appels `Agent` simultanés.
+- **2026-09-26** : limite hebdomadaire **Sonnet** atteinte.
 
-**Bonne pratique** :
+**Bonne pratique** : rester en deçà d'une vingtaine d'appels `Agent`
+simultanés (`vagues.md`, section « Le plafond de concurrence »).
 
-- **Ne pas dépasser une douzaine d'agents simultanés** ; pour une longue
-  campagne, lancement glissant (`vagues.md`, section « Le plafond de
-  concurrence »).
-- Éviter de lancer un gros lot à l'approche de 23 h UTC : une coupure en cours
-  de vague laisse des étapes à moitié faites.
-- Répartir la charge entre familles de modèles quand une limite hebdomadaire
-  approche, plutôt que de tout envoyer à la même.
-
-**Repli** : attendre la remise à zéro (00 h 30 UTC pour la fenêtre courte),
-reprendre le plan à l'étape interrompue — le journal d'exécution sur la page
-dit où — plutôt que de relancer la vague entière.
+**Repli** : attendre la remise à zéro (00 h 30 UTC après le 429 de 23 h UTC).
 
 ## Fiche — DeepSeek vision
 
 **Quota ou coût** (relevé au 2026-08-26, mesure sur un guide réel) :
 
-- **27,5 $ par guide mesurés**, contre **1,04 $ estimés** avant lancement — un
-  écart d'un facteur d'environ 26. C'est la fiche du registre où le coût est
-  le paramètre décisif, pas le quota.
+- **27,5 $ par guide mesurés**, contre **1,04 $ estimés** avant lancement,
+  soit un écart d'un facteur d'environ 26.
 
 **Pièges datés** :
 
@@ -242,19 +180,14 @@ dit où — plutôt que de relancer la vague entière.
   mesure ; le coût réel n'a été connu qu'après coup. La cause précise de
   l'écart n'est pas consignée ici : la retrouver dans le journal du plan avant
   de s'en servir.
-- C'est **l'exemple type d'un chiffre fondateur faux** : la décision
-  d'architecture (tout traiter par cet outil) reposait sur lui.
 
 **Bonne pratique** :
 
 - **Un appel d'essai réel, sur un guide représentatif, avant tout plan
   chiffré** : la règle « outil absent » vaut aussi pour un outil connu dont le
-  coût n'a jamais été mesuré dans le contexte du plan.
+  coût n'a jamais été mesuré.
 - Multiplier le coût mesuré d'un guide par le nombre de guides et le montrer à
-  Benjamin **avant** de lancer : le coût est payant, donc la règle « dès qu'un
+  Benjamin **avant** de lancer : l'appel est payant, donc la règle « dès qu'un
   appel est payant, demander » s'applique sans seuil de 100 appels.
-- Poser un plafond de dépense dans le script du lot, comme un `--max-appels`.
 
-**Repli** : réduire ce qui est envoyé à l'outil (moins d'images, images
-réduites) ou traiter un échantillon plutôt que la totalité ; ne pas relancer le
-lot complet tant que le coût mesuré n'a pas été accepté.
+**Repli** : aucun connu au 2026-08-26.
