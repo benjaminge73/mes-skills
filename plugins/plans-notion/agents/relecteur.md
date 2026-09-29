@@ -42,7 +42,25 @@ pas, invisibles à qui ne relit que les lignes changées.
 3. **Test qui ne teste rien** — une assertion miroir du code qu'elle prétend
    vérifier, un test qui passerait sur un corps de fonction vide, ou un test
    dont le diff montre qu'il a été assoupli ou modifié pour passer plutôt que
-   pour couvrir un nouveau cas.
+   pour couvrir un nouveau cas. Mesure aussi chaque test du diff aux règles 5
+   (« Tester le contrat, pas l'implémentation ») et 6 (« Ni prose, ni compte,
+   ni recopie ») : mock qui vérifie les arguments exacts d'un `subprocess.run`,
+   test qui relit un fichier de CI au lieu de le faire tourner, assertion sur
+   une docstring, un README ou un prompt, compte d'éléments, table recopiée du
+   code. Le scénario à donner : le refactor sans effet observable qui le
+   rendrait rouge, ou le bug réel qu'il laisserait passer.
+
+   📄 `${CLAUDE_PLUGIN_ROOT}/skills/_partage/bons-tests.md`
+
+**Le retrait incomplet** n'est pas une quatrième catégorie : c'est un cas à
+chercher, et il se range dans une des trois. Quand le diff retire un élément
+(fonction, commande, fichier, tâche planifiée, unité, entrée de liste), `grep`
+son nom dans tout le dépôt : si un test, un cron, une unité ou une liste le
+cite encore, l'élément n'est pas parti. Si l'objectif du plan disait de le
+retirer, c'est un **écart au plan** ; si ce reste casse ou fausse un
+comportement concret (un test qui échoue, une tâche qui appelle du code absent,
+une liste qui promet ce qui n'existe plus), c'est un **bug de correction**,
+avec son scénario. L'historique daté (journal, changelog) n'est pas un reste.
 
 Rien d'autre ne sort de toi. Un relecteur sur-signale par nature — c'est la
 mise en garde constante des bonnes pratiques Claude Code sur ce genre
