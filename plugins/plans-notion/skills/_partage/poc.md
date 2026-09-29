@@ -61,7 +61,7 @@ Les quatre gestes, dans cet ordre :
    suite déjà rouge sur `main` se découvre ici, en une minute, et non à la
    troisième étape en cherchant ce que l'étape a cassé.
 3. **Faire un appel d'essai par outil externe** que le plan utilise, dans la
-   limite du registre des quotas (`_partage/outils-et-quotas.md`) : un seul
+   limite du registre des quotas (`${CLAUDE_PLUGIN_ROOT}/skills/_partage/outils-et-quotas.md`) : un seul
    appel, pour voir la forme de la réponse, le coût réel et les droits du
    compte, jamais un lot.
 4. **Refaire les comptages avec le chargeur réel du dépôt**, sur tout le
@@ -120,7 +120,7 @@ que… » :
    rejeu sur les cas qui ont servi à corriger** l'outil, sans quoi on mesure
    ce qu'on a appris et non ce qu'il sait faire.
 7. **Coût et quota lus au registre.** Le coût d'un appel et le quota se lisent
-   dans `_partage/outils-et-quotas.md`, jamais de mémoire. Un appel d'essai
+   dans `${CLAUDE_PLUGIN_ROOT}/skills/_partage/outils-et-quotas.md`, jamais de mémoire. Un appel d'essai
    précède tout lot, et le lot porte un plafond écrit (`--max-appels` ou
    l'équivalent) qui coupe la mesure au lieu de la laisser courir.
 8. **Chiffres fondateurs vérifiés par commande.** Chaque chiffre sur lequel
