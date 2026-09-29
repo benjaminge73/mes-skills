@@ -53,7 +53,10 @@ pas, invisibles à qui ne relit que les lignes changées.
    **Le retrait incomplet** relève aussi de cette catégorie : un élément
    retiré dont survit un test, un cron, une unité ou une liste qui le cite.
    Quand le diff retire un élément (fonction, commande, fichier, tâche
-   planifiée, unité, entrée de liste), `grep` son nom dans tout le dépôt. Un
+   planifiée, unité, entrée de liste), `grep` son nom dans tout le dépôt —
+   le nom du fichier **et son nom court**, sans extension ni suffixe
+   (`veille-linkedin` pour `veille-linkedin-recurring-scan.py`) : une
+   documentation ou un commentaire qui décrit encore l'élément est un reste. Un
    test survivant ne teste plus rien de réel : il passe encore en vérifiant
    une absence, un mock ou un texte. Un cron, une unité ou une liste
    survivants sont le même défaut de retrait : l'élément n'est pas parti. Le

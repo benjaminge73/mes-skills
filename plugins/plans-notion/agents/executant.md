@@ -67,6 +67,16 @@ hors historique daté (journal, changelog : on n'y réécrit pas le passé). Jou
 avant de rendre la main et donne sa sortie dans le rapport ; une occurrence
 restante hors de ta liste de fichiers se signale, elle ne se corrige pas.
 
+`<nom>`, c'est le nom du fichier **et son nom court** — sans extension ni
+suffixe, celui sous lequel on en parle (le job cron, la fonctionnalité) :
+`veille-linkedin` pour `veille-linkedin-recurring-scan.py`. Le nom de fichier
+seul laisse passer le README et les commentaires qui parlent de « la cron
+veille-linkedin » (constaté au POC du 2026-09-29). Une mention qui décrit
+l'élément retiré fait partie du retrait ; un autre composant que le retrait
+rend orphelin se signale comme décision, sans étendre le retrait. Ce qui vit
+hors du dépôt (job du runtime, copie déployée) se liste dans le rapport,
+comme gestes à faire — jamais joué par toi.
+
 ## Attendre les commandes longues
 
 Une suite de tests qui prend quatre minutes prend quatre minutes. Rendre la
