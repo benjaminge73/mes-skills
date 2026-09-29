@@ -95,10 +95,10 @@ descendre.
 ### Un POC l'aurait aussi attrapée ?
 
 **301 oui (48 %), 65 partiel, 266 non**. Avec les partiels : 366 sur 632,
-soit **58 %**. Le POC couvre donc une surprise sur deux au moins, ce qui est
-plus que les 20 % où il est le *remède le moins cher* : dans beaucoup de
-cas, le POC aurait attrapé ce qu'une lecture attrapait aussi — mais **plus
-cher**.
+soit **58 %**. Le POC couvre donc près d'une surprise sur deux (48 %), et
+58 % en comptant les partiels, ce qui est plus que les 20 % où il est le
+*remède le moins cher* : dans beaucoup de cas, le POC aurait attrapé ce
+qu'une lecture attrapait aussi — mais **plus cher**.
 
 ## Angle × remède : où le POC est seul, où il ne sert pas
 
@@ -113,11 +113,11 @@ remède donne :
 | Angle | Surprises | Remède dominant | Le POC est-il utile ? |
 |---|---|---|---|
 | `voisin` | 226 | **193 lectures de code** | Non : il ne sert pas, lire suffit |
-| `donnees` | 113 | 65 comptages sur données réelles, **30 POC** | Oui, en complément d'un comptage complet |
+| `donnees` | 113 | comptage (65), puis POC (30) | Oui, en complément d'un comptage complet |
 | `outil` | 87 | **39 POC + 21 lectures de doc** | **Oui : le POC est seul à attraper** ce que la doc tait |
 | `env` | 59 | 19 POC | Oui, pour ce qui dépend de la machine réelle |
 | `page` | 52 | **36 relectures** du plan | Non : relire suffit |
-| `quota` | non détaillé | POC | **Oui, le POC est seul** |
+| `quota` | non détaillé | non détaillé | **Oui, le POC est seul** |
 | `existant` | **3** | — | Sans objet : voir ci-dessous |
 
 Les six premiers angles listés avec un effectif totalisent 540 surprises ;
