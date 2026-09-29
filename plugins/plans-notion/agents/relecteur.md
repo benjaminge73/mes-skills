@@ -50,17 +50,18 @@ pas, invisibles à qui ne relit que les lignes changées.
    code. Le scénario à donner : le refactor sans effet observable qui le
    rendrait rouge, ou le bug réel qu'il laisserait passer.
 
-   📄 `${CLAUDE_PLUGIN_ROOT}/skills/_partage/bons-tests.md`
+   **Le retrait incomplet** relève aussi de cette catégorie : un élément
+   retiré dont survit un test, un cron, une unité ou une liste qui le cite.
+   Quand le diff retire un élément (fonction, commande, fichier, tâche
+   planifiée, unité, entrée de liste), `grep` son nom dans tout le dépôt. Un
+   test survivant ne teste plus rien de réel : il passe encore en vérifiant
+   une absence, un mock ou un texte. Un cron, une unité ou une liste
+   survivants sont le même défaut de retrait : l'élément n'est pas parti. Le
+   scénario à donner : ce qui s'exécute, ou ce qui est promis, alors que
+   l'élément n'existe plus. L'historique daté (journal, changelog) n'est pas
+   un reste.
 
-**Le retrait incomplet** n'est pas une quatrième catégorie : c'est un cas à
-chercher, et il se range dans une des trois. Quand le diff retire un élément
-(fonction, commande, fichier, tâche planifiée, unité, entrée de liste), `grep`
-son nom dans tout le dépôt : si un test, un cron, une unité ou une liste le
-cite encore, l'élément n'est pas parti. Si l'objectif du plan disait de le
-retirer, c'est un **écart au plan** ; si ce reste casse ou fausse un
-comportement concret (un test qui échoue, une tâche qui appelle du code absent,
-une liste qui promet ce qui n'existe plus), c'est un **bug de correction**,
-avec son scénario. L'historique daté (journal, changelog) n'est pas un reste.
+   📄 `${CLAUDE_PLUGIN_ROOT}/skills/_partage/bons-tests.md`
 
 Rien d'autre ne sort de toi. Un relecteur sur-signale par nature — c'est la
 mise en garde constante des bonnes pratiques Claude Code sur ce genre
