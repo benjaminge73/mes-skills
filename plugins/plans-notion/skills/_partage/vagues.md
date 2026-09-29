@@ -75,8 +75,11 @@ Décision de Benjamin (Q3) : chaque étape d'une vague tourne dans son propre
 le disque — jamais dans le checkout principal, que les autres étapes de la
 vague utilisent en même temps.
 
-- **Chemin** : `~/repos/worktrees/<repo>/etape-N`, sous `mkdir -p
-  ~/repos/worktrees/<repo>` créé avant si besoin.
+- **Chemin** : `~/repos/worktrees/<repo>/<branche-kebab>-etape-N`, où
+  `<branche-kebab>` est le nom, en kebab, du worktree de la branche du plan
+  (§2 du skill), sous `mkdir -p ~/repos/worktrees/<repo>` créé avant si besoin. Le nom du plan
+  y figure pour que deux plans lancés dans la même session (section « Plusieurs
+  plans » du skill) ne se disputent pas un `etape-1`.
 
   ⚠️ **Un worktree neuf n'a pas les données ignorées par git** — gros
   fichiers source, `node_modules`, tout ce qu'un `.gitignore` tient à l'écart
@@ -91,7 +94,7 @@ vague utilisent en même temps.
   déjà commité.
 
   ```bash
-  git worktree add ~/repos/worktrees/<repo>/etape-N -b <branche-du-plan>-etape-N <branche-du-plan>
+  git worktree add ~/repos/worktrees/<repo>/<branche-kebab>-etape-N -b <branche-du-plan>-etape-N <branche-du-plan>
   ```
 
   **Pourquoi un tiret et pas un `/`.** La forme `<branche-du-plan>/etape-N`,
@@ -120,13 +123,21 @@ vague utilisent en même temps.
 
 ## Le plafond de concurrence
 
-Une vague n'ouvre pas tous ses sous-agents d'un coup au-delà d'une douzaine
-environ. Constaté le 2026-09-25 : vers une vingtaine d'appels `Agent`
+Le plafond est **celui du pool**, et le pool est **unique pour la session**,
+tous plans confondus : environ une douzaine de places, que les étapes de tous
+les plans se partagent (section « Plusieurs plans » du skill). Pour un plan
+seul, c'est le même chiffre, et une vague n'ouvre pas tous ses sous-agents d'un
+coup au-delà. Constaté le 2026-09-25 : vers une vingtaine d'appels `Agent`
 simultanés, le classifieur de permissions sature — `Bash` et `SendMessage` se
 mettent à être refusés, et des agents calent sans qu'aucun n'ait échoué
-proprement. Pour une longue campagne (une lecture d'environ 165 lots, par
-exemple) : lancement glissant, un lot qui termine libère la place d'un
-nouveau lot, plutôt qu'une vague unique de toute la campagne.
+proprement. Deux plans qui ouvriraient chacun leur douzaine atteindraient donc
+ce seuil sans que ni l'un ni l'autre ne l'ait dépassé : le compte se fait sur
+la session, pas sur le plan.
+
+Le lancement est **glissant** : une étape qui termine libère sa place pour la
+suivante prête, quel que soit son plan, plutôt qu'une vague unique de toute la
+campagne. Pour une longue campagne (une lecture d'environ 165 lots, par
+exemple), c'est la même mécanique.
 
 ## Au retour
 
@@ -136,7 +147,7 @@ les sous-agents de la vague :
 
 1. **La preuve est rejouée par la session, dans chaque worktree** — pas dans le
    checkout principal, tant que le report n'a pas eu lieu : la commande de
-   preuve du brief (§3) s'exécute avec `cd ~/repos/worktrees/<repo>/etape-N`,
+   preuve du brief (§3) s'exécute avec `cd ~/repos/worktrees/<repo>/<branche-kebab>-etape-N`,
    sur la liste réelle des fichiers touchés dans ce worktree.
 2. **Commit sur la branche d'étape**, dans le worktree, comme pour une étape
    séquentielle.
@@ -166,7 +177,7 @@ les sous-agents de la vague :
    séparé :
 
    ```bash
-   git worktree remove ~/repos/worktrees/<repo>/etape-N
+   git worktree remove ~/repos/worktrees/<repo>/<branche-kebab>-etape-N
    git branch -D <branche-du-plan>-etape-N
    ```
 

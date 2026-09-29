@@ -201,6 +201,10 @@ change pas : `main` ne bouge pas de toute l'exécution, et la branche du plan
 porte à tout moment l'état complet de ce qui est livré. Une autre organisation —
 une PR par étape, plusieurs branches — ne se fait que si Benjamin la demande.
 
+Une session peut aussi porter **plusieurs plans** à la fois : tout ce qui
+précède vaut alors pour chacun, et la section « Plusieurs plans », plus bas,
+dit ce qui s'y ajoute.
+
 ## 3. Dérouler les étapes
 
 Le chapitre `Exécution` de la page est la feuille de route. Il ne se réécrit pas
@@ -770,6 +774,55 @@ l'autonomie a mis de côté. Ne pas créer de plan de suite quand tout est pass�
 une page vide de contenu utile encombre la base et fait douter du statut de
 celle qui la précède.
 
+## Plusieurs plans
+
+Tout ce qui précède décrit un plan. Quand une session en porte plusieurs,
+chacun garde son déroulé (§2 à §7) ; ce qui s'ajoute tient en cinq points.
+
+**Un pilote unique.** La session principale pilote tous les plans, et aucun
+n'est confié à un « pilote » délégué. La raison est mécanique : un sous-agent
+ne peut pas lancer d'autres sous-agents. Un pilote par plan, délégué, ne
+pourrait donc plus appeler `executant` ni `relecteur` — les étapes se
+coderaient dans le pilote, ce que le §3 interdit.
+
+**Chaque plan garde sa porte, sa branche et son worktree.** La porte d'entrée
+se lit plan par plan : un plan dont le `Statut` n'est pas `valide` ne
+démarre pas. La branche, le worktree du plan (§2), le journal (§4) et la
+clôture (§6) sont ceux de ce plan, jamais partagés avec un autre. Au contrôle
+bloquant de la clôture, `git worktree list` montre aussi les worktrees des
+autres plans encore en cours : ne regarder que ceux du plan qu'on clôt.
+
+**Un seul pool glissant.** Toutes les étapes de tous les plans partagent
+**une douzaine de places**. Une étape qui termine libère sa place pour la
+prochaine étape prête, de n'importe quel plan. Le plafond est celui du pool,
+pas celui de chaque plan :
+
+📄 `${CLAUDE_PLUGIN_ROOT}/skills/_partage/vagues.md`
+
+**Entre plans, le parallèle est le défaut.** Seule une ressource partagée à
+l'exécution fait attendre :
+
+- **le port des tests e2e** — deux plans ne le prennent pas en même temps ;
+- **la base locale** — même raison ;
+- **le quota d'un outil**, lu au registre :
+
+  📄 `${CLAUDE_PLUGIN_ROOT}/skills/_partage/outils-et-quotas.md`
+
+Deux plans qui touchent **le même fichier** ne s'attendent pas : ils donnent un
+**ordre de merge**, signalé dans le plan maître et dans le compte rendu. Chaque
+plan vit sur sa propre branche, donc rien ne se marche dessus à l'exécution ;
+c'est au moment de remonter sur `main` que l'ordre compte.
+
+**Un plan maître.** Une page Notion créée **au lancement**, sans statut de
+validation — ce n'est pas un plan qu'on valide, et la porte d'entrée n'a rien
+à y lire. Elle porte :
+
+- **le croisement** : qui part ensemble, qui attend quoi, et pourquoi ;
+- **l'avancement par plan**, avec un lien vers le journal de chacun ;
+- **l'état final consolidé**, posé une fois le dernier plan clos.
+
+Elle s'écrit avec les mêmes précautions que le reste (§5).
+
 ## 8. Ce que ce skill ne fait pas
 
 - Il ne **conçoit** pas le plan — c'est `plan-notion`. Il **tient à jour** le
@@ -777,8 +830,10 @@ celle qui la précède.
   Benjamin (§2), et en cours de route pour les écarts datés (§4). Mettre à jour
   n'est pas concevoir ; si l'approche est en cause, la main repasse à
   `plan-notion`.
-- Il crée une seule page de sa propre initiative : le **plan de suite `#N+1`** en
-  clôture (§7), qui repart ensuite en `plan-notion` comme n'importe quel brouillon.
+- Il ne crée de sa propre initiative que deux sortes de page : le **plan de suite
+  `#N+1`** en clôture (§7), qui repart ensuite en `plan-notion` comme n'importe
+  quel brouillon, et, quand une session porte plusieurs plans, le **plan maître**
+  du lancement (« Plusieurs plans »).
 - Il ne code pas si le statut n'est pas `valide`.
 - Il n'écrit pas lui-même le code des étapes déléguables : ça part en sous-agent
   `plans-notion:executant`, **Sonnet par définition**, dans sa dernière
