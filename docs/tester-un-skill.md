@@ -132,8 +132,13 @@ pas de combien un skill **identique à lui-même** varie.
 **A/A** : la même version contre elle-même.
 
 ```bash
-python3 scripts/evals_ab.py --mode aa --base <ref> --tete <ref> --runs 3 --sortie-bruit <fichier>
+python3 scripts/evals_ab.py --plugin <nom> --mode aa --tete <ref> \
+    --sortie-bruit <fichier> -- --runs 3
 ```
+
+En mode `aa`, seule la tête est jouée (deux fois) : `--base` n'y sert à rien.
+Tout ce qui suit `--` est transmis tel quel au lanceur (`--runs 3` : trois
+passages par cas) ; `--runs` n'est pas une option d'`evals_ab.py`.
 
 Ordre de grandeur, pour savoir à quoi s'attendre, tant qu'aucune mesure
 n'existe. L'intervalle de confiance à 95 % d'**une** moyenne vaut environ
@@ -155,8 +160,9 @@ des cas réels et non d'une formule.
 ## Comparer deux versions
 
 ```bash
-python3 scripts/evals_ab.py --mode ab --base <ref> --tete <ref> --runs 3 \
-    [--prive <chemin-vers-bancs/skills>] [--bruit <fichier>] [--journal]
+python3 scripts/evals_ab.py --plugin <nom> --mode ab --base <ref> --tete <ref> \
+    [--prive <chemin-vers-bancs/skills>] [--bruit <fichier>] [--journal] \
+    -- --runs 3
 ```
 
 `evals_ab.py` assemble, pour chaque référence git, une copie temporaire du
