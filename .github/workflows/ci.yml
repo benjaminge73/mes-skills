@@ -129,8 +129,8 @@ jobs:
           set -euo pipefail
           # --- corps de la PR (début)
           # Le corps est une entrée non fiable : il n'existe que dans la variable
-          # d'environnement PR_BODY, jamais interpolé (`${{ … }}` serait du code,
-          # pas une donnée). Relu par l'API et non lu dans le payload : un « Re-run »
+          # d'environnement PR_BODY, jamais interpolé par une expression GitHub (ce
+          # serait du code, pas une donnée). Relu par l'API et non lu dans le payload : un « Re-run »
           # rejoue le payload d'origine, dont le corps est périmé. Un échec de
           # l'appel est un échec du job, jamais un repli sur « tout » ni sur une
           # sélection vide : ce serait jouer (et payer) autre chose que ce que la
