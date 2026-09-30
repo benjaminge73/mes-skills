@@ -173,11 +173,14 @@ jobs:
     if: needs.evals-portee.outputs.touche == 'true'
     runs-on: ubuntu-latest
     # Sans base en cache (premier run de chaque base) : deux bras joués l'un
-    # après l'autre, de 16 cas x 3 passages = 48 passages à ≈ 2 min, à 3 agents
-    # en parallèle, soit ≈ 32 min par bras et ≈ 64 min pour les deux, plus
-    # ≈ 1 min 30 de préparation. 90 min laissent la marge d'un modèle lent, pas
-    # d'une boucle : au-delà, le job est tué plutôt que de consommer l'abonnement.
-    timeout-minutes: 90
+    # après l'autre, de 16 cas x 3 passages = 48 passages. Mesuré le 2026-09-30
+    # (A/A local de l'étape A4, 27 passages en ≈ 24 min à 3 agents en parallèle) :
+    # ≈ 2,7 min par passage, soit ≈ 43 min par bras et ≈ 86 min pour les deux,
+    # plus ≈ 1 min 30 de préparation. 150 min laissent la marge des cas
+    # d'exécution (Bash, commits), sans doute plus lents que les cas de lecture
+    # mesurés, sans tolérer une boucle : au-delà, le job est tué plutôt que de
+    # consommer l'abonnement.
+    timeout-minutes: 150
     permissions:
       contents: read
     # Une poussée sur la PR annule l'exécution en cours : ses mesures portent sur
@@ -196,11 +199,14 @@ jobs:
       # Figés : un modèle qui change change le bruit, donc toute la mesure.
       EVALS_MODELE: claude-opus-5-5
       # Plafond par appel de `claude plugin eval` (une fois pour la base, une fois
-      # pour la tête). Mesuré au POC avec claude-opus-5-5 : ≈ 0,65 $ par passage,
-      # donc un bras de 16 cas x 3 passages ≈ 31 $. 60 $ couvrent un bras complet
-      # avec marge. Un plafond plus bas couperait chaque bras : rapport partiel,
-      # refusé par `evals_ab.py` (code 3), job rouge à tous les coups.
-      EVALS_MAX_COUT_USD: '60'
+      # pour la tête). Mesuré le 2026-09-30 avec claude-opus-5-5 (A/A local de
+      # l'étape A4) : 54 passages pour 53,14 $, soit ≈ 0,98 $ par passage (de
+      # 0,48 à 2,15 $ selon le cas), donc un bras de 16 cas x 3 passages ≈ 47 $.
+      # 120 $ couvrent un bras complet avec plus de deux fois de marge, pour les
+      # cas d'exécution (Bash, commits) sans doute plus chers que les cas de
+      # lecture mesurés. Un plafond plus bas couperait chaque bras : rapport
+      # partiel, refusé par `evals_ab.py` (code 3), job rouge à tous les coups.
+      EVALS_MAX_COUT_USD: '120'
       EVALS_RUNS: '3'
       EVALS_CONCURRENCE: '3'
     steps:
