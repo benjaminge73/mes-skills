@@ -29,20 +29,6 @@
   "veille_jours_max": 30,
   "exceptions": [
     {
-      "regle": "a",
-      "cible": "plugins/plans-notion/skills/executer-plan-notion/SKILL.md",
-      "date": "2026-09-30",
-      "raison": "description + when_to_use : 1 545 caractères pour un plafond de 1 536, défaut réel constaté à l'ouverture d'A7",
-      "levee_par": "étape B7"
-    },
-    {
-      "regle": "d",
-      "cible": "plugins/plans-notion/.claude-plugin/plugin.json",
-      "date": "2026-09-30",
-      "raison": "la description du manifeste ne cite que l'agent enqueteur ; executant, relecteur et chercheur manquent",
-      "levee_par": "étape B7"
-    },
-    {
       "regle": "b",
       "cible": "plugins/plans-notion/skills/plan-notion/SKILL.md",
       "date": "2026-09-30",

@@ -289,7 +289,7 @@ de base à dépasser) et un plugin qui disparaît.
 
 ### La CI, et pourquoi il n'y a pas de CD
 
-`.github/workflows/ci.yml` joue deux jobs, et les deux appellent
+`.github/workflows/ci.yml` joue deux jobs de contrôle, et les deux appellent
 `scripts/ci_locale.sh`, la liste unique des contrôles (voir « Vérifier avant de
 pousser »). `garde` tient les invariants du dépôt : la marketplace et le disque
 concordent, la version d'un plugin touché a bougé (la règle ci-dessus), les
@@ -299,6 +299,13 @@ règles de forme des skills et le registre des garde-fous
 CLI Claude Code elle-même (`claude plugin validate`), joue les tests des
 scripts de garde et attrape les renvois `${CLAUDE_PLUGIN_ROOT}/…` pointant dans
 le vide, ainsi que les frontmatters incomplets ou mal nommés.
+
+Le banc d'évals a ses propres jobs. `evals-portee` (« Portée des évals »,
+gratuit) décide si la PR touche un plugin à évaluer, et ferme la voie aux forks ; `evals`
+(« Évals (<plugin>) », **payant**, il tourne sur le runner GitHub) joue les cas
+du dossier `evals/` en A/B sur chaque PR qui change un skill. La méthode est
+dans [docs/tester-un-skill.md](docs/tester-un-skill.md), les résultats
+comparés dans [evals/RESULTATS.md](evals/RESULTATS.md).
 
 Il n'y a pas de job de déploiement (CD, *continuous delivery*) parce qu'il n'y
 a rien à déployer : ce dépôt n'est pas un service qui tourne quelque part, il
