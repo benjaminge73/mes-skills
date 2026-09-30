@@ -68,14 +68,16 @@ if [ -n "$hookspath" ]; then
   case "$dossier" in /*) ;; *) dossier="$racine/$dossier" ;; esac
   actifs=""
   if [ -d "$dossier" ]; then
-    actifs="$(find "$dossier" -maxdepth 1 -type f ! -name '*.sample' -printf '%f\n' | sort | joindre)"
+    # Seuls les exécutables s'appliquent : git ignore un hook sans droit d'exécution.
+    actifs="$(find "$dossier" -maxdepth 1 -type f -perm /111 ! -name '*.sample' -printf '%f\n' | sort | joindre)"
   fi
   echo "- core.hooksPath : $hookspath — hooks : $(ou_aucun "$actifs")"
 else
   echo "- core.hooksPath : aucun"
 fi
 
-# --- .git/hooks hors *.sample : un exemple n'a jamais refusé un commit.
+# --- .git/hooks hors *.sample : un exemple n'a jamais refusé un commit. Et quand
+# core.hooksPath est défini, git n'ouvre plus .git/hooks : ce qui s'y trouve est inactif.
 git_hooks=""
 if [ -n "$est_git" ]; then
   commun="$(git -C "$racine" rev-parse --git-common-dir)"
@@ -84,7 +86,13 @@ if [ -n "$est_git" ]; then
     git_hooks="$(find "$commun/hooks" -maxdepth 1 -type f ! -name '*.sample' -printf '%f\n' | sort | joindre)"
   fi
 fi
-echo "- Hooks git : $(ou_aucun "$git_hooks")$([ -n "$git_hooks" ] && echo " (.git/hooks, hors *.sample)")"
+if [ -n "$hookspath" ] && [ -n "$git_hooks" ]; then
+  echo "- Hooks git : $git_hooks (.git/hooks, hors *.sample) — inactifs : core.hooksPath est défini, git ignore .git/hooks"
+elif [ -n "$hookspath" ]; then
+  echo "- Hooks git : aucun (core.hooksPath est défini : git ignore .git/hooks)"
+else
+  echo "- Hooks git : $(ou_aucun "$git_hooks")$([ -n "$git_hooks" ] && echo " (.git/hooks, hors *.sample)")"
+fi
 
 # --- pre-commit : les `id` des hooks sont ce qu'il refuse.
 precommit=""
