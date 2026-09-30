@@ -44,12 +44,38 @@ de rapport attendu. Ce fichier-ci porte ce qui ne change jamais.
 
 ## Quand tu écris un test
 
-Un test que tu écris suit les quatre règles ci-dessous — nommer la panne
+Un test que tu écris suit les six règles ci-dessous — nommer la panne
 dans son nom, un attendu dérivé indépendamment du code, pas de « change
-detector », pas d'assertion miroir. Un test qui n'y satisfait pas ne prouve
-rien, même rouge, même vert.
+detector », pas d'assertion miroir, tester le contrat et non l'implémentation
+(règle 5), ni prose, ni compte, ni recopie (règle 6). Un test qui n'y satisfait
+pas ne prouve rien, même rouge, même vert. Concrètement, deux gestes à ne pas
+faire : un mock qui vérifie les arguments exacts d'un `subprocess.run`, et un
+test qui relit un fichier de CI au lieu de le faire tourner.
 
 📄 `${CLAUDE_PLUGIN_ROOT}/skills/_partage/bons-tests.md`
+
+## Quand l'étape est un retrait
+
+Un retrait est **fini** quand l'élément est parti avec tout ce qui l'entoure :
+ses tests, ses prompts, ses unités (service, timer, cron) et chaque liste qui
+le cite. Retirer le code et laisser un test, une unité ou une entrée de liste
+qui le nomme encore, c'est un retrait à moitié fait — et le reste casse plus
+tard, ailleurs, sans lien visible avec l'étape.
+
+La preuve tient en une commande : `grep -rn <nom>` sur le dépôt rend **vide**,
+hors historique daté (journal, changelog : on n'y réécrit pas le passé). Joue-la
+avant de rendre la main et donne sa sortie dans le rapport ; une occurrence
+restante hors de ta liste de fichiers se signale, elle ne se corrige pas.
+
+`<nom>`, c'est le nom du fichier **et son nom court** — sans extension ni
+suffixe, celui sous lequel on en parle (le job cron, la fonctionnalité) :
+`veille-linkedin` pour `veille-linkedin-recurring-scan.py`. Le nom de fichier
+seul laisse passer le README et les commentaires qui parlent de « la cron
+veille-linkedin » (constaté au POC du 2026-09-29). Une mention qui décrit
+l'élément retiré fait partie du retrait ; un autre composant que le retrait
+rend orphelin se signale comme décision, sans étendre le retrait. Ce qui vit
+hors du dépôt (job du runtime, copie déployée) se liste dans le rapport,
+comme gestes à faire — jamais joué par toi.
 
 ## Attendre les commandes longues
 

@@ -42,7 +42,29 @@ pas, invisibles à qui ne relit que les lignes changées.
 3. **Test qui ne teste rien** — une assertion miroir du code qu'elle prétend
    vérifier, un test qui passerait sur un corps de fonction vide, ou un test
    dont le diff montre qu'il a été assoupli ou modifié pour passer plutôt que
-   pour couvrir un nouveau cas.
+   pour couvrir un nouveau cas. Mesure aussi chaque test du diff aux règles 5
+   (« Tester le contrat, pas l'implémentation ») et 6 (« Ni prose, ni compte,
+   ni recopie ») : mock qui vérifie les arguments exacts d'un `subprocess.run`,
+   test qui relit un fichier de CI au lieu de le faire tourner, assertion sur
+   une docstring, un README ou un prompt, compte d'éléments, table recopiée du
+   code. Le scénario à donner : le refactor sans effet observable qui le
+   rendrait rouge, ou le bug réel qu'il laisserait passer.
+
+   **Le retrait incomplet** relève aussi de cette catégorie : un élément
+   retiré dont survit un test, un cron, une unité ou une liste qui le cite.
+   Quand le diff retire un élément (fonction, commande, fichier, tâche
+   planifiée, unité, entrée de liste), `grep` son nom dans tout le dépôt —
+   le nom du fichier **et son nom court**, sans extension ni suffixe
+   (`veille-linkedin` pour `veille-linkedin-recurring-scan.py`) : une
+   documentation ou un commentaire qui décrit encore l'élément est un reste. Un
+   test survivant ne teste plus rien de réel : il passe encore en vérifiant
+   une absence, un mock ou un texte. Un cron, une unité ou une liste
+   survivants sont le même défaut de retrait : l'élément n'est pas parti. Le
+   scénario à donner : ce qui s'exécute, ou ce qui est promis, alors que
+   l'élément n'existe plus. L'historique daté (journal, changelog) n'est pas
+   un reste.
+
+   📄 `${CLAUDE_PLUGIN_ROOT}/skills/_partage/bons-tests.md`
 
 Rien d'autre ne sort de toi. Un relecteur sur-signale par nature — c'est la
 mise en garde constante des bonnes pratiques Claude Code sur ce genre

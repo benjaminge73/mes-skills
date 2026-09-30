@@ -15,9 +15,12 @@ catégorie « test qui ne teste rien » du relecteur (`agents/relecteur.md`).
 
 ## Pourquoi ce fichier
 
-Quatre règles, reprises de `writing-good-tests.md`
+Six règles. Les quatre premières sont reprises de `writing-good-tests.md`
 ([obra/superpowers](https://github.com/obra/superpowers)) et resserrées à ce
-qu'un exécutant peut vérifier lui-même avant de commiter le rouge.
+qu'un exécutant peut vérifier lui-même avant de commiter le rouge ; les deux
+dernières (5 et 6) sont propres à ce plugin et portent la doctrine « tester le
+contrat » : ce qu'un test a le droit de regarder, et ce qu'il n'a pas le droit
+de recopier.
 
 ## 1. Nommer la panne
 
@@ -90,12 +93,76 @@ Le lien avec la preuve du rouge (`preuve-du-rouge.md`) : une assertion miroir
 peut très bien être rouge avant que le code n'existe — `apply_discount` non
 défini fait échouer n'importe quelle assertion. Le rouge initial ne distingue
 pas un test qui mord d'un test qui ne fait que refléter le code à venir ;
-seules ces quatre règles, lues à l'écriture, font cette différence.
+seules ces règles, lues à l'écriture, font cette différence.
+
+## 5. Tester le contrat, pas l'implémentation
+
+Un test donne des **entrées** et vérifie les **sorties observables** qu'elles
+produisent : valeur rendue, fichier écrit, code de sortie, effet visible chez
+l'appelant. Il ne regarde pas *comment* le code y arrive. Ce qui se passe entre
+l'entrée et la sortie est libre de changer ; le contrat, non.
+
+Deux interdits en découlent, parce qu'ils sont la forme la plus courante de
+l'erreur :
+
+- **Un mock qui vérifie les arguments exacts d'un `subprocess.run`** (ou de
+  tout appel à un processus, un client réseau, un shell). Le test recopie la
+  ligne de commande du code : renommer un drapeau équivalent, réordonner deux
+  options, le casse sans rien avoir cassé ; et une commande fausse mais
+  identique des deux côtés passe. Ce qui se teste, c'est l'effet — le fichier
+  produit, le code de retour, la sortie — en faisant réellement tourner la
+  commande sur une entrée jetable, ou en isolant la décision (quoi lancer) dans
+  une fonction pure dont on teste le résultat.
+- **Un test qui relit un fichier de CI** (workflow, Makefile, manifeste de
+  tâches) pour y chercher une chaîne, au lieu de **faire tourner** ce qu'il
+  décrit. Le texte du fichier peut contenir la bonne ligne et la CI échouer
+  quand même ; il peut avoir été réécrit autrement et fonctionner très bien.
+  Si le comportement compte, on l'exécute ; sinon, on ne le teste pas.
+
+```python
+# ❌ recopie l'implémentation : casse si l'ordre des options change,
+# passe si la commande est fausse des deux côtés
+run.assert_called_once_with(["convert", "-resize", "50%", src, dst], check=True)
+
+# ✅ observe le contrat : une entrée, la sortie qu'elle produit
+resize(src_100x100, dst)
+assert image_size(dst) == (50, 50)
+```
+
+## 6. Ni prose, ni compte, ni recopie
+
+Trois choses qu'un test n'affirme pas, parce qu'elles décrivent le code au lieu
+de le vérifier :
+
+- **De la prose.** Pas d'assertion sur une docstring, un README, un commentaire,
+  le texte d'un prompt ou d'un message d'aide. Le jour où quelqu'un reformule,
+  le test devient rouge sans qu'aucun comportement n'ait bougé — c'est un
+  « change detector » (règle 3) appliqué à du texte. Si un prompt doit
+  produire un comportement, c'est ce comportement qu'on observe.
+- **Un compte.** Pas de « il y a 17 éléments » : le nombre change à chaque
+  ajout légitime et ne prouve rien sur le contenu. Si l'invariant est « aucun
+  élément ne manque », on affirme *lequel* doit être présent, ou la propriété
+  que tous respectent.
+- **Une recopie.** Pas de table, de liste ou de constante recopiée du code dans
+  le test pour la comparer à l'original : c'est l'assertion miroir (règle 4) à
+  l'échelle d'une structure. Deux copies qui doivent bouger ensemble ne
+  vérifient que la discipline de celui qui les édite.
+
+```python
+# ❌ compte + recopie : casse à chaque ajout légitime, ne dit rien du contenu
+assert len(HANDLERS) == 17
+assert HANDLERS == {"a": handle_a, "b": handle_b, ...}  # copie du code
+
+# ✅ un fait précis et observable
+assert handle("a", payload) == expected_for_a
+assert "b" in HANDLERS  # le cas dont on sait qu'il doit exister
+```
 
 ---
 
 *Adapté de [obra/superpowers](https://github.com/obra/superpowers) (MIT, Jesse Vincent /
-Prime Radiant). Récupéré le 2026-09-23. Modifications : quatre règles retenues sur les
+Prime Radiant). Récupéré le 2026-09-23. Les règles 5 et 6 sont propres à ce plugin.
+Modifications : quatre règles retenues sur les
 deux principes de `writing-good-tests.md` (nommer la panne, attendu indépendant, pas de
 change detector, pas d'assertion miroir — le principe « exercer le réel », sur les
 mocks, n'est pas repris ici), exemples reformulés en JS/Python génériques, lien ajouté
