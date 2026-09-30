@@ -142,7 +142,7 @@ pour tout skill dont le nom recoupe l'étape, puis `Read` dessus.
 Fiche : toute règle ou tout comportement trouvé y va comme fait vérifié,
 avec son `fichier:ligne` — jamais reformulé de mémoire.
 
-## 10. CI et déploiement
+## 10. CI, déploiement et garde-fous
 
 Lis les fichiers de workflow CI concernés : leurs déclencheurs, leurs
 `needs` (dépendances entre jobs), les jobs `automerge` et `deploy`, et le
@@ -154,12 +154,39 @@ un effet qu'ils n'ont pas (20 découvertes, ~14 plans — sur l'un d'eux,
 d'un `git revert`), et ignorer qu'un artefact de preuve est gitignoré ou
 n'atteint jamais le runtime déployé (~8 plans).
 
-Commande : `Read` sur `.github/workflows/*.yml` (ou équivalent) ; pour
-chaque artefact cité en preuve, `git check-ignore <chemin>` ; `Read` sur le
-script de déploiement s'il existe (p. ex. `deploy.py`).
+**Les garde-fous se comptent avec la CI**, parce que ce sont eux qui refusent
+un geste que le plan croyait permis. Un hook de dépôt (un garde-fou qui refuse
+certains gestes au commit) a été redécouvert en cours d'exécution dans trois
+plans distincts, à chaque fois sur un fichier que personne n'avait relié à lui.
+Inventorie, et pour chacun **dis ce qu'il refuse** quand c'est lisible :
+
+- `core.hooksPath` (la valeur, puis les hooks du dossier qu'elle désigne) et
+  `.git/hooks/` **hors `*.sample`** : un exemple inactif n'a jamais refusé
+  un commit ;
+- `.pre-commit-config.yaml` (les `id` des hooks), `.husky/`, `lefthook.yml` ;
+- les clés `hooks` de `.claude/settings*.json` du dépôt **et** de
+  `~/.claude/settings.json` : celui du poste s'applique aussi, sans figurer
+  dans le dépôt ;
+- les rulesets et la protection de branche (`gh api repos/<o>/<r>/rulesets`) :
+  ils refusent un push direct ou un merge que la CI seule n'aurait pas bloqué.
+
+Commande : **`${CLAUDE_PLUGIN_ROOT}/skills/_partage/scripts/etat-de-depart.sh`
+inventorie tout cela d'un coup** et rend un bloc prêt pour « État de départ ».
+Tu n'as pas `Bash` : c'est la session qui t'invoque qui le lance, et si son
+bloc figure dans ta consigne, tu le recopies tel quel en le citant. Sans ce
+bloc, fais l'inventaire avec tes outils : `Glob` sur `.github/workflows/*`,
+`.pre-commit-config.yaml`, `.husky/*`, `lefthook.yml`, `.claude/settings*.json`,
+`.git/hooks/*` ; `Read` sur `.git/config` pour `core.hooksPath` ; puis `Read`
+sur chaque fichier trouvé. Les rulesets ne se lisent qu'avec `gh` : sans le
+bloc, ils vont en **Non vérifié**. Pour chaque artefact cité en preuve,
+`git check-ignore <chemin>` ; `Read` sur le script de déploiement s'il
+existe (p. ex. `deploy.py`).
 
 Fiche : le déclencheur exact d'un job et son effet réel (merge automatique
 ou non, déploiement ou non) sont des faits vérifiés, jamais des hypothèses.
+Chaque garde-fou trouvé va en fait vérifié avec ce qu'il refuse ; « aucun »
+est un fait quand le script ou la commande l'a dit, et une famille non
+inventoriée va en Non vérifié, jamais en silence.
 
 ## 11. Droits et environnement
 
