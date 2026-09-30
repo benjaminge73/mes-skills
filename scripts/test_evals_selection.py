@@ -261,18 +261,18 @@ class CouvertureDesFichiersTouches(Selection):
 class MessageDeRefus(Selection):
     """Le corps de la PR est relu à chaque run : le message dit quoi faire ensuite."""
 
-    SUITE = ("corriger la ligne « Evals: » du corps de la PR, puis relancer le run "
+    SUITE = ("Corriger la ligne « Evals: » du corps de la PR, puis relancer le run "
              "(Re-run all jobs) ou pousser un commit")
 
     def test_une_categorie_inconnue_dit_de_corriger_le_corps_puis_de_relancer_le_run(self):
         code, _, erreur = self.jouer([PLAN], corps="Evals: recherche, fantome")
         self.assertEqual(code, 1)
-        self.assertIn(self.SUITE, erreur.lower())
+        self.assertIn(self.SUITE.lower(), erreur.lower())
 
     def test_un_skill_non_couvert_dit_de_corriger_le_corps_puis_de_relancer_le_run(self):
         code, _, erreur = self.jouer([EXECUTER], corps="Evals: recherche")
         self.assertEqual(code, 1)
-        self.assertIn(self.SUITE, erreur.lower())
+        self.assertIn(self.SUITE.lower(), erreur.lower())
 
 
 class Pannes(Selection):
