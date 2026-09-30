@@ -47,7 +47,7 @@ Le statut dit où en est le garde :
 | Veille avant chaque mise à jour d'un skill | qu'une règle ne repose pas sur un fait de doc périmé | 2026-09-30, étape A7b | `scripts/check_veille.py`, `veille.yml`, `scripts/veille_faits.py` | CI, job `garde` (journal, via `scripts/ci_locale.sh`) et workflow hebdomadaire (faits) | en place |
 | `--no-verify` et `Statut` accentué | qu'un commit ne saute pas les hooks (`--no-verify`) et qu'une valeur de `Statut` d'une page Notion ne soit pas écrite avec un accent (les valeurs sont sans accents) | 2026-09-30, cas `evals/plans-notion/no-verify` | hooks du plugin | hooks | prévu — étape C4 |
 | Secrets dans le dépôt | qu'un jeton ne parte pas dans un commit d'un dépôt public | dépôt public depuis l'origine | protection des poussées de GitHub (push protection) | GitHub, à chaque `git push` | réglage |
-| `main` verrouillé | qu'on ne pousse pas sur `main` sans passer par la CI | 2026-09-30, étape A9 | ruleset GitHub `main-verrouillee` (id 24256838) | GitHub | en place |
+| `main` verrouillé | qu'on ne pousse pas sur `main` sans passer par la CI | 2026-09-30, étape A9 | ruleset GitHub `main-verrouillee` (id 24256838) | GitHub, sur toute poussée vers `main` | réglage |
 | Liens de `docs/` et de `CLAUDE.md` | qu'un lien de la doc ne pointe pas dans le vide : `check_references.py` ne parcourt que `plugins/` | 2026-09-30, constaté à l'étape A7 | manquant | nulle part | manquant — à décider |
 
 ## Le verrou de `main`
