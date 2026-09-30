@@ -459,11 +459,14 @@ en disant quelles étapes ont été faites en direct et pourquoi.
 - **À chaque clôture de lot** (`revue.md` ; une étape relue seule est son propre
   lot) : **relire le diff de la mémoire de l'`executant`**, et le recopier dans
   l'entrée de journal, ligne `Mémoire :` (`aucun changement` se dit aussi). Elle
-  vit hors dépôt, sans historique : prendre l'état de référence **avant le
-  premier appel** de l'agent, puis à chaque clôture.
+  vit hors dépôt, sans historique : prendre la référence **avant le premier
+  appel** de l'agent ; à la clôture, **comparer d'abord, reprendre ensuite**
+  pour le lot suivant (l'inverse compare la mémoire à elle-même).
   ```bash
-  cp -r ~/.claude/agent-memory/plans-notion-executant <tmp>/memoire-avant
-  diff -ru <tmp>/memoire-avant ~/.claude/agent-memory/plans-notion-executant
+  # prise de référence (vide si la mémoire n'existe pas encore)
+  rm -rf <tmp>/memoire-avant && mkdir -p <tmp>/memoire-avant && { cp -a ~/.claude/agent-memory/plans-notion-executant/. <tmp>/memoire-avant/ 2>/dev/null || true; }
+  # à la clôture : ce diff, puis la prise ci-dessus
+  diff -ruN <tmp>/memoire-avant ~/.claude/agent-memory/plans-notion-executant
   ```
   On y cherche un **secret** (sa valeur ne se recopie pas au journal : la règle
   du § « Découvertes hors plan » joue), une consigne déguisée en fait, une leçon
