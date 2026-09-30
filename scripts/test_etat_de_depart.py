@@ -142,10 +142,26 @@ class EtatDeDepart(unittest.TestCase):
     # -- les autres familles du geste 10 -----------------------------------
     def test_hook_git_reel_hors_sample_est_liste(self):
         self.figer()
-        (self.depot / ".git" / "hooks" / "pre-push").write_text("#!/bin/sh\nexit 1\n")
+        pre_push = self.depot / ".git" / "hooks" / "pre-push"
+        pre_push.write_text("#!/bin/sh\nexit 1\n")
+        pre_push.chmod(0o755)
         ligne = self.ligne(self.lancer(), "Hooks git")
         self.assertIn("pre-push", ligne)
         self.assertNotIn("pre-push.sample", ligne)
+
+    def test_hook_git_non_executable_n_est_pas_presente_comme_actif(self):
+        # Git ignore (avec un avertissement) un hook de `.git/hooks` sans droit
+        # d'exécution : il ne refusera jamais rien. Le lister comme garde-fou
+        # actif serait affirmer un faux garde-fou.
+        self.figer()
+        pre_push = self.depot / ".git" / "hooks" / "pre-push"
+        pre_push.write_text("#!/bin/sh\nexit 1\n")
+        pre_push.chmod(0o644)
+        ligne = self.ligne(self.lancer(), "Hooks git")
+        # Soit `pre-push` n'apparaît pas, soit il est dit inactif / non exécutable.
+        if "pre-push" in ligne:
+            self.assertTrue(any(mot in ligne for mot in ("inactif", "non exécutable")),
+                            f"pre-push non exécutable présenté comme actif :\n{ligne}")
 
     def test_husky_et_lefthook_sont_nommes_avec_leurs_hooks(self):
         self.ecrire(".husky/pre-commit", "npm test\n")
