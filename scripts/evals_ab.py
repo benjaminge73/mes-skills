@@ -62,7 +62,8 @@ Bruit
 -----
 - Sans mesure : demi-largeur d'intervalle à 95 % de l'*écart* entre base et
   tête, approchée par ``racine(2)/racine(n*R)`` pour ``n`` cas et ``R``
-  passages (global) et ``racine(2)/racine(R)`` (par cas). Pour un taux de
+  passages (global) et ``racine(2)/racine(R)`` (par cas, avant la correction
+  des comparaisons multiples ci-dessous). Pour un taux de
   réussite, ``1/racine(n*R)`` est la demi-largeur d'*une* moyenne (au plus,
   quand le taux vaut 1/2). Or on compare deux moyennes, base et tête, qui
   portent chacune leur propre bruit : les variances s'additionnent, l'écart
@@ -76,11 +77,23 @@ Bruit
   à 95 % : par cas ``1,96 x rms`` ; globale ``1,96 x rms / racine(n)``. Ce n'est
   **pas** un écart-type : c'est bien une demi-largeur d'intervalle, dans le
   fichier de bruit sous ``demi_largeur_ic95_*`` (et le ``rms`` qui permet de
-  la recalculer pour un autre nombre de cas).
+  la recalculer pour un autre nombre de cas). Ces deux demi-largeurs sont des
+  *mesures* : le fichier les garde telles quelles, ce ne sont pas les seuils
+  que ``comparer`` applique par cas (voir ci-dessous).
+- Seuil par cas et comparaisons multiples : tester chaque cas à 95 % revient,
+  sur ``n`` cas, à une probabilité ``1 - 0,95^n`` qu'au moins un dépasse par
+  pur hasard (56 % pour 16 cas ; A/A réel du 2026-09-30, 9 cas x 3 passages,
+  deux jeux identiques : ``rms`` 0,0385, seuil non corrigé ± 7,5 pts, et un cas
+  a pourtant bougé de -10 pts). Le seuil **par cas** est donc corrigé par
+  Bonferroni (bilatéral) : ``z_n x rms`` avec ``z_n = inv_cdf(1 - 0,05/(2n))``
+  (2,77 pour 9 cas, 2,95 pour 16 ; 1,96 pour un seul cas, donc sans changement).
+  Sans fichier de bruit, l'estimation par cas ``racine(2)/racine(R)`` est
+  élargie du même facteur ``z_n / 1,96``. Le seuil **global** ne change pas :
+  c'est une seule comparaison.
 
 Verdict : code de sortie 1 si la moyenne recule de plus que le bruit global,
-**ou** si un cas seul recule de plus que le bruit par cas (un skill modifié
-n'affecte souvent qu'un ou deux cas, et la moyenne le diluerait).
+**ou** si un cas seul recule de plus que le seuil par cas corrigé (un skill
+modifié n'affecte souvent qu'un ou deux cas, et la moyenne le diluerait).
 
 Codes de sortie
 ---------------
@@ -113,10 +126,17 @@ import tarfile
 import tempfile
 from dataclasses import dataclass, field
 from pathlib import Path
+from statistics import NormalDist
 
 DEPOT = Path(__file__).resolve().parents[1]
 Z95 = 1.96
 EPSILON = 1e-9
+
+
+def z_bonferroni(n: int, alpha: float = 0.05) -> float:
+    """Quantile bilatéral corrigé pour ``n`` comparaisons (Bonferroni) :
+    ``inv_cdf(1 - alpha / (2 n))``. Pour ``n = 1`` : 1,96."""
+    return NormalDist().inv_cdf(1 - alpha / (2 * max(n, 1)))
 
 
 class ErreurRefus(Exception):
@@ -767,7 +787,7 @@ class Comparaison:
     moyenne_tete: float
     delta_moyen: float
     bruit_global: float
-    bruit_cas: float
+    bruit_cas: float  # seuil par cas appliqué, corrigé (Bonferroni, n cas)
     bruit_mesure: bool
     n_cas: int
     passages: int
@@ -798,13 +818,14 @@ def _apparier(a: dict, b: dict):
 def comparer(base: dict, tete: dict, bruit: dict | None = None) -> Comparaison:
     sa, sb, passages = _apparier(base, tete)
     n = len(sa)
+    z_n = z_bonferroni(n)  # n comparaisons par cas : le seuil par cas s'élargit
     if bruit is not None:
         rms = float(bruit["rms_ecarts_cas"])
-        bruit_cas, bruit_global = Z95 * rms, Z95 * rms / math.sqrt(n)
+        bruit_cas, bruit_global = z_n * rms, Z95 * rms / math.sqrt(n)
     else:
         # Écart de deux moyennes, pas une moyenne : racine(2) x 1/racine(n*R).
         bruit_global = math.sqrt(2) / math.sqrt(n * passages)
-        bruit_cas = math.sqrt(2) / math.sqrt(passages)
+        bruit_cas = math.sqrt(2) / math.sqrt(passages) * z_n / Z95
     lignes = []
     for nom, s in sa.items():
         delta = sb[nom].score - s.score
@@ -880,8 +901,8 @@ def tableau_markdown(c: Comparaison, etiq_base: str, etiq_tete: str, verdict: bo
     sortie += [
         "",
         f"Bruit ({source}, {c.n_cas} cas × {c.passages} passages) : "
-        f"± {c.bruit_global * 100:.0f} pts sur la moyenne, "
-        f"± {c.bruit_cas * 100:.0f} pts par cas.",
+        f"± {c.bruit_global * 100:.0f} pts sur la moyenne ; "
+        f"seuil par cas (Bonferroni, {c.n_cas} cas) : ± {c.bruit_cas * 100:.0f} pts.",
     ]
     if verdict:
         if c.recul:

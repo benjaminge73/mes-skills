@@ -157,6 +157,18 @@ Cette estimation n'est qu'un **repli**. Dès que l'A/A a été joué avec
 fichier à `--bruit` lors de la comparaison : c'est lui la référence, il dépend
 des cas réels et non d'une formule.
 
+**Le seuil par cas est plus large que l'intervalle d'un cas**, et c'est voulu.
+Tester chaque cas à 95 % revient, sur `n` cas, à une probabilité
+`1 − 0,95ⁿ` qu'**au moins un** dépasse par pur hasard (≈ 56 % pour 16 cas) :
+la règle « un cas au-delà du bruit suffit » ferait échouer la CI une fois sur
+deux sans aucun changement (comparaisons multiples ; A/A réel du 2026-09-30,
+9 cas, où un cas a bougé de −10 pts alors que les deux jeux étaient
+identiques). `evals_ab.py` corrige donc le seuil par cas par Bonferroni :
+`z_n × rms`, avec `z_n = 1,96` pour un cas, ≈ 2,77 pour 9 cas, **≈ 2,95 pour
+16 cas** (rms de 0,0385 : ± 11 pts par cas au lieu de ± 7,5). Le seuil sur la
+moyenne ne change pas : c'est une seule comparaison. Les `demi_largeur_ic95_*`
+du fichier de bruit restent des mesures brutes, pas les seuils appliqués.
+
 ## Comparer deux versions
 
 ```bash
