@@ -115,14 +115,27 @@ le README, `docs/`, `scripts/` — n'exige aucun bump.
 ```bash
 python3 scripts/check_marketplace.py     # le manifeste et le disque concordent
 python3 scripts/check_references.py      # renvois ${CLAUDE_PLUGIN_ROOT}/… et frontmatters
+python3 -m unittest discover -s scripts -p 'test_*.py'   # tests des scripts de garde
 claude plugin validate .                 # le schéma de la marketplace
 claude plugin validate plugins/<nom>     # le schéma d'un plugin
+# le garde de version, tel que la CI le joue (job `garde`, PR seulement) :
+git diff --no-renames --name-status origin/main...HEAD > /tmp/pr-files.tsv
+python3 scripts/plugin_version_guard.py --changed-files /tmp/pr-files.tsv --base-ref origin/main
 ```
 
-La CI rejoue exactement ces quatre contrôles, avec la **dernière** CLI publiée,
-non épinglée. Deux conséquences vérifiées le 2026-09-08 : elle valide des choses
-que la CLI du poste ne valide pas encore, et un job rouge sans changement dans la
-PR peut signaler une dérive du format en amont plutôt qu'une régression locale.
+La CI rejoue ces contrôles : `check_marketplace.py` et le garde de version dans
+le job `garde`, le reste (`claude plugin validate` sur la racine puis sur chaque
+plugin, `unittest`, `check_references.py`) dans le job `validation`, avec la
+**dernière** CLI publiée, non épinglée. Deux conséquences vérifiées le
+2026-09-08 : elle valide des choses que la CLI du poste ne valide pas encore, et
+un job rouge sans changement dans la PR peut signaler une dérive du format en
+amont plutôt qu'une régression locale.
+
+**Toute leçon ajoutée à un skill, un agent ou un `_partage/` arrive avec son
+cas d'évaluation** dans `evals/<plugin>/`, prouvé par un oracle qui passe et un
+témoin nul qui échoue. Une consigne changée se compare à l'ancienne en A/B avec
+`python3 scripts/evals_ab.py`, et le seuil se fixe d'après le bruit mesuré en
+A/A, jamais avant. La méthode complète : [docs/tester-un-skill.md](docs/tester-un-skill.md).
 
 ⚠️ **Le frontmatter d'un `SKILL.md` est du YAML.** Un deux-points suivi d'une
 espace dans une `description` non citée casse le parsing, et le skill se charge
