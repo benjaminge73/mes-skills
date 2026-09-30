@@ -258,6 +258,23 @@ class CouvertureDesFichiersTouches(Selection):
         self.assertIn("fantome", erreur)
 
 
+class MessageDeRefus(Selection):
+    """Le corps de la PR est relu à chaque run : le message dit quoi faire ensuite."""
+
+    SUITE = ("corriger la ligne « Evals: » du corps de la PR, puis relancer le run "
+             "(Re-run all jobs) ou pousser un commit")
+
+    def test_une_categorie_inconnue_dit_de_corriger_le_corps_puis_de_relancer_le_run(self):
+        code, _, erreur = self.jouer([PLAN], corps="Evals: recherche, fantome")
+        self.assertEqual(code, 1)
+        self.assertIn(self.SUITE, erreur.lower())
+
+    def test_un_skill_non_couvert_dit_de_corriger_le_corps_puis_de_relancer_le_run(self):
+        code, _, erreur = self.jouer([EXECUTER], corps="Evals: recherche")
+        self.assertEqual(code, 1)
+        self.assertIn(self.SUITE, erreur.lower())
+
+
 class Pannes(Selection):
     def test_un_fichier_de_chemins_illisible_est_une_panne(self):
         r = subprocess.run(
@@ -332,14 +349,10 @@ class CiYml(unittest.TestCase):
     def setUp(self):
         self.ci = CI.read_text(encoding="utf-8")
 
-    def test_le_corps_de_la_pr_ne_passe_que_par_env_jamais_dans_un_run(self):
-        lignes = [l for l in self.ci.splitlines() if "pull_request.body" in l]
-        self.assertTrue(lignes, "le corps de la PR n'est pas transmis à evals-portee")
-        for ligne in lignes:
-            self.assertRegex(
-                ligne, r"^\s+PR_BODY: \$\{\{ github\.event\.pull_request\.body \}\}\s*$",
-                "le corps de la PR est une entrée non fiable : seulement via `env:`",
-            )
+    def test_le_corps_du_payload_n_est_plus_lu_car_il_est_perime_au_re_run(self):
+        # Un « Re-run » rejoue le payload de l'événement d'origine : son corps est
+        # celui du moment de l'ouverture ou de la dernière poussée. On relit par l'API.
+        self.assertNotIn("pull_request.body", self.ci)
 
     def test_aucune_donnee_de_pr_n_est_interpolee_dans_un_run(self):
         # Une interpolation `${{ … }}` dans un `run:` est évaluée avant le shell :
@@ -404,7 +417,9 @@ class CiYml(unittest.TestCase):
         self.assertIn("bruit", description.group(1))
 
     def test_l_input_mode_ne_passe_que_par_env_jamais_interpole(self):
-        lignes = [l for l in self.ci.splitlines() if "${{ inputs" in l]
+        # Hors `group:` de la concurrence (une expression, pas un script).
+        lignes = [l for l in self.ci.splitlines()
+                  if "${{ inputs" in l and not l.lstrip().startswith("group:")]
         self.assertTrue(lignes, "l'input `mode` n'est lu nulle part")
         for ligne in lignes:
             self.assertRegex(ligne, r"^\s+MODE: \$\{\{ inputs\.mode \}\}\s*$")
@@ -485,43 +500,107 @@ class CiYml(unittest.TestCase):
         controle = self._etape("evals", "Vérifier que l'artefact ne contient pas le jeton")
         self.assertIn("evals-bruit", controle)
 
-    def test_la_pr_rejoue_aussi_quand_son_corps_est_edite(self):
-        # `pull_request` sans `types:` ne se déclenche pas sur `edited` : ajouter
-        # ou corriger la ligne `Evals:` après l'ouverture ne relançait rien.
+    def test_la_pr_ne_rejoue_pas_sur_edition_pas_de_edited_dans_les_types(self):
+        # `edited` produisait un « Verdict des évals » vert sur un SHA dont les
+        # évals étaient rouges (une édition de titre saute `evals`), et le verrou
+        # de `main` risquait de ne voir que ce dernier statut.
         bloc = self.ci.split("\n  pull_request:\n", 1)[1].split("\n  push:", 1)[0]
         types = re.search(r"(?m)^    types: \[([^\]]*)\]\s*$", bloc)
-        self.assertIsNotNone(types, "pull_request n'a pas de `types:`")
-        liste = {t.strip() for t in types.group(1).split(",")}
-        self.assertEqual(liste, {"opened", "synchronize", "reopened", "edited"})
+        if types is not None:  # sans `types:`, c'est le défaut : opened, synchronize, reopened
+            liste = {t.strip() for t in types.group(1).split(",")}
+            self.assertNotIn("edited", liste)
+            self.assertLessEqual(liste, {"opened", "synchronize", "reopened"})
+        self.assertNotRegex(bloc, r"(?m)^    types:\s*\n")  # pas non plus la forme en liste
 
-    def test_le_commentaire_de_on_explique_pourquoi_edited(self):
+    def test_le_commentaire_de_on_dit_pourquoi_pas_edited_et_pourquoi_l_api(self):
         entete = self.ci.split("\njobs:", 1)[0]
-        self.assertRegex(entete, r"(?s)#[^\n]*edited")
-        self.assertRegex(entete, r"(?is)#[^\n]*(corps|ligne `Evals:`)")
+        commentaires = "\n".join(l for l in entete.splitlines() if l.lstrip().startswith("#"))
+        self.assertIn("edited", commentaires)
+        self.assertRegex(commentaires, r"(?is)verdict[^\n]*vert[\s\S]*SHA")
+        self.assertRegex(commentaires, r"(?i)\bAPI\b")
+        self.assertRegex(commentaires, r"(?i)re-?run")
 
-    def test_une_edition_sans_changement_du_corps_ne_selectionne_aucun_plugin(self):
+    def test_aucune_garde_d_edition_ne_subsiste(self):
+        for reste in ("EVENT_ACTION", "CORPS_EDITE", "changes.body", "github.event.action"):
+            self.assertNotIn(reste, self.ci)
+        merge = _job(self.ci, "merge-auto").split("runs-on:", 1)[0]
+        self.assertNotIn("edited", merge)
+        self.assertNotIn("state == 'open'", self.ci)
+
+    def test_evals_portee_relit_le_corps_par_l_api_avec_le_numero_passe_par_env(self):
+        etape = _job(self.ci, "evals-portee").split("id: portee", 1)[1]
+        self.assertRegex(etape, r"(?m)^          GH_TOKEN: \$\{\{ github\.token \}\}\s*$")
+        self.assertRegex(etape, r"(?m)^          PR_NUMBER: \$\{\{ github\.event\.pull_request\.number \}\}\s*$")
+        self.assertRegex(etape, r"(?m)^          REPO: \$\{\{ github\.repository \}\}\s*$")
+        appel = re.search(r"PR_BODY=\$\(\s*gh (api|pr view)\b[^\n]*\$PR_NUMBER[^\n]*\)", etape)
+        self.assertIsNotNone(appel, "le corps n'est pas relu par `gh api` / `gh pr view`")
+        self.assertIn("export PR_BODY", etape)
+        # Le corps ne passe jamais par une interpolation `${{ … }}`.
+        self.assertNotIn("PR_BODY: ${{", etape)
+
+    def _corps_relu(self) -> str:
+        """Le morceau du script d'`evals-portee` qui relit le corps, dédenté."""
+        import textwrap
+        etape = _job(self.ci, "evals-portee").split("id: portee", 1)[1]
+        m = re.search(r"(?ms)^ *# --- corps de la PR \(début\)\n(.*?)^ *# --- corps de la PR \(fin\)", etape)
+        self.assertIsNotNone(m, "repères « corps de la PR (début/fin) » absents")
+        return textwrap.dedent(m.group(1))
+
+    def _jouer_corps_relu(self, faux_gh: str | None, evenement: str = "pull_request"):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp = Path(tmp)
+            (tmp / "bin").mkdir()
+            trace = tmp / "gh-args.txt"
+            if faux_gh is not None:
+                gh = tmp / "bin" / "gh"
+                gh.write_text(f'#!/bin/sh\necho "$*" >> "{trace}"\n{faux_gh}\n', "utf-8")
+                gh.chmod(0o755)
+            env = {k: v for k, v in os.environ.items() if k not in ("PR_BODY", "GITHUB_ACTIONS")}
+            env.update(PATH=f"{tmp / 'bin'}{os.pathsep}{env['PATH']}", EVENT_NAME=evenement,
+                       REPO="proprietaire/depot", PR_NUMBER="42")
+            script = "set -euo pipefail\n" + self._corps_relu() + '\nprintf "CORPS=[%s]" "${PR_BODY-}"\n'
+            r = subprocess.run(["bash", "-c", script], env=env, capture_output=True, text=True)
+            appels = trace.read_text("utf-8") if trace.exists() else ""
+            return r, appels
+
+    def test_le_corps_relu_est_exporte_dans_pr_body_pour_le_script_de_selection(self):
+        r, appels = self._jouer_corps_relu('echo "Evals: bruit — corps à jour"')
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("CORPS=[Evals: bruit — corps à jour]", r.stdout)
+        self.assertIn("42", appels)
+        self.assertIn("proprietaire/depot", appels)
+
+    def test_un_echec_de_l_api_rend_le_job_rouge_sans_repli_silencieux(self):
+        r, _ = self._jouer_corps_relu('echo "HTTP 502" >&2; exit 1')
+        self.assertNotEqual(r.returncode, 0)
+        self.assertNotIn("CORPS=", r.stdout)  # ni « tout » (corps vide), ni sélection vide
+        self.assertIn("::error", r.stdout + r.stderr)
+
+    def test_un_corps_vide_est_un_corps_pas_une_erreur(self):
+        r, _ = self._jouer_corps_relu('printf ""')
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("CORPS=[]", r.stdout)
+
+    def test_le_lancement_manuel_n_appelle_pas_l_api(self):
+        r, appels = self._jouer_corps_relu(None, evenement="workflow_dispatch")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(appels, "")
+
+    def test_evals_portee_n_a_que_lecture_du_contenu_et_des_pull_requests(self):
         portee = _job(self.ci, "evals-portee")
-        etape = portee.split("id: portee", 1)[1]
-        self.assertRegex(etape, r"(?m)^          EVENT_ACTION: \$\{\{ github\.event\.action \}\}\s*$")
-        self.assertRegex(
-            etape, r"(?m)^          CORPS_EDITE: \$\{\{ github\.event\.changes\.body && 'oui' \|\| 'non' \}\}\s*$")
-        garde = etape.split("run: |", 1)[1].split("set -euo pipefail", 1)[1][:900]
-        self.assertIn('"$EVENT_ACTION" = "edited"', garde)
-        self.assertIn('"$CORPS_EDITE"', garde)
-        self.assertIn("touche=false", garde)
+        bloc = portee.split("    permissions:\n", 1)[1].split("\n    outputs:", 1)[0]
+        droits = {l.strip() for l in bloc.splitlines() if l.strip()}
+        self.assertEqual(droits, {"contents: read", "pull-requests: read"})
 
-    def test_une_edition_sans_changement_du_corps_ne_merge_rien(self):
-        # Sans cette garde, un titre modifié sur une PR dont les évals ont reculé
-        # rejouerait une CI où tout est « sauté » : verte, donc mergée.
-        merge = _job(self.ci, "merge-auto")
-        condition = merge.split("runs-on:", 1)[0]
-        self.assertIn("github.event.action != 'edited' || github.event.changes.body", condition)
-
-    def test_une_pr_fermee_ne_rejoue_pas_d_evals_ni_ne_merge(self):
-        for job in ("evals-portee", "merge-auto"):
-            with self.subTest(job=job):
-                condition = _job(self.ci, job).split("runs-on:", 1)[0]
-                self.assertIn("github.event.pull_request.state == 'open'", condition)
+    def test_le_groupe_de_concurrence_de_evals_inclut_le_mode(self):
+        # Un `ab` lancé pendant un `aa` payé ne doit plus l'annuler ; `ab` par
+        # défaut hors lancement manuel (où `inputs.mode` est vide).
+        evals = _job(self.ci, "evals")
+        groupe = re.search(r"(?m)^      group: (.*)$", evals)
+        self.assertIsNotNone(groupe)
+        self.assertIn("inputs.mode || 'ab'", groupe.group(1))
+        self.assertIn("matrix.plugin", groupe.group(1))
+        self.assertIn("cancel-in-progress: true", evals)
 
     def test_le_lancement_manuel_ne_merge_rien_et_le_verdict_n_en_depend_pas(self):
         merge = _job(self.ci, "merge-auto")
