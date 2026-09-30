@@ -62,8 +62,15 @@ Ensuite :
   bloc court et structuré. `file_exists` ne voit que les fichiers **créés
   pendant le passage** ; un `regex` sur un fichier se déclare
   `target: {source: file, path: …}`.
-- **Un cas qui a besoin de Bash** se tague autrement que `tags: [lecture]` (voir
-  [Où tourne quoi](#où-tourne-quoi)).
+- **Les tags se posent dans le frontmatter de `prompt.md`** (`tags: [lecture]`) :
+  c'est là qu'ils sont vérifiés, avec `--tag lecture`. Dans `case.yaml`, `tags`
+  n'est **pas** vérifié : l'écrire ne filtre rien. Un cas qui a besoin de Bash
+  n'a simplement pas le tag `lecture` : il ne se joue alors que sur le runner
+  GitHub (voir [Où tourne quoi](#où-tourne-quoi)).
+- **Un cas qui ne se charge pas** (fichier mal formé, juge inconnu) fait sortir
+  `claude plugin eval` en **code 1**, le même code qu'un score sous le seuil.
+  Le code de sortie seul ne distingue donc pas une panne d'un mauvais score :
+  lire la sortie.
 - **Toute leçon ajoutée à un skill arrive avec son cas.** Pas de règle nouvelle
   dans un `SKILL.md`, un agent ou un `_partage/` sans le cas qui la prouve dans
   la même PR.
@@ -78,13 +85,25 @@ pas de combien un skill **identique à lui-même** varie.
 **A/A** : la même version contre elle-même.
 
 ```bash
-python3 scripts/evals_ab.py --mode aa --base <ref> --tete <ref> --runs 3 [--bruit <fichier>]
+python3 scripts/evals_ab.py --mode aa --base <ref> --tete <ref> --runs 3 --sortie-bruit <fichier>
 ```
 
-Ordre de grandeur, pour savoir à quoi s'attendre : l'intervalle de confiance à
-95 % vaut environ `1/√(n·R)` pour `n` cas et `R` passages. Avec 16 cas et
-3 passages, `1/√48 ≈ 0,14` : **± 14 points**. Un écart de 8 points entre deux
-versions ne prouve rien à cette taille.
+Ordre de grandeur, pour savoir à quoi s'attendre, tant qu'aucune mesure
+n'existe. L'intervalle de confiance à 95 % d'**une** moyenne vaut environ
+`1/√(n·R)` pour `n` cas et `R` passages. Mais on compare **deux** moyennes, la
+base et la tête, qui portent chacune leur bruit : leurs variances
+s'additionnent, et l'écart est `√2` fois plus incertain qu'une moyenne seule.
+`evals_ab.py` estime donc le bruit d'un écart à `√2/√(n·R)` en moyenne
+globale, et à `√2/√R` par cas. Avec 16 cas et 3 passages,
+`√2/√48 ≈ 0,20` : **± 20 points** sur la moyenne, et `√2/√3 ≈ 0,82` :
+± 82 points par cas. Un écart de 8 points entre deux versions ne prouve rien à
+cette taille ; prendre `1/√(n·R)` (≈ 0,14) ferait passer pour un signal ce
+qui n'est que du hasard.
+
+Cette estimation n'est qu'un **repli**. Dès que l'A/A a été joué avec
+`--sortie-bruit <fichier>`, on la remplace par le bruit **mesuré** en passant ce
+fichier à `--bruit` lors de la comparaison : c'est lui la référence, il dépend
+des cas réels et non d'une formule.
 
 ## Comparer deux versions
 
@@ -98,6 +117,17 @@ plugin avec les cas de `evals/<plugin>/`, joue les deux bras et compare. Avec
 `--prive`, il ajoute les cas réels du dépôt privé ; c'est le geste du second
 palier. Le script est la source de ses propres options ; ce document ne les
 recopie pas. Les résultats se consignent dans `evals/RESULTATS.md`.
+
+**Le verdict se lit dans `evals_ab.py`, pas dans le code de sortie brut de
+`claude plugin eval`.** Ce dernier rend 1 aussi bien pour un cas sous le seuil
+que pour un cas qui ne se charge pas, et le lanceur passe `--threshold 0` : le
+seuil de l'outil ne juge rien ici. Le script, lui, distingue : `0` pas de recul
+au-delà du bruit, `1` recul, `2` erreur d'usage, `3` refus (pré-vol, rapport
+partiel, lanceur en échec, donnée illisible).
+
+**Les traces se lisent après un `chmod`.** Le lanceur passe `--keep-temp`, qui
+garde les dossiers de passage, mais **scellés** (mode `000`) : pour les lire,
+`chmod 700 <dossier> <dossier>/sealed`.
 
 **Un changement par tour.** Deux retouches dans la même comparaison, et on ne
 sait plus laquelle a bougé le score.
