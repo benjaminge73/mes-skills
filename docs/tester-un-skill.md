@@ -12,6 +12,7 @@ La règle vit ici, à la racine, et non dans un plugin : elle concerne qui
 montée de version à chaque retouche.
 
 - [Deux paliers](#deux-paliers)
+- [La veille avant la PR](#la-veille-avant-la-pr)
 - [Écrire un cas](#écrire-un-cas)
 - [Le format d'un cas](#le-format-dun-cas)
 - [Mesurer le bruit avant de fixer un seuil](#mesurer-le-bruit-avant-de-fixer-un-seuil)
@@ -205,6 +206,20 @@ baisse peut venir d'un juge trop strict. Les transcriptions sont ce qui le dit.
 
 Les autres options utiles de `claude plugin eval` : `--json`, `--threshold`,
 `--tag`, `--scaffold`, `--allow-tools`.
+
+## La veille avant la PR
+
+Un fait de doc peut changer d'une version de Claude Code à l'autre : un cas ou une
+règle fondés sur un fait périmé prouvent la mauvaise chose. **Avant toute PR qui
+touche un skill, un agent, un hook ou un `_partage/`, une passe de veille** :
+l'agent `chercheur`, avec le brief de [`docs/veille.md`](veille.md), lit les sources
+depuis la dernière passe. Ce qui s'applique entre dans la PR — ou dans un plan si
+c'est plus gros — et l'entrée datée s'ajoute au journal des passes.
+
+La CI refuse la PR si la dernière entrée du journal a plus de 30 jours
+(`scripts/check_veille.py`). Le tableau des faits porteurs de `veille.md` est
+rejoué chaque semaine par `.github/workflows/veille.yml` ; une citation qui n'est
+plus sur sa page ouvre une issue « Doc Claude changée : <fait> ».
 
 ## Où tourne quoi
 

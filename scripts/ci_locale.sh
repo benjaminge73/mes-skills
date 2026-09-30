@@ -102,10 +102,11 @@ if [ "$faire_garde" = 1 ]; then
   if [ -z "$SANS_BASE" ]; then
     etape "Garde de version des plugins" garde_de_version
     etape "Une leçon a son cas" python3 scripts/check_lecon_a_son_cas.py --base "$BASE_REF"
+    etape "Veille avant la mise à jour d'un skill" python3 scripts/check_veille.py --base "$BASE_REF"
     etape "Règles de forme des skills et registre des garde-fous" python3 scripts/check_skills.py --base "$BASE_REF"
   else
     echo
-    echo "(sans base : garde de version, leçon a son cas et cliquet sautés)"
+    echo "(sans base : garde de version, leçon a son cas, veille et cliquet sautés)"
     etape "Règles de forme des skills et registre des garde-fous" python3 scripts/check_skills.py --sans-base
   fi
 fi

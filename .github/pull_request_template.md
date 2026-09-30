@@ -18,6 +18,9 @@ justifie en une ligne.
       qui le tient, dans cette même PR.
 - [ ] **Version** : `version` montée dans `plugins/<nom>/.claude-plugin/plugin.json`
       pour chaque plugin touché (la CI le vérifie).
+- [ ] **Veille** : si la PR touche un skill, un agent, un hook ou un `_partage/`, la passe
+      de veille est faite (`chercheur`, brief de `docs/veille.md`) et l'entrée datée
+      est au journal (la CI refuse un journal de plus de 30 jours).
 - [ ] **A/B** : résultat de l'A/B collé ici, ou dit pourquoi il n'y en a pas
       (`python3 scripts/evals_ab.py`, job `evals`).
 - [ ] **`scripts/ci_locale.sh`** est vert en local.

@@ -120,6 +120,15 @@ que la CI tient déjà, et le garde de chacune).
 - **Tout correctif ajoute sa ligne au registre et son garde dans la même PR.** Un
   correctif qu'aucun garde ne tient peut être défait sans que la CI le voie : la
   panne reviendrait, et on la corrigerait une seconde fois.
+- **Avant toute PR qui touche un skill, un agent, un hook ou un `_partage/` : une
+  passe de veille.** Un fait de doc peut changer d'une version de Claude Code à
+  l'autre, et une règle fondée sur un fait périmé protège la mauvaise chose.
+  L'agent `chercheur`, avec le brief de [docs/veille.md](docs/veille.md), lit les
+  sources depuis la dernière passe ; ce qui s'applique entre dans la PR (ou dans un
+  plan si c'est plus gros) ; l'entrée datée s'ajoute au journal. La CI refuse la PR
+  si la dernière entrée a plus de 30 jours (`scripts/check_veille.py`), et un
+  workflow hebdomadaire ouvre une issue quand une citation du tableau des faits
+  n'est plus sur sa page.
 - **Avant de pousser : lancer `scripts/ci_locale.sh`.** C'est la **seule** liste des
   contrôles : ce que la CI joue dans ses jobs `garde` et `validation`, dans
   l'ordre, et rien d'autre à énumérer ici. Sur une branche de PR, il compare à
