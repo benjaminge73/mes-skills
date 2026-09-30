@@ -34,8 +34,9 @@ si le repérage des fichiers partagés est fait sérieusement avant.
 
 À l'ouverture (§2 du skill), juste après le relevé de la CI, lire le tableau de
 chevauchement du chapitre `Exécution` (`plan-notion` le construit : colonnes
-`Étape · Fichiers touchés · Dépend de · Vague` — le plan **déclare** ces
-colonnes, ce fichier-ci **calcule** les vagues à partir d'elles) et poser, pour
+`Étape · Fichiers touchés · Dépend de · Vague · Relecture` — le plan **déclare** ces
+colonnes, ce fichier-ci **calcule** les vagues à partir des trois premières ;
+`Relecture` relève de `revue.md`) et poser, pour
 chaque paire d'étapes, trois conditions. Les trois doivent être vraies pour que
 la paire aille dans la même vague :
 

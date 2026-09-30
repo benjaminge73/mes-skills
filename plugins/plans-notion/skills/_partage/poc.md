@@ -59,7 +59,9 @@ Les quatre gestes, dans cet ordre :
    `--check` qui exige un zéro impossible à son rang dans le plan.
 2. **Jouer la suite complète du dépôt**, pour connaître l'état de départ. Une
    suite déjà rouge sur `main` se découvre ici, en une minute, et non à la
-   troisième étape en cherchant ce que l'étape a cassé.
+   troisième étape en cherchant ce que l'étape a cassé. **Inventorier aussi
+   les garde-fous** du dépôt (hooks, CI, protections de branche) : ce sont eux
+   qui refusent un geste que le plan croyait permis.
 3. **Faire un appel d'essai par outil externe** que le plan utilise, dans la
    limite du registre des quotas (`${CLAUDE_PLUGIN_ROOT}/skills/_partage/outils-et-quotas.md`) : un seul
    appel, pour voir la forme de la réponse, le coût réel et les droits du
@@ -72,6 +74,15 @@ Les quatre gestes, dans cet ordre :
 Un plan `Bounded` (périmètre fermé, sans outil externe) ne joue que les gestes
 1 et 2 : il n'y a rien à essayer chez un tiers, et le corpus, s'il y en a un,
 est celui que la suite complète charge déjà.
+
+**Un script plutôt qu'une liste à suivre.** Ce qui se calcule se scripte : le
+geste 2 et l'inventaire des garde-fous se jouent d'un coup avec
+`${CLAUDE_PLUGIN_ROOT}/skills/_partage/scripts/etat-de-depart.sh [<dépôt>]`, qui
+rend un bloc court prêt à recopier. Il ne modifie rien dans le dépôt inspecté :
+la suite se joue dans une copie jetable de `HEAD`, et `--sans-repetition` la
+nomme sans la jouer. L'`enqueteur` (`agents/enqueteur.md`, geste 10) en cite le
+bloc dans sa fiche ; la liste à suivre à la main dépendait de la mémoire de
+celui qui l'appliquait, et un hook redécouvert en trois plans en est la preuve.
 
 **Le résultat va dans `Contraintes techniques vérifiées`**, sous un intertitre
 « État de départ » : les commandes jouées, leurs sorties, le décompte de la
@@ -87,7 +98,9 @@ Ce que la répétition a déjà attrapé, anonymisé :
 - une suite déjà rouge sur `main`, découverte en route, alors qu'on la
   croyait verte ;
 - un hook de dépôt (un garde-fou qui refuse certains gestes au commit)
-  redécouvert, à chaque fois en cours d'exécution, dans trois plans distincts.
+  redécouvert, à chaque fois en cours d'exécution, dans trois plans distincts :
+  `etat-de-depart.sh` l'aurait nommé (`core.hooksPath`, `.pre-commit-config.yaml`,
+  `.husky/`) avant `valide`.
 
 ## Le POC de décision : le gabarit en douze points
 
@@ -134,10 +147,11 @@ que… » :
     pilotage, quota) comparé à ce que l'erreur de décision coûterait. Un POC
     qui coûte plus cher que l'erreur qu'il évite ne se fait pas : on tranche
     avec le doute écrit.
-11. **Écart POC / exécution, noté au journal.** À la fin de l'exécution,
-    `executer-plan-notion` compare ce que le POC avait annoncé à ce que
-    l'exécution a mesuré, et l'écrit au journal. C'est ce qui permet de savoir,
-    plan après plan, si les POC sont fiables.
+11. **Écart POC / exécution, noté au journal.** Pour chaque étape qui repose
+    sur le POC, `executer-plan-notion` écrit dans l'entrée de cette étape du
+    journal une ligne au format « POC : 8, exécuté : 39 » : ce que la mesure
+    avait annoncé, ce que l'exécution a trouvé, avec un renvoi à ce fichier.
+    C'est ce qui permet de savoir, plan après plan, si les POC sont fiables.
 12. **Coût de pilotage chiffré, à côté de chaque option.** Chaque option du
     plan porte, à côté de sa description, ce que sa mise en œuvre coûte à
     piloter (nombre d'étapes, de sous-agents, d'appels, de relectures). Une
@@ -160,21 +174,44 @@ Exemples réels, anonymisés, de ce qui a marché :
 - **Un abandon prévu d'avance** : le plan disait à quel chiffre l'option serait
   écartée.
 
-Exemples réels, anonymisés, de ce qui a manqué :
+Exemples réels, anonymisés, de ce qui a manqué — chacun avec **la vérification
+qui l'aurait attrapé**, une commande ou un contrôle à jouer avant `valide` :
 
 - **Une mesure renvoyée à l'exécution** : la question a été posée au plan, mais
   sa mesure a été remise à une étape, donc après le choix de l'option.
+  *Vérification* : relire la page dans l'ordre et chercher la ligne de
+  résultat de la mesure **avant** la ligne qui tranche l'option ; si elle
+  n'est que dans une étape, le POC n'a pas eu lieu.
 - **Un jeu biaisé** : 19 cas durs présentés comme un taux, alors qu'ils
-  donnaient le pire cas, pas la moyenne.
+  donnaient le pire cas, pas la moyenne. *Vérification* : pour chaque jeu, la
+  commande qui le tire et son effectif (`wc -l`) ; un jeu qui n'est pas tiré
+  au hasard ne s'annonce jamais comme un taux.
 - **Un POC hors population réelle** : mesuré sur des exemples choisis à la
-  main, pas sur ce que le traitement recevrait.
+  main, pas sur ce que le traitement recevrait. *Vérification* : tirer
+  l'échantillon par une commande sur les données réelles (`shuf -n`), et
+  comparer une de ses caractéristiques (taille, source) à celle de la
+  population recomptée au point 2.
 - **Des chiffres fondateurs faux** : un coût de vision mesuré à 27,5 $ par
-  guide contre 1,04 $ estimé.
+  guide contre 1,04 $ estimé. *Vérification* : un appel d'essai unique (geste 3
+  de la répétition), puis la multiplication écrite — coût unitaire mesuré
+  × volume recompté — avant tout lot.
 - **Un masque de champs d'API laissé par défaut** : l'outil rendait moins
   que ce que le plan supposait, et personne ne l'avait regardé.
+  *Vérification* : dans l'appel d'essai, lister les clés de la réponse
+  (`jq 'keys'`) et les comparer une à une aux champs dont le plan a besoin.
 - **Un volume faux de 80 %**, repris d'un plan précédent sans recomptage.
+  *Vérification* : la commande de comptage du point 2, rejouée avec le
+  chargeur du dépôt (geste 4) et sa sortie recopiée.
 - **Un POC sans critère d'arrêt** : 115 requêtes lancées pour deux trouvailles,
-  faute d'avoir écrit à partir de quand s'arrêter.
+  faute d'avoir écrit à partir de quand s'arrêter. *Vérification* : le plan
+  porte un seuil d'arrêt chiffré et un plafond d'appels (`--max-appels` ou
+  l'équivalent) **avant** le lot ; sans eux, le lot ne part pas.
+
+**Une leçon arrive avec son cas.** Ce qu'on ajoute ici comme « ce qui a manqué »
+sans qu'un cas rejouable l'attrape reste une opinion : la leçon s'écrit avec la
+vérification ci-dessus **et** son cas d'éval, celui qui échoue quand la leçon
+est oubliée. La façon de l'écrire vit dans `docs/tester-un-skill.md`, hors
+plugin — un renvoi en texte, pas un chemin que le skill chargerait.
 
 ## La frontière : ce qui est un POC, ce qui est une étape
 

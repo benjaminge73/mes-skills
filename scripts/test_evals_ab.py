@@ -20,6 +20,12 @@ en sont dérivés à la main, à l'attendu calculé sur le papier :
 racine(2)/racine(3) = 0,8165 (par cas) : celui d'un *écart* entre deux moyennes
 (base, tête), qui portent chacune leur propre bruit, et non celui d'une seule.
 
+Étape B9 (évals ciblées) : ``--cas`` restreint les cas joués (Bonferroni se
+calcule alors sur le nombre de cas *joués*) ; un fichier de bruit porte le
+modèle qu'il mesure et n'est utilisé que pour ce modèle (``EVALS_MODELE``) ;
+un seuil par cas d'au moins 100 points ne peut rien voir : le tableau dit
+« non concluant par cas » au lieu de « pas de recul ».
+
 Le seuil **par cas** est corrigé pour les comparaisons multiples (Bonferroni,
 bilatéral) : z_n = inv_cdf(1 - 0,05/(2n)) au lieu de 1,96. Valeurs de z_n
 écrites en dur ci-dessous (table de la loi normale), jamais recalculées par le
@@ -46,6 +52,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import evals_ab  # noqa: E402
 
 FIXTURES = Path(__file__).resolve().parent / "fixtures_evals_ab"
+MODELE = "claude-sonnet-5-5"  # le modèle joué par défaut (étape B9)
+AUTRE_MODELE = "claude-opus-5-5"  # un modèle qui n'est pas celui joué
 
 
 def rapport(nom: str) -> dict:
@@ -589,6 +597,7 @@ class DepotEtLanceur(unittest.TestCase):
             "FAUX_RAPPORT_BASE": str(FIXTURES / "rapport_base.json"),
             "FAUX_RAPPORT_TETE": str(FIXTURES / "rapport_tete_stable.json"),
             "FAUX_CODE": "0",
+            "EVALS_MODELE": MODELE,
         }
 
     def argv(self, *extra: str, mode: str = "ab") -> list[str]:
@@ -662,7 +671,7 @@ class BoutEnBout(DepotEtLanceur):
         # gamma perd 1,0. Sans fichier de bruit, le seuil estimé 1,04 (4 cas x 3
         # passages) ne laisse plus un cas reculer seul.
         bruit = self.racine / "bruit-recul.json"
-        ecrire(bruit, json.dumps({"rms_ecarts_cas": 0.2}))
+        ecrire(bruit, json.dumps({"rms_ecarts_cas": 0.2, "modele": MODELE}))
         self.env["FAUX_RAPPORT_TETE"] = str(FIXTURES / "rapport_tete_recul_cas.json")
         code, sortie, _ = jouer(self.argv("--bruit", str(bruit)), self.env)
         self.assertEqual(code, 1, sortie)
@@ -807,7 +816,7 @@ class BoutEnBout(DepotEtLanceur):
 
         # Et le fichier est réellement consommé par un A/B : rms 0,5 rend
         # acceptable le recul global de -5/12 (cf. tests de comparaison).
-        ecrire(sortie_bruit, json.dumps({"rms_ecarts_cas": 0.5}))
+        ecrire(sortie_bruit, json.dumps({"rms_ecarts_cas": 0.5, "modele": MODELE}))
         self.env["FAUX_RAPPORT_TETE"] = str(FIXTURES / "rapport_tete_recul_global.json")
         code, _, _ = jouer(self.argv("--bruit", str(sortie_bruit)), self.env)
         self.assertEqual(code, 0)
@@ -817,6 +826,371 @@ class BoutEnBout(DepotEtLanceur):
     def test_une_option_de_ligne_de_commande_inconnue_est_un_echec_d_usage(self):
         code, _, _ = jouer(["--n-importe-quoi"], self.env)
         self.assertEqual(code, 2)
+
+
+# --------------------------------------------------------------------------
+# Étape B9 : des cas choisis (--cas), un bruit qui porte son modèle, un seuil
+# qui dit quand il ne voit rien
+# --------------------------------------------------------------------------
+# Faux lanceur qui écrit un rapport dont les cas sont ceux **réellement
+# assemblés** dans la copie (3 passages, tous réussis) : ce qui est joué se lit
+# dans le rapport, donc dans le nombre de cas du tableau.
+LANCEUR_QUI_LIT_LES_CAS = """#!/bin/sh
+dossier="$1"; sortie="$2"; shift 2
+python3 - "$dossier" "$sortie" <<'PY'
+import json, pathlib, sys
+copie, sortie = pathlib.Path(sys.argv[1]), sys.argv[2]
+noms = sorted(p.name for p in (copie / "evals").iterdir() if p.is_dir())
+passage = {"score": 1, "passed": True, "costUsd": 0, "judgeCostUsd": 0}
+cas = [{"name": n, "arms": {"with": [passage, passage, passage]}, "aggregates": {"score": 1}}
+       for n in noms]
+json.dump({"schemaVersion": 1, "cases": cas}, open(sortie, "w"))
+PY
+exit 0
+"""
+
+
+class CasChoisis(DepotEtLanceur):
+    def ajouter_cas(self, nom: str) -> None:
+        cas = self.depot / "evals" / "jouet" / nom
+        ecrire(cas / "prompt.md", "---\nmax_turns: 3\n---\n\nRéponds OK.\n")
+        ecrire(cas / "graders" / "reponse.md", "---\ntype: regex\npattern: \"^OK$\"\n---\n")
+        ecrire(cas / "oracle" / "reponse.md", "OK\n")
+
+    def fichiers_poses(self) -> list[str]:
+        return [l for l in self.appels() if l.startswith("FICHIER")]
+
+    def test_assembler_ne_copie_que_les_cas_demandes(self):
+        self.ajouter_cas("beta")
+        self.ajouter_cas("gamma")
+        copie = self.racine / "copie"
+        evals_ab.extraire(self.depot, "v-tete", "jouet", copie)
+        poses = evals_ab.assembler(copie, [self.depot / "evals" / "jouet"], cas=["gamma", "alpha"])
+        self.assertEqual(sorted(poses), ["alpha", "gamma"])
+        self.assertEqual(
+            sorted(p.name for p in (copie / "evals").iterdir()), ["alpha", "gamma"]
+        )
+
+    def test_assembler_sans_liste_de_cas_les_pose_tous(self):
+        self.ajouter_cas("beta")
+        copie = self.racine / "copie"
+        evals_ab.extraire(self.depot, "v-tete", "jouet", copie)
+        poses = evals_ab.assembler(copie, [self.depot / "evals" / "jouet"])
+        self.assertEqual(sorted(poses), ["alpha", "beta"])
+
+    def test_assembler_refuse_un_nom_de_cas_inconnu_et_le_nomme(self):
+        copie = self.racine / "copie"
+        evals_ab.extraire(self.depot, "v-tete", "jouet", copie)
+        with self.assertRaises(evals_ab.ErreurRefus) as ctx:
+            evals_ab.assembler(copie, [self.depot / "evals" / "jouet"], cas=["alpha", "fantome"])
+        self.assertIn("fantome", str(ctx.exception))
+
+    def test_cas_ne_joue_que_ces_cas_dans_les_deux_copies(self):
+        self.ajouter_cas("beta")
+        self.ajouter_cas("gamma")
+        code, sortie, _ = jouer(self.argv("--cas", "alpha", "--cas", "beta"), self.env)
+        self.assertEqual(code, 0, sortie)
+        fichiers = self.fichiers_poses()
+        for cas in ("alpha", "beta"):
+            self.assertEqual(fichiers.count(f"FICHIER evals/{cas}/prompt.md"), 2, cas)
+        self.assertFalse(any("gamma" in f for f in fichiers))
+        self.assertFalse(any("oracle" in f for f in fichiers))
+
+    def test_sans_cas_tous_les_cas_sont_joues(self):
+        self.ajouter_cas("beta")
+        jouer(self.argv(), self.env)
+        fichiers = self.fichiers_poses()
+        self.assertEqual(fichiers.count("FICHIER evals/alpha/prompt.md"), 2)
+        self.assertEqual(fichiers.count("FICHIER evals/beta/prompt.md"), 2)
+
+    def test_un_nom_de_cas_inconnu_est_refuse_avec_code_trois_avant_tout_jeu(self):
+        code, _, erreur = jouer(self.argv("--cas", "alpha", "--cas", "fantome"), self.env)
+        self.assertEqual(code, 3)
+        self.assertIn("fantome", erreur)
+        self.assertEqual(self.appels(), [])  # rien n'a été joué, donc rien payé
+
+    def test_le_seuil_de_bonferroni_se_calcule_sur_les_cas_joues_pas_sur_ceux_du_banc(self):
+        # Trois cas au banc, deux joués : z_2 = inv_cdf(1 - 0,05/4) = 2,2414
+        # (table de la loi normale) ; rms 0,1 -> seuil par cas 0,2241 = 22 pts.
+        # Avec les trois cas du banc, z_3 = 2,3940 donnerait 24 pts.
+        self.ajouter_cas("beta")
+        self.ajouter_cas("gamma")
+        lanceur = self.racine / "lanceur_lecteur.sh"
+        ecrire(lanceur, LANCEUR_QUI_LIT_LES_CAS)
+        lanceur.chmod(0o755)
+        bruit = self.racine / "bruit.json"
+        ecrire(bruit, json.dumps({"rms_ecarts_cas": 0.1, "modele": MODELE}))
+        argv = [a for a in self.argv("--cas", "alpha", "--cas", "beta", "--bruit", str(bruit))]
+        argv[argv.index("--lanceur") + 1] = str(lanceur)
+        code, sortie, erreur = jouer(argv, self.env)
+        self.assertEqual(code, 0, erreur)
+        self.assertIn("2 cas \u00d7 3 passages", sortie)
+        self.assertIn("seuil par cas (Bonferroni, 2 cas) : \u00b1 22 pts", sortie)
+        self.assertNotIn("gamma", sortie)
+
+
+class BruitEtModele(DepotEtLanceur):
+    def bruit(self, **champs) -> str:
+        chemin = self.racine / "bruit.json"
+        ecrire(chemin, json.dumps({"rms_ecarts_cas": 0.2, **champs}))
+        return str(chemin)
+
+    def test_un_bruit_du_bon_modele_est_utilise(self):
+        code, sortie, _ = jouer(self.argv("--bruit", self.bruit(modele=MODELE)), self.env)
+        self.assertEqual(code, 0, sortie)
+        self.assertIn("mesuré en A/A", sortie)
+        self.assertNotIn("ignoré", sortie)
+
+    def test_un_bruit_d_un_autre_modele_est_ignore_et_le_tableau_le_dit(self):
+        code, sortie, _ = jouer(
+            self.argv("--bruit", self.bruit(modele=AUTRE_MODELE)), self.env
+        )
+        self.assertEqual(code, 0, sortie)
+        self.assertIn(
+            f"bruit de {AUTRE_MODELE} ignoré : les cas sont joués sur "
+            f"{MODELE} — seuil estimé", sortie)
+        self.assertIn("estimé", sortie.split("Bruit (")[1].split(",")[0])
+        self.assertNotIn("mesuré en A/A", sortie)
+
+    def test_un_bruit_sans_modele_est_ignore_lui_aussi(self):
+        code, sortie, _ = jouer(self.argv("--bruit", self.bruit()), self.env)
+        self.assertEqual(code, 0, sortie)
+        self.assertIn("ignoré", sortie)
+        self.assertIn("seuil estimé", sortie)
+        self.assertNotIn("mesuré en A/A", sortie)
+
+    def test_le_modele_joue_vient_de_evals_modele(self):
+        self.env["EVALS_MODELE"] = AUTRE_MODELE
+        _, sortie, _ = jouer(self.argv("--bruit", self.bruit(modele=AUTRE_MODELE)), self.env)
+        self.assertIn("mesuré en A/A", sortie)
+        _, sortie, _ = jouer(self.argv("--bruit", self.bruit(modele=MODELE)), self.env)
+        self.assertIn(f"bruit de {MODELE} ignoré : les cas sont joués sur {AUTRE_MODELE}",
+                      sortie)
+
+    def test_le_modele_par_defaut_est_claude_sonnet_5_5(self):
+        # Écrit en dur : l'attendu ne dérive pas de la constante testée.
+        self.assertEqual(evals_ab.MODELE_PAR_DEFAUT, "claude-sonnet-5-5")
+
+    def test_sans_evals_modele_le_modele_joue_est_claude_sonnet_5_5(self):
+        del self.env["EVALS_MODELE"]
+        ancien = os.environ.pop("EVALS_MODELE", None)
+        try:
+            _, sortie, _ = jouer(self.argv("--bruit", self.bruit(modele="claude-sonnet-5-5")),
+                                 self.env)
+            _, sortie_opus, _ = jouer(self.argv("--bruit", self.bruit(modele="claude-opus-5-5")),
+                                      self.env)
+        finally:
+            if ancien is not None:
+                os.environ["EVALS_MODELE"] = ancien
+        self.assertIn("mesuré en A/A", sortie)
+        self.assertNotIn("ignoré", sortie)
+        # Le bruit d'Opus, seul fichier du dépôt aujourd'hui, n'est plus celui du modèle joué.
+        self.assertIn("bruit de claude-opus-5-5 ignoré : les cas sont joués sur "
+                      "claude-sonnet-5-5", sortie_opus)
+
+    def test_le_bruit_ecrit_par_le_mode_aa_porte_le_modele_joue(self):
+        self.env["EVALS_MODELE"] = AUTRE_MODELE
+        sortie_bruit = self.racine / "bruit-aa.json"
+        code, _, _ = jouer(self.argv("--sortie-bruit", str(sortie_bruit), mode="aa"), self.env)
+        self.assertEqual(code, 0)
+        self.assertEqual(json.loads(sortie_bruit.read_text("utf-8"))["modele"], AUTRE_MODELE)
+
+    def test_le_bruit_ecrit_par_le_mode_aa_porte_l_effort_joue(self):
+        self.env["EVALS_EFFORT"] = "low"
+        sortie_bruit = self.racine / "bruit-aa.json"
+        code, _, _ = jouer(self.argv("--sortie-bruit", str(sortie_bruit), mode="aa"), self.env)
+        self.assertEqual(code, 0)
+        self.assertEqual(json.loads(sortie_bruit.read_text("utf-8"))["effort"], "low")
+
+    def test_le_tableau_dit_le_modele_et_l_effort_joues(self):
+        self.env["EVALS_EFFORT"] = "medium"
+        _, sortie, _ = jouer(self.argv(), self.env)
+        self.assertIn(f"Modèle joué : {MODELE}, effort medium.", sortie)
+
+    def test_sans_evals_effort_le_tableau_dit_l_effort_high(self):
+        self.env.pop("EVALS_EFFORT", None)
+        ancien = os.environ.pop("EVALS_EFFORT", None)
+        try:
+            _, sortie, _ = jouer(self.argv(), self.env)
+        finally:
+            if ancien is not None:
+                os.environ["EVALS_EFFORT"] = ancien
+        self.assertIn("effort high.", sortie)
+
+    def test_le_fichier_de_bruit_du_depot_declare_son_modele(self):
+        bruit = json.loads((Path(__file__).resolve().parents[1] / "evals"
+                            / "bruit-plans-notion.json").read_text("utf-8"))
+        # Tant que la mesure de Sonnet n'est pas commitée, ce fichier porte Opus ;
+        # après, Sonnet. Le contrat testé : il déclare un modèle, sans quoi
+        # `filtrer_bruit` l'ignorerait toujours.
+        self.assertIsInstance(bruit.get("modele"), str)
+        self.assertTrue(bruit["modele"].startswith("claude-"), bruit["modele"])
+
+
+class LanceurModeleEtEffort(unittest.TestCase):
+    """``evals/outillage/lancer.sh`` avec un faux ``claude`` dans le ``PATH`` : le
+    faux écrit dans un fichier ce qu'il a reçu (arguments et effort), rien
+    d'autre. Aucun vrai appel, aucun jeton réel (un jeton factice sert à vérifier
+    que le lanceur ne l'affiche pas)."""
+
+    LANCEUR = Path(__file__).resolve().parents[1] / "evals" / "outillage" / "lancer.sh"
+    JETON = "jeton-factice-a-ne-jamais-afficher"
+
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self._tmp.cleanup)
+        self.racine = Path(self._tmp.name)
+        self.bin = self.racine / "bin"
+        self.bin.mkdir()
+        self.trace = self.racine / "trace.txt"
+        faux = self.bin / "claude"
+        faux.write_text(
+            "#!/bin/sh\n"
+            f'echo "effort=${{CLAUDE_CODE_EFFORT_LEVEL-<absent>}}" >> "{self.trace}"\n'
+            f'echo "args=$*" >> "{self.trace}"\n'
+            "exit 0\n", "utf-8")
+        faux.chmod(0o755)
+
+    def _lancer(self, **env_extra) -> tuple[subprocess.CompletedProcess, str]:
+        assert "GITHUB_ACTIONS" not in env_extra, "jamais de GITHUB_ACTIONS=true dans un test"
+        env = {k: v for k, v in os.environ.items()
+               if k not in ("GITHUB_ACTIONS", "EVALS_MODELE", "EVALS_EFFORT",
+                            "EVALS_MAX_COUT_USD", "CLAUDE_CODE_EFFORT_LEVEL", "TMPDIR")}
+        env["PATH"] = f"{self.bin}{os.pathsep}{env.get('PATH', '')}"
+        env["TMPDIR"] = str(self.racine / "traces")
+        env["CLAUDE_CODE_OAUTH_TOKEN"] = self.JETON
+        env.update(env_extra)
+        r = subprocess.run(
+            ["bash", str(self.LANCEUR), str(self.racine / "plugin"), str(self.racine / "sortie.json")],
+            env=env, capture_output=True, text=True, timeout=30)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        return r, self.trace.read_text("utf-8")
+
+    def test_sans_evals_effort_claude_recoit_l_effort_high(self):
+        _, trace = self._lancer()
+        self.assertIn("effort=high\n", trace)
+
+    def test_evals_effort_devient_claude_code_effort_level(self):
+        _, trace = self._lancer(EVALS_EFFORT="low")
+        self.assertIn("effort=low\n", trace)
+
+    def test_un_evals_effort_vide_retombe_sur_high(self):
+        _, trace = self._lancer(EVALS_EFFORT="")
+        self.assertIn("effort=high\n", trace)
+
+    def test_evals_effort_est_la_seule_source_meme_si_l_environnement_porte_deja_un_effort(self):
+        # Une session interactive peut avoir CLAUDE_CODE_EFFORT_LEVEL dans son
+        # environnement : la mesure ne doit pas en dépendre.
+        _, trace = self._lancer(CLAUDE_CODE_EFFORT_LEVEL="low")
+        self.assertIn("effort=high\n", trace)
+
+    def test_le_modele_par_defaut_du_lanceur_est_claude_sonnet_5_5(self):
+        _, trace = self._lancer()
+        self.assertIn("--model claude-sonnet-5-5", trace)
+        self.assertNotIn("claude-opus", trace)
+
+    def test_evals_modele_remplace_le_modele_du_lanceur(self):
+        _, trace = self._lancer(EVALS_MODELE="claude-opus-5-5")
+        self.assertIn("--model claude-opus-5-5", trace)
+
+    def test_le_lanceur_n_affiche_ni_le_jeton_ni_l_environnement(self):
+        r, _ = self._lancer(EVALS_EFFORT="high")
+        self.assertNotIn(self.JETON, r.stdout + r.stderr)
+        self.assertNotIn("CLAUDE_CODE_EFFORT_LEVEL=", r.stdout + r.stderr)
+
+    def test_le_lanceur_ne_contient_aucune_commande_qui_affiche_l_environnement(self):
+        code = [l for l in self.LANCEUR.read_text("utf-8").splitlines()
+                if l.strip() and not l.lstrip().startswith("#")]
+        for ligne in code:
+            self.assertNotRegex(ligne, r"^\s*(env|printenv|set -x|export -p|declare -x)(\s|$)", ligne)
+
+    def test_l_en_tete_documente_les_deux_variables_et_leurs_defauts(self):
+        entete = "\n".join(l for l in self.LANCEUR.read_text("utf-8").splitlines()
+                           if l.startswith("#"))
+        self.assertRegex(entete, r"EVALS_MODELE[^\n]*claude-sonnet-5-5")
+        self.assertRegex(entete, r"EVALS_EFFORT[^\n]*high")
+        self.assertIn("CLAUDE_CODE_EFFORT_LEVEL", entete)
+
+
+class SeuilQuiNePeutRienVoir(unittest.TestCase):
+    """Un seuil par cas d'au moins 100 points ne peut jamais être franchi (un
+    score va de 0 à 1) : afficher « pas de recul » serait une affirmation sans
+    contenu. Le run de la PR #17 avait affiché « seuil par cas ± 123 pts »."""
+
+    def test_16_cas_x_3_passages_sans_bruit_donnent_un_seuil_de_123_points(self):
+        # Sur le papier : racine(2)/racine(3) x 2,9552/1,96 = 0,8165 x 1,5078 = 1,231.
+        base, tete = jeux_uniformes(16, 1.0, 0.0)
+        c = evals_ab.comparer(base, tete)
+        self.assertAlmostEqual(c.bruit_cas, 1.231, places=2)
+        self.assertFalse(any(ligne.recul for ligne in c.lignes))
+
+    def test_un_seuil_de_100_points_ou_plus_ne_produit_jamais_pas_de_recul(self):
+        for n in (4, 9, 16):
+            with self.subTest(cas=n):
+                base, tete = jeux_uniformes(n, 1.0, 1.0)
+                c = evals_ab.comparer(base, tete)
+                self.assertGreaterEqual(c.bruit_cas, 1.0)
+                tableau = evals_ab.tableau_markdown(c, "v1", "v2")
+                self.assertNotIn("pas de recul au-delà du bruit", tableau)
+                self.assertIn(
+                    "non concluant par cas — aucun fichier de bruit mesuré pour ce modèle",
+                    tableau)
+                self.assertIn(
+                    "**Verdict : pas de recul de la moyenne ; non concluant par cas.**",
+                    tableau)
+
+    def test_un_recul_de_la_moyenne_reste_un_recul_meme_avec_un_seuil_aveugle(self):
+        base, tete = jeux_uniformes(4, 1.0, 1.0)
+        tete = rapport_synthetique({f"c{i}": [0, 0, 0] for i in range(4)})
+        c = evals_ab.comparer(base, tete)
+        self.assertTrue(c.recul)
+        self.assertIn("RECUL", evals_ab.tableau_markdown(c, "v1", "v2").splitlines()[-1])
+
+    def test_un_seuil_mesure_sous_100_points_garde_le_verdict_habituel(self):
+        base, tete = jeux_uniformes(16, 1.0, 1.0)
+        c = evals_ab.comparer(base, tete, bruit={"rms_ecarts_cas": 0.0385})
+        tableau = evals_ab.tableau_markdown(c, "v1", "v2")
+        self.assertIn("**Verdict : pas de recul au-delà du bruit.**", tableau)
+        self.assertNotIn("non concluant", tableau)
+
+    def test_un_bruit_mesure_trop_large_est_dit_non_concluant_sans_pretendre_qu_il_manque(self):
+        base, tete = jeux_uniformes(4, 1.0, 1.0)
+        c = evals_ab.comparer(base, tete, bruit={"rms_ecarts_cas": 0.5})  # 2,4977 x 0,5 > 1
+        tableau = evals_ab.tableau_markdown(c, "v1", "v2")
+        self.assertIn("non concluant par cas", tableau)
+        self.assertNotIn("aucun fichier de bruit mesuré", tableau)
+        self.assertNotIn("pas de recul au-delà du bruit", tableau)
+
+    def test_les_lignes_d_un_tableau_aveugle_ne_disent_pas_dans_le_bruit(self):
+        base, tete = jeux_uniformes(4, 1.0, 0.0)  # c0 tombe de 100 points
+        tete = rapport_synthetique(
+            {"c0": [0, 0, 0], "c1": [1, 1, 1], "c2": [1, 1, 1], "c3": [1, 1, 1]})
+        c = evals_ab.comparer(base, tete)
+        ligne = next(l for l in evals_ab.tableau_markdown(c, "v1", "v2").splitlines()
+                     if l.startswith("| c0 "))
+        self.assertNotIn("dans le bruit", ligne)
+        self.assertIn("non concluant", ligne)
+
+    def test_un_seuil_aveugle_ne_change_pas_le_code_de_sortie(self):
+        # Pas de rouge pour ça : le code de sortie ne dépend que du recul mesuré.
+        self.assertFalse(evals_ab.comparer(*jeux_uniformes(16, 1.0, 1.0)).recul)
+
+
+class SeuilGlobalElargi(unittest.TestCase):
+    def test_moins_de_cas_joues_que_mesures_elargit_le_seuil_global_et_le_tableau_le_dit(self):
+        # Bruit mesuré sur 16 cas (rms 0,0385) : global 1,96 x 0,0385 / 4 = 1,9 pts.
+        # 4 cas joués : 1,96 x 0,0385 / 2 = 3,8 pts.
+        base, tete = jeux_uniformes(4, 1.0, 1.0)
+        c = evals_ab.comparer(base, tete, bruit={"rms_ecarts_cas": 0.0385, "n_cas": 16})
+        self.assertAlmostEqual(c.bruit_global, 1.96 * 0.0385 / 2, places=6)
+        tableau = evals_ab.tableau_markdown(c, "v1", "v2")
+        self.assertIn("4 cas joués sur 16", tableau)
+        self.assertIn("seuil global élargi", tableau)
+
+    def test_autant_de_cas_que_mesures_n_ajoute_aucune_ligne(self):
+        base, tete = jeux_uniformes(16, 1.0, 1.0)
+        c = evals_ab.comparer(base, tete, bruit={"rms_ecarts_cas": 0.0385, "n_cas": 16})
+        self.assertNotIn("élargi", evals_ab.tableau_markdown(c, "v1", "v2"))
 
 
 if __name__ == "__main__":

@@ -70,9 +70,10 @@ class ListeUnique(unittest.TestCase):
 
     def test_les_jobs_de_la_ci_qui_ne_relevent_pas_du_script_sont_intacts(self):
         ci = CI.read_text(encoding="utf-8")
-        for job in ("evals-portee", "evals", "merge-auto"):
+        for job in ("evals-portee", "evals", "evals-verdict", "merge-auto"):
             self.assertRegex(ci, rf"(?m)^  {job}:\n", f"job {job} disparu de ci.yml")
-        self.assertIn("needs: [garde, validation, evals-portee, evals]", ci)
+        # Étape B9 : `merge-auto` attend aussi le verdict des évals (nom fixe).
+        self.assertIn("needs: [garde, validation, evals-portee, evals, evals-verdict]", ci)
 
     def test_claude_md_et_readme_renvoient_au_script_sans_enumerer(self):
         for nom in ("CLAUDE.md", "README.md"):

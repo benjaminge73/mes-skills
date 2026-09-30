@@ -22,29 +22,25 @@
       "octets": 53665
     }
   },
-  "invariants_en_tete": [],
+  "invariants_en_tete": [
+    "plugins/plans-notion/skills/plan-notion/SKILL.md",
+    "plugins/plans-notion/skills/executer-plan-notion/SKILL.md"
+  ],
   "veille_jours_max": 30,
   "exceptions": [
     {
-      "regle": "a",
-      "cible": "plugins/plans-notion/skills/executer-plan-notion/SKILL.md",
-      "date": "2026-09-30",
-      "raison": "description + when_to_use : 1 545 caractères pour un plafond de 1 536, défaut réel constaté à l'ouverture d'A7",
-      "levee_par": "étape B7"
-    },
-    {
-      "regle": "d",
-      "cible": "plugins/plans-notion/.claude-plugin/plugin.json",
-      "date": "2026-09-30",
-      "raison": "la description du manifeste ne cite que l'agent enqueteur ; executant, relecteur et chercheur manquent",
-      "levee_par": "étape B7"
-    },
-    {
-      "regle": "e",
+      "regle": "b",
       "cible": "plugins/plans-notion/skills/plan-notion/SKILL.md",
       "date": "2026-09-30",
-      "raison": "défaut réel constaté à l'ouverture d'A7 : les compagnons bons-tests.md et schemas.md sont cités dans le skill mais absents de sa liste « Ses compagnons sont … »",
-      "levee_par": "étape B7"
+      "raison": "le lot B ajoute des règles avant que le lot C n'allège le fichier (plafond 897 lignes / 53 665 octets) ; relever le plafond est interdit par le cliquet, une exception datée le dit",
+      "levee_par": "étape C6"
+    },
+    {
+      "regle": "b",
+      "cible": "plugins/plans-notion/skills/executer-plan-notion/SKILL.md",
+      "date": "2026-09-30",
+      "raison": "le lot B ajoute des règles avant que le lot C n'allège le fichier (plafond 923 lignes / 57 302 octets) ; relever le plafond est interdit par le cliquet, une exception datée le dit",
+      "levee_par": "étape C6"
     }
   ]
 }

@@ -9,6 +9,10 @@ justifie en une ligne.
 
 <!-- Le comportement modifié, en une ou deux phrases — pas la liste des fichiers. -->
 
+<!-- Évals à jouer : catégories de `evals/categories.json` séparées par des virgules, puis
+« — raison » ; ou `tout`. Sans cette ligne remplie, la CI joue tout le banc. -->
+Evals: 
+
 ## Avant de merger
 
 - [ ] **Cas d'éval** : la leçon a son cas dans `evals/<plugin>/` — ou un commit porte

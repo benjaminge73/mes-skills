@@ -5,6 +5,27 @@ description: Écrit et fait évoluer un plan de travail dans Notion au lieu du c
 
 # Plan dans Notion
 
+## Invariants — ce qui tient même après un compactage
+
+Un compactage du contexte ne recolle que le début de ce fichier : ce qui ne
+doit jamais se perdre est donc ici, une ligne chacun, avec la section qui le
+détaille.
+
+- **Après un compactage, ré-invoquer ce skill** (outil `Skill`) avant
+  d'écrire dans Notion ou de reprendre une passe — le compactage ne garde que
+  le début du skill.
+- **Ne jamais cocher une case** à la place de Benjamin, pas même la reco
+  (« 1. Ne jamais cocher une case… »).
+- **Rien de livré avant `valide`** : ni fichier dans le dépôt, ni commit, ni
+  sous-agent d'implémentation (« 2. Ne rien coder de livré… »).
+- **`Statut` sans accents** : `brouillon`, `en revue`, `valide`, `en cours`,
+  `a merger`, `execute`, `archive` (fin de « 2. Ne rien coder… »).
+- **Relevé avant d'écrire, recompte après** : cases cochées et textes libres
+  relevés avant toute écriture, recomptés après (§4, `_partage/ecrire-dans-notion.md`).
+- **Ce qui est découvert s'écrit dans le plan**, avec sa conséquence sur les
+  étapes : une découverte gardée en tête disparaît au compactage (« Le
+  chapitre `Exécution` »).
+
 ## Suis-je la bonne version ?
 
 Le 2026-09-08, une session a chargé ce skill depuis une copie synchronisée
@@ -171,13 +192,26 @@ qui est déjà su.** Six gisements, du moins cher au plus cher :
    La recherche est **obligatoire** dès qu'on crée quelque chose de non propre au
    projet — donc pas pour de la logique métier que seul ce dépôt connaît, mais pour
    tout ce qui ressemble à un problème que d'autres ont eu — et **obligatoire aussi
-   pour la documentation de tout outil d'un POC**. Son résultat s'écrit dans
-   `Contraintes techniques vérifiées`, sous une ligne qui n'est pas facultative :
+   pour la documentation de tout outil d'un POC**. Elle se fait **par artefact, pas
+   par plan** : avant de chercher, lister ce que les étapes vont **fabriquer** —
+   script, banc, **jeu de questions**, jeu de données, gabarit, schéma, outil — et
+   chercher l'existant de chacun de ceux qui ne sont pas propres au projet. Un plan
+   qui cherche « un banc » sans avoir listé ses artefacts oublie le jeu de questions
+   qu'il va écrire à la main, alors qu'un jeu éprouvé existe souvent. Le résultat
+   s'écrit dans `Contraintes techniques vérifiées`, sous une ligne qui n'est pas
+   facultative, **une par artefact** :
    *« Existant cherché : … / trouvé : … / fait maison parce que … »*.
 
 Le budget d'enquête est **proportionnel à l'enjeu**, pas à la longueur du plan : une
 étape qui touche un fichier et se relit d'un coup d'œil ne mérite pas une fouille
 d'historique. Une étape qui change un réglage de production, oui.
+
+**Une vérification nomme la décision qu'elle peut changer, ou le risque qu'elle
+couvre — sinon elle ne se fait pas.** Une recherche, une mesure ou un POC dont le
+résultat, quel qu'il soit, laisserait le plan tel quel n'est que du bruit : elle
+coûte une étape de la passe et n'éclaire rien. Sur un plan `Bounded`, cela donne :
+ni `chercheur`, sauf si une étape fabrique un artefact non propre au projet, ni POC,
+sauf si une option dépend d'une incertitude mesurable.
 
 ### Vérifier un candidat *use*
 
@@ -444,9 +478,9 @@ les traite toutes pareil.
 **Deux blocs propres à ce chapitre**, issus de l'enquête (« L'enquête avant les
 options ») :
 
-- **La ligne « Existant »**, obligatoire dès que le plan crée quelque chose de non
-  propre au projet : *« Existant cherché : … / trouvé : … / fait maison parce que
-  … »*. Elle reprend le verdict d'ensemble du `chercheur`, avec, pour un candidat
+- **La ligne « Existant »**, obligatoire, **une par artefact**, dès que le plan crée
+  quelque chose de non propre au projet : *« Existant cherché : … / trouvé : … /
+  fait maison parce que … »*. Elle reprend le verdict d'ensemble du `chercheur`, avec, pour un candidat
   *use*, les chiffres rejoués par `gh api` et le verdict de l'outil de vérification
   (« Vérifier un candidat *use* »). « Sans objet » est une réponse, à condition de
   dire pourquoi.
@@ -619,7 +653,7 @@ l'écrire, c'est qu'on ne sait pas encore ce qu'on va faire, et c'est cette
 ignorance-là qu'il faut rendre visible.
 
 **En tête du chapitre, un tableau `Étape · Fichiers touchés · Dépend de ·
-Vague`**, une ligne par étape — le pre-flight scan du chapitre : il donne
+Vague · Relecture`**, une ligne par étape — le pre-flight scan du chapitre : il donne
 d'un coup d'œil ce qui se recoupe, avant même d'entrer dans le détail de
 chaque étape. La colonne `Vague` est **proposée** ici : deux étapes vont
 dans la même vague si elles ne partagent aucun fichier, si aucune ne dépend
@@ -628,6 +662,22 @@ décompte) n'est touché par les deux. Mais c'est `executer-plan-notion` qui la
 **calcule** à l'ouverture de l'exécution : le plan **déclare**, il
 n'**ordonnance** pas — calculer les vagues ici ferait mentir un plan qui
 change d'ordre en route sans que le tableau ne le sache.
+
+La colonne `Relecture` dit, étape par étape, comment le relecteur la voit :
+`étape` (relue seule, dès qu'elle est commitée) pour ce qui mérite un regard
+à part — une migration, un contrat d'API, un schéma —, `lot` (relue d'un seul
+coup avec les étapes `lot` consécutives) pour ce qui est petit ou sans
+risque, comme dix lignes de doc. Un plan écrit sans la colonne se lit `étape`
+partout. Les deux régimes, la définition du lot et la décision de Benjamin du
+2026-09-30 (Q6, qui remplace celle du 2026-09-23) sont dans
+`${CLAUDE_PLUGIN_ROOT}/skills/_partage/revue.md`.
+
+**Si le plan modifie un plugin d'un dépôt qui a un banc d'évals par catégorie** (un
+`evals/categories.json`), le chapitre porte une ligne `Évals à jouer : <catégories> —
+pourquoi`, choisie d'après les skills et agents que les étapes touchent. Le choix est
+libre, mais la CI refuse une sélection qui ne couvre pas un skill touché, et joue tout
+le banc pour `_partage/`, les hooks ou le banc lui-même ; « tout » est une réponse.
+Sans ce fichier dans le dépôt, la règle ne s'applique pas.
 
 **Une étape = un titre H3** : `Étape 1 — Titre court de l'étape`. Comme pour les
 questions, c'est le H3 qui met l'étape dans la table des matières et permet d'y
@@ -642,6 +692,8 @@ Sous chaque titre, le contenu de l'étape :
 - **Dépend de** — les étapes et les questions dont l'étape a besoin, « — » si
   aucune. C'est cette ligne, reprise dans le tableau de tête de chapitre, que
   `executer-plan-notion` lit pour calculer les vagues d'exécution.
+- **Relecture** — `étape` ou `lot` (`_partage/revue.md`) ; reprise dans la
+  dernière colonne du tableau de tête de chapitre.
 - **Taille** — le nombre de fichiers touchés. Plus de cinq → découper l'étape :
   l'enquête montre que tous les conflits d'exécution observés viennent d'un
   fichier partagé non repéré, et une étape large le cache d'autant mieux
@@ -842,9 +894,9 @@ Quand Benjamin valide le plan :
    9. la répétition à blanc a été **jouée et reportée** dans `Contraintes
       techniques vérifiées`, sous « État de départ » (« La répétition à blanc et
       le POC de décision ») ;
-   10. la ligne « Existant cherché : … / trouvé : … / fait maison parce que … »
-      est présente dans `Contraintes techniques vérifiées` quand la règle de
-      l'enquête l'exige (gisement 6, « L'extérieur »).
+   10. une ligne « Existant cherché : … / trouvé : … / fait maison parce que … »
+      **par artefact** non propre au projet que les étapes fabriquent, présente
+      dans `Contraintes techniques vérifiées` (gisement 6, « L'extérieur »).
 
    Les points 5 à 8 viennent de l'enquête sur les plans passés : la
    page du plan elle-même est la source de **11 %** des découvertes manquées à
@@ -890,8 +942,11 @@ comment de la séance de code.
   travail. Ses compagnons sont les fichiers partagés
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/ecrire-dans-notion.md`,
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/maquettes-html.md`,
-  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/poc.md` et
-  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/outils-et-quotas.md`, ainsi que les
+  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/poc.md`,
+  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/outils-et-quotas.md`,
+  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/schemas.md`,
+  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/revue.md` et
+  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/bons-tests.md`, ainsi que les
   agents `${CLAUDE_PLUGIN_ROOT}/agents/enqueteur.md` et
   `${CLAUDE_PLUGIN_ROOT}/agents/chercheur.md`, livrés par le plugin
   `plans-notion` — pas par le dépôt de travail, quel qu'il soit.

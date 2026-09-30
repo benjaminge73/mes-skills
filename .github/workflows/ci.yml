@@ -6,11 +6,30 @@ on:
   # plus : un workflow que le filtre empêcherait de démarrer ne rendrait aucun
   # statut, et un futur verrou de branche (ruleset) attendrait indéfiniment.
   # Le tri par chemins se fait dans le job `evals-portee`, dont le résultat
-  # fait sauter `evals` (un job sauté compte comme réussi).
+  # fait sauter `evals` (un job sauté compte comme réussi). Le job
+  # `evals-verdict` (nom fixe) est le seul contrôle d'évals que le verrou de
+  # `main` puisse exiger : le nom de `evals` change avec la matrice.
+  #
+  # Pas de `types: [.., edited]`, et c'est voulu. L'édition d'une PR (un titre, le
+  # corps) rejouerait toute la CI : `evals` serait sauté, et le
+  # « Verdict des évals » de ce run serait vert sur ce SHA alors que ses évals
+  # étaient rouges. Le verrou de `main` risque de ne voir que ce dernier statut.
+  # Le corps de la PR, lui, porte la ligne `Evals:` (les catégories à jouer) :
+  # `evals-portee` le relit donc par l'API à chaque run, au lieu de lire le
+  # payload de l'événement (qui est celui d'origine, périmé). Corriger la ligne
+  # `Evals:`, puis « Re-run all jobs » ou pousser un commit, suffit.
   pull_request:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      mode:
+        description: "ab : l'A/B habituel (la tête contre sa base). aa : joue la tête deux fois pour mesurer le bruit du modèle courant (EVALS_MODELE, EVALS_EFFORT), sur tout le banc, sans lire ni écrire le cache de la base ; le fichier de bruit est publié en artefact."
+        type: choice
+        options:
+          - ab
+          - aa
+        default: ab
 
 permissions:
   contents: read
@@ -72,12 +91,16 @@ jobs:
           && github.event.pull_request.draft == false
           && github.event.pull_request.head.repo.full_name == github.repository)
     runs-on: ubuntu-latest
+    # `pull-requests: read` : relire le corps de la PR par l'API, rien de plus.
     permissions:
       contents: read
+      pull-requests: read
     outputs:
       touche: ${{ steps.portee.outputs.touche }}
       plugins: ${{ steps.portee.outputs.plugins }}
       base: ${{ steps.portee.outputs.base }}
+      # Un objet JSON {plugin: sélection} : voir scripts/evals_selection.py.
+      selection: ${{ steps.portee.outputs.selection }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -94,10 +117,32 @@ jobs:
         id: portee
         env:
           EVENT_NAME: ${{ github.event_name }}
+          # Le corps est relu par l'API (voir le script), avec ce jeton en lecture
+          # seule et ce numéro : des entrées passées par l'environnement, jamais
+          # interpolées dans le script.
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
           PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
           PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
           set -euo pipefail
+          # --- corps de la PR (début)
+          # Le corps est une entrée non fiable : il n'existe que dans la variable
+          # d'environnement PR_BODY, jamais interpolé par une expression GitHub (ce
+          # serait du code, pas une donnée). Relu par l'API et non lu dans le payload : un « Re-run »
+          # rejoue le payload d'origine, dont le corps est périmé. Un échec de
+          # l'appel est un échec du job, jamais un repli sur « tout » ni sur une
+          # sélection vide : ce serait jouer (et payer) autre chose que ce que la
+          # PR a demandé, sans le dire.
+          if [ "$EVENT_NAME" = "pull_request" ]; then
+            if ! PR_BODY=$(gh api "repos/$REPO/pulls/$PR_NUMBER" --jq '.body // ""'); then
+              echo "::error title=Corps de la PR illisible::L'appel à l'API GitHub pour relire le corps de la PR a échoué : la sélection des évals n'a pas pu être faite. Relancer le run (Re-run all jobs)."
+              exit 1
+            fi
+            export PR_BODY
+          fi
+          # --- corps de la PR (fin)
           # Base = l'ancêtre commun de la PR et de `main`, pas la pointe de
           # `main` : si `main` a avancé depuis, ses changements ne sont pas un
           # « recul » de la PR. C'est aussi un SHA de `main`, la clé du cache.
@@ -139,7 +184,7 @@ jobs:
               evals/*/*)
                 n=${f#evals/}; n=${n%%/*}
                 if [ -d "plugins/$n" ]; then touches+=("$n"); else global=1; fi ;;
-              evals/*|scripts/evals_ab.py|.github/workflows/ci.yml) global=1 ;;
+              evals/*|scripts/evals_ab.py|scripts/evals_selection.py|.github/workflows/ci.yml) global=1 ;;
             esac
           done
 
@@ -149,6 +194,26 @@ jobs:
             for t in "${touches[@]}"; do
               if [ "$t" = "$nom" ]; then choisis+=("$nom"); break; fi
             done
+          done
+
+          # Le plancher : pour chaque plugin joué, quels cas, et lesquels on ne
+          # peut pas omettre (scripts/evals_selection.py, testé). Il lit le corps
+          # de la PR dans PR_BODY ; en lancement manuel il n'y en a pas, donc
+          # « tout ». Un refus (code 1) ou une panne (code 2) rend le job rouge :
+          # `evals` est alors sauté, et `evals-verdict` le voit.
+          liste="$RUNNER_TEMP/fichiers-touches.txt"
+          : > "$liste"
+          if [ "${#fichiers[@]}" -gt 0 ]; then printf '%s\n' "${fichiers[@]}" > "$liste"; fi
+          selection='{}'
+          refus=0
+          for nom in "${choisis[@]}"; do
+            if sel=$(python3 scripts/evals_selection.py --plugin "$nom" --fichiers "$liste" 2>"$RUNNER_TEMP/selection.err"); then
+              selection=$(jq -c --arg p "$nom" --argjson s "$sel" '. + {($p): $s}' <<<"$selection")
+            else
+              refus=1
+              # Une seule ligne : le message peut citer du texte du corps de la PR.
+              echo "::error title=Évals non couvertes ($nom)::$(tr '\n\r' '  ' < "$RUNNER_TEMP/selection.err")"
+            fi
           done
 
           if [ "${#choisis[@]}" -gt 0 ]; then
@@ -162,8 +227,19 @@ jobs:
             echo "touche=$touche"
             echo "plugins=$plugins"
             echo "base=$base"
+            echo "selection=$selection"
           } >> "$GITHUB_OUTPUT"
           echo "base=$base touche=$touche plugins=${plugins:-aucun}"
+          {
+            echo "### Portée des évals"
+            echo
+            if [ "$selection" = '{}' ]; then
+              echo "Aucun plugin à jouer."
+            else
+              jq -r 'to_entries[] | "- **\(.key)** : " + (if .value.tout then "tout le banc (\(.value.cas | length) cas) — \(.value.pourquoi_tout | .[0:200])" else "\(.value.categories | join(", ")) (\(.value.cas | length) cas)" end)' <<<"$selection"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit "$refus"
 
   evals:
     name: Évals (${{ matrix.plugin }})
@@ -173,13 +249,16 @@ jobs:
     if: needs.evals-portee.outputs.touche == 'true'
     runs-on: ubuntu-latest
     # Sans base en cache (premier run de chaque base) : deux bras joués l'un
-    # après l'autre, de 16 cas x 3 passages = 48 passages. Mesuré le 2026-09-30
-    # (A/A local de l'étape A4, 27 passages en ≈ 24 min à 3 agents en parallèle) :
-    # ≈ 2,7 min par passage, soit ≈ 43 min par bras et ≈ 86 min pour les deux,
-    # plus ≈ 1 min 30 de préparation. 150 min laissent la marge des cas
-    # d'exécution (Bash, commits), sans doute plus lents que les cas de lecture
-    # mesurés, sans tolérer une boucle : au-delà, le job est tué plutôt que de
-    # consommer l'abonnement.
+    # après l'autre, de 16 cas x 3 passages = 48 passages au plus (« tout »).
+    # Mesuré le 2026-09-30 (A/A local de l'étape A4, 27 passages en ≈ 24 min à
+    # 3 agents en parallèle) : ≈ 2,7 min par passage. À 5 agents en parallèle
+    # (EVALS_CONCURRENCE), 48 passages x 2,7 min / 5 ≈ 26 min par bras, soit
+    # ≈ 52 min pour les deux, plus ≈ 1 min 30 de préparation ; une sélection
+    # par catégorie joue moins de cas, donc moins. 150 min gardent la marge des
+    # cas d'exécution (Bash, commits), sans doute plus lents que les cas de
+    # lecture mesurés, et d'un débit qui ne monterait pas linéairement avec la
+    # concurrence, sans tolérer une boucle : au-delà, le job est tué plutôt que
+    # de consommer l'abonnement.
     timeout-minutes: 150
     permissions:
       contents: read
@@ -187,7 +266,9 @@ jobs:
     # une tête déjà périmée. Au niveau du job (et non du workflow), pour ne
     # jamais interrompre `merge-auto` en plein merge.
     concurrency:
-      group: evals-${{ github.event.pull_request.number || github.ref }}-${{ matrix.plugin }}
+      # Le mode fait partie du groupe : un lancement manuel `ab` n'annule plus un
+      # `aa` payé en cours (hors lancement manuel, `inputs.mode` est vide : `ab`).
+      group: evals-${{ github.event.pull_request.number || github.ref }}-${{ inputs.mode || 'ab' }}-${{ matrix.plugin }}
       cancel-in-progress: true
     strategy:
       fail-fast: false
@@ -196,10 +277,17 @@ jobs:
         # matrice vide fasse échouer l'évaluation du workflow.
         plugin: ${{ fromJSON(needs.evals-portee.outputs.plugins || '["aucun"]') }}
     env:
-      # Figés : un modèle qui change change le bruit, donc toute la mesure.
-      EVALS_MODELE: claude-opus-5-5
+      # Figés : un modèle ou un effort de réflexion qui change change le bruit,
+      # donc toute la mesure. Décision de Benjamin (étape B9), après une sonde :
+      # Sonnet appelle le skill et obtient 90 % contre 95 % pour Opus sur le cas
+      # `hook-claude` ; l'effort `high` (≈ 4 800 à 7 800 jetons de réflexion
+      # contre ≈ 350 à 550 en `low`) est lu par `claude plugin eval` dans
+      # CLAUDE_CODE_EFFORT_LEVEL, que evals/outillage/lancer.sh pose depuis
+      # EVALS_EFFORT. Changer l'un des deux, c'est remesurer le bruit (mode `aa`).
+      EVALS_MODELE: claude-sonnet-5-5
+      EVALS_EFFORT: high
       # Plafond par appel de `claude plugin eval` (une fois pour la base, une fois
-      # pour la tête). Mesuré le 2026-09-30 avec claude-opus-5-5 (A/A local de
+      # pour la tête). Mesuré le 2026-09-30 avec Opus (A/A local de
       # l'étape A4) : 54 passages pour 53,14 $, soit ≈ 0,98 $ par passage (de
       # 0,48 à 2,15 $ selon le cas), donc un bras de 16 cas x 3 passages ≈ 47 $.
       # 120 $ couvrent un bras complet avec plus de deux fois de marge, pour les
@@ -208,7 +296,8 @@ jobs:
       # partiel, refusé par `evals_ab.py` (code 3), job rouge à tous les coups.
       EVALS_MAX_COUT_USD: '120'
       EVALS_RUNS: '3'
-      EVALS_CONCURRENCE: '3'
+      # Décision de Benjamin (étape B9) : 5 agents en parallèle.
+      EVALS_CONCURRENCE: '5'
     steps:
       - name: Vérifier que le jeton est là
         # Premier pas, avant tout coût : sans jeton, on échoue net et on le dit.
@@ -234,22 +323,30 @@ jobs:
 
       - name: Clé du cache de la base
         id: cle
+        # L'A/A (`mode: aa`) ne touche pas au cache de la base : il ne joue pas de base.
+        if: inputs.mode != 'aa'
         env:
           PLUGIN: ${{ matrix.plugin }}
           BASE_SHA: ${{ needs.evals-portee.outputs.base }}
+          SELECTION: ${{ needs.evals-portee.outputs.selection }}
         run: |
           set -euo pipefail
           # Une base rejouée doit donner le même rapport : la clé porte tout ce
           # qui le ferait changer. Le SHA de la base (plugin à cette référence),
-          # les cas (assemblés dans les deux copies), le modèle, le nombre de
-          # passages, la version de Claude Code du runner et le lanceur.
+          # les cas (assemblés dans les deux copies), la liste des cas joués (une
+          # base jouée sur trois cas ne sert pas une comparaison sur seize), le
+          # modèle, l'effort de réflexion, le nombre de passages, la version de
+          # Claude Code du runner et le lanceur.
           cas=$(git ls-files -z "evals/$PLUGIN" | sort -z | xargs -0 sha256sum | sha256sum | cut -c1-16)
+          joues=$(jq -r --arg p "$PLUGIN" '(.[$p] // {"tout": true}) | if .tout then "tout" else (.cas | sort | join(",")) end' <<<"$SELECTION")
+          selec=$(printf '%s' "$joues" | sha256sum | cut -c1-12)
           version=$(sed -n 's/^CLAUDE_CODE_VERSION=//p' evals/outillage/preparer-runner.sh)
           lanceur=$(sha256sum evals/outillage/lancer.sh | cut -c1-12)
-          echo "cle=evals-base-$PLUGIN-$BASE_SHA-$cas-$EVALS_MODELE-r$EVALS_RUNS-cc$version-$lanceur" >> "$GITHUB_OUTPUT"
+          echo "cle=evals-base-$PLUGIN-$BASE_SHA-$cas-s$selec-$EVALS_MODELE-e$EVALS_EFFORT-r$EVALS_RUNS-cc$version-$lanceur" >> "$GITHUB_OUTPUT"
 
       - name: Reprendre la base du cache
         id: cache
+        if: inputs.mode != 'aa'
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ runner.temp }}/evals-cache/base.json
@@ -257,9 +354,11 @@ jobs:
 
       - name: Jouer la tête et la base, comparer
         id: jeu
+        if: inputs.mode != 'aa'
         env:
           PLUGIN: ${{ matrix.plugin }}
           BASE_SHA: ${{ needs.evals-portee.outputs.base }}
+          SELECTION: ${{ needs.evals-portee.outputs.selection }}
           CACHE_HIT: ${{ steps.cache.outputs.cache-hit }}
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
         run: |
@@ -274,6 +373,17 @@ jobs:
 
           args=(--plugin "$PLUGIN" --mode ab --base "$BASE_SHA" --tete HEAD
                 --conserver --journal "$sortie/journal.md")
+          # Les cas joués : ceux de la sélection, ou tous quand elle dit « tout »
+          # (ou qu'elle manque : le défaut est le banc entier, jamais moins).
+          if [ "$(jq -r --arg p "$PLUGIN" '(.[$p] // {"tout": true}) | .tout' <<<"$SELECTION")" = "true" ]; then
+            echo "Tous les cas du banc sont joués."
+          else
+            mapfile -t cas < <(jq -r --arg p "$PLUGIN" '.[$p].cas[]' <<<"$SELECTION")
+            for c in "${cas[@]}"; do args+=(--cas "$c"); done
+            echo "Cas joués (${#cas[@]}) : ${cas[*]}"
+          fi
+          # Le bruit mesuré n'est utilisé que s'il porte le modèle joué (EVALS_MODELE) :
+          # evals_ab.py l'ignore sinon, et le dit dans le tableau.
           if [ -f "evals/bruit-$PLUGIN.json" ]; then
             args+=(--bruit "evals/bruit-$PLUGIN.json")
             echo "Bruit mesuré : evals/bruit-$PLUGIN.json"
@@ -327,9 +437,60 @@ jobs:
           esac
           exit "$code"
 
+      - name: Mesurer le bruit du modèle (A/A)
+        id: aa
+        # Lancement manuel seulement (`gh workflow run ci.yml --ref <branche> -f
+        # mode=aa`). Joue la tête deux fois, sur tout le banc (aucun filtre de cas), sans
+        # base, sans cache et sans lire le bruit existant : c'est ce fichier-ci
+        # qu'on produit.
+        if: inputs.mode == 'aa'
+        env:
+          PLUGIN: ${{ matrix.plugin }}
+          MODE: ${{ inputs.mode }}
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+        run: |
+          set -euo pipefail
+          bruit="$RUNNER_TEMP/evals-bruit"
+          journal_log="$RUNNER_TEMP/evals-aa.log"
+          mkdir -p "$bruit"
+          export TMPDIR="$RUNNER_TEMP/evals-traces"
+          mkdir -p "$TMPDIR"
+
+          # stdout = le tableau ; stderr = la trace, qui reste dans le journal du
+          # job (jamais téléversée). Aucun `set -x`, aucun `env`.
+          set +e
+          python3 scripts/evals_ab.py --plugin "$PLUGIN" --mode aa --tete HEAD \
+            --sortie-bruit "$RUNNER_TEMP/evals-bruit/bruit-$PLUGIN.json" -- \
+            --runs "$EVALS_RUNS" --concurrency "$EVALS_CONCURRENCE" \
+            2>&1 >"$RUNNER_TEMP/evals-aa-tableau.md" | tee "$journal_log" >&2
+          code=${PIPESTATUS[0]}
+          set -e
+
+          {
+            echo "## Bruit du modèle — $PLUGIN"
+            echo
+            echo "Mode \`$MODE\` — modèle \`$EVALS_MODELE\`, effort \`$EVALS_EFFORT\`, $EVALS_RUNS passages par cas."
+            echo
+            if [ -s "$RUNNER_TEMP/evals-aa-tableau.md" ]; then
+              cat "$RUNNER_TEMP/evals-aa-tableau.md"
+            else
+              echo "Aucune mesure produite (code $code) : voir le journal du job."
+            fi
+            echo
+            if [ -s "$bruit/bruit-$PLUGIN.json" ]; then
+              echo "Fichier de bruit : artefact \`evals-bruit-$PLUGIN\` (\`bruit-$PLUGIN.json\`)."
+              echo "Le télécharger, le commiter en \`evals/bruit-$PLUGIN.json\` dans la PR, puis pousser."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          if [ "$code" != 0 ]; then
+            echo "::error title=Mesure du bruit refusée::evals_ab.py a rendu le code $code pour « $PLUGIN » : pré-vol, rapport partiel (plafond de coût) ou lanceur en échec. Voir le journal du job."
+          fi
+          exit "$code"
+
       - name: Base gardée pour le cache
         id: base
-        if: always() && steps.cache.outputs.cache-hit != 'true'
+        if: always() && inputs.mode != 'aa' && steps.cache.outputs.cache-hit != 'true'
         run: |
           if [ -s "$RUNNER_TEMP/evals-cache/base.json" ]; then
             echo "gardee=true" >> "$GITHUB_OUTPUT"
@@ -339,7 +500,7 @@ jobs:
         # `always()` : une tête qui recule fait échouer le job, mais la base
         # jouée n'en est pas moins valable. Sans cela, on la rejouerait (et on la
         # repayerait) à chaque nouvelle poussée.
-        if: always() && steps.base.outputs.gardee == 'true'
+        if: always() && inputs.mode != 'aa' && steps.base.outputs.gardee == 'true'
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ runner.temp }}/evals-cache/base.json
@@ -353,16 +514,19 @@ jobs:
           # Ceinture avant téléversement. Le motif passe par un descripteur de
           # fichier (`-f <(...)`) et non par un argument : `printf` est interne à
           # bash, le jeton n'apparaît dans la ligne de commande d'aucun processus.
-          [ -d "$RUNNER_TEMP/evals-sortie" ] || exit 0
           [ -n "${CLAUDE_CODE_OAUTH_TOKEN:-}" ] || exit 0
-          if grep -rqaF -f <(printf '%s\n' "$CLAUDE_CODE_OAUTH_TOKEN") "$RUNNER_TEMP/evals-sortie"; then
-            rm -rf "$RUNNER_TEMP/evals-sortie"
-            echo "::error title=Jeton dans l'artefact::Le jeton figurait dans les fichiers à téléverser : artefact supprimé. Renouveler le secret."
-            exit 1
-          fi
+          # Les deux dossiers téléversés : les rapports (`ab`) et le bruit (`aa`).
+          for dossier in "$RUNNER_TEMP/evals-sortie" "$RUNNER_TEMP/evals-bruit"; do
+            [ -d "$dossier" ] || continue
+            if grep -rqaF -f <(printf '%s\n' "$CLAUDE_CODE_OAUTH_TOKEN") "$dossier"; then
+              rm -rf "$dossier"
+              echo "::error title=Jeton dans l'artefact::Le jeton figurait dans les fichiers à téléverser : artefact supprimé. Renouveler le secret."
+              exit 1
+            fi
+          done
 
       - name: Téléverser les rapports
-        if: always()
+        if: always() && inputs.mode != 'aa'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: evals-${{ matrix.plugin }}
@@ -372,6 +536,49 @@ jobs:
           path: ${{ runner.temp }}/evals-sortie
           if-no-files-found: ignore
           retention-days: 14
+
+      - name: Téléverser le bruit mesuré
+        if: always() && inputs.mode == 'aa'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: evals-bruit-${{ matrix.plugin }}
+          # Le seul fichier de bruit (`bruit-<plugin>.json`) : des nombres, le
+          # modèle et l'effort. Ni traces, ni journal.
+          path: ${{ runner.temp }}/evals-bruit
+          if-no-files-found: error
+          retention-days: 14
+
+  evals-verdict:
+    # Le seul contrôle d'évals au nom fixe : `Évals (<plugin>)` change avec la
+    # matrice, et le verrou de `main` ne peut exiger qu'un nom qui ne change pas.
+    # Toujours joué (`always()`), sinon un `needs` sauté ferait sauter aussi ce
+    # job, et un contrôle exigé qui n'apparaît jamais bloque tout.
+    #   - rouge : la portée (refus du plancher) ou un bras des évals a échoué ou
+    #     a été annulé (une poussée qui annule le run ne doit pas passer pour vert) ;
+    #   - vert : tout est `success`, ou sauté (une PR sans skill touché ne joue
+    #     rien, et c'est normal).
+    # Aucune copie du dépôt, aucun jeton, aucun droit : il ne lit que les
+    # résultats des jobs dont il dépend.
+    name: Verdict des évals
+    needs: [evals-portee, evals]
+    if: always()
+    runs-on: ubuntu-latest
+    permissions: {}
+    steps:
+      - name: Rouge si la portée ou un bras des évals est rouge ou annulé
+        env:
+          PORTEE: ${{ needs.evals-portee.result }}
+          EVALS: ${{ needs.evals.result }}
+        run: |
+          echo "portée des évals : $PORTEE ; évals : $EVALS"
+          for etat in "$PORTEE" "$EVALS"; do
+            case "$etat" in
+              failure|cancelled)
+                echo "::error title=Verdict des évals::La portée des évals ($PORTEE) ou un bras des évals ($EVALS) est rouge ou annulé : voir les jobs « Portée des évals » et « Évals (…) »."
+                exit 1 ;;
+            esac
+          done
+          echo "Vert : tout est réussi ou sauté."
 
   merge-auto:
     name: Merge automatique si tout est vert
@@ -391,13 +598,16 @@ jobs:
     # `failure` ou un `cancelled` (recul des évals, poussée qui annule le run)
     # bloque le merge. `evals-portee` est dans la liste : s'il échoue, `evals`
     # est sauté, et sans lui ce saut passerait pour un feu vert.
-    needs: [garde, validation, evals-portee, evals]
+    # `evals-verdict` y est aussi : c'est le contrôle que le verrou de `main`
+    # exigera, et le merge automatique ne doit pas être plus permissif que lui.
+    needs: [garde, validation, evals-portee, evals, evals-verdict]
     if: >-
       always()
       && (needs.garde.result == 'success' || needs.garde.result == 'skipped')
       && (needs.validation.result == 'success' || needs.validation.result == 'skipped')
       && (needs.evals-portee.result == 'success' || needs.evals-portee.result == 'skipped')
       && (needs.evals.result == 'success' || needs.evals.result == 'skipped')
+      && (needs.evals-verdict.result == 'success' || needs.evals-verdict.result == 'skipped')
       && github.event_name == 'pull_request'
       && github.event.pull_request.user.login == 'benjaminge73'
       && github.event.pull_request.draft == false
@@ -410,6 +620,8 @@ jobs:
       - name: Merger, puis supprimer la branche distante
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
         run: |
-          gh pr merge "${{ github.event.pull_request.number }}" \
-            --repo "${{ github.repository }}" --merge --delete-branch
+          gh pr merge "$PR_NUMBER" \
+            --repo "$REPO" --merge --delete-branch

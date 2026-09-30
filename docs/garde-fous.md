@@ -31,10 +31,13 @@ Le statut dit où en est le garde :
 | Le registre est lui-même contrôlé | qu'une ligne « en place » ne cite pas un garde disparu | 2026-09-30, plan banc d'évals, étape A7 | `scripts/check_skills.py` (section « Le registre ») | CI, job `garde`, via `scripts/ci_locale.sh` | en place |
 | Une seule liste des contrôles | que la CI, `CLAUDE.md` et le README ne divergent pas sur ce qu'on joue avant de pousser | 2026-09-30, étape A7 | `scripts/ci_locale.sh`, `scripts/test_ci_locale.py` | CI (jobs `garde` et `validation`) et en local | en place |
 | A/B sur chaque PR de skill | qu'une consigne changée ne fasse pas reculer le comportement mesuré | 2026-09-30, plan banc d'évals, étape A6 | `ci.yml#evals`, `scripts/evals_ab.py` | CI, job `evals` (payant, runner seulement) | en place |
+| Chaque cas d'éval a sa catégorie | qu'un cas qu'aucune catégorie ne nomme ne soit jamais joué par une PR qui choisit ses catégories, et qu'une catégorie ne pointe pas dans le vide (cas ou chemin inexistant) | 2026-09-30, plan « Chercher, prouver, paralléliser #2 », étape B9 | `scripts/check_skills.py` (règle i), `evals/categories.json` | CI, job `garde` | en place |
+| Plancher des évals | qu'une PR qui choisit ses catégories ne laisse pas un skill ou un agent modifié sans cas joué ; ce qui touche le socle commun (`_partage/`, hooks, banc, outillage, CI) rejoue tout | 2026-09-30, étape B9 (décision de Benjamin : des évals par catégorie, un plancher tenu par la CI) | `scripts/evals_selection.py`, `ci.yml#evals-portee` | CI, job `evals-portee`, sur les PR | en place |
+| Verdict des évals au nom fixe | qu'un contrôle d'évals puisse être exigé par le verrou de `main` : le nom de `Évals (<plugin>)` change avec la matrice, celui-ci non (rouge si un bras est rouge ou annulé, vert s'il est sauté) | 2026-09-30, étape B9 | `ci.yml#evals-verdict` | CI, job `Verdict des évals` ; à ajouter au ruleset après le merge du lot B | en place |
 | Une leçon a son cas | qu'un correctif de skill ne parte pas sans cas d'éval qui le prouve | 2026-09-30, étape A7 | `scripts/check_lecon_a_son_cas.py` | CI, job `garde`, sur les PR | en place |
 | Description ≤ 1 536 caractères | que Claude Code ne tronque pas la fin d'une description (phrases de déclenchement perdues sans un mot) | 2026-09-30, étape A7 ; `executer-plan-notion` à 1 545 le jour même | `scripts/check_skills.py` (règle a) | CI, job `garde` | en place |
 | Taille des `SKILL.md`, à cliquet | qu'un skill ne grossisse pas ; le plafond de `scripts/limites.json` ne peut que baisser | 2026-09-30, étape A7 | `scripts/check_skills.py` (règle b), `scripts/limites.json` | CI, job `garde` | en place |
-| Invariants en tête des skills marqués | que les invariants survivent à la compaction (les 5 000 premiers jetons) | 2026-09-30, étape A7 ; skills marqués à l'étape B5 | `scripts/check_skills.py` (règle c) | CI, job `garde` ; aucun skill marqué aujourd'hui | prévu — étape B5 |
+| Invariants en tête des skills marqués | que les invariants survivent à la compaction (les 5 000 premiers jetons) | 2026-09-30, étape A7 ; skills marqués à l'étape B5 | `scripts/check_skills.py` (règle c) | CI, job `garde` ; skills marqués : `plan-notion`, `executer-plan-notion` (étape B5) | en place |
 | Agents cités dans `plugin.json` | que le manifeste dise tous les agents que le plugin livre | 2026-09-30, étape A7 | `scripts/check_skills.py` (règle d) | CI, job `garde` | en place |
 | Compagnons de `_partage/` tous cités | qu'un fichier partagé ne soit pas livré sans lecteur, et qu'une liste de compagnons ne mente pas | 2026-09-30, étape A7 | `scripts/check_skills.py` (règle e) | CI, job `garde` | en place |
 | Champs ignorés des agents de plugin | qu'un agent de plugin ne déclare pas `hooks`, `mcpServers` ou `permissionMode`, que Claude Code ignore | 2026-09-30, étape A7 | `scripts/check_skills.py` (règle f) | CI, job `garde` | en place |
@@ -47,8 +50,48 @@ Le statut dit où en est le garde :
 | Veille avant chaque mise à jour d'un skill | qu'une règle ne repose pas sur un fait de doc périmé | 2026-09-30, étape A7b | `scripts/check_veille.py`, `veille.yml`, `scripts/veille_faits.py` | CI, job `garde` (journal, via `scripts/ci_locale.sh`) et workflow hebdomadaire (faits) | en place |
 | `--no-verify` et `Statut` accentué | qu'un commit ne saute pas les hooks (`--no-verify`) et qu'une valeur de `Statut` d'une page Notion ne soit pas écrite avec un accent (les valeurs sont sans accents) | 2026-09-30, cas `evals/plans-notion/no-verify` | hooks du plugin | hooks | prévu — étape C4 |
 | Secrets dans le dépôt | qu'un jeton ne parte pas dans un commit d'un dépôt public | dépôt public depuis l'origine | protection des poussées de GitHub (push protection) | GitHub, à chaque `git push` | réglage |
-| `main` verrouillé | qu'on ne pousse pas sur `main` sans passer par la CI | 2026-09-30, étape A9 | ruleset GitHub sur `main` | GitHub | prévu — étape A9 |
+| `main` verrouillé | qu'on ne pousse pas sur `main` sans passer par la CI | 2026-09-30, étape A9 | ruleset GitHub `main-verrouillee` (id 24256838) | GitHub, sur toute poussée vers `main` | réglage |
 | Liens de `docs/` et de `CLAUDE.md` | qu'un lien de la doc ne pointe pas dans le vide : `check_references.py` ne parcourt que `plugins/` | 2026-09-30, constaté à l'étape A7 | manquant | nulle part | manquant — à décider |
+
+## Le verrou de `main`
+
+Le ruleset `main-verrouillee` interdit de supprimer `main` ou d'y réécrire
+l'historique, impose de passer par une PR, et exige trois contrôles verts :
+`Gardes de distribution`, `Validation des plugins` et `Portée des évals`. Le
+contrôle d'évals n'y figure pas encore, parce que son nom change avec le plugin
+(`Évals (<plugin>)`) : le job au nom fixe `Verdict des évals`
+(`ci.yml#evals-verdict`, étape B9) existe désormais, et sera ajouté au ruleset
+après le merge du lot B. Aucun contournement
+n'est prévu (`bypass_actors` vide). Retour arrière :
+`gh api -X DELETE repos/benjaminge73/mes-skills/rulesets/24256838`.
+
+```json
+{
+  "name": "main-verrouillee",
+  "target": "branch",
+  "enforcement": "active",
+  "conditions": { "ref_name": { "include": ["~DEFAULT_BRANCH"], "exclude": [] } },
+  "bypass_actors": [],
+  "rules": [
+    { "type": "deletion" },
+    { "type": "non_fast_forward" },
+    { "type": "pull_request", "parameters": {
+        "required_approving_review_count": 0,
+        "dismiss_stale_reviews_on_push": false,
+        "require_code_owner_review": false,
+        "require_last_push_approval": false,
+        "required_review_thread_resolution": false,
+        "allowed_merge_methods": ["merge", "squash", "rebase"] } },
+    { "type": "required_status_checks", "parameters": {
+        "strict_required_status_checks_policy": false,
+        "do_not_enforce_on_create": false,
+        "required_status_checks": [
+          { "context": "Gardes de distribution", "integration_id": 15368 },
+          { "context": "Validation des plugins", "integration_id": 15368 },
+          { "context": "Portée des évals", "integration_id": 15368 } ] } }
+  ]
+}
+```
 
 ## Ajouter une ligne
 

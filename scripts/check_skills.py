@@ -37,6 +37,13 @@ Les règles, et le fait de doc qui fonde chacune (voir ``docs/veille.md``) :
     mémoire active Read, Write et Edit d'office, et défait l'interdit.
 (h) Aucun dossier ``.claude/agent-memory*`` dans le dépôt : la mémoire d'un
     agent est de l'état personnel, pas du code à versionner.
+(i) Pour chaque plugin qui a un banc ``evals/<plugin>/`` : chaque cas (un dossier
+    avec ``prompt.md`` ou ``case.yaml``) est dans au moins une catégorie de
+    ``evals/categories.json``, chaque cas cité existe, chaque catégorie a au
+    moins un cas, et chaque chemin qu'une catégorie « exerce » existe sous
+    ``plugins/<plugin>/``. Sans cela, un cas qu'aucune catégorie ne nomme ne
+    serait jamais joué par une PR qui choisit ses catégories, et une catégorie
+    qui pointe dans le vide ferait croire qu'un skill est couvert.
 
 Exceptions datées
 -----------------
@@ -389,6 +396,64 @@ def _regle_h(racine: Path) -> list[Anomalie]:
         "Le supprimer et ne jamais le versionner.")) for c in trouves]
 
 
+def _dossiers_de_cas(evals_plugin: Path) -> list[str]:
+    return sorted(d.name for d in evals_plugin.iterdir()
+                  if d.is_dir() and ((d / "prompt.md").is_file() or (d / "case.yaml").is_file()))
+
+
+def _regle_i(racine: Path, plugin: Path) -> list[Anomalie]:
+    evals_plugin = racine / "evals" / plugin.name
+    if not evals_plugin.is_dir():
+        return []
+    fichier = racine / "evals" / "categories.json"
+    cible = _rel(racine, fichier)
+    qui = f"le plugin `{plugin.name}` a un banc `evals/{plugin.name}/`"
+    if not fichier.is_file():
+        return [Anomalie("i", cible, (
+            f"{qui} mais `evals/categories.json` n'existe pas : le créer, avec une entrée "
+            f"`\"{plugin.name}\"` qui classe chaque cas dans au moins une catégorie."))]
+    try:
+        brut = json.loads(fichier.read_text(encoding="utf-8"))
+        categories = brut[plugin.name]
+        if not isinstance(categories, dict) or not all(
+                isinstance(c, dict) and isinstance(c.get("cas"), list)
+                and isinstance(c.get("exerce"), list) for c in categories.values()):
+            raise TypeError("catégories mal formées")
+    except (OSError, json.JSONDecodeError):
+        return [Anomalie("i", cible, "`evals/categories.json` n'est pas du JSON lisible : le corriger.")]
+    except (KeyError, TypeError):
+        return [Anomalie("i", cible, (
+            f"{qui} mais `evals/categories.json` n'a pas d'entrée exploitable `\"{plugin.name}\"` : "
+            "un objet {catégorie: {\"exerce\": [chemins], \"cas\": [noms]}}."))]
+
+    anomalies: list[Anomalie] = []
+    cas_du_banc = _dossiers_de_cas(evals_plugin)
+    classes = {c for cat in categories.values() for c in cat["cas"]}
+    for cas in cas_du_banc:
+        if cas not in classes:
+            anomalies.append(Anomalie("i", cible, (
+                f"le cas `{cas}` (evals/{plugin.name}/{cas}) n'est dans aucune catégorie : "
+                "l'ajouter au `cas` d'une catégorie de `evals/categories.json`, faute de quoi "
+                "une PR qui choisit ses catégories ne le jouera jamais.")))
+    for nom, cat in sorted(categories.items()):
+        if not cat["cas"]:
+            anomalies.append(Anomalie("i", cible, (
+                f"la catégorie `{nom}` n'a aucun cas : lui en donner un, ou la supprimer de "
+                "`evals/categories.json`.")))
+        for cas in cat["cas"]:
+            if cas not in cas_du_banc:
+                anomalies.append(Anomalie("i", cible, (
+                    f"la catégorie `{nom}` cite le cas `{cas}`, qui n'existe pas dans "
+                    f"`evals/{plugin.name}/` : corriger le nom ou créer le cas.")))
+        for chemin in cat["exerce"]:
+            if not (plugin / str(chemin)).exists():
+                anomalies.append(Anomalie("i", cible, (
+                    f"la catégorie `{nom}` dit exercer `{chemin}`, qui n'existe pas sous "
+                    f"`plugins/{plugin.name}/` : corriger le chemin (relatif au plugin), "
+                    "ou retirer la ligne.")))
+    return anomalies
+
+
 # --------------------------------------------------------------------------
 # Contrôle d'ensemble, exceptions, cliquet, registre
 # --------------------------------------------------------------------------
@@ -420,6 +485,7 @@ def controler(racine: Path, limites: dict, sans_exceptions: bool = False) -> Res
             anomalies += _regles_agent(cible, champs)
         anomalies += _regle_d(racine, plugin)
         anomalies += _regles_e(racine, plugin)
+        anomalies += _regle_i(racine, plugin)
     anomalies += _regle_h(racine)
 
     exceptions = [] if sans_exceptions else list(limites.get("exceptions", []))

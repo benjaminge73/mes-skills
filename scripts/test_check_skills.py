@@ -602,6 +602,149 @@ class Registre(Depot):
         self.assertEqual(len(check_skills.verifier_registre(self.racine)), 1)
 
 
+class RegleI_CategoriesDesEvals(Depot):
+    """Chaque cas d'un plugin est dans une catégorie de evals/categories.json,
+    chaque cas cité existe, chaque catégorie a un cas, chaque chemin exercé existe."""
+
+    def evals(self, *cas):
+        for nom in cas:
+            _ecrire(self.racine / "evals" / "p" / nom / "prompt.md", "Réponds OK.\n")
+
+    def categories(self, plugin="p", **par_categorie):
+        _ecrire(self.racine / "evals" / "categories.json", json.dumps({
+            "_commentaire": "ignoré", plugin: par_categorie}))
+
+    def conforme(self):
+        self.plugin_conforme()
+        self.evals("c1", "c2")
+        self.categories(
+            un={"exerce": ["skills/s/"], "cas": ["c1"]},
+            deux={"exerce": ["skills/s/SKILL.md"], "cas": ["c1", "c2"]},
+        )
+
+    def refus_i(self):
+        return [a for a in self.controler().refus if a.regle == "i"]
+
+    def test_des_cas_tous_classes_sont_acceptes(self):
+        self.conforme()
+        self.assertEqual(self.controler().refus, [])
+
+    def test_un_cas_sans_categorie_est_refuse_avec_la_marche_a_suivre(self):
+        self.conforme()
+        self.evals("orphelin")
+        refus = self.refus_i()
+        self.assertEqual(len(refus), 1)
+        self.assertIn("orphelin", refus[0].message)
+        self.assertIn("categories.json", refus[0].message)
+
+    def test_une_categorie_sans_cas_est_refusee_et_nommee(self):
+        self.conforme()
+        self.categories(
+            un={"exerce": ["skills/s/"], "cas": ["c1", "c2"]},
+            vide={"exerce": ["skills/s/"], "cas": []},
+        )
+        refus = self.refus_i()
+        self.assertEqual(len(refus), 1)
+        self.assertIn("vide", refus[0].message)
+
+    def test_un_cas_cite_qui_n_existe_pas_est_refuse_et_nomme(self):
+        self.conforme()
+        self.categories(un={"exerce": ["skills/s/"], "cas": ["c1", "c2", "fantome"]})
+        refus = self.refus_i()
+        self.assertEqual(len(refus), 1)
+        self.assertIn("fantome", refus[0].message)
+
+    def test_un_chemin_exerce_qui_n_existe_pas_est_refuse_et_nomme(self):
+        self.conforme()
+        self.categories(un={"exerce": ["skills/s/", "agents/absent.md"], "cas": ["c1", "c2"]})
+        refus = self.refus_i()
+        self.assertEqual(len(refus), 1)
+        self.assertIn("agents/absent.md", refus[0].message)
+
+    def test_un_chemin_exerce_se_lit_sous_le_plugin_pas_a_la_racine(self):
+        self.conforme()
+        _ecrire(self.racine / "skills" / "ailleurs" / "SKILL.md", "x\n")  # à la racine du dépôt
+        self.categories(un={"exerce": ["skills/ailleurs/"], "cas": ["c1", "c2"]})
+        self.assertEqual(len(self.refus_i()), 1)
+
+    def test_categories_json_absent_alors_qu_un_plugin_a_des_evals_est_refuse(self):
+        self.plugin_conforme()
+        self.evals("c1")
+        refus = self.refus_i()
+        self.assertEqual(len(refus), 1)
+        self.assertIn("categories.json", refus[0].message)
+
+    def test_un_plugin_absent_de_categories_json_est_refuse(self):
+        self.conforme()
+        self.categories(plugin="autre", un={"exerce": ["skills/s/"], "cas": ["c1", "c2"]})
+        refus = self.refus_i()
+        self.assertTrue(refus)
+        self.assertIn("p", refus[0].message)
+
+    def test_un_categories_json_illisible_est_refuse_pas_ignore(self):
+        self.conforme()
+        _ecrire(self.racine / "evals" / "categories.json", "{ pas du json")
+        self.assertEqual(len(self.refus_i()), 1)
+
+    def test_un_plugin_sans_dossier_d_evals_n_est_pas_controle(self):
+        self.plugin_conforme()
+        self.assertEqual(self.controler().refus, [])
+
+    def test_un_dossier_sans_prompt_ni_case_n_est_pas_un_cas(self):
+        self.conforme()
+        _ecrire(self.racine / "evals" / "p" / "notes" / "lisez-moi.md", "pas un cas\n")
+        self.assertEqual(self.refus_i(), [])
+
+    def test_un_cas_a_case_yaml_seul_est_un_cas(self):
+        self.conforme()
+        _ecrire(self.racine / "evals" / "p" / "yaml-seul" / "case.yaml", "name: x\n")
+        refus = self.refus_i()
+        self.assertEqual(len(refus), 1)
+        self.assertIn("yaml-seul", refus[0].message)
+
+    def test_le_depot_reel_respecte_la_regle(self):
+        racine = Path(__file__).resolve().parents[1]
+        limites = json.loads((racine / "scripts" / "limites.json").read_text("utf-8"))
+        res = check_skills.controler(racine, limites)
+        self.assertEqual([a for a in res.refus if a.regle == "i"], [])
+
+
+class RegistreDuLotB9(unittest.TestCase):
+    """Les lignes du registre que l'étape B9 doit poser, sur le vrai dépôt."""
+
+    RACINE = Path(__file__).resolve().parents[1]
+
+    def lignes(self):
+        texte = (self.RACINE / "docs" / "garde-fous.md").read_text("utf-8")
+        return [l for l in texte.splitlines() if l.startswith("|")]
+
+    def ligne(self, debut):
+        trouvees = [l for l in self.lignes() if l.split("|")[1].strip().startswith(debut)]
+        self.assertEqual(len(trouvees), 1, f"une ligne « {debut}… » attendue au registre")
+        return [c.strip() for c in trouvees[0].strip().strip("|").split("|")]
+
+    def test_le_registre_reste_coherent(self):
+        self.assertEqual(check_skills.verifier_registre(self.RACINE), [])
+
+    def test_la_regle_des_categories_est_au_registre_et_en_place(self):
+        cellules = self.ligne("Chaque cas d'éval a sa catégorie")
+        self.assertIn("scripts/check_skills.py", cellules[3])
+        self.assertIn("evals/categories.json", cellules[3])
+        self.assertTrue(cellules[5].startswith("en place"))
+
+    def test_le_plancher_des_evals_est_au_registre_et_en_place(self):
+        cellules = self.ligne("Plancher des évals")
+        self.assertIn("scripts/evals_selection.py", cellules[3])
+        self.assertIn("ci.yml#evals-portee", cellules[3])
+        self.assertTrue(cellules[5].startswith("en place"))
+
+    def test_le_verdict_au_nom_fixe_est_au_registre_avec_le_ruleset_a_suivre(self):
+        cellules = self.ligne("Verdict des évals au nom fixe")
+        self.assertIn("ci.yml#evals-verdict", cellules[3])
+        self.assertTrue(cellules[5].startswith("en place"))
+        self.assertIn("à ajouter au ruleset après le merge du lot B", " ".join(cellules))
+
+
 class LireFrontmatter(unittest.TestCase):
     def test_scalaire_liste_bloc_et_flux(self):
         texte = ("---\nname: a\ndescription: >-\n  premiere\n  seconde\n"

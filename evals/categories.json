@@ -1,0 +1,29 @@
+{
+  "_commentaire": "Les catégories du banc d'évals, par plugin : ce qu'elles exercent (chemins relatifs à plugins/<plugin>/, en préfixe) et les cas qui les jouent. Seule source : ni case.yaml ni prompt.md ne portent d'étiquette. Un plan choisit ses catégories par une ligne « Evals: <catégories> — <raison> » (ou « Evals: tout ») dans le corps de la PR ; scripts/evals_selection.py en tire les cas à jouer et refuse un skill ou un agent modifié qu'aucune catégorie choisie n'exerce. check_skills.py (règle i) refuse un cas sans catégorie, une catégorie sans cas, un cas cité qui n'existe pas et un chemin exercé qui n'existe pas.",
+  "plans-notion": {
+    "existant": {
+      "exerce": ["skills/plan-notion/", "agents/chercheur.md"],
+      "cas": ["existant-jeu-de-donnees", "existant-jeu-de-questions"]
+    },
+    "bruit": {
+      "exerce": ["skills/plan-notion/"],
+      "cas": ["bruit-bounded", "bruit-doc-seule", "report-sans-seuil"]
+    },
+    "etat-de-depart": {
+      "exerce": ["skills/plan-notion/", "agents/enqueteur.md"],
+      "cas": ["appelants", "garde-fou-cache", "hook-claude", "depart-rouge"]
+    },
+    "maquette": {
+      "exerce": ["skills/plan-notion/"],
+      "cas": ["maquette-requise"]
+    },
+    "decouvertes": {
+      "exerce": ["skills/executer-plan-notion/", "agents/executant.md", "agents/relecteur.md"],
+      "cas": ["decouverte-irreversible", "decouverte-reversible", "decouverte-secret", "decouverte-trop-grande"]
+    },
+    "perimetre": {
+      "exerce": ["skills/executer-plan-notion/", "agents/executant.md"],
+      "cas": ["no-verify", "rien-hors-plan"]
+    }
+  }
+}
