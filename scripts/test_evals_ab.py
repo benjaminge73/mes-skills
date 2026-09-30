@@ -52,7 +52,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import evals_ab  # noqa: E402
 
 FIXTURES = Path(__file__).resolve().parent / "fixtures_evals_ab"
-MODELE = "claude-opus-5-5"
+MODELE = "claude-sonnet-5-5"  # le modèle joué par défaut (étape B9)
+AUTRE_MODELE = "claude-opus-5-5"  # un modèle qui n'est pas celui joué
 
 
 def rapport(nom: str) -> dict:
@@ -942,11 +943,11 @@ class BruitEtModele(DepotEtLanceur):
 
     def test_un_bruit_d_un_autre_modele_est_ignore_et_le_tableau_le_dit(self):
         code, sortie, _ = jouer(
-            self.argv("--bruit", self.bruit(modele="claude-sonnet-5-5")), self.env
+            self.argv("--bruit", self.bruit(modele=AUTRE_MODELE)), self.env
         )
         self.assertEqual(code, 0, sortie)
         self.assertIn(
-            "bruit de claude-sonnet-5-5 ignoré : les cas sont joués sur "
+            f"bruit de {AUTRE_MODELE} ignoré : les cas sont joués sur "
             f"{MODELE} — seuil estimé", sortie)
         self.assertIn("estimé", sortie.split("Bruit (")[1].split(",")[0])
         self.assertNotIn("mesuré en A/A", sortie)
@@ -959,37 +960,156 @@ class BruitEtModele(DepotEtLanceur):
         self.assertNotIn("mesuré en A/A", sortie)
 
     def test_le_modele_joue_vient_de_evals_modele(self):
-        self.env["EVALS_MODELE"] = "claude-sonnet-5-5"
-        _, sortie, _ = jouer(self.argv("--bruit", self.bruit(modele="claude-sonnet-5-5")), self.env)
+        self.env["EVALS_MODELE"] = AUTRE_MODELE
+        _, sortie, _ = jouer(self.argv("--bruit", self.bruit(modele=AUTRE_MODELE)), self.env)
         self.assertIn("mesuré en A/A", sortie)
         _, sortie, _ = jouer(self.argv("--bruit", self.bruit(modele=MODELE)), self.env)
-        self.assertIn(f"bruit de {MODELE} ignoré : les cas sont joués sur claude-sonnet-5-5",
+        self.assertIn(f"bruit de {MODELE} ignoré : les cas sont joués sur {AUTRE_MODELE}",
                       sortie)
 
-    def test_sans_evals_modele_le_modele_joue_est_claude_opus_5_5(self):
+    def test_le_modele_par_defaut_est_claude_sonnet_5_5(self):
+        # Écrit en dur : l'attendu ne dérive pas de la constante testée.
+        self.assertEqual(evals_ab.MODELE_PAR_DEFAUT, "claude-sonnet-5-5")
+
+    def test_sans_evals_modele_le_modele_joue_est_claude_sonnet_5_5(self):
         del self.env["EVALS_MODELE"]
         ancien = os.environ.pop("EVALS_MODELE", None)
         try:
-            _, sortie, _ = jouer(self.argv("--bruit", self.bruit(modele="claude-opus-5-5")),
+            _, sortie, _ = jouer(self.argv("--bruit", self.bruit(modele="claude-sonnet-5-5")),
                                  self.env)
+            _, sortie_opus, _ = jouer(self.argv("--bruit", self.bruit(modele="claude-opus-5-5")),
+                                      self.env)
         finally:
             if ancien is not None:
                 os.environ["EVALS_MODELE"] = ancien
         self.assertIn("mesuré en A/A", sortie)
         self.assertNotIn("ignoré", sortie)
+        # Le bruit d'Opus, seul fichier du dépôt aujourd'hui, n'est plus celui du modèle joué.
+        self.assertIn("bruit de claude-opus-5-5 ignoré : les cas sont joués sur "
+                      "claude-sonnet-5-5", sortie_opus)
 
     def test_le_bruit_ecrit_par_le_mode_aa_porte_le_modele_joue(self):
-        self.env["EVALS_MODELE"] = "claude-sonnet-5-5"
+        self.env["EVALS_MODELE"] = AUTRE_MODELE
         sortie_bruit = self.racine / "bruit-aa.json"
         code, _, _ = jouer(self.argv("--sortie-bruit", str(sortie_bruit), mode="aa"), self.env)
         self.assertEqual(code, 0)
-        self.assertEqual(json.loads(sortie_bruit.read_text("utf-8"))["modele"],
-                         "claude-sonnet-5-5")
+        self.assertEqual(json.loads(sortie_bruit.read_text("utf-8"))["modele"], AUTRE_MODELE)
+
+    def test_le_bruit_ecrit_par_le_mode_aa_porte_l_effort_joue(self):
+        self.env["EVALS_EFFORT"] = "low"
+        sortie_bruit = self.racine / "bruit-aa.json"
+        code, _, _ = jouer(self.argv("--sortie-bruit", str(sortie_bruit), mode="aa"), self.env)
+        self.assertEqual(code, 0)
+        self.assertEqual(json.loads(sortie_bruit.read_text("utf-8"))["effort"], "low")
+
+    def test_le_tableau_dit_le_modele_et_l_effort_joues(self):
+        self.env["EVALS_EFFORT"] = "medium"
+        _, sortie, _ = jouer(self.argv(), self.env)
+        self.assertIn(f"Modèle joué : {MODELE}, effort medium.", sortie)
+
+    def test_sans_evals_effort_le_tableau_dit_l_effort_high(self):
+        self.env.pop("EVALS_EFFORT", None)
+        ancien = os.environ.pop("EVALS_EFFORT", None)
+        try:
+            _, sortie, _ = jouer(self.argv(), self.env)
+        finally:
+            if ancien is not None:
+                os.environ["EVALS_EFFORT"] = ancien
+        self.assertIn("effort high.", sortie)
 
     def test_le_fichier_de_bruit_du_depot_declare_son_modele(self):
         bruit = json.loads((Path(__file__).resolve().parents[1] / "evals"
                             / "bruit-plans-notion.json").read_text("utf-8"))
-        self.assertEqual(bruit["modele"], "claude-opus-5-5")
+        # Tant que la mesure de Sonnet n'est pas commitée, ce fichier porte Opus ;
+        # après, Sonnet. Le contrat testé : il déclare un modèle, sans quoi
+        # `filtrer_bruit` l'ignorerait toujours.
+        self.assertIsInstance(bruit.get("modele"), str)
+        self.assertTrue(bruit["modele"].startswith("claude-"), bruit["modele"])
+
+
+class LanceurModeleEtEffort(unittest.TestCase):
+    """``evals/outillage/lancer.sh`` avec un faux ``claude`` dans le ``PATH`` : le
+    faux écrit dans un fichier ce qu'il a reçu (arguments et effort), rien
+    d'autre. Aucun vrai appel, aucun jeton réel (un jeton factice sert à vérifier
+    que le lanceur ne l'affiche pas)."""
+
+    LANCEUR = Path(__file__).resolve().parents[1] / "evals" / "outillage" / "lancer.sh"
+    JETON = "jeton-factice-a-ne-jamais-afficher"
+
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self._tmp.cleanup)
+        self.racine = Path(self._tmp.name)
+        self.bin = self.racine / "bin"
+        self.bin.mkdir()
+        self.trace = self.racine / "trace.txt"
+        faux = self.bin / "claude"
+        faux.write_text(
+            "#!/bin/sh\n"
+            f'echo "effort=${{CLAUDE_CODE_EFFORT_LEVEL-<absent>}}" >> "{self.trace}"\n'
+            f'echo "args=$*" >> "{self.trace}"\n'
+            "exit 0\n", "utf-8")
+        faux.chmod(0o755)
+
+    def _lancer(self, **env_extra) -> tuple[subprocess.CompletedProcess, str]:
+        assert "GITHUB_ACTIONS" not in env_extra, "jamais de GITHUB_ACTIONS=true dans un test"
+        env = {k: v for k, v in os.environ.items()
+               if k not in ("GITHUB_ACTIONS", "EVALS_MODELE", "EVALS_EFFORT",
+                            "EVALS_MAX_COUT_USD", "CLAUDE_CODE_EFFORT_LEVEL", "TMPDIR")}
+        env["PATH"] = f"{self.bin}{os.pathsep}{env.get('PATH', '')}"
+        env["TMPDIR"] = str(self.racine / "traces")
+        env["CLAUDE_CODE_OAUTH_TOKEN"] = self.JETON
+        env.update(env_extra)
+        r = subprocess.run(
+            ["bash", str(self.LANCEUR), str(self.racine / "plugin"), str(self.racine / "sortie.json")],
+            env=env, capture_output=True, text=True, timeout=30)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        return r, self.trace.read_text("utf-8")
+
+    def test_sans_evals_effort_claude_recoit_l_effort_high(self):
+        _, trace = self._lancer()
+        self.assertIn("effort=high\n", trace)
+
+    def test_evals_effort_devient_claude_code_effort_level(self):
+        _, trace = self._lancer(EVALS_EFFORT="low")
+        self.assertIn("effort=low\n", trace)
+
+    def test_un_evals_effort_vide_retombe_sur_high(self):
+        _, trace = self._lancer(EVALS_EFFORT="")
+        self.assertIn("effort=high\n", trace)
+
+    def test_evals_effort_est_la_seule_source_meme_si_l_environnement_porte_deja_un_effort(self):
+        # Une session interactive peut avoir CLAUDE_CODE_EFFORT_LEVEL dans son
+        # environnement : la mesure ne doit pas en dépendre.
+        _, trace = self._lancer(CLAUDE_CODE_EFFORT_LEVEL="low")
+        self.assertIn("effort=high\n", trace)
+
+    def test_le_modele_par_defaut_du_lanceur_est_claude_sonnet_5_5(self):
+        _, trace = self._lancer()
+        self.assertIn("--model claude-sonnet-5-5", trace)
+        self.assertNotIn("claude-opus", trace)
+
+    def test_evals_modele_remplace_le_modele_du_lanceur(self):
+        _, trace = self._lancer(EVALS_MODELE="claude-opus-5-5")
+        self.assertIn("--model claude-opus-5-5", trace)
+
+    def test_le_lanceur_n_affiche_ni_le_jeton_ni_l_environnement(self):
+        r, _ = self._lancer(EVALS_EFFORT="high")
+        self.assertNotIn(self.JETON, r.stdout + r.stderr)
+        self.assertNotIn("CLAUDE_CODE_EFFORT_LEVEL=", r.stdout + r.stderr)
+
+    def test_le_lanceur_ne_contient_aucune_commande_qui_affiche_l_environnement(self):
+        code = [l for l in self.LANCEUR.read_text("utf-8").splitlines()
+                if l.strip() and not l.lstrip().startswith("#")]
+        for ligne in code:
+            self.assertNotRegex(ligne, r"^\s*(env|printenv|set -x|export -p|declare -x)(\s|$)", ligne)
+
+    def test_l_en_tete_documente_les_deux_variables_et_leurs_defauts(self):
+        entete = "\n".join(l for l in self.LANCEUR.read_text("utf-8").splitlines()
+                           if l.startswith("#"))
+        self.assertRegex(entete, r"EVALS_MODELE[^\n]*claude-sonnet-5-5")
+        self.assertRegex(entete, r"EVALS_EFFORT[^\n]*high")
+        self.assertIn("CLAUDE_CODE_EFFORT_LEVEL", entete)
 
 
 class SeuilQuiNePeutRienVoir(unittest.TestCase):

@@ -373,8 +373,161 @@ class CiYml(unittest.TestCase):
         self.assertIn("--cas", evals)
         self.assertIn("--bruit", evals)
         self.assertIn("EVALS_CONCURRENCE: '5'", evals)
-        # Le modèle ne change pas ici : le pilote le change après la sonde Sonnet.
-        self.assertIn("EVALS_MODELE: claude-opus-5-5", evals)
+
+    def test_evals_joue_sonnet_en_effort_high(self):
+        # Décision de Benjamin (étape B9) après la sonde : Sonnet, effort `high`.
+        evals = _job(self.ci, "evals")
+        self.assertRegex(evals, r"(?m)^      EVALS_MODELE: claude-sonnet-5-5\s*$")
+        self.assertRegex(evals, r"(?m)^      EVALS_EFFORT: high\s*$")
+        self.assertNotIn("claude-opus", evals)
+
+    def test_la_cle_du_cache_de_la_base_inclut_l_effort(self):
+        # Un effort qui change change la mesure : une base jouée en `low` ne peut
+        # pas servir une comparaison en `high`.
+        evals = _job(self.ci, "evals")
+        cle = evals.split("id: cle", 1)[1].split("- name:", 1)[0]
+        self.assertRegex(cle, r"echo \"cle=[^\"]*\$EVALS_MODELE[^\"]*\$EVALS_EFFORT")
+
+    def test_le_commentaire_des_parametres_figes_mentionne_l_effort(self):
+        evals = _job(self.ci, "evals")
+        self.assertRegex(evals, r"# Figés : [^\n]*effort")
+
+    def test_le_lancement_manuel_offre_le_choix_ab_ou_aa_avec_ab_par_defaut(self):
+        dispatch = self.ci.split("  workflow_dispatch:\n", 1)[1].split("\npermissions:", 1)[0]
+        self.assertRegex(dispatch, r"(?m)^    inputs:\n      mode:\n")
+        self.assertRegex(dispatch, r"(?m)^        type: choice\s*$")
+        self.assertRegex(dispatch, r"(?m)^        default: ab\s*$")
+        self.assertRegex(dispatch, r"(?m)^        options:\n          - ab\n          - aa\s*$")
+        description = re.search(r"(?m)^        description: (.*)$", dispatch)
+        self.assertIsNotNone(description, "l'input `mode` n'a pas de description")
+        self.assertIn("deux fois", description.group(1))
+        self.assertIn("bruit", description.group(1))
+
+    def test_l_input_mode_ne_passe_que_par_env_jamais_interpole(self):
+        lignes = [l for l in self.ci.splitlines() if "${{ inputs" in l]
+        self.assertTrue(lignes, "l'input `mode` n'est lu nulle part")
+        for ligne in lignes:
+            self.assertRegex(ligne, r"^\s+MODE: \$\{\{ inputs\.mode \}\}\s*$")
+
+    def test_aucun_run_n_interpole_un_input_ni_une_donnee_d_evenement(self):
+        # `inputs.*` et `github.event.*` sont des entrées : dans un `run:` elles
+        # deviendraient du code. Elles passent par `env:`.
+        dangereux = re.compile(r"\$\{\{\s*(inputs|github\.event)\b")
+        indent_run = None
+        vus = 0
+        for ligne in self.ci.splitlines():
+            if not ligne.strip():
+                continue
+            indent = len(ligne) - len(ligne.lstrip(" "))
+            en_run = re.match(r"^(\s*)(- )?run:", ligne)
+            if en_run:
+                indent_run = len(en_run.group(1)) + (2 if en_run.group(2) else 0)
+                self.assertIsNone(dangereux.search(ligne.split("run:", 1)[1]), ligne)
+                vus += 1
+                continue
+            if indent_run is not None and indent > indent_run:
+                self.assertIsNone(dangereux.search(ligne), ligne)
+            else:
+                indent_run = None
+        self.assertGreater(vus, 5, "le balayage n'a lu aucun run")
+
+    def test_le_merge_automatique_lit_le_numero_de_pr_par_env(self):
+        merge = _job(self.ci, "merge-auto")
+        self.assertRegex(merge, r"(?m)^          PR_NUMBER: \$\{\{ github\.event\.pull_request\.number \}\}\s*$")
+        self.assertIn('gh pr merge "$PR_NUMBER"', merge)
+
+    def _etapes(self, job: str) -> list[str]:
+        return re.split(r"(?m)^      - ", _job(self.ci, job))[1:]
+
+    def _etape(self, job: str, morceau: str) -> str:
+        trouvees = [e for e in self._etapes(job) if morceau in e]
+        self.assertEqual(len(trouvees), 1, f"{morceau!r} : {len(trouvees)} étapes")
+        return trouvees[0]
+
+    def test_le_mode_aa_joue_tout_le_banc_et_ecrit_le_bruit_sous_runner_temp(self):
+        aa = self._etape("evals", "--mode aa")
+        self.assertRegex(aa, r"(?m)^        if: .*inputs\.mode == 'aa'")
+        self.assertIn("--sortie-bruit", aa)
+        self.assertRegex(aa, r"--sortie-bruit \"\$RUNNER_TEMP/[^\"]*bruit-\$PLUGIN\.json\"")
+        self.assertRegex(aa, r"(?m)^          MODE: \$\{\{ inputs\.mode \}\}\s*$")
+        # Ni cas choisis, ni bruit lu, ni base du cache : l'A/A mesure la tête seule.
+        for interdit in ("--cas", "--bruit ", "--reference", "--garder-base"):
+            self.assertNotIn(interdit, aa)
+
+    def test_le_mode_aa_ne_lit_ni_n_ecrit_le_cache_de_la_base(self):
+        for morceau in ("actions/cache/restore", "actions/cache/save"):
+            with self.subTest(etape=morceau):
+                etape = self._etape("evals", morceau)
+                self.assertRegex(etape, r"if: [^\n]*inputs\.mode != 'aa'")
+        base_gardee = self._etape("evals", "id: base")
+        self.assertRegex(base_gardee, r"if: [^\n]*inputs\.mode != 'aa'")
+
+    def test_le_mode_ab_habituel_est_saute_en_aa(self):
+        ab = self._etape("evals", "--mode ab")
+        self.assertRegex(ab, r"(?m)^        if: .*inputs\.mode != 'aa'")
+
+    def test_le_bruit_aa_est_publie_en_artefact_avec_l_action_epinglee(self):
+        etape = self._etape("evals", "name: evals-bruit-${{ matrix.plugin }}")
+        epingle = self._etape("evals", "name: evals-${{ matrix.plugin }}\n")
+        action = re.search(r"uses: (actions/upload-artifact@[0-9a-f]{40})", etape)
+        self.assertIsNotNone(action, "l'action d'upload doit être épinglée par SHA")
+        self.assertIn(action.group(1), epingle)
+        self.assertRegex(etape, r"if: [^\n]*inputs\.mode == 'aa'")
+        self.assertIn("evals-bruit", etape.split("path:", 1)[1])
+
+    def test_le_resume_du_mode_aa_dit_de_commiter_le_bruit_en_evals_bruit_plugin_json(self):
+        aa = self._etape("evals", "--mode aa")
+        self.assertIn("evals-bruit-$PLUGIN", aa)
+        self.assertIn("evals/bruit-$PLUGIN.json", aa)
+        self.assertIn("GITHUB_STEP_SUMMARY", aa)
+
+    def test_le_jeton_est_aussi_cherche_dans_le_dossier_du_bruit(self):
+        controle = self._etape("evals", "Vérifier que l'artefact ne contient pas le jeton")
+        self.assertIn("evals-bruit", controle)
+
+    def test_la_pr_rejoue_aussi_quand_son_corps_est_edite(self):
+        # `pull_request` sans `types:` ne se déclenche pas sur `edited` : ajouter
+        # ou corriger la ligne `Evals:` après l'ouverture ne relançait rien.
+        bloc = self.ci.split("\n  pull_request:\n", 1)[1].split("\n  push:", 1)[0]
+        types = re.search(r"(?m)^    types: \[([^\]]*)\]\s*$", bloc)
+        self.assertIsNotNone(types, "pull_request n'a pas de `types:`")
+        liste = {t.strip() for t in types.group(1).split(",")}
+        self.assertEqual(liste, {"opened", "synchronize", "reopened", "edited"})
+
+    def test_le_commentaire_de_on_explique_pourquoi_edited(self):
+        entete = self.ci.split("\njobs:", 1)[0]
+        self.assertRegex(entete, r"(?s)#[^\n]*edited")
+        self.assertRegex(entete, r"(?is)#[^\n]*(corps|ligne `Evals:`)")
+
+    def test_une_edition_sans_changement_du_corps_ne_selectionne_aucun_plugin(self):
+        portee = _job(self.ci, "evals-portee")
+        etape = portee.split("id: portee", 1)[1]
+        self.assertRegex(etape, r"(?m)^          EVENT_ACTION: \$\{\{ github\.event\.action \}\}\s*$")
+        self.assertRegex(
+            etape, r"(?m)^          CORPS_EDITE: \$\{\{ github\.event\.changes\.body && 'oui' \|\| 'non' \}\}\s*$")
+        garde = etape.split("run: |", 1)[1].split("set -euo pipefail", 1)[1][:900]
+        self.assertIn('"$EVENT_ACTION" = "edited"', garde)
+        self.assertIn('"$CORPS_EDITE"', garde)
+        self.assertIn("touche=false", garde)
+
+    def test_une_edition_sans_changement_du_corps_ne_merge_rien(self):
+        # Sans cette garde, un titre modifié sur une PR dont les évals ont reculé
+        # rejouerait une CI où tout est « sauté » : verte, donc mergée.
+        merge = _job(self.ci, "merge-auto")
+        condition = merge.split("runs-on:", 1)[0]
+        self.assertIn("github.event.action != 'edited' || github.event.changes.body", condition)
+
+    def test_une_pr_fermee_ne_rejoue_pas_d_evals_ni_ne_merge(self):
+        for job in ("evals-portee", "merge-auto"):
+            with self.subTest(job=job):
+                condition = _job(self.ci, job).split("runs-on:", 1)[0]
+                self.assertIn("github.event.pull_request.state == 'open'", condition)
+
+    def test_le_lancement_manuel_ne_merge_rien_et_le_verdict_n_en_depend_pas(self):
+        merge = _job(self.ci, "merge-auto")
+        self.assertIn("github.event_name == 'pull_request'", merge.split("runs-on:", 1)[0])
+        verdict = _job(self.ci, "evals-verdict")
+        self.assertNotIn("inputs", verdict)
 
     def test_la_cle_du_cache_de_la_base_inclut_la_liste_des_cas_joues(self):
         evals = _job(self.ci, "evals")
