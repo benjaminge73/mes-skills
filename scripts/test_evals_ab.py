@@ -10,17 +10,22 @@ en sont dérivés à la main, à l'attendu calculé sur le papier :
 
     base            alpha 1, beta 2/3, gamma 1, delta 1/3   (moyenne 3/4)
     tete_stable     alpha 1, beta 1/3, gamma 1, delta 2/3   (moyenne 3/4)
-    tete_recul_global   chaque cas perd 1/3                  (moyenne 5/12)
+    tete_recul_global   alpha 1/3, beta 0, gamma 2/3, delta 1/3 (moyenne 1/3,
+                        soit -5/12 : au-dela du bruit global, sans qu'aucun
+                        cas ne depasse le bruit par cas)
     tete_recul_cas  gamma s'effondre (1 -> 0), le reste égal (moyenne 1/2)
     tete_amelioree  tout à 1                                 (moyenne 1)
 
-4 cas x 3 passages : bruit estimé 1/racine(4*3) = 0,2887 (global) et
-1/racine(3) = 0,5774 (par cas).
+4 cas x 3 passages : bruit estimé racine(2)/racine(4*3) = 0,4082 (global) et
+racine(2)/racine(3) = 0,8165 (par cas) : celui d'un *écart* entre deux moyennes
+(base, tête), qui portent chacune leur propre bruit, et non celui d'une seule.
 """
 from __future__ import annotations
 
+import copy
 import io
 import json
+import math
 import os
 import shutil
 import subprocess
@@ -165,6 +170,20 @@ def comparer(tete: str, bruit=None):
     return evals_ab.comparer(rapport("base"), rapport(tete), bruit=bruit)
 
 
+def rapport_synthetique(passages_par_cas: dict[str, list[int]]) -> dict:
+    """Un rapport à la forme réelle, dont chaque cas porte les passages donnés
+    (1 = réussi, 0 = raté) : sert aux scénarios qui n'ont pas de fixture figée."""
+    modele = rapport("base")
+    passage = modele["cases"][0]["arms"]["with"][0]
+    cas = []
+    for nom, resultats in passages_par_cas.items():
+        c = copy.deepcopy(modele["cases"][0])
+        c["name"] = nom
+        c["arms"]["with"] = [dict(passage, score=r, passed=bool(r)) for r in resultats]
+        cas.append(c)
+    return {**modele, "cases": cas}
+
+
 class Comparer(unittest.TestCase):
     def test_l_ecart_par_cas_est_tete_moins_base(self):
         c = comparer("tete_stable")
@@ -179,16 +198,16 @@ class Comparer(unittest.TestCase):
         self.assertFalse(comparer("tete_stable").recul)
 
     def test_un_recul_moyen_au_dela_du_bruit_fait_echouer(self):
-        # -1/3 en moyenne, bruit global 0,2887 ; aucun cas isolé ne dépasse
-        # 0,5774 : c'est bien le seuil global qui parle.
+        # -5/12 en moyenne, bruit global 0,4082 ; aucun cas isolé ne dépasse
+        # 0,8165 (le pire perd 2/3) : c'est bien le seuil global qui parle.
         c = comparer("tete_recul_global")
-        self.assertAlmostEqual(c.delta_moyen, -1 / 3)
+        self.assertAlmostEqual(c.delta_moyen, -5 / 12)
         self.assertTrue(c.recul)
         self.assertFalse(any(ligne.recul for ligne in c.lignes))
 
     def test_un_cas_qui_s_effondre_fait_echouer_meme_si_la_moyenne_tient(self):
-        # gamma 1 -> 0 : moyenne -1/4, sous le seuil global 0,2887 ; mais
-        # l'écart du cas (-1) dépasse le bruit par cas (0,5774).
+        # gamma 1 -> 0 : moyenne -1/4, sous le seuil global 0,4082 ; mais
+        # l'écart du cas (-1) dépasse le bruit par cas (0,8165).
         c = comparer("tete_recul_cas")
         self.assertAlmostEqual(c.delta_moyen, -0.25)
         self.assertTrue(c.recul)
@@ -207,15 +226,50 @@ class Comparer(unittest.TestCase):
             evals_ab.comparer(rapport("base"), tete)
         self.assertIn("delta", str(ctx.exception))
 
-    def test_le_bruit_estime_vaut_un_sur_racine_de_n_fois_r(self):
-        # 4 cas x 3 passages : 1/racine(12) = 0,28868 ; par cas 1/racine(3).
+    def test_le_bruit_estime_est_celui_d_un_ecart_de_deux_moyennes_pas_d_une_seule(self):
+        # On compare deux moyennes (base, tête), chacune bruitée : l'écart est
+        # racine(2) fois plus incertain qu'une moyenne seule, qui vaut 1/racine(n*R).
+        # n et R viennent du fixture, pas du code testé.
+        base = rapport("base")
+        n = len(base["cases"])
+        r = len(base["cases"][0]["arms"]["with"])
         c = comparer("tete_stable")
         self.assertFalse(c.bruit_mesure)
-        self.assertAlmostEqual(c.bruit_global, 0.288675, places=5)
-        self.assertAlmostEqual(c.bruit_cas, 0.577350, places=5)
+        self.assertAlmostEqual(c.bruit_global, math.sqrt(2) / math.sqrt(n * r))
+        self.assertAlmostEqual(c.bruit_cas, math.sqrt(2) / math.sqrt(r))
+
+    def test_un_cas_de_3_sur_3_a_1_sur_3_est_dans_le_bruit_estime_d_un_ecart(self):
+        # Scénario de revue : deux références identiques (le vrai écart est nul),
+        # R = 3 ; un cas passe de 3/3 à 1/3 par pur hasard. Écart -0,667 < bruit
+        # par cas d'un écart 0,816 : pas de recul (avec 1/racine(3) = 0,577, la CI
+        # aurait échoué à tort).
+        base = rapport_synthetique({"a": [1, 1, 1], "b": [1, 1, 1], "c": [1, 1, 1], "d": [1, 1, 1]})
+        tete = rapport_synthetique({"a": [1, 1, 1], "b": [1, 1, 1], "c": [1, 1, 1], "d": [1, 0, 0]})
+        c = evals_ab.comparer(base, tete)
+        self.assertAlmostEqual(c.lignes[3].delta, -2 / 3)
+        self.assertFalse(c.lignes[3].recul)
+        self.assertFalse(c.recul)
+
+    def test_un_recul_moyen_de_0_23_sur_10_cas_x_3_passages_est_dans_le_bruit_estime(self):
+        # Scénario de revue, écart moyen -7/30 = -0,233 : entre 1/racine(30) = 0,183
+        # (bruit d'une seule moyenne, trop étroit) et racine(2)/racine(30) = 0,258.
+        # Aucun cas ne perd plus de 2/3, sous le bruit par cas 0,816.
+        toutes = [f"c{i}" for i in range(10)]
+        base = rapport_synthetique({nom: [1, 1, 1] for nom in toutes})
+        tete = rapport_synthetique(
+            {
+                **{nom: [1, 1, 1] for nom in toutes},
+                "c0": [1, 0, 0], "c1": [1, 0, 0],
+                "c2": [1, 1, 0], "c3": [1, 1, 0], "c4": [1, 1, 0],
+            }
+        )
+        c = evals_ab.comparer(base, tete)
+        self.assertAlmostEqual(c.delta_moyen, -7 / 30)
+        self.assertFalse(any(ligne.recul for ligne in c.lignes))
+        self.assertFalse(c.recul)
 
     def test_un_bruit_mesure_remplace_l_estimation(self):
-        # Le même recul global (-1/3) devient acceptable si le bruit mesuré
+        # Le même recul global (-5/12) devient acceptable si le bruit mesuré
         # en A/A est large : rms des écarts par cas 0,5 -> global
         # 1,96 x 0,5 / racine(4) = 0,49.
         bruit = {"rms_ecarts_cas": 0.5}
@@ -637,6 +691,17 @@ class BoutEnBout(DepotEtLanceur):
         self.assertEqual(fichiers.count("FICHIER evals/secret/prompt.md"), 2)
         self.assertEqual(fichiers.count("FICHIER evals/alpha/prompt.md"), 2)
 
+    def test_un_meme_cas_dans_le_public_et_le_prive_est_refuse_avant_tout_jeu(self):
+        prive = self.racine / "prive"
+        doublon = prive / "alpha"  # « alpha » existe déjà dans le banc public
+        ecrire(doublon / "prompt.md", "---\nmax_turns: 3\n---\n\nRéponds OK.\n")
+        ecrire(doublon / "graders" / "r.md", "---\ntype: regex\npattern: \"^OK$\"\n---\n")
+        ecrire(doublon / "oracle" / "reponse.md", "OK\n")
+        code, _, erreur = jouer(self.argv("--prive", str(prive)), self.env)
+        self.assertEqual(code, 3)
+        self.assertIn("alpha", erreur)
+        self.assertEqual(self.appels(), [])  # rien n'a été joué, donc rien payé
+
     def test_le_journal_recoit_une_ligne_avec_versions_bruit_et_commande(self):
         code, _, _ = jouer(self.argv("--journal", str(self.journal)), self.env)
         self.assertEqual(code, 0)
@@ -667,7 +732,7 @@ class BoutEnBout(DepotEtLanceur):
         self.assertIn("demi_largeur_ic95_globale", bruit)
 
         # Et le fichier est réellement consommé par un A/B : rms 0,5 rend
-        # acceptable le recul global de -1/3 (cf. tests de comparaison).
+        # acceptable le recul global de -5/12 (cf. tests de comparaison).
         ecrire(sortie_bruit, json.dumps({"rms_ecarts_cas": 0.5}))
         self.env["FAUX_RAPPORT_TETE"] = str(FIXTURES / "rapport_tete_recul_global.json")
         code, _, _ = jouer(self.argv("--bruit", str(sortie_bruit)), self.env)
