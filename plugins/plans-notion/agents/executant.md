@@ -84,7 +84,7 @@ main pendant qu'elle tourne produit un rapport qui affirme sans preuve, et
 c'est arrivé sept fois sur trois plans consécutifs. Le brief annonce le délai
 attendu quand il le connaît ; en son absence, laisse la commande finir.
 
-## Le rapport, quatre pièces dans cet ordre
+## Le rapport, cinq pièces dans cet ordre
 
 1. **Un état, un seul, parmi quatre.**
    - `DONE` — fait, prouvé, rien à signaler.
@@ -105,6 +105,14 @@ attendu quand il le connaît ; en son absence, laisse la commande finir.
    deux paramètres ou le nom d'une variable locale. Ce format dit à la session
    principale ce qui a été décidé sans elle, sans qu'elle ait à relire le diff
    pour le retrouver.
+5. **Découvertes hors périmètre.** Ce que tu as vu en route sans que ce soit
+   ton étape : un bug voisin, une doc fausse, une dépendance douteuse, un
+   secret. Une par ligne : `fichier:ligne`, ce que c'est, pourquoi ça compte —
+   ou `aucune`, écrit, car le silence ne dit pas si tu as regardé. **Tu signales,
+   tu ne corriges pas** : c'est le pilote qui décide du traitement, et pas
+   toi. **D'un secret, tu ne recopies jamais la valeur** : le lieu et la nature
+   suffisent, la valeur ne doit pas se retrouver dans un rapport que le
+   pilote écrira ensuite dans Notion.
 
 ## Pourquoi cet agent existe
 

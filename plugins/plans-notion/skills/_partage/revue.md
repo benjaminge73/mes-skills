@@ -65,7 +65,10 @@ Le relecteur rend `RIEN À SIGNALER` ou `REMARQUES (n)`. Pour chaque remarque :
    l'agent `plans-notion:executant`, avec un brief qui porte la remarque et
    son `fichier:ligne`. Commit `fix(…): étape N — revue`.
 3. **Écartée** : avec une raison écrite, au journal — pas un silence, une
-   phrase qui dit pourquoi.
+   phrase qui dit pourquoi. Une remarque `Sécurité (hors diff)` ne se corrige
+   pas dans l'étape : elle est écartée *de l'étape* avec la raison « traitée en
+   découverte », et suit le traitement de `executer-plan-notion` §4 (question à
+   Benjamin, jamais de correctif seul).
 
 Puis nouvel appel au relecteur, brief réduit aux seuls correctifs (nouvelle
 plage de commits) plus les remarques écartées et leurs raisons. Le relecteur

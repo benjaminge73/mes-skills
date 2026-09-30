@@ -399,7 +399,7 @@ et c'est ce qui donne ensuite l'envie de « faire soi-même ». Le brief porte d
    seules exceptions à cette règle. En cas d'échec : **diagnostic, pas
    correctif** — le debug revient à la session principale, seule à avoir le
    plan.
-6. **Le format du rapport attendu** — quatre pièces, toujours dans cet ordre :
+6. **Le format du rapport attendu** — cinq pièces, toujours dans cet ordre :
    - **Un état, un seul, parmi quatre** : `DONE` (fait, prouvé, rien à
      signaler), `DONE_WITH_CONCERNS` (fait et prouvé, mais quelque chose mérite
      un regard — un écart, un choix rendu sans arbitrage), `NEEDS_CONTEXT` (le
@@ -415,6 +415,10 @@ et c'est ce qui donne ensuite l'envie de « faire soi-même ». Le brief porte d
      (l'ordre de deux paramètres, le nom d'une variable locale) ; ce format
      dit à la session principale ce qui a été décidé sans elle, sans qu'elle
      ait à rejouer le diff pour le retrouver.
+   - **Découvertes hors périmètre** : ce qu'il a vu sans le toucher, une par
+     ligne, `fichier:ligne` et ce que c'est, ou `aucune`. Il signale, il ne
+     corrige pas ; d'un secret, il ne recopie jamais la valeur. Le pilote en
+     fait des découvertes traitées (§4).
 
 ### Ce qui reste dans la session principale
 
@@ -533,14 +537,15 @@ Sous ce titre, l'entrée porte :
   côté où le travail attend, si l'étape est en échec (§3) ;
 - **une ligne `Découvertes :` — obligatoire, dans chaque entrée d'étape.** Elle
   vaut `aucune`, ou porte la liste des découvertes, une par ligne, chacune sous
-  l'un des libellés de la sous-section suivante. Une entrée sans cette ligne est
+  l'un des libellés de la sous-section suivante, suivi de **son traitement**
+  (sous-section d'après). Une entrée sans cette ligne est
   incomplète, même si l'étape n'a rien surpris : c'est le `aucune` écrit qui
   distingue une étape sans surprise d'une étape dont personne n'a rien relevé ;
 - pour une étape qui **repose sur un POC** : l'**écart POC / exécution**, au
   format « POC : 8, exécuté : 39 » — ce que la mesure avait annoncé, ce que
   l'exécution a trouvé — avec un renvoi à
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/poc.md` ;
-- le **reste à faire**, s'il en reste.
+- le **reste à faire**, s'il en reste, chaque ligne avec son propriétaire (voir « Découvertes hors plan »).
 
 C'est la version longue du récap affiché dans la session (§3) : la session dit
 l'essentiel, la page garde le détail.
@@ -606,6 +611,36 @@ c'est ce qui signale que l'enquête a fait son travail.
 - **aucune surprise marquée `ÉCART` ou `BLOQUÉ` ne reste sans libellé** : chaque
   ligne ainsi marquée se retrouve, avec son libellé, dans la ligne
   `Découvertes :` de son étape.
+
+### Découvertes hors plan : chaque trouvaille reçoit un traitement
+
+Le libellé ci-dessus mesure le plan (était-ce trouvable ?) ; le traitement dit
+**quoi faire** de ce qu'on a vu en route — bug voisin, secret, dépendance
+douteuse, doc fausse. Il vient du rapport de l'exécutant (cinquième pièce), du
+relecteur ou du pilote. Chaque découverte reçoit **un** traitement, écrit sur sa
+ligne `Découvertes :` : jamais « noté pour plus tard » sans propriétaire.
+
+- **Traitée dans le plan** — si elle est à la fois **réversible** (un `git
+  revert` la défait), **hors sécurité** et **petite** (une étape, sans revenir
+  sur une décision du plan). On ajoute une étape `D<n>` au chapitre `Exécution`
+  avec sa correction datée (`_maj 2026-09-30 — D1 : …_`) et sa ligne de tableau ;
+  elle part à l'exécutant avec sa liste fermée de fichiers, **dans ses propres
+  commits**, est relue (`revue.md`), et se journalise sous `Étape D<n> — …` avec
+  sa propre ligne `Découvertes :`.
+- **Question à Benjamin** — si elle est **irréversible** (suppression de données
+  ou de fichiers non versionnés, écriture dans un service externe ou en
+  production, publication, migration, réécriture d'historique, dépense) **ou liée
+  à la sécurité** (secret, droits, authentification, exposition réseau,
+  dépendance non vérifiée, donnée personnelle) — et aussi quand elle est trop
+  grande pour le plan validé. Outil de question natif (§3, « L'autonomie est le
+  défaut »), sinon texte, recommandation en premier ; l'exécution continue sur ce
+  qui n'en dépend pas. **Question sans réponse à la clôture → plan de suite
+  (§7).** Dans le doute entre les deux : la question.
+
+**Un secret découvert ne se corrige jamais seul** : ni suppression, ni rotation,
+ni réécriture d'historique, et **sa valeur ne s'écrit nulle part** — ni brief,
+ni journal, ni page Notion. On note où il est (`fichier:ligne`) et ce que c'est,
+puis la question part tout de suite.
 
 ## 5. Écrire dans la page sans rien casser
 
@@ -676,8 +711,10 @@ Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard » :
   autant qu'un statut faux.
 - `Journal d'exécution` clos par une entrée `État final` (H3, comme les autres,
   §4) : ce qui est livré, le verdict de la suite complète (point 1 ci-dessous),
-  les écarts, le reste à faire s'il y en a, et le lien vers le plan de suite s'il
-  y en a un (§7). Cette entrée porte aussi :
+  les écarts, le reste à faire s'il y en a — **chaque ligne avec son propriétaire** :
+  une question à Benjamin, ou le plan de suite (§7) qui la porte ; une ligne sans
+  propriétaire se règle avant `a merger` — et le lien vers le plan de suite s'il
+  y en a un. Cette entrée porte aussi :
   - **le décompte des découvertes, vérifié mécaniquement** — jamais recompté
     de tête : `grep -c 'découverte — trouvable' <journal>` et
     `grep -c 'découverte — pas trouvable' <journal>` sur le texte du journal,
