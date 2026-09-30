@@ -1,0 +1,99 @@
+{
+  "schemaVersion": 1,
+  "claudeVersion": "2.1.285",
+  "startedAt": "2026-01-01T00:00:00.000Z",
+  "durationSeconds": 2,
+  "costUsd": 0.028843999999999998,
+  "partial": false,
+  "suite": {
+    "root": "/chemin/anonymise/plugin",
+    "ablation": "none",
+    "modelOverride": "claude-haiku-4-5-20251001",
+    "threshold": 1,
+    "concurrency": 1,
+    "plugins": [
+      {
+        "name": "jouet",
+        "version": "0.0.1",
+        "path": "/chemin/anonymise/plugin"
+      }
+    ]
+  },
+  "cases": [
+    {
+      "name": "ok",
+      "dir": "evals/ok",
+      "source": "prose",
+      "promptMarkdown": "Réponds exactement OK, sans rien d'autre.",
+      "runsPerCase": 3,
+      "timeoutSeconds": 300,
+      "maxTurns": 3,
+      "graders": [
+        {
+          "name": "aucun-fichier",
+          "type": "file_exists",
+          "weight": 1,
+          "config": {
+            "path": "*.md",
+            "exists": false
+          }
+        },
+        {
+          "name": "reponse",
+          "type": "regex",
+          "weight": 1,
+          "config": {
+            "target": "last_message",
+            "pattern": "^OK\\.?$",
+            "flags": "",
+            "match": "contains"
+          }
+        }
+      ],
+      "arms": {
+        "with": [
+          {
+            "score": 1,
+            "passed": true,
+            "turns": 1,
+            "costUsd": 0.028843999999999998,
+            "judgeCostUsd": 0,
+            "durationSeconds": 2,
+            "startedAt": "2026-09-30T12:41:24.456Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-xxxxxx/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "aucun-fichier",
+                "passed": true,
+                "weight": 1,
+                "explanation": "*.md absent as expected",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "reponse",
+                "passed": true,
+                "weight": 1,
+                "explanation": "matched ^OK\\.?$",
+                "withOnly": false,
+                "scored": true
+              }
+            ]
+          }
+        ]
+      },
+      "aggregates": {
+        "score": 1,
+        "passRate": 1
+      }
+    }
+  ],
+  "aggregates": {
+    "casesTotal": 1,
+    "casesPassed": 1,
+    "overallScore": 1,
+    "overallPassRate": 1
+  }
+}
