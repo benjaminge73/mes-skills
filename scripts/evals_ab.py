@@ -91,6 +91,26 @@ Bruit
   élargie du même facteur ``z_n / 1,96``. Le seuil **global** ne change pas :
   c'est une seule comparaison.
 
+- Un fichier de bruit **porte le modèle qu'il mesure** (``"modele"``) : le bruit
+  d'un modèle n'est pas celui d'un autre. ``EVALS_MODELE`` (défaut
+  ``claude-opus-5-5``, comme ``evals/outillage/lancer.sh``) dit le modèle joué ;
+  un fichier d'un autre modèle, ou sans ``modele``, est **ignoré** — le tableau
+  le dit, et le seuil retombe sur l'estimation. Le mode ``aa`` écrit le
+  ``modele`` qu'il a joué.
+- Un seuil qui ne peut rien voir se dit : un score va de 0 à 1, donc un seuil par
+  cas d'au moins 1,0 (100 pts) ne peut jamais être franchi. Le tableau écrit
+  alors « non concluant par cas » au lieu de « pas de recul au-delà du bruit »
+  (le run de la PR #17, sans fichier de bruit, avait affiché ± 123 pts). Le code
+  de sortie ne change pas : pas de rouge pour ça, seulement plus de faux vert.
+
+Cas choisis
+-----------
+``--cas <nom>`` (répétable) ne joue que ces cas : l'assemblage ne les copie que
+dans les **deux** copies (base et tête), donc le rapport, la clé de comparaison
+et le seuil de Bonferroni ne portent que sur les cas joués. Le seuil global
+s'élargit quand il y en a moins que dans la mesure du bruit, et le tableau le
+dit. Un nom inconnu est un refus (code 3) avant tout jeu. Sans ``--cas``, tous.
+
 Verdict : code de sortie 1 si la moyenne recule de plus que le bruit global,
 **ou** si un cas seul recule de plus que le seuil par cas corrigé (un skill
 modifié n'affecte souvent qu'un ou deux cas, et la moyenne le diluerait).
@@ -682,11 +702,26 @@ def extraire(depot: Path, ref: str, plugin: str, dest: Path) -> None:
                 os.symlink(m.linkname, cible)
 
 
-def assembler(copie: Path, sources: list[Path]) -> list[str]:
+def verifier_cas_demandes(demandes: list[str], sources: list[Path]) -> None:
+    """Refus si un nom de ``--cas`` n'est un cas d'aucune source."""
+    disponibles = sorted({e.name for s in sources for e in s.iterdir() if est_un_cas(e)})
+    inconnus = [c for c in dict.fromkeys(demandes) if c not in disponibles]
+    if inconnus:
+        raise ErreurRefus(
+            f"cas inconnu(s) : {', '.join(inconnus)}. Cas disponibles : "
+            f"{', '.join(disponibles) or 'aucun'}."
+        )
+
+
+def assembler(copie: Path, sources: list[Path], cas: list[str] | None = None) -> list[str]:
     """Pose les cas de chaque source sous ``<copie>/evals/``, **sans leur oracle**.
 
     Rend les noms de cas posés. Un cas en double entre deux sources est un refus.
+    ``cas`` (non vide) restreint aux cas nommés ; un nom inconnu est un refus.
     """
+    demandes = list(dict.fromkeys(cas)) if cas else None
+    if demandes is not None:
+        verifier_cas_demandes(demandes, sources)
     cible = copie / "evals"
     if cible.exists():
         shutil.rmtree(cible)  # les deux copies doivent porter exactement les mêmes cas
@@ -696,12 +731,14 @@ def assembler(copie: Path, sources: list[Path]) -> list[str]:
         for entree in sorted(source.iterdir()):
             destination = cible / entree.name
             if entree.is_dir() and est_un_cas(entree):
+                if demandes is not None and entree.name not in demandes:
+                    continue
                 if destination.exists():
                     raise ErreurRefus(f"cas « {entree.name} » présent dans deux sources")
-                cas = entree
+                dossier_cas = entree
                 shutil.copytree(
                     entree, destination,
-                    ignore=lambda d, noms, cas=cas: ["oracle"] if Path(d) == cas else [],
+                    ignore=lambda d, noms, cas=dossier_cas: ["oracle"] if Path(d) == cas else [],
                 )
                 poses.append(entree.name)
             elif entree.is_dir():
@@ -791,6 +828,14 @@ class Comparaison:
     bruit_mesure: bool
     n_cas: int
     passages: int
+    n_cas_bruit: int | None = None  # nombre de cas de la mesure du bruit, s'il le dit
+    bruit_global_complet: float | None = None  # seuil global qu'aurait la mesure sur tous ses cas
+    notes: list[str] = field(default_factory=list)
+
+    @property
+    def aveugle(self) -> bool:
+        """Vrai si le seuil par cas vaut au moins 100 pts : aucun recul d'un cas n'est visible."""
+        return self.bruit_cas >= 1.0
 
     @property
     def recul(self) -> bool:
@@ -834,9 +879,14 @@ def comparer(base: dict, tete: dict, bruit: dict | None = None) -> Comparaison:
         )
     moy_a = sum(x.base for x in lignes) / n
     moy_b = sum(x.tete for x in lignes) / n
+    n_cas_bruit = None
+    global_complet = None
+    if bruit is not None and int(bruit.get("n_cas") or 0) > 0:
+        n_cas_bruit = int(bruit["n_cas"])
+        global_complet = Z95 * float(bruit["rms_ecarts_cas"]) / math.sqrt(n_cas_bruit)
     return Comparaison(
         lignes, moy_a, moy_b, moy_b - moy_a, bruit_global, bruit_cas,
-        bruit is not None, n, passages,
+        bruit is not None, n, passages, n_cas_bruit, global_complet,
     )
 
 
@@ -856,6 +906,23 @@ def bruit_aa(a: dict, b: dict) -> dict:
         "demi_largeur_ic95_cas": Z95 * rms,
         "demi_largeur_ic95_globale": Z95 * rms / math.sqrt(n),
     }
+
+
+MODELE_PAR_DEFAUT = "claude-opus-5-5"
+
+
+def modele_joue() -> str:
+    """Le modèle des cas : ``EVALS_MODELE``, comme ``evals/outillage/lancer.sh``."""
+    return os.environ.get("EVALS_MODELE") or MODELE_PAR_DEFAUT
+
+
+def filtrer_bruit(bruit: dict, modele: str) -> tuple[dict | None, str]:
+    """(bruit, "") s'il mesure ``modele`` ; sinon (None, note pour le tableau)."""
+    declare = bruit.get("modele")
+    if declare == modele:
+        return bruit, ""
+    quel = f"bruit de {declare}" if isinstance(declare, str) and declare else "bruit sans modèle déclaré"
+    return None, f"{quel} ignoré : les cas sont joués sur {modele} — seuil estimé"
 
 
 def lire_bruit(chemin: Path) -> dict:
@@ -892,7 +959,10 @@ def tableau_markdown(c: Comparaison, etiq_base: str, etiq_tete: str, verdict: bo
         elif abs(x.delta) < EPSILON:
             mot = "="
         else:
-            mot = "dans le bruit" if abs(x.delta) <= c.bruit_cas else "mieux"
+            if c.aveugle:
+                mot = "non concluant"
+            else:
+                mot = "dans le bruit" if abs(x.delta) <= c.bruit_cas else "mieux"
         sortie.append(f"| {x.nom} | {_pct(x.base)} | {_pct(x.tete)} | {_pts(x.delta)} | {mot} |")
     sortie.append(
         f"| **moyenne** | {_pct(c.moyenne_base)} | {_pct(c.moyenne_tete)} | "
@@ -904,11 +974,30 @@ def tableau_markdown(c: Comparaison, etiq_base: str, etiq_tete: str, verdict: bo
         f"± {c.bruit_global * 100:.0f} pts sur la moyenne ; "
         f"seuil par cas (Bonferroni, {c.n_cas} cas) : ± {c.bruit_cas * 100:.0f} pts.",
     ]
+    for note in c.notes:
+        sortie.append(f"Note : {note}.")
+    if c.bruit_mesure and c.n_cas_bruit and c.n_cas < c.n_cas_bruit and c.bruit_global_complet:
+        sortie.append(
+            f"Sélection : {c.n_cas} cas joués sur {c.n_cas_bruit} mesurés dans le bruit — "
+            f"seuil global élargi à ± {c.bruit_global * 100:.0f} pts "
+            f"(± {c.bruit_global_complet * 100:.0f} pts avec les {c.n_cas_bruit} cas)."
+        )
+    if c.aveugle:
+        pourquoi = (
+            "le bruit mesuré est trop large pour voir le recul d'un cas seul"
+            if c.bruit_mesure else "aucun fichier de bruit mesuré pour ce modèle"
+        )
+        sortie.append(
+            f"Seuil par cas de {c.bruit_cas * 100:.0f} pts, au-delà de 100 : non concluant par "
+            f"cas — {pourquoi} (un score va de 0 à 100 %, aucun recul d'un cas ne peut être vu)."
+        )
     if verdict:
         if c.recul:
             reculs = [x.nom for x in c.lignes if x.recul]
             detail = f"cas en recul : {', '.join(reculs)}" if reculs else "la moyenne recule"
             sortie.append(f"**Verdict : RECUL au-delà du bruit ({detail}).**")
+        elif c.aveugle:
+            sortie.append("**Verdict : pas de recul de la moyenne ; non concluant par cas.**")
         else:
             sortie.append("**Verdict : pas de recul au-delà du bruit.**")
     return "\n".join(sortie)
@@ -997,10 +1086,11 @@ def lancer(lanceur: Path, dossier: Path, sortie: Path, options: list[str]) -> No
 def jouer_reference(
     depot: Path, ref: str, plugin: str, sources: list[Path], racine: Path,
     nom: str, lanceur: Path, options: list[str], etiquette_rapport: str,
+    cas: list[str] | None = None,
 ) -> dict:
     copie = racine / nom / plugin
     extraire(depot, ref, plugin, copie)
-    assembler(copie, sources)
+    assembler(copie, sources, cas)
     sortie = racine / f"{nom}.json"
     lancer(lanceur, copie, sortie, options)
     return lire_rapport(sortie, etiquette_rapport)
@@ -1020,8 +1110,11 @@ def construire_parseur() -> argparse.ArgumentParser:
     p.add_argument("--tete", default="HEAD", help="référence git de tête (défaut : HEAD)")
     p.add_argument("--prive", action="append", default=[], metavar="CHEMIN",
                    help="banc privé : dossier de cas ajoutés (répétable)")
+    p.add_argument("--cas", action="append", default=[], metavar="NOM",
+                   help="ne jouer que ce cas (répétable) ; sans --cas, tous les cas")
     p.add_argument("--bruit", metavar="FICHIER",
-                   help="bruit mesuré en A/A (écrit par --mode aa --sortie-bruit)")
+                   help="bruit mesuré en A/A (écrit par --mode aa --sortie-bruit) ; "
+                        "ignoré s'il mesure un autre modèle que EVALS_MODELE")
     p.add_argument("--reference", metavar="FICHIER",
                    help="rapport JSON de la base déjà joué (cache CI) : la base n'est pas rejouée")
     p.add_argument("--journal", nargs="?", const="", default=None, metavar="FICHIER",
@@ -1067,6 +1160,9 @@ def _executer(args, options_lanceur: list[str], commande: str) -> int:
         if not s.is_dir():
             raise ErreurRefus(f"dossier de cas introuvable : {s}")
 
+    if args.cas:
+        verifier_cas_demandes(args.cas, sources)  # avant tout jeu, donc avant tout coût
+
     # Pré-vol : gratuit, et il commande tout le reste.
     verdicts = [v for s in sources for v in previol(decouvrir_cas(s))]
     if not verdicts:
@@ -1084,6 +1180,9 @@ def _executer(args, options_lanceur: list[str], commande: str) -> int:
         return 0
 
     bruit = lire_bruit(args.bruit) if args.bruit else None
+    note_bruit = ""
+    if bruit is not None and args.mode == "ab":
+        bruit, note_bruit = filtrer_bruit(bruit, modele_joue())
     ref_base = args.tete if args.mode == "aa" else args.base
     etiq_base = etiquette(depot, ref_base, plugin)
     etiq_tete = etiquette(depot, args.tete, plugin)
@@ -1096,14 +1195,14 @@ def _executer(args, options_lanceur: list[str], commande: str) -> int:
         else:
             rapport_base = jouer_reference(
                 depot, ref_base, plugin, sources, racine, "base", lanceur,
-                options_lanceur, "de base",
+                options_lanceur, "de base", args.cas,
             )
             rapports_joues.append(rapport_base)
         if args.garder_base and not args.reference:
             shutil.copyfile(racine / "base.json", args.garder_base)
         rapport_tete = jouer_reference(
             depot, args.tete, plugin, sources, racine, "tete", lanceur,
-            options_lanceur, "de tête",
+            options_lanceur, "de tête", args.cas,
         )
         rapports_joues.append(rapport_tete)
     finally:
@@ -1115,7 +1214,7 @@ def _executer(args, options_lanceur: list[str], commande: str) -> int:
     cout = sum(cout_rapport(r) for r in rapports_joues) or None
     if args.mode == "aa":
         mesure = bruit_aa(rapport_base, rapport_tete)
-        mesure.update(plugin=plugin, reference=etiq_tete)
+        mesure.update(plugin=plugin, reference=etiq_tete, modele=modele_joue())
         chemin = Path(args.sortie_bruit or f"bruit-{plugin}.json")
         chemin.parent.mkdir(parents=True, exist_ok=True)
         chemin.write_text(json.dumps(mesure, indent=2, ensure_ascii=False) + "\n", "utf-8")
@@ -1129,6 +1228,8 @@ def _executer(args, options_lanceur: list[str], commande: str) -> int:
         code = 0
     else:
         c = comparer(rapport_base, rapport_tete, bruit=bruit)
+        if note_bruit:
+            c.notes.append(note_bruit)
         print(tableau_markdown(c, etiq_base, etiq_tete))
         code = 1 if c.recul else 0
 

@@ -6,7 +6,9 @@ on:
   # plus : un workflow que le filtre empêcherait de démarrer ne rendrait aucun
   # statut, et un futur verrou de branche (ruleset) attendrait indéfiniment.
   # Le tri par chemins se fait dans le job `evals-portee`, dont le résultat
-  # fait sauter `evals` (un job sauté compte comme réussi).
+  # fait sauter `evals` (un job sauté compte comme réussi). Le job
+  # `evals-verdict` (nom fixe) est le seul contrôle d'évals que le verrou de
+  # `main` puisse exiger : le nom de `evals` change avec la matrice.
   pull_request:
   push:
     branches: [main]
@@ -78,6 +80,8 @@ jobs:
       touche: ${{ steps.portee.outputs.touche }}
       plugins: ${{ steps.portee.outputs.plugins }}
       base: ${{ steps.portee.outputs.base }}
+      # Un objet JSON {plugin: sélection} : voir scripts/evals_selection.py.
+      selection: ${{ steps.portee.outputs.selection }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -96,6 +100,10 @@ jobs:
           EVENT_NAME: ${{ github.event_name }}
           PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
           PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          # Le corps de la PR est une entrée non fiable : il ne passe que par
+          # cette variable d'environnement, jamais par une interpolation
+          # `${{ … }}` dans le script (qui serait du code, pas une donnée).
+          PR_BODY: ${{ github.event.pull_request.body }}
         run: |
           set -euo pipefail
           # Base = l'ancêtre commun de la PR et de `main`, pas la pointe de
@@ -139,7 +147,7 @@ jobs:
               evals/*/*)
                 n=${f#evals/}; n=${n%%/*}
                 if [ -d "plugins/$n" ]; then touches+=("$n"); else global=1; fi ;;
-              evals/*|scripts/evals_ab.py|.github/workflows/ci.yml) global=1 ;;
+              evals/*|scripts/evals_ab.py|scripts/evals_selection.py|.github/workflows/ci.yml) global=1 ;;
             esac
           done
 
@@ -149,6 +157,26 @@ jobs:
             for t in "${touches[@]}"; do
               if [ "$t" = "$nom" ]; then choisis+=("$nom"); break; fi
             done
+          done
+
+          # Le plancher : pour chaque plugin joué, quels cas, et lesquels on ne
+          # peut pas omettre (scripts/evals_selection.py, testé). Il lit le corps
+          # de la PR dans PR_BODY ; en lancement manuel il n'y en a pas, donc
+          # « tout ». Un refus (code 1) ou une panne (code 2) rend le job rouge :
+          # `evals` est alors sauté, et `evals-verdict` le voit.
+          liste="$RUNNER_TEMP/fichiers-touches.txt"
+          : > "$liste"
+          if [ "${#fichiers[@]}" -gt 0 ]; then printf '%s\n' "${fichiers[@]}" > "$liste"; fi
+          selection='{}'
+          refus=0
+          for nom in "${choisis[@]}"; do
+            if sel=$(python3 scripts/evals_selection.py --plugin "$nom" --fichiers "$liste" 2>"$RUNNER_TEMP/selection.err"); then
+              selection=$(jq -c --arg p "$nom" --argjson s "$sel" '. + {($p): $s}' <<<"$selection")
+            else
+              refus=1
+              # Une seule ligne : le message peut citer du texte du corps de la PR.
+              echo "::error title=Évals non couvertes ($nom)::$(tr '\n\r' '  ' < "$RUNNER_TEMP/selection.err")"
+            fi
           done
 
           if [ "${#choisis[@]}" -gt 0 ]; then
@@ -162,8 +190,19 @@ jobs:
             echo "touche=$touche"
             echo "plugins=$plugins"
             echo "base=$base"
+            echo "selection=$selection"
           } >> "$GITHUB_OUTPUT"
           echo "base=$base touche=$touche plugins=${plugins:-aucun}"
+          {
+            echo "### Portée des évals"
+            echo
+            if [ "$selection" = '{}' ]; then
+              echo "Aucun plugin à jouer."
+            else
+              jq -r 'to_entries[] | "- **\(.key)** : " + (if .value.tout then "tout le banc (\(.value.cas | length) cas) — \(.value.pourquoi_tout | .[0:200])" else "\(.value.categories | join(", ")) (\(.value.cas | length) cas)" end)' <<<"$selection"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit "$refus"
 
   evals:
     name: Évals (${{ matrix.plugin }})
@@ -173,13 +212,16 @@ jobs:
     if: needs.evals-portee.outputs.touche == 'true'
     runs-on: ubuntu-latest
     # Sans base en cache (premier run de chaque base) : deux bras joués l'un
-    # après l'autre, de 16 cas x 3 passages = 48 passages. Mesuré le 2026-09-30
-    # (A/A local de l'étape A4, 27 passages en ≈ 24 min à 3 agents en parallèle) :
-    # ≈ 2,7 min par passage, soit ≈ 43 min par bras et ≈ 86 min pour les deux,
-    # plus ≈ 1 min 30 de préparation. 150 min laissent la marge des cas
-    # d'exécution (Bash, commits), sans doute plus lents que les cas de lecture
-    # mesurés, sans tolérer une boucle : au-delà, le job est tué plutôt que de
-    # consommer l'abonnement.
+    # après l'autre, de 16 cas x 3 passages = 48 passages au plus (« tout »).
+    # Mesuré le 2026-09-30 (A/A local de l'étape A4, 27 passages en ≈ 24 min à
+    # 3 agents en parallèle) : ≈ 2,7 min par passage. À 5 agents en parallèle
+    # (EVALS_CONCURRENCE), 48 passages x 2,7 min / 5 ≈ 26 min par bras, soit
+    # ≈ 52 min pour les deux, plus ≈ 1 min 30 de préparation ; une sélection
+    # par catégorie joue moins de cas, donc moins. 150 min gardent la marge des
+    # cas d'exécution (Bash, commits), sans doute plus lents que les cas de
+    # lecture mesurés, et d'un débit qui ne monterait pas linéairement avec la
+    # concurrence, sans tolérer une boucle : au-delà, le job est tué plutôt que
+    # de consommer l'abonnement.
     timeout-minutes: 150
     permissions:
       contents: read
@@ -208,7 +250,8 @@ jobs:
       # partiel, refusé par `evals_ab.py` (code 3), job rouge à tous les coups.
       EVALS_MAX_COUT_USD: '120'
       EVALS_RUNS: '3'
-      EVALS_CONCURRENCE: '3'
+      # Décision de Benjamin (étape B9) : 5 agents en parallèle.
+      EVALS_CONCURRENCE: '5'
     steps:
       - name: Vérifier que le jeton est là
         # Premier pas, avant tout coût : sans jeton, on échoue net et on le dit.
@@ -237,16 +280,21 @@ jobs:
         env:
           PLUGIN: ${{ matrix.plugin }}
           BASE_SHA: ${{ needs.evals-portee.outputs.base }}
+          SELECTION: ${{ needs.evals-portee.outputs.selection }}
         run: |
           set -euo pipefail
           # Une base rejouée doit donner le même rapport : la clé porte tout ce
           # qui le ferait changer. Le SHA de la base (plugin à cette référence),
-          # les cas (assemblés dans les deux copies), le modèle, le nombre de
-          # passages, la version de Claude Code du runner et le lanceur.
+          # les cas (assemblés dans les deux copies), la liste des cas joués (une
+          # base jouée sur trois cas ne sert pas une comparaison sur seize), le
+          # modèle, le nombre de passages, la version de Claude Code du runner et
+          # le lanceur.
           cas=$(git ls-files -z "evals/$PLUGIN" | sort -z | xargs -0 sha256sum | sha256sum | cut -c1-16)
+          joues=$(jq -r --arg p "$PLUGIN" '(.[$p] // {"tout": true}) | if .tout then "tout" else (.cas | sort | join(",")) end' <<<"$SELECTION")
+          selec=$(printf '%s' "$joues" | sha256sum | cut -c1-12)
           version=$(sed -n 's/^CLAUDE_CODE_VERSION=//p' evals/outillage/preparer-runner.sh)
           lanceur=$(sha256sum evals/outillage/lancer.sh | cut -c1-12)
-          echo "cle=evals-base-$PLUGIN-$BASE_SHA-$cas-$EVALS_MODELE-r$EVALS_RUNS-cc$version-$lanceur" >> "$GITHUB_OUTPUT"
+          echo "cle=evals-base-$PLUGIN-$BASE_SHA-$cas-s$selec-$EVALS_MODELE-r$EVALS_RUNS-cc$version-$lanceur" >> "$GITHUB_OUTPUT"
 
       - name: Reprendre la base du cache
         id: cache
@@ -260,6 +308,7 @@ jobs:
         env:
           PLUGIN: ${{ matrix.plugin }}
           BASE_SHA: ${{ needs.evals-portee.outputs.base }}
+          SELECTION: ${{ needs.evals-portee.outputs.selection }}
           CACHE_HIT: ${{ steps.cache.outputs.cache-hit }}
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
         run: |
@@ -274,6 +323,17 @@ jobs:
 
           args=(--plugin "$PLUGIN" --mode ab --base "$BASE_SHA" --tete HEAD
                 --conserver --journal "$sortie/journal.md")
+          # Les cas joués : ceux de la sélection, ou tous quand elle dit « tout »
+          # (ou qu'elle manque : le défaut est le banc entier, jamais moins).
+          if [ "$(jq -r --arg p "$PLUGIN" '(.[$p] // {"tout": true}) | .tout' <<<"$SELECTION")" = "true" ]; then
+            echo "Tous les cas du banc sont joués."
+          else
+            mapfile -t cas < <(jq -r --arg p "$PLUGIN" '.[$p].cas[]' <<<"$SELECTION")
+            for c in "${cas[@]}"; do args+=(--cas "$c"); done
+            echo "Cas joués (${#cas[@]}) : ${cas[*]}"
+          fi
+          # Le bruit mesuré n'est utilisé que s'il porte le modèle joué (EVALS_MODELE) :
+          # evals_ab.py l'ignore sinon, et le dit dans le tableau.
           if [ -f "evals/bruit-$PLUGIN.json" ]; then
             args+=(--bruit "evals/bruit-$PLUGIN.json")
             echo "Bruit mesuré : evals/bruit-$PLUGIN.json"
@@ -373,6 +433,38 @@ jobs:
           if-no-files-found: ignore
           retention-days: 14
 
+  evals-verdict:
+    # Le seul contrôle d'évals au nom fixe : `Évals (<plugin>)` change avec la
+    # matrice, et le verrou de `main` ne peut exiger qu'un nom qui ne change pas.
+    # Toujours joué (`always()`), sinon un `needs` sauté ferait sauter aussi ce
+    # job, et un contrôle exigé qui n'apparaît jamais bloque tout.
+    #   - rouge : la portée (refus du plancher) ou un bras des évals a échoué ou
+    #     a été annulé (une poussée qui annule le run ne doit pas passer pour vert) ;
+    #   - vert : tout est `success`, ou sauté (une PR sans skill touché ne joue
+    #     rien, et c'est normal).
+    # Aucune copie du dépôt, aucun jeton, aucun droit : il ne lit que les
+    # résultats des jobs dont il dépend.
+    name: Verdict des évals
+    needs: [evals-portee, evals]
+    if: always()
+    runs-on: ubuntu-latest
+    permissions: {}
+    steps:
+      - name: Rouge si la portée ou un bras des évals est rouge ou annulé
+        env:
+          PORTEE: ${{ needs.evals-portee.result }}
+          EVALS: ${{ needs.evals.result }}
+        run: |
+          echo "portée des évals : $PORTEE ; évals : $EVALS"
+          for etat in "$PORTEE" "$EVALS"; do
+            case "$etat" in
+              failure|cancelled)
+                echo "::error title=Verdict des évals::La portée des évals ($PORTEE) ou un bras des évals ($EVALS) est rouge ou annulé : voir les jobs « Portée des évals » et « Évals (…) »."
+                exit 1 ;;
+            esac
+          done
+          echo "Vert : tout est réussi ou sauté."
+
   merge-auto:
     name: Merge automatique si tout est vert
     # Sur ce dépôt, merger c'est publier : les postes tirent `main` et le bump
@@ -391,13 +483,16 @@ jobs:
     # `failure` ou un `cancelled` (recul des évals, poussée qui annule le run)
     # bloque le merge. `evals-portee` est dans la liste : s'il échoue, `evals`
     # est sauté, et sans lui ce saut passerait pour un feu vert.
-    needs: [garde, validation, evals-portee, evals]
+    # `evals-verdict` y est aussi : c'est le contrôle que le verrou de `main`
+    # exigera, et le merge automatique ne doit pas être plus permissif que lui.
+    needs: [garde, validation, evals-portee, evals, evals-verdict]
     if: >-
       always()
       && (needs.garde.result == 'success' || needs.garde.result == 'skipped')
       && (needs.validation.result == 'success' || needs.validation.result == 'skipped')
       && (needs.evals-portee.result == 'success' || needs.evals-portee.result == 'skipped')
       && (needs.evals.result == 'success' || needs.evals.result == 'skipped')
+      && (needs.evals-verdict.result == 'success' || needs.evals-verdict.result == 'skipped')
       && github.event_name == 'pull_request'
       && github.event.pull_request.user.login == 'benjaminge73'
       && github.event.pull_request.draft == false

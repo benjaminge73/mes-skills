@@ -31,6 +31,9 @@ Le statut dit où en est le garde :
 | Le registre est lui-même contrôlé | qu'une ligne « en place » ne cite pas un garde disparu | 2026-09-30, plan banc d'évals, étape A7 | `scripts/check_skills.py` (section « Le registre ») | CI, job `garde`, via `scripts/ci_locale.sh` | en place |
 | Une seule liste des contrôles | que la CI, `CLAUDE.md` et le README ne divergent pas sur ce qu'on joue avant de pousser | 2026-09-30, étape A7 | `scripts/ci_locale.sh`, `scripts/test_ci_locale.py` | CI (jobs `garde` et `validation`) et en local | en place |
 | A/B sur chaque PR de skill | qu'une consigne changée ne fasse pas reculer le comportement mesuré | 2026-09-30, plan banc d'évals, étape A6 | `ci.yml#evals`, `scripts/evals_ab.py` | CI, job `evals` (payant, runner seulement) | en place |
+| Chaque cas d'éval a sa catégorie | qu'un cas qu'aucune catégorie ne nomme ne soit jamais joué par une PR qui choisit ses catégories, et qu'une catégorie ne pointe pas dans le vide (cas ou chemin inexistant) | 2026-09-30, plan « Chercher, prouver, paralléliser #2 », étape B9 | `scripts/check_skills.py` (règle i), `evals/categories.json` | CI, job `garde` | en place |
+| Plancher des évals | qu'une PR qui choisit ses catégories ne laisse pas un skill ou un agent modifié sans cas joué ; ce qui touche le socle commun (`_partage/`, hooks, banc, outillage, CI) rejoue tout | 2026-09-30, étape B9 (décision de Benjamin : des évals par catégorie, un plancher tenu par la CI) | `scripts/evals_selection.py`, `ci.yml#evals-portee` | CI, job `evals-portee`, sur les PR | en place |
+| Verdict des évals au nom fixe | qu'un contrôle d'évals puisse être exigé par le verrou de `main` : le nom de `Évals (<plugin>)` change avec la matrice, celui-ci non (rouge si un bras est rouge ou annulé, vert s'il est sauté) | 2026-09-30, étape B9 | `ci.yml#evals-verdict` | CI, job `Verdict des évals` ; à ajouter au ruleset après le merge du lot B | en place |
 | Une leçon a son cas | qu'un correctif de skill ne parte pas sans cas d'éval qui le prouve | 2026-09-30, étape A7 | `scripts/check_lecon_a_son_cas.py` | CI, job `garde`, sur les PR | en place |
 | Description ≤ 1 536 caractères | que Claude Code ne tronque pas la fin d'une description (phrases de déclenchement perdues sans un mot) | 2026-09-30, étape A7 ; `executer-plan-notion` à 1 545 le jour même | `scripts/check_skills.py` (règle a) | CI, job `garde` | en place |
 | Taille des `SKILL.md`, à cliquet | qu'un skill ne grossisse pas ; le plafond de `scripts/limites.json` ne peut que baisser | 2026-09-30, étape A7 | `scripts/check_skills.py` (règle b), `scripts/limites.json` | CI, job `garde` | en place |
@@ -56,7 +59,9 @@ Le ruleset `main-verrouillee` interdit de supprimer `main` ou d'y réécrire
 l'historique, impose de passer par une PR, et exige trois contrôles verts :
 `Gardes de distribution`, `Validation des plugins` et `Portée des évals`. Le
 contrôle d'évals n'y figure pas encore, parce que son nom change avec le plugin
-(`Évals (<plugin>)`) : un job au nom fixe arrive à l'étape B9. Aucun contournement
+(`Évals (<plugin>)`) : le job au nom fixe `Verdict des évals`
+(`ci.yml#evals-verdict`, étape B9) existe désormais, et sera ajouté au ruleset
+après le merge du lot B. Aucun contournement
 n'est prévu (`bypass_actors` vide). Retour arrière :
 `gh api -X DELETE repos/benjaminge73/mes-skills/rulesets/24256838`.
 
