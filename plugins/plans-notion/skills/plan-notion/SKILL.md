@@ -632,7 +632,7 @@ l'écrire, c'est qu'on ne sait pas encore ce qu'on va faire, et c'est cette
 ignorance-là qu'il faut rendre visible.
 
 **En tête du chapitre, un tableau `Étape · Fichiers touchés · Dépend de ·
-Vague`**, une ligne par étape — le pre-flight scan du chapitre : il donne
+Vague · Relecture`**, une ligne par étape — le pre-flight scan du chapitre : il donne
 d'un coup d'œil ce qui se recoupe, avant même d'entrer dans le détail de
 chaque étape. La colonne `Vague` est **proposée** ici : deux étapes vont
 dans la même vague si elles ne partagent aucun fichier, si aucune ne dépend
@@ -641,6 +641,15 @@ décompte) n'est touché par les deux. Mais c'est `executer-plan-notion` qui la
 **calcule** à l'ouverture de l'exécution : le plan **déclare**, il
 n'**ordonnance** pas — calculer les vagues ici ferait mentir un plan qui
 change d'ordre en route sans que le tableau ne le sache.
+
+La colonne `Relecture` dit, étape par étape, comment le relecteur la voit :
+`étape` (relue seule, dès qu'elle est commitée) pour ce qui mérite un regard
+à part — une migration, un contrat d'API, un schéma —, `lot` (relue d'un seul
+coup avec les étapes `lot` consécutives) pour ce qui est petit ou sans
+risque, comme dix lignes de doc. Un plan écrit sans la colonne se lit `étape`
+partout. Les deux régimes, la définition du lot et la décision de Benjamin du
+2026-09-30 (Q6, qui remplace celle du 2026-09-23) sont dans
+`${CLAUDE_PLUGIN_ROOT}/skills/_partage/revue.md`.
 
 **Une étape = un titre H3** : `Étape 1 — Titre court de l'étape`. Comme pour les
 questions, c'est le H3 qui met l'étape dans la table des matières et permet d'y
@@ -655,6 +664,8 @@ Sous chaque titre, le contenu de l'étape :
 - **Dépend de** — les étapes et les questions dont l'étape a besoin, « — » si
   aucune. C'est cette ligne, reprise dans le tableau de tête de chapitre, que
   `executer-plan-notion` lit pour calculer les vagues d'exécution.
+- **Relecture** — `étape` ou `lot` (`_partage/revue.md`) ; reprise dans la
+  dernière colonne du tableau de tête de chapitre.
 - **Taille** — le nombre de fichiers touchés. Plus de cinq → découper l'étape :
   l'enquête montre que tous les conflits d'exécution observés viennent d'un
   fichier partagé non repéré, et une étape large le cache d'autant mieux
