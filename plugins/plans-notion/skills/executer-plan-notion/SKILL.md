@@ -201,6 +201,10 @@ change pas : `main` ne bouge pas de toute l'exécution, et la branche du plan
 porte à tout moment l'état complet de ce qui est livré. Une autre organisation —
 une PR par étape, plusieurs branches — ne se fait que si Benjamin la demande.
 
+Une session peut aussi porter **plusieurs plans** à la fois : tout ce qui
+précède vaut alors pour chacun, et la section « Plusieurs plans », plus bas,
+dit ce qui s'y ajoute.
+
 ## 3. Dérouler les étapes
 
 Le chapitre `Exécution` de la page est la feuille de route. Il ne se réécrit pas
@@ -491,6 +495,10 @@ Même là, s'arrêter ne veut pas dire attendre les bras ballants : faire **tout
 qui ne dépend pas** du point bloquant, écrire ce qui bloque au journal, et clore
 avec un plan de suite (§7).
 
+**Poser la question en chat.** Si ton environnement fournit un outil de question
+structurée (dans Claude Code : `AskUserQuestion`), l'utiliser ; sinon, les
+options en texte, la recommandation en premier.
+
 ## 4. Le journal, et les écarts
 
 Après **chaque** étape, écrire dans `Journal d'exécution` — et dans le miroir local
@@ -523,6 +531,15 @@ Sous ce titre, l'entrée porte :
   l'étape, ceux des fichiers impactés — et sa sortie ;
 - le **commit de l'étape** (SHA court), poussé ou resté local — ou la branche de
   côté où le travail attend, si l'étape est en échec (§3) ;
+- **une ligne `Découvertes :` — obligatoire, dans chaque entrée d'étape.** Elle
+  vaut `aucune`, ou porte la liste des découvertes, une par ligne, chacune sous
+  l'un des libellés de la sous-section suivante. Une entrée sans cette ligne est
+  incomplète, même si l'étape n'a rien surpris : c'est le `aucune` écrit qui
+  distingue une étape sans surprise d'une étape dont personne n'a rien relevé ;
+- pour une étape qui **repose sur un POC** : l'**écart POC / exécution**, au
+  format « POC : 8, exécuté : 39 » — ce que la mesure avait annoncé, ce que
+  l'exécution a trouvé — avec un renvoi à
+  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/poc.md` ;
 - le **reste à faire**, s'il en reste.
 
 C'est la version longue du récap affiché dans la session (§3) : la session dit
@@ -544,8 +561,11 @@ après coup revient à réécrire l'histoire, et on ne sait plus ce qui était p
 
 ### Qualifier chaque découverte : trouvable au plan, ou pas
 
-Toute découverte notée au journal porte **l'un de ces deux libellés**, et jamais
-aucun autre :
+Toute découverte notée au journal porte **l'un des trois libellés ci-dessous**
+— les deux premiers, plus la variante « sur la page » du cas particulier qui
+suit — et jamais aucun autre. Le libellé n'est pas facultatif : c'est lui que la
+ligne `Découvertes :` de chaque entrée d'étape (§4) et le contrôle de clôture
+(§6) attendent.
 
 - `découverte — trouvable au plan` : l'information **était déjà là** quand le plan
   s'écrivait. Dans le code (un appelant, un réglage, un test existant), dans
@@ -578,6 +598,14 @@ route se défend aussi bien qu'un plan qui n'a rien laissé passer. L'entrée
 `État final` (§6) porte donc le décompte en une ligne :
 `3 découvertes, dont 1 trouvable au plan` — et zéro sur un plan long se dit aussi,
 c'est ce qui signale que l'enquête a fait son travail.
+
+**Le libellé se contrôle mécaniquement à la clôture** (§6), pas de mémoire :
+
+- le **nombre de lignes `Découvertes :`** est égal au nombre d'entrées
+  `Étape N` (les entrées `Ouverture` et `État final` n'en portent pas) ;
+- **aucune surprise marquée `ÉCART` ou `BLOQUÉ` ne reste sans libellé** : chaque
+  ligne ainsi marquée se retrouve, avec son libellé, dans la ligne
+  `Découvertes :` de son étape.
 
 ## 5. Écrire dans la page sans rien casser
 
@@ -655,7 +683,24 @@ Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard » :
     `grep -c 'découverte — pas trouvable' <journal>` sur le texte du journal,
     chiffres recopiés tels quels dans la ligne `3 découvertes, dont 1
     trouvable au plan` (§4). Neuf décomptes faux sur 34 dans l'historique
-    venaient d'un compte de tête ;
+    venaient d'un compte de tête. ⚠️ **Le premier motif compte aussi la
+    variante « sur la page »** : `découverte — trouvable au plan — sur la page`
+    commence par `découverte — trouvable`. Elle est donc **déjà dans** le
+    premier chiffre, pas à ajouter. Pour la distinguer :
+    `grep -c 'découverte — trouvable au plan — sur la page' <journal>` — un
+    sous-ensemble du premier compte, qui se lit « dont N sur la page » ;
+  - **le contrôle des libellés** (§4) : `grep -c 'Découvertes :' <journal>`
+    égale `grep -c '^### Étape ' <journal>`, et chaque ligne marquée `ÉCART`
+    ou `BLOQUÉ` a son libellé. Un écart entre les deux nombres, ou une
+    surprise sans libellé, se corrige avant de poser `a merger`, en respectant
+    la règle « dans le doute, `trouvable` » (§4) ;
+  - **le registre des outils** : toute découverte qui concerne un outil
+    (quota, coût, piège, repli) part en PR sur `mes-skills`, dans
+    `${CLAUDE_PLUGIN_ROOT}/skills/_partage/outils-et-quotas.md`, fiche datée et
+    sans nom privé — la règle de publication du fichier s'applique. Ce n'est
+    pas la PR du plan : elle vise un autre dépôt, et la règle de ce §6 (aucune
+    PR d'initiative) vaut pour elle aussi — le compte rendu la propose, et
+    Benjamin décide de la remontée ;
   - **un verdict par étape, `verified` ou `unverifiable`** — jamais un
     troisième mot. `verified` : la preuve du brief a été rejouée par la
     session et elle est verte (§3). `unverifiable` : une preuve qu'on n'a pas
@@ -770,6 +815,55 @@ l'autonomie a mis de côté. Ne pas créer de plan de suite quand tout est pass�
 une page vide de contenu utile encombre la base et fait douter du statut de
 celle qui la précède.
 
+## Plusieurs plans
+
+Tout ce qui précède décrit un plan. Quand une session en porte plusieurs,
+chacun garde son déroulé (§2 à §7) ; ce qui s'ajoute tient en cinq points.
+
+**Un pilote unique.** La session principale pilote tous les plans, et aucun
+n'est confié à un « pilote » délégué. La raison est mécanique : un sous-agent
+ne peut pas lancer d'autres sous-agents. Un pilote par plan, délégué, ne
+pourrait donc plus appeler `executant` ni `relecteur` — les étapes se
+coderaient dans le pilote, ce que le §3 interdit.
+
+**Chaque plan garde sa porte, sa branche et son worktree.** La porte d'entrée
+se lit plan par plan : un plan dont le `Statut` n'est pas `valide` ne
+démarre pas. La branche, le worktree du plan (§2), le journal (§4) et la
+clôture (§6) sont ceux de ce plan, jamais partagés avec un autre. Au contrôle
+bloquant de la clôture, `git worktree list` montre aussi les worktrees des
+autres plans encore en cours : ne regarder que ceux du plan qu'on clôt.
+
+**Un seul pool glissant.** Toutes les étapes de tous les plans partagent
+**une douzaine de places**. Une étape qui termine libère sa place pour la
+prochaine étape prête, de n'importe quel plan. Le plafond est celui du pool,
+pas celui de chaque plan :
+
+📄 `${CLAUDE_PLUGIN_ROOT}/skills/_partage/vagues.md`
+
+**Entre plans, le parallèle est le défaut.** Seule une ressource partagée à
+l'exécution fait attendre :
+
+- **le port des tests e2e** — deux plans ne le prennent pas en même temps ;
+- **la base locale** — même raison ;
+- **le quota d'un outil**, lu au registre :
+
+  📄 `${CLAUDE_PLUGIN_ROOT}/skills/_partage/outils-et-quotas.md`
+
+Deux plans qui touchent **le même fichier** ne s'attendent pas : ils donnent un
+**ordre de merge**, signalé dans le plan maître et dans le compte rendu. Chaque
+plan vit sur sa propre branche, donc rien ne se marche dessus à l'exécution ;
+c'est au moment de remonter sur `main` que l'ordre compte.
+
+**Un plan maître.** Une page Notion créée **au lancement**, sans statut de
+validation — ce n'est pas un plan qu'on valide, et la porte d'entrée n'a rien
+à y lire. Elle porte :
+
+- **le croisement** : qui part ensemble, qui attend quoi, et pourquoi ;
+- **l'avancement par plan**, avec un lien vers le journal de chacun ;
+- **l'état final consolidé**, posé une fois le dernier plan clos.
+
+Elle s'écrit avec les mêmes précautions que le reste (§5).
+
 ## 8. Ce que ce skill ne fait pas
 
 - Il ne **conçoit** pas le plan — c'est `plan-notion`. Il **tient à jour** le
@@ -777,8 +871,10 @@ celle qui la précède.
   Benjamin (§2), et en cours de route pour les écarts datés (§4). Mettre à jour
   n'est pas concevoir ; si l'approche est en cause, la main repasse à
   `plan-notion`.
-- Il crée une seule page de sa propre initiative : le **plan de suite `#N+1`** en
-  clôture (§7), qui repart ensuite en `plan-notion` comme n'importe quel brouillon.
+- Il ne crée de sa propre initiative que deux sortes de page : le **plan de suite
+  `#N+1`** en clôture (§7), qui repart ensuite en `plan-notion` comme n'importe
+  quel brouillon, et, quand une session porte plusieurs plans, le **plan maître**
+  du lancement (« Plusieurs plans »).
 - Il ne code pas si le statut n'est pas `valide`.
 - Il n'écrit pas lui-même le code des étapes déléguables : ça part en sous-agent
   `plans-notion:executant`, **Sonnet par définition**, dans sa dernière
@@ -819,6 +915,9 @@ celle qui la précède.
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/remontee-sur-main.md`,
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/plan-de-suite.md`,
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/preuve-du-rouge.md`,
-  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/maquettes-html.md` et
-  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/revue.md`, livrés par le plugin
-  `plans-notion` — pas par le dépôt de travail, quel qu'il soit.
+  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/maquettes-html.md`,
+  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/revue.md`,
+  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/bons-tests.md`,
+  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/poc.md` et
+  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/outils-et-quotas.md`, livrés par le
+  plugin `plans-notion` — pas par le dépôt de travail, quel qu'il soit.

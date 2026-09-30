@@ -216,6 +216,11 @@ questions plus a short in-chat design is the whole process.
   first sub-project through the normal design flow. Each sub-project gets its own plan page.
 - For appropriately-scoped projects, ask questions one at a time to refine the idea
 - Prefer multiple choice questions when possible, but open-ended is fine too
+- **Asking a multiple-choice question:** if your environment provides a structured question
+  tool (in Claude Code: `AskUserQuestion`), use it; otherwise, list the options as text with
+  the recommendation first. Put your recommended option first and mark it "(Recommended)".
+  Keep the context — findings, and why the question matters — in the message itself, not
+  crammed into the option labels
 - Only one question per message — if a topic needs more exploration, break it into several
 - Focus on understanding: purpose, constraints, success criteria
 
@@ -305,3 +310,10 @@ graphe et les checklists reflètent ce changement. Les mentions amont de
 raison que la première adaptation (pas de spec fichier, pas de commit — `plan-notion` est déjà
 la voie d'écriture). Le « Visual Companion » de l'amont reste absent, pour la même raison que
 2026-08-03.*
+
+*2026-09-29 — question à choix par l'outil structuré. La consigne « préférer les questions à
+choix multiples » disait quoi poser mais pas comment : les options finissaient en texte dans le
+chat, à retaper. Ajout, en anglais comme le corps, et rédigé pour rester utilisable par un autre
+LLM : si l'environnement fournit un outil de question structurée (dans Claude Code :
+`AskUserQuestion`), l'utiliser ; sinon, les options en texte, la recommandation en premier. La
+recommandation ouvre la liste, marquée « (Recommended) », et le contexte reste dans le message.*

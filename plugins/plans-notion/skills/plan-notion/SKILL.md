@@ -59,15 +59,25 @@ relevé en main, à l'identique de ce qui était coché avant. Aucun autre.
 ⚠️ Cette règle est répétée au §3 avec le détail des encadrés. Elle est ici parce
 qu'elle a été enfouie et oubliée — Benjamin l'a signalé le 2026-08-26.
 
-### 2. Ne rien coder avant `valide`
+### 2. Ne rien coder de livré avant `valide`
 
-**Tant qu'un plan n'est pas au statut `valide`, ne rien coder** : aucune écriture
-de fichier, aucun commit, aucun sous-agent d'implémentation. Sauf demande explicite
-dans le message même. Dans le doute, demander plutôt que supposer.
+**Tant qu'un plan n'est pas au statut `valide`, ne rien coder de livré** : aucune
+écriture de fichier dans le dépôt, aucun commit, aucun sous-agent d'implémentation.
+Sauf demande explicite dans le message même. Dans le doute, demander plutôt que
+supposer.
+
+Une exception, et une seule : le **code jetable** d'un POC (preuve de concept, une
+mesure faite avant de choisir) ou d'une répétition à blanc (jouer à l'avance ce que
+le plan écrit). Il vit dans le scratchpad, jamais dans le dépôt, et il est supprimé
+dès que son résultat est sur la page. La répétition à blanc se joue, elle, dans un
+worktree détaché retiré dans la même passe. Le détail est dans le fichier partagé :
+
+📄 `${CLAUDE_PLUGIN_ROOT}/skills/_partage/poc.md`
 
 Cette règle s'oublie d'une seule façon — en étant absorbé par la conception, au
 point de commencer « juste un fichier » pour vérifier une hypothèse. Vérifier en
-lisant est permis ; vérifier en écrivant ne l'est pas.
+lisant est permis ; vérifier avec un code jetable, dans le scratchpad, aussi ;
+vérifier en écrivant du code qui resterait dans le dépôt ne l'est pas.
 
 Une fois le statut à `valide`, l'implémentation ne se fait pas ici : elle relève du
 skill **`executer-plan-notion`** (§8).
@@ -115,7 +125,7 @@ Benjamin. Voir la sous-section « Les captures d'écran » du chapitre des contr
 
 Un plan qui découvre à l'exécution ce que le code disait déjà n'a pas planifié : il
 a deviné. **Avant d'écrire une question, une option ou une étape, aller chercher ce
-qui est déjà su.** Cinq gisements, du moins cher au plus cher :
+qui est déjà su.** Six gisements, du moins cher au plus cher :
 
 1. **La session en cours.** Une mesure faite il y a dix minutes reste vraie. C'est
    la source la plus souvent oubliée, parce qu'on rédige le plan dans la posture de
@@ -130,7 +140,7 @@ qui est déjà su.** Cinq gisements, du moins cher au plus cher :
 3. **Le code.** Invoquer l'agent **`enqueteur`** (outil `Agent`,
    `subagent_type: "plans-notion:enqueteur"` — le nom qualifié par le plugin,
    le nom court ne résout pas) plutôt que fouiller soi-même : il porte déjà
-   les treize gestes qui évitent les angles morts de voisinage — couverture de
+   les quatorze gestes qui évitent les angles morts de voisinage — couverture de
    l'index, `codebase-memory` en priorité sur la lecture de fichiers entiers,
    `grep` en défaut sur les zones que le graphe exclut, et surtout la
    recherche des **appelants** et pas seulement de la définition, là où se
@@ -148,10 +158,82 @@ qui est déjà su.** Cinq gisements, du moins cher au plus cher :
    partagé `_partage/schemas.md`. Une carte, même approximative, montre en un
    coup d'œil les blocs et leurs liens là où une liste de fichiers ne montre
    qu'un inventaire à plat.
+6. **L'extérieur.** Ce qui existe déjà hors du projet — bibliothèque, outil, skill,
+   benchmark, documentation d'un outil — et qu'on s'apprêterait à refaire. Il se
+   cherche **avant tout POC** : un POC qui mesure un outil maison alors qu'un outil
+   éprouvé existe mesure la mauvaise chose. Invoquer l'agent **`chercheur`** (outil
+   `Agent`, `subagent_type: "plans-notion:chercheur"` — le nom qualifié par le
+   plugin, comme pour `enqueteur`) : il parcourt le web à la place de la session
+   pilote et ne rend qu'une fiche, un candidat par bloc.
+
+   📄 `${CLAUDE_PLUGIN_ROOT}/agents/chercheur.md`
+
+   La recherche est **obligatoire** dès qu'on crée quelque chose de non propre au
+   projet — donc pas pour de la logique métier que seul ce dépôt connaît, mais pour
+   tout ce qui ressemble à un problème que d'autres ont eu — et **obligatoire aussi
+   pour la documentation de tout outil d'un POC**. Son résultat s'écrit dans
+   `Contraintes techniques vérifiées`, sous une ligne qui n'est pas facultative :
+   *« Existant cherché : … / trouvé : … / fait maison parce que … »*.
 
 Le budget d'enquête est **proportionnel à l'enjeu**, pas à la longueur du plan : une
 étape qui touche un fichier et se relit d'un coup d'œil ne mérite pas une fouille
 d'historique. Une étape qui change un réglage de production, oui.
+
+### Vérifier un candidat *use*
+
+Le `chercheur` n'a pas Bash : les chiffres qu'il rend sont **lus sur une page web**,
+et une page web peut être en cache ou fausse. Quand sa fiche propose un candidat au
+verdict *use* (on l'adopte tel quel), la session pilote le vérifie elle-même, dans
+cet ordre :
+
+1. **Rejouer `gh api repos/<owner>/<name>`** : étoiles, `pushed_at`, contributeurs,
+   licence. Jamais un chiffre lu sur une page web ; celui de la fiche n'est qu'une
+   proposition.
+2. **Lancer l'outil de vérification natif** du type de chose adoptée :
+   - un skill ou un plugin → `hermes skills inspect`, puis le verdict du scanner.
+     Seul *safe* passe ; *caution* → demander à Benjamin ; *dangerous* → écarté ;
+   - un paquet Python → `hermes doctor` ;
+   - ailleurs → l'outil de l'écosystème (celui du gestionnaire de paquets du
+     candidat), **en disant qu'Hermes n'a pas d'outil natif pour ce cas**.
+3. **Écrire le résultat sur la ligne « Existant »** de `Contraintes techniques
+   vérifiées` : les chiffres rejoués et le verdict de l'outil.
+
+**Le seuil : un candidat *use* exige au moins 1 000 étoiles ET un outil de
+vérification.** En dessous, il est **écarté**, ou **dérogé par écrit** — la
+dérogation et sa raison figurent sur la ligne « Existant », et c'est Benjamin qui
+la tranche. Un candidat *copy design* (on reprend l'idée, réécrite chez nous) sous
+le seuil porte la mention **« idée non éprouvée »**.
+
+### La répétition à blanc et le POC de décision
+
+Deux gestes, qui se font **avant** de passer le plan à `valide` et dont le gabarit
+vit dans le fichier partagé :
+
+📄 `${CLAUDE_PLUGIN_ROOT}/skills/_partage/poc.md`
+
+- **La répétition à blanc**, systématique : jouer à l'avance, dans un worktree
+  détaché sur `origin/main`, ce que le plan écrit — chaque commande de preuve, la
+  suite complète du dépôt, un appel d'essai par outil externe, les comptages avec
+  le chargeur réel du dépôt. Son résultat va dans `Contraintes techniques
+  vérifiées`, sous un intertitre « État de départ ». Un plan `Bounded` n'en joue
+  que les deux premiers gestes.
+- **Le POC de décision**, **obligatoire dès qu'une option dépend d'une incertitude
+  mesurable** — un taux de réussite, un volume réel, un coût d'appel. La mesure ne
+  se renvoie donc plus à l'exécution : elle se fait ici, et son résultat
+  s'écrit dans le plan. La seule exception est une donnée que **seul le temps
+  produit** (voir « Une option qui reporte la décision n'est pas une option »).
+
+### Le registre des outils
+
+**Avant tout appel d'un outil externe** — pour la répétition à blanc, pour un POC,
+ou pour écrire une étape qui lance un lot —, lire le registre : ce que l'outil coûte,
+ce qui l'a déjà fait échouer, et quoi faire à la place.
+
+📄 `${CLAUDE_PLUGIN_ROOT}/skills/_partage/outils-et-quotas.md`
+
+Un outil qui n'y a pas de fiche suit la règle du fichier : doc lue par le `chercheur`,
+un seul appel d'essai, puis la fiche créée avant tout lot. Les chiffres se lisent au
+registre, jamais de mémoire.
 
 ### Une option qui reporte la décision n'est pas une option
 
@@ -171,8 +253,9 @@ Avant d'écrire une option de cette forme, deux vérifications, dans cet ordre :
    **verte**, avec la mesure et sa provenance.
 2. **La mesure est-elle faisable maintenant ?** S'il ne manque qu'une commande, une
    requête ou une lecture — **la faire pendant la passe de plan**, et écrire la
-   réponse. Lire, mesurer, interroger : tout cela est permis avant `valide`. Seule
-   l'écriture de code ne l'est pas (règle en tête).
+   réponse. Lire, mesurer, interroger : tout cela est permis avant `valide`, code
+   jetable de POC compris (règle 2, en tête). Ce qui reste interdit, c'est le code
+   **livré**.
 
 Le report ne reste recevable que dans un cas : **la donnée n'existe pas encore et le
 temps est le seul moyen de la produire** — un volume qu'il faut accumuler, un usage
@@ -357,6 +440,19 @@ place est dans `Questions ouvertes`. Mélanger les deux est exactement ce qui pr
 les mauvaises surprises d'exécution — le sous-agent qui lit la page ne peut pas
 deviner quelles lignes ont été confirmées et lesquelles ont été supposées, alors il
 les traite toutes pareil.
+
+**Deux blocs propres à ce chapitre**, issus de l'enquête (« L'enquête avant les
+options ») :
+
+- **La ligne « Existant »**, obligatoire dès que le plan crée quelque chose de non
+  propre au projet : *« Existant cherché : … / trouvé : … / fait maison parce que
+  … »*. Elle reprend le verdict d'ensemble du `chercheur`, avec, pour un candidat
+  *use*, les chiffres rejoués par `gh api` et le verdict de l'outil de vérification
+  (« Vérifier un candidat *use* »). « Sans objet » est une réponse, à condition de
+  dire pourquoi.
+- **L'intertitre « État de départ »**, qui porte le résultat de la répétition à
+  blanc : commandes jouées, sorties, décompte de la suite, comptages. Un plan
+  `valide` sans cette section n'a pas eu sa répétition.
 
 #### Les captures d'écran
 
@@ -722,7 +818,7 @@ Quand Benjamin valide le plan :
    `Exécution` juste, ou il n'y passe pas : c'est ce chapitre-là, et pas les
    réponses éparpillées dans la page, qui part dans les briefs des sous-agents
    d'exécution.
-2. **Passer le plan au filtre de l'enquête.** Huit vérifications, et elles se
+2. **Passer le plan au filtre de l'enquête.** Dix vérifications, et elles se
    font page ouverte, pas de mémoire :
    1. plus aucune question ouverte dont la réponse était vérifiable et n'a pas
       été vérifiée ;
@@ -742,20 +838,28 @@ Quand Benjamin valide le plan :
    7. aucun chiffre n'est repris d'un plan `#N-1` **sans remesure** ;
    8. toute question chiffrée porte, à côté de sa réponse, la commande jouée
       et son résultat — sinon rien ne permet de la remesurer au point 7
-      suivant.
+      ci-dessus ;
+   9. la répétition à blanc a été **jouée et reportée** dans `Contraintes
+      techniques vérifiées`, sous « État de départ » (« La répétition à blanc et
+      le POC de décision ») ;
+   10. la ligne « Existant cherché : … / trouvé : … / fait maison parce que … »
+      est présente dans `Contraintes techniques vérifiées` quand la règle de
+      l'enquête l'exige (gisement 6, « L'extérieur »).
 
-   Les quatre derniers points viennent de l'enquête sur les plans passés : la
+   Les points 5 à 8 viennent de l'enquête sur les plans passés : la
    page du plan elle-même est la source de **11 %** des découvertes manquées à
    l'exécution — ordre des étapes faux, preuve de fin impossible à jouer,
    renvois périmés — et des chiffres recopiés d'un plan antérieur s'y sont
-   trouvés faux avec des écarts allant jusqu'à **80 %**. Ce filtre coûte
-   quelques minutes ici et évite la découverte en pleine exécution, qui coûte
-   une étape.
+   trouvés faux avec des écarts allant jusqu'à **80 %**. Les points 9 et 10
+   viennent du relevé des 43 plans du 2026-09-08 au 2026-09-28 : près des trois
+   quarts de ce qui a surpris l'exécution (74,6 % des surprises libellées)
+   aurait pu être vu avant. Ce filtre coûte quelques minutes ici et évite la
+   découverte en pleine exécution, qui coûte une étape.
 3. Passer `Statut` à `valide`.
 4. Le dire en une ligne, et **invoquer `executer-plan-notion`** si l'implémentation
    enchaîne dans la foulée. Un skill n'en charge pas un autre tout seul : sans
    invocation explicite, ses règles ne s'appliquent pas.
-5. Ne pas commencer à coder ici « en attendant ». Le §1 tient jusqu'au bout.
+5. Ne pas commencer à coder ici « en attendant ». La règle 2 tient jusqu'au bout.
 
 Le plus souvent, ce n'est pas moi qui valide : **Benjamin répond dans la page,
 passe `Statut` à `valide` lui-même et invoque `executer-plan-notion` directement**,
@@ -777,11 +881,17 @@ comment de la séance de code.
 ## 9. Ce que ce skill ne fait pas
 
 - Il ne code pas, jamais — même après `valide`. C'est `executer-plan-notion`.
+  (Le code jetable d'un POC ou d'une répétition à blanc n'est pas du code livré :
+  règle 2.)
 - Il ne résout pas les fils de commentaires.
 - Il n'ouvre pas de PR de lui-même et ne merge rien.
 - Il ne passe jamais un plan en `archive`.
 - Il ne dépend d'aucun `CLAUDE.md`, d'aucun hook, d'aucun fichier du dépôt de
   travail. Ses compagnons sont les fichiers partagés
-  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/ecrire-dans-notion.md` et
-  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/maquettes-html.md`, livrés par le
-  plugin `plans-notion` — pas par le dépôt de travail, quel qu'il soit.
+  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/ecrire-dans-notion.md`,
+  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/maquettes-html.md`,
+  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/poc.md` et
+  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/outils-et-quotas.md`, ainsi que les
+  agents `${CLAUDE_PLUGIN_ROOT}/agents/enqueteur.md` et
+  `${CLAUDE_PLUGIN_ROOT}/agents/chercheur.md`, livrés par le plugin
+  `plans-notion` — pas par le dépôt de travail, quel qu'il soit.
