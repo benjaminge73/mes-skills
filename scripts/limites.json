@@ -1,0 +1,43 @@
+{
+  "_commentaire": "Plafonds et seuils des garde-fous (scripts/check_skills.py, check_veille.py). Cliquet : un plafond ne peut que baisser, la CI compare avec le limites.json de la base. Une exception datée ne bloque pas mais s'affiche à chaque passage ; voir docs/garde-fous.md.",
+  "taille_skill_md": {
+    "plugins/methode-de-travail/skills/brainstorming/SKILL.md": {
+      "lignes": 319,
+      "octets": 18638
+    },
+    "plugins/methode-de-travail/skills/systematic-debugging/SKILL.md": {
+      "lignes": 317,
+      "octets": 11340
+    },
+    "plugins/methode-de-travail/skills/verification-before-completion/SKILL.md": {
+      "lignes": 170,
+      "octets": 6352
+    },
+    "plugins/plans-notion/skills/executer-plan-notion/SKILL.md": {
+      "lignes": 923,
+      "octets": 57302
+    },
+    "plugins/plans-notion/skills/plan-notion/SKILL.md": {
+      "lignes": 897,
+      "octets": 53665
+    }
+  },
+  "invariants_en_tete": [],
+  "veille_jours_max": 30,
+  "exceptions": [
+    {
+      "regle": "a",
+      "cible": "plugins/plans-notion/skills/executer-plan-notion/SKILL.md",
+      "date": "2026-09-30",
+      "raison": "description + when_to_use : 1 545 caractères pour un plafond de 1 536, défaut réel constaté à l'ouverture d'A7",
+      "levee_par": "étape B7"
+    },
+    {
+      "regle": "d",
+      "cible": "plugins/plans-notion/.claude-plugin/plugin.json",
+      "date": "2026-09-30",
+      "raison": "la description du manifeste ne cite que l'agent enqueteur ; executant, relecteur et chercheur manquent",
+      "levee_par": "étape B7"
+    }
+  ]
+}

@@ -27,23 +27,16 @@ jobs:
           # tout plugin passerait pour naissant — donc vert sur rien.
           fetch-depth: 0
 
-      - name: Cohérence de la marketplace
-        run: python3 scripts/check_marketplace.py
-
-      - name: Garde de version des plugins
-        if: github.event_name == 'pull_request'
+      - name: Contrôles de garde (scripts/ci_locale.sh)
+        # La liste des contrôles vit dans `scripts/ci_locale.sh`, et nulle part
+        # ailleurs : la CI l'appelle au lieu de recopier ses commandes, pour que
+        # « ce qui passe en local » et « ce qui passe ici » soient la même liste.
+        # Sur une PR, la base est la branche visée ; sur une poussée sur main,
+        # il n'y a rien à comparer et les contrôles qui en dépendent sont sautés.
         env:
           BASE_REF: origin/${{ github.base_ref }}
-        run: |
-          set -euo pipefail
-          # `--no-renames` : une ligne renommée sort en trois champs, que le
-          # garde ignore. Forcer la paire suppression/ajout garantit qu'un
-          # fichier de plugin déplacé compte comme un fichier touché.
-          git diff --no-renames --name-status "$BASE_REF...HEAD" \
-            > "$RUNNER_TEMP/pr-files.tsv"
-          python3 scripts/plugin_version_guard.py \
-            --changed-files "$RUNNER_TEMP/pr-files.tsv" \
-            --base-ref "$BASE_REF"
+          CI_LOCALE_SANS_BASE: ${{ github.event_name != 'pull_request' && '1' || '' }}
+        run: scripts/ci_locale.sh garde
 
   validation:
     name: Validation des plugins
@@ -62,19 +55,9 @@ jobs:
         # schéma qu'on aurait figé et qui serait devenu périmé.
         run: npm install -g @anthropic-ai/claude-code
 
-      - name: Validation des plugins par la CLI
-        run: |
-          set -euo pipefail
-          claude plugin validate .
-          for d in plugins/*/; do
-            claude plugin validate "$d"
-          done
-
-      - name: Tests des scripts de garde
-        run: python3 -m unittest discover -s scripts -p 'test_*.py'
-
-      - name: Renvois entre fichiers
-        run: python3 scripts/check_references.py
+      - name: Validation, tests et renvois (scripts/ci_locale.sh)
+        # Même liste que `garde` : scripts/ci_locale.sh, section `validation`.
+        run: scripts/ci_locale.sh validation
 
   evals-portee:
     name: Portée des évals
