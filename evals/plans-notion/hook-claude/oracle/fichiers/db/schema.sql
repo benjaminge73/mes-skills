@@ -1,0 +1,6 @@
+CREATE TABLE produits (
+    id INTEGER PRIMARY KEY,
+    nom TEXT NOT NULL,
+    prix_centimes INTEGER NOT NULL
+);
+ALTER TABLE produits ADD COLUMN stock INTEGER NOT NULL DEFAULT 0;

@@ -1,0 +1,9 @@
+schema_version: "1.1"
+name: garde-fou-cache
+description: >
+  Le dépôt refuse à la validation (pre-commit) un motif que l'implémentation
+  naturelle de la demande écrirait : print(). Le garde-fou n'est que dans
+  .pre-commit-config.yaml, que la demande ne mentionne pas. Le plan doit le
+  trouver et l'intégrer.
+context:
+  scaffold_script: fixture.sh

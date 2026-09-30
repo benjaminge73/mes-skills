@@ -1,9 +1,16 @@
 name: CI
 
 on:
+  # Jamais le déclencheur « cible » de la PR (celui qui exécute le code d'une PR
+  # avec les secrets du dépôt, donc avec le jeton du job `evals`). Pas de filtre `paths:` ici non
+  # plus : un workflow que le filtre empêcherait de démarrer ne rendrait aucun
+  # statut, et un futur verrou de branche (ruleset) attendrait indéfiniment.
+  # Le tri par chemins se fait dans le job `evals-portee`, dont le résultat
+  # fait sauter `evals` (un job sauté compte comme réussi).
   pull_request:
   push:
     branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -20,23 +27,16 @@ jobs:
           # tout plugin passerait pour naissant — donc vert sur rien.
           fetch-depth: 0
 
-      - name: Cohérence de la marketplace
-        run: python3 scripts/check_marketplace.py
-
-      - name: Garde de version des plugins
-        if: github.event_name == 'pull_request'
+      - name: Contrôles de garde (scripts/ci_locale.sh)
+        # La liste des contrôles vit dans `scripts/ci_locale.sh`, et nulle part
+        # ailleurs : la CI l'appelle au lieu de recopier ses commandes, pour que
+        # « ce qui passe en local » et « ce qui passe ici » soient la même liste.
+        # Sur une PR, la base est la branche visée ; sur une poussée sur main,
+        # il n'y a rien à comparer et les contrôles qui en dépendent sont sautés.
         env:
           BASE_REF: origin/${{ github.base_ref }}
-        run: |
-          set -euo pipefail
-          # `--no-renames` : une ligne renommée sort en trois champs, que le
-          # garde ignore. Forcer la paire suppression/ajout garantit qu'un
-          # fichier de plugin déplacé compte comme un fichier touché.
-          git diff --no-renames --name-status "$BASE_REF...HEAD" \
-            > "$RUNNER_TEMP/pr-files.tsv"
-          python3 scripts/plugin_version_guard.py \
-            --changed-files "$RUNNER_TEMP/pr-files.tsv" \
-            --base-ref "$BASE_REF"
+          CI_LOCALE_SANS_BASE: ${{ github.event_name != 'pull_request' && '1' || '' }}
+        run: scripts/ci_locale.sh garde
 
   validation:
     name: Validation des plugins
@@ -55,19 +55,323 @@ jobs:
         # schéma qu'on aurait figé et qui serait devenu périmé.
         run: npm install -g @anthropic-ai/claude-code
 
-      - name: Validation des plugins par la CLI
+      - name: Validation, tests et renvois (scripts/ci_locale.sh)
+        # Même liste que `garde` : scripts/ci_locale.sh, section `validation`.
+        run: scripts/ci_locale.sh validation
+
+  evals-portee:
+    name: Portée des évals
+    # Mêmes garde-fous que `merge-auto`, plus « pas depuis un fork » : ce job
+    # ouvre la voie à `evals`, qui porte le jeton CLAUDE_CODE_OAUTH_TOKEN et
+    # joue du Bash. Un fork n'a de toute façon pas les secrets ; on le dit ici
+    # plutôt que de laisser `evals` échouer sur « secret absent ».
+    if: >-
+      (github.event_name == 'workflow_dispatch' && github.actor == 'benjaminge73')
+      || (github.event_name == 'pull_request'
+          && github.event.pull_request.user.login == 'benjaminge73'
+          && github.event.pull_request.draft == false
+          && github.event.pull_request.head.repo.full_name == github.repository)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      touche: ${{ steps.portee.outputs.touche }}
+      plugins: ${{ steps.portee.outputs.plugins }}
+      base: ${{ steps.portee.outputs.base }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # La tête de la PR, pas le commit de fusion que GitHub prépare : c'est
+          # la version de tête qu'on compare. Profondeur complète : `git
+          # merge-base` et `git archive <base>` lisent l'historique.
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          # Pas de jeton GITHUB_TOKEN laissé dans .git/config : `evals` joue des
+          # agents avec Bash dans ce clone.
+          persist-credentials: false
+
+      - name: Quels plugins jouer
+        id: portee
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
           set -euo pipefail
-          claude plugin validate .
-          for d in plugins/*/; do
-            claude plugin validate "$d"
+          # Base = l'ancêtre commun de la PR et de `main`, pas la pointe de
+          # `main` : si `main` a avancé depuis, ses changements ne sont pas un
+          # « recul » de la PR. C'est aussi un SHA de `main`, la clé du cache.
+          if [ "$EVENT_NAME" = "pull_request" ]; then
+            base=$(git merge-base "$PR_BASE_SHA" "$PR_HEAD_SHA")
+            # `--no-renames` : un fichier déplacé compte pour ses deux chemins.
+            mapfile -t fichiers < <(git diff --no-renames --name-only "$base" "$PR_HEAD_SHA")
+            global=0
+          else
+            base=$(git merge-base origin/main HEAD)
+            fichiers=()
+            global=1   # lancement manuel : tout plugin qui a un banc
+          fi
+
+          # Plugins jouables : un banc `evals/<plugin>/` et un plugin des deux
+          # côtés (un plugin naissant n'a pas de base à comparer). `outillage`
+          # est le dossier des scripts, pas un plugin.
+          jouables=()
+          for d in evals/*/; do
+            nom=$(basename "$d")
+            [ "$nom" = "outillage" ] && continue
+            [ -d "plugins/$nom" ] || continue
+            git cat-file -e "$base:plugins/$nom/.claude-plugin/plugin.json" 2>/dev/null || continue
+            jouables+=("$nom")
           done
 
-      - name: Tests des scripts de garde
-        run: python3 -m unittest discover -s scripts -p 'test_*.py'
+          # Fichiers qui déclenchent : skills, agents, hooks d'un plugin ; son
+          # banc et son bruit ; et, pour tous les plugins à la fois, l'outillage,
+          # le comparateur et ce workflow. Le journal des résultats seul ne
+          # déclenche rien : y ajouter une ligne ne change aucune mesure.
+          touches=()
+          for f in "${fichiers[@]}"; do
+            case "$f" in
+              plugins/*/skills/*|plugins/*/agents/*|plugins/*/hooks/*)
+                n=${f#plugins/}; touches+=("${n%%/*}") ;;
+              evals/RESULTATS.md) ;;
+              evals/bruit-*.json)
+                n=${f#evals/bruit-}; touches+=("${n%.json}") ;;
+              evals/*/*)
+                n=${f#evals/}; n=${n%%/*}
+                if [ -d "plugins/$n" ]; then touches+=("$n"); else global=1; fi ;;
+              evals/*|scripts/evals_ab.py|.github/workflows/ci.yml) global=1 ;;
+            esac
+          done
 
-      - name: Renvois entre fichiers
-        run: python3 scripts/check_references.py
+          choisis=()
+          for nom in "${jouables[@]}"; do
+            if [ "$global" = 1 ]; then choisis+=("$nom"); continue; fi
+            for t in "${touches[@]}"; do
+              if [ "$t" = "$nom" ]; then choisis+=("$nom"); break; fi
+            done
+          done
+
+          if [ "${#choisis[@]}" -gt 0 ]; then
+            plugins=$(printf '%s\n' "${choisis[@]}" | jq -R . | jq -cs .)
+            touche=true
+          else
+            plugins=""
+            touche=false
+          fi
+          {
+            echo "touche=$touche"
+            echo "plugins=$plugins"
+            echo "base=$base"
+          } >> "$GITHUB_OUTPUT"
+          echo "base=$base touche=$touche plugins=${plugins:-aucun}"
+
+  evals:
+    name: Évals (${{ matrix.plugin }})
+    needs: evals-portee
+    # Sauté quand la PR ne touche ni skill, ni agent, ni hook, ni banc : un job
+    # sauté compte comme réussi, `merge-auto` continue.
+    if: needs.evals-portee.outputs.touche == 'true'
+    runs-on: ubuntu-latest
+    # Sans base en cache (premier run de chaque base) : deux bras joués l'un
+    # après l'autre, de 16 cas x 3 passages = 48 passages. Mesuré le 2026-09-30
+    # (A/A local de l'étape A4, 27 passages en ≈ 24 min à 3 agents en parallèle) :
+    # ≈ 2,7 min par passage, soit ≈ 43 min par bras et ≈ 86 min pour les deux,
+    # plus ≈ 1 min 30 de préparation. 150 min laissent la marge des cas
+    # d'exécution (Bash, commits), sans doute plus lents que les cas de lecture
+    # mesurés, sans tolérer une boucle : au-delà, le job est tué plutôt que de
+    # consommer l'abonnement.
+    timeout-minutes: 150
+    permissions:
+      contents: read
+    # Une poussée sur la PR annule l'exécution en cours : ses mesures portent sur
+    # une tête déjà périmée. Au niveau du job (et non du workflow), pour ne
+    # jamais interrompre `merge-auto` en plein merge.
+    concurrency:
+      group: evals-${{ github.event.pull_request.number || github.ref }}-${{ matrix.plugin }}
+      cancel-in-progress: true
+    strategy:
+      fail-fast: false
+      matrix:
+        # « aucun » n'est jamais joué : `if` saute le job avant. Il évite qu'un
+        # matrice vide fasse échouer l'évaluation du workflow.
+        plugin: ${{ fromJSON(needs.evals-portee.outputs.plugins || '["aucun"]') }}
+    env:
+      # Figés : un modèle qui change change le bruit, donc toute la mesure.
+      EVALS_MODELE: claude-opus-5-5
+      # Plafond par appel de `claude plugin eval` (une fois pour la base, une fois
+      # pour la tête). Mesuré le 2026-09-30 avec claude-opus-5-5 (A/A local de
+      # l'étape A4) : 54 passages pour 53,14 $, soit ≈ 0,98 $ par passage (de
+      # 0,48 à 2,15 $ selon le cas), donc un bras de 16 cas x 3 passages ≈ 47 $.
+      # 120 $ couvrent un bras complet avec plus de deux fois de marge, pour les
+      # cas d'exécution (Bash, commits) sans doute plus chers que les cas de
+      # lecture mesurés. Un plafond plus bas couperait chaque bras : rapport
+      # partiel, refusé par `evals_ab.py` (code 3), job rouge à tous les coups.
+      EVALS_MAX_COUT_USD: '120'
+      EVALS_RUNS: '3'
+      EVALS_CONCURRENCE: '3'
+    steps:
+      - name: Vérifier que le jeton est là
+        # Premier pas, avant tout coût : sans jeton, on échoue net et on le dit.
+        # Le secret n'est passé qu'à ce pas et au pas qui joue les cas ; jamais
+        # en argument de ligne de commande (visible dans la liste des processus).
+        env:
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+        run: |
+          if [ -z "${CLAUDE_CODE_OAUTH_TOKEN:-}" ]; then
+            echo "::error title=Secret absent::Le secret CLAUDE_CODE_OAUTH_TOKEN est vide ou absent : les évals ne peuvent pas s'authentifier. Le poser avec « gh secret set CLAUDE_CODE_OAUTH_TOKEN » (voir docs/tester-un-skill.md, section « Le jeton de CI »)."
+            exit 1
+          fi
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Préparer le runner
+        # Refuse de tourner hors GITHUB_ACTIONS=true (garde-fou du script).
+        run: bash evals/outillage/preparer-runner.sh
+
+      - name: Clé du cache de la base
+        id: cle
+        env:
+          PLUGIN: ${{ matrix.plugin }}
+          BASE_SHA: ${{ needs.evals-portee.outputs.base }}
+        run: |
+          set -euo pipefail
+          # Une base rejouée doit donner le même rapport : la clé porte tout ce
+          # qui le ferait changer. Le SHA de la base (plugin à cette référence),
+          # les cas (assemblés dans les deux copies), le modèle, le nombre de
+          # passages, la version de Claude Code du runner et le lanceur.
+          cas=$(git ls-files -z "evals/$PLUGIN" | sort -z | xargs -0 sha256sum | sha256sum | cut -c1-16)
+          version=$(sed -n 's/^CLAUDE_CODE_VERSION=//p' evals/outillage/preparer-runner.sh)
+          lanceur=$(sha256sum evals/outillage/lancer.sh | cut -c1-12)
+          echo "cle=evals-base-$PLUGIN-$BASE_SHA-$cas-$EVALS_MODELE-r$EVALS_RUNS-cc$version-$lanceur" >> "$GITHUB_OUTPUT"
+
+      - name: Reprendre la base du cache
+        id: cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/evals-cache/base.json
+          key: ${{ steps.cle.outputs.cle }}
+
+      - name: Jouer la tête et la base, comparer
+        id: jeu
+        env:
+          PLUGIN: ${{ matrix.plugin }}
+          BASE_SHA: ${{ needs.evals-portee.outputs.base }}
+          CACHE_HIT: ${{ steps.cache.outputs.cache-hit }}
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+        run: |
+          set -euo pipefail
+          sortie="$RUNNER_TEMP/evals-sortie"
+          cache="$RUNNER_TEMP/evals-cache"
+          journal_log="$RUNNER_TEMP/evals.log"
+          mkdir -p "$sortie" "$cache"
+          # Traces (--keep-temp) hors de l'artefact : seul $sortie est téléversé.
+          export TMPDIR="$RUNNER_TEMP/evals-traces"
+          mkdir -p "$TMPDIR"
+
+          args=(--plugin "$PLUGIN" --mode ab --base "$BASE_SHA" --tete HEAD
+                --conserver --journal "$sortie/journal.md")
+          if [ -f "evals/bruit-$PLUGIN.json" ]; then
+            args+=(--bruit "evals/bruit-$PLUGIN.json")
+            echo "Bruit mesuré : evals/bruit-$PLUGIN.json"
+          else
+            echo "Pas de evals/bruit-$PLUGIN.json : bruit estimé (plus large qu'une mesure)."
+          fi
+          if [ "$CACHE_HIT" = "true" ]; then
+            args+=(--reference "$cache/base.json")
+            echo "Base reprise du cache."
+          else
+            args+=(--garder-base "$cache/base.json")
+          fi
+
+          # stdout = le tableau Markdown ; stderr = la trace, qui reste dans le
+          # journal du job (jamais téléversée). Aucun `set -x`, aucun `env`.
+          set +e
+          python3 scripts/evals_ab.py "${args[@]}" -- \
+            --runs "$EVALS_RUNS" --concurrency "$EVALS_CONCURRENCE" \
+            --report "$sortie/report.html" \
+            2>&1 >"$sortie/tableau.md" | tee "$journal_log" >&2
+          code=${PIPESTATUS[0]}
+          set -e
+
+          # Rapports JSON : le lanceur les écrit dans les copies conservées.
+          racine=$(sed -n 's/^copies conservées : //p' "$journal_log" | tail -n 1)
+          if [ -n "$racine" ] && [ -d "$racine" ]; then
+            [ -f "$racine/tete.json" ] && cp "$racine/tete.json" "$sortie/rapport-tete.json"
+            [ -f "$racine/base.json" ] && cp "$racine/base.json" "$sortie/rapport-base.json"
+            rm -rf "$racine"
+          fi
+          if [ ! -f "$sortie/rapport-base.json" ] && [ "$CACHE_HIT" = "true" ]; then
+            cp "$cache/base.json" "$sortie/rapport-base.json"
+          fi
+
+          {
+            echo "## Évals — $PLUGIN"
+            echo
+            if [ -s "$sortie/tableau.md" ]; then
+              cat "$sortie/tableau.md"
+            else
+              echo "Aucune comparaison produite (code $code) : voir le journal du job."
+            fi
+            echo
+            echo "Rapports JSON, report.html et journal : artefact \`evals-$PLUGIN\`."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          case "$code" in
+            0) ;;
+            1) echo "::error title=Recul::La tête de « $PLUGIN » recule au-delà du bruit par rapport à sa base (voir le résumé du job)." ;;
+            *) echo "::error title=Évals refusées::evals_ab.py a rendu le code $code pour « $PLUGIN » : pré-vol, rapport partiel (plafond de coût) ou lanceur en échec. Voir le journal du job." ;;
+          esac
+          exit "$code"
+
+      - name: Base gardée pour le cache
+        id: base
+        if: always() && steps.cache.outputs.cache-hit != 'true'
+        run: |
+          if [ -s "$RUNNER_TEMP/evals-cache/base.json" ]; then
+            echo "gardee=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Ranger la base dans le cache
+        # `always()` : une tête qui recule fait échouer le job, mais la base
+        # jouée n'en est pas moins valable. Sans cela, on la rejouerait (et on la
+        # repayerait) à chaque nouvelle poussée.
+        if: always() && steps.base.outputs.gardee == 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/evals-cache/base.json
+          key: ${{ steps.cle.outputs.cle }}
+
+      - name: Vérifier que l'artefact ne contient pas le jeton
+        if: always()
+        env:
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+        run: |
+          # Ceinture avant téléversement. Le motif passe par un descripteur de
+          # fichier (`-f <(...)`) et non par un argument : `printf` est interne à
+          # bash, le jeton n'apparaît dans la ligne de commande d'aucun processus.
+          [ -d "$RUNNER_TEMP/evals-sortie" ] || exit 0
+          [ -n "${CLAUDE_CODE_OAUTH_TOKEN:-}" ] || exit 0
+          if grep -rqaF -f <(printf '%s\n' "$CLAUDE_CODE_OAUTH_TOKEN") "$RUNNER_TEMP/evals-sortie"; then
+            rm -rf "$RUNNER_TEMP/evals-sortie"
+            echo "::error title=Jeton dans l'artefact::Le jeton figurait dans les fichiers à téléverser : artefact supprimé. Renouveler le secret."
+            exit 1
+          fi
+
+      - name: Téléverser les rapports
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: evals-${{ matrix.plugin }}
+          # Uniquement les rapports (JSON, report.html, tableau, journal). Ni les
+          # traces (--keep-temp), ni le journal du job, ni un dossier qui
+          # pourrait embarquer l'environnement.
+          path: ${{ runner.temp }}/evals-sortie
+          if-no-files-found: ignore
+          retention-days: 14
 
   merge-auto:
     name: Merge automatique si tout est vert
@@ -79,9 +383,22 @@ jobs:
     # (une PR en `draft` attend), et le label `review-required`, qui est la
     # porte de sortie quand on veut relire malgré le vert — même nom et même
     # sens que sur `vahiny` et `kanban_mAIster_ATI4`.
-    needs: [garde, validation]
+    #
+    # `evals` attend aussi, et peut être sauté (PR sans skill touché) : d'où
+    # `always()` — sans lui, un `needs` sauté fait sauter aussi `merge-auto`.
+    # `always()` lève cependant le « tout est vert » implicite : on le rétablit à
+    # la main, en n'acceptant que `success` ou `skipped` de chaque amont. Un
+    # `failure` ou un `cancelled` (recul des évals, poussée qui annule le run)
+    # bloque le merge. `evals-portee` est dans la liste : s'il échoue, `evals`
+    # est sauté, et sans lui ce saut passerait pour un feu vert.
+    needs: [garde, validation, evals-portee, evals]
     if: >-
-      github.event_name == 'pull_request'
+      always()
+      && (needs.garde.result == 'success' || needs.garde.result == 'skipped')
+      && (needs.validation.result == 'success' || needs.validation.result == 'skipped')
+      && (needs.evals-portee.result == 'success' || needs.evals-portee.result == 'skipped')
+      && (needs.evals.result == 'success' || needs.evals.result == 'skipped')
+      && github.event_name == 'pull_request'
       && github.event.pull_request.user.login == 'benjaminge73'
       && github.event.pull_request.draft == false
       && !contains(github.event.pull_request.labels.*.name, 'review-required')

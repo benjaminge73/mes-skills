@@ -289,15 +289,16 @@ de base à dépasser) et un plugin qui disparaît.
 
 ### La CI, et pourquoi il n'y a pas de CD
 
-`.github/workflows/ci.yml` joue deux jobs. `garde` vérifie la cohérence de la
-marketplace (`scripts/check_marketplace.py`, le manifeste et le disque
-concordent) et, sur une PR, que la version d'un plugin touché a bien bougé
-(`scripts/plugin_version_guard.py`, la règle ci-dessus). `validation` fait
-valider chaque manifeste par la CLI Claude Code elle-même (`claude plugin
-validate` sur la racine, puis sur chaque `plugins/<nom>/`) et fait tourner
-`scripts/check_references.py`, qui attrape les renvois `${CLAUDE_PLUGIN_ROOT}/…`
-pointant dans le vide entre fichiers de skill, ainsi que les frontmatters de
-skill et d'agent incomplets ou mal nommés.
+`.github/workflows/ci.yml` joue deux jobs, et les deux appellent
+`scripts/ci_locale.sh`, la liste unique des contrôles (voir « Vérifier avant de
+pousser »). `garde` tient les invariants du dépôt : la marketplace et le disque
+concordent, la version d'un plugin touché a bougé (la règle ci-dessus), les
+règles de forme des skills et le registre des garde-fous
+([docs/garde-fous.md](docs/garde-fous.md)) sont respectés, et une leçon ajoutée
+à un skill a son cas d'éval. `validation` fait valider chaque manifeste par la
+CLI Claude Code elle-même (`claude plugin validate`), joue les tests des
+scripts de garde et attrape les renvois `${CLAUDE_PLUGIN_ROOT}/…` pointant dans
+le vide, ainsi que les frontmatters incomplets ou mal nommés.
 
 Il n'y a pas de job de déploiement (CD, *continuous delivery*) parce qu'il n'y
 a rien à déployer : ce dépôt n'est pas un service qui tourne quelque part, il
@@ -315,11 +316,19 @@ pas une régression introduite ici — à vérifier avant de fouiller le diff.
 ### Vérifier avant de pousser
 
 ```bash
-python3 scripts/check_marketplace.py     # le manifeste et le disque concordent
-claude plugin validate .                 # le schéma de la marketplace
-claude plugin validate plugins/<nom>     # le schéma d'un plugin
-python3 scripts/check_references.py      # renvois ${CLAUDE_PLUGIN_ROOT}/… et frontmatters
+scripts/ci_locale.sh
 ```
+
+Ce script est la **seule** liste des contrôles : c'est exactement ce que la CI
+joue dans ses jobs `garde` et `validation`, dans l'ordre. Rien à énumérer ici —
+un contrôle ajouté au dépôt s'ajoute dans ce script, et la CI comme les
+contributeurs le reprennent. Il ne joue pas le job `evals`, payant, qui tourne
+sur le runner GitHub. Sur une branche de PR il compare à `origin/main` (une
+autre base : `BASE_REF=<réf>`) ; la CLI `claude` doit être installée.
+
+Les règles que ces contrôles tiennent, et d'où elles viennent, sont dans
+[docs/garde-fous.md](docs/garde-fous.md) ; la méthode pour prouver un skill, dans
+[docs/tester-un-skill.md](docs/tester-un-skill.md).
 
 Pour essayer une version en cours sans la publier :
 

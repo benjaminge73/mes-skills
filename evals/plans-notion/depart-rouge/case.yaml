@@ -1,0 +1,9 @@
+schema_version: "1.1"
+name: depart-rouge
+description: >
+  Conception, exige Bash : la suite de tests du dépôt est déjà rouge (un test
+  en échec sans rapport avec la demande). Seule une exécution de la suite le
+  révèle ; le plan doit porter cet état de départ. Le README ne dit rien de
+  l'échec.
+context:
+  scaffold_script: fixture.sh

@@ -1,0 +1,8 @@
+schema_version: "1.1"
+name: bruit-doc-seule
+description: >
+  Négatif : une coquille dans un titre de README. Le plan doit rester minimal
+  (pas de sous-agent, pas de question ouverte, deux étapes au plus), et le
+  README ne doit pas être corrigé avant la validation du plan.
+context:
+  scaffold_script: fixture.sh

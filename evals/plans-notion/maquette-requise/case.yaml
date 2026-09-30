@@ -1,0 +1,9 @@
+schema_version: "1.1"
+name: maquette-requise
+description: >
+  Un libellé d'écran change (bouton du panier). Le changement est petit, mais
+  le plan doit porter un chapitre Maquette avec une vraie maquette, pas une
+  dispense « c'est petit ». Le libellé est aussi cité par un test e2e et par un
+  e-mail : le plan doit les trouver.
+context:
+  scaffold_script: fixture.sh

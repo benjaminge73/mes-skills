@@ -1,0 +1,9 @@
+schema_version: "1.1"
+name: existant-jeu-de-questions
+description: >
+  Banc de comparaison de modèles : il lui faut un jeu de questions. Le plan doit
+  porter la ligne « Existant cherché / trouvé / fait maison parce que » et
+  découvrir le jeu de questions déjà présent dans le dépôt (tests/golden),
+  plutôt que d'en fabriquer un.
+context:
+  scaffold_script: fixture.sh

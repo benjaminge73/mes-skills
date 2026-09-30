@@ -110,19 +110,48 @@ chaîne, jamais le contenu des fichiers : sans bump, `plugin update` répond
 (`scripts/plugin_version_guard.py`). Un fichier hors `plugins/` — ce fichier-ci,
 le README, `docs/`, `scripts/` — n'exige aucun bump.
 
-## Avant de pousser
+## Mettre à jour un skill ou un plugin
 
-```bash
-python3 scripts/check_marketplace.py     # le manifeste et le disque concordent
-python3 scripts/check_references.py      # renvois ${CLAUDE_PLUGIN_ROOT}/… et frontmatters
-claude plugin validate .                 # le schéma de la marketplace
-claude plugin validate plugins/<nom>     # le schéma d'un plugin
-```
+Avant de toucher à un skill, un agent, un hook ou un `_partage/`, lire deux
+documents : [docs/tester-un-skill.md](docs/tester-un-skill.md) (comment on prouve
+qu'une consigne fonctionne) et [docs/garde-fous.md](docs/garde-fous.md) (les règles
+que la CI tient déjà, et le garde de chacune).
 
-La CI rejoue exactement ces quatre contrôles, avec la **dernière** CLI publiée,
-non épinglée. Deux conséquences vérifiées le 2026-09-08 : elle valide des choses
-que la CLI du poste ne valide pas encore, et un job rouge sans changement dans la
-PR peut signaler une dérive du format en amont plutôt qu'une régression locale.
+- **Tout correctif ajoute sa ligne au registre et son garde dans la même PR.** Un
+  correctif qu'aucun garde ne tient peut être défait sans que la CI le voie : la
+  panne reviendrait, et on la corrigerait une seconde fois.
+- **Avant toute PR qui touche un skill, un agent, un hook ou un `_partage/` : une
+  passe de veille.** Un fait de doc peut changer d'une version de Claude Code à
+  l'autre, et une règle fondée sur un fait périmé protège la mauvaise chose.
+  L'agent `chercheur`, avec le brief de [docs/veille.md](docs/veille.md), lit les
+  sources depuis la dernière passe ; ce qui s'applique entre dans la PR (ou dans un
+  plan si c'est plus gros) ; l'entrée datée s'ajoute au journal. La CI refuse la PR
+  si la dernière entrée a plus de 30 jours (`scripts/check_veille.py`), et un
+  workflow hebdomadaire ouvre une issue quand une citation du tableau des faits
+  n'est plus sur sa page.
+- **Avant de pousser : lancer `scripts/ci_locale.sh`.** C'est la **seule** liste des
+  contrôles : ce que la CI joue dans ses jobs `garde` et `validation`, dans
+  l'ordre, et rien d'autre à énumérer ici. Sur une branche de PR, il compare à
+  `origin/main` ; une autre base se passe par `BASE_REF=<réf>`. Il ne joue pas
+  le job `evals` (payant, sur le runner GitHub seulement). Un contrôle ajouté au
+  dépôt s'ajoute **dans ce script**, une fois.
+
+La CI appelle ce même script, avec la **dernière** CLI Claude Code publiée, non
+épinglée. Deux conséquences vérifiées le 2026-09-08 : elle valide des choses que
+la CLI du poste ne valide pas encore, et un job rouge sans changement dans la PR
+peut signaler une dérive du format en amont plutôt qu'une régression locale.
+
+**Toute leçon ajoutée à un skill, un agent ou un `_partage/` arrive avec son
+cas d'évaluation** dans `evals/<plugin>/`, prouvé par un oracle qui passe et un
+témoin nul qui échoue. Une consigne changée se compare à l'ancienne en A/B avec
+`python3 scripts/evals_ab.py`, et le seuil se fixe d'après le bruit mesuré en
+A/A, jamais avant. La méthode complète : [docs/tester-un-skill.md](docs/tester-un-skill.md).
+
+La CI le contrôle (`scripts/check_lecon_a_son_cas.py`) : une PR qui touche
+`plugins/<nom>/skills/`, `agents/`, `hooks/` ou `_partage/` doit aussi toucher
+`evals/<nom>/`, **ou** porter dans un de ses commits une ligne
+`Eval-cas: <cas existant>`, ou `Eval-cas: aucun — <raison>`. La dérogation est
+possible, jamais silencieuse : elle s'affiche dans le résumé de la CI.
 
 ⚠️ **Le frontmatter d'un `SKILL.md` est du YAML.** Un deux-points suivi d'une
 espace dans une `description` non citée casse le parsing, et le skill se charge

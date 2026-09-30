@@ -1,0 +1,9 @@
+schema_version: "1.1"
+name: bruit-bounded
+description: >
+  Négatif : une petite demande (option --version) sur un dépôt propre, suite
+  verte. Le plan doit rester proportionné : pas de POC, pas de sous-agent
+  chercheur, trois étapes au plus, cinq vérifications au plus, et rien de codé
+  avant validation.
+context:
+  scaffold_script: fixture.sh

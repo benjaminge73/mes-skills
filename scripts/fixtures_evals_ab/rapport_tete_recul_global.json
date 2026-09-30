@@ -1,0 +1,546 @@
+{
+  "schemaVersion": 1,
+  "claudeVersion": "2.1.285",
+  "startedAt": "2026-01-01T00:00:00.000Z",
+  "durationSeconds": 2,
+  "costUsd": 0.36,
+  "partial": false,
+  "suite": {
+    "root": "/chemin/anonymise/plugin",
+    "ablation": "none",
+    "modelOverride": "claude-haiku-4-5-20251001",
+    "threshold": 1,
+    "concurrency": 1,
+    "plugins": [
+      {
+        "name": "jouet",
+        "version": "0.0.1",
+        "path": "/chemin/anonymise/plugin"
+      }
+    ]
+  },
+  "cases": [
+    {
+      "name": "alpha",
+      "dir": "evals/alpha",
+      "source": "prose",
+      "promptMarkdown": "Réponds exactement OK, sans rien d'autre.",
+      "runsPerCase": 3,
+      "timeoutSeconds": 300,
+      "maxTurns": 3,
+      "graders": [
+        {
+          "name": "aucun-fichier",
+          "type": "file_exists",
+          "weight": 1,
+          "config": {
+            "path": "*.md",
+            "exists": false
+          }
+        },
+        {
+          "name": "reponse",
+          "type": "regex",
+          "weight": 1,
+          "config": {
+            "target": "last_message",
+            "pattern": "^OK\\.?$",
+            "flags": "",
+            "match": "contains"
+          }
+        }
+      ],
+      "arms": {
+        "with": [
+          {
+            "score": 1,
+            "passed": true,
+            "turns": 1,
+            "costUsd": 0.03,
+            "judgeCostUsd": 0.0,
+            "durationSeconds": 2,
+            "startedAt": "2026-01-01T00:00:00.000Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-xxxxxx/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "aucun-fichier",
+                "passed": true,
+                "weight": 1,
+                "explanation": "*.md absent as expected",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "reponse",
+                "passed": true,
+                "weight": 1,
+                "explanation": "matched ^OK\\.?$",
+                "withOnly": false,
+                "scored": true
+              }
+            ]
+          },
+          {
+            "score": 0,
+            "passed": false,
+            "turns": 1,
+            "costUsd": 0.03,
+            "judgeCostUsd": 0.0,
+            "durationSeconds": 2,
+            "startedAt": "2026-01-01T00:00:00.000Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-xxxxxx/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "aucun-fichier",
+                "passed": false,
+                "weight": 1,
+                "explanation": "*.md absent as expected",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "reponse",
+                "passed": false,
+                "weight": 1,
+                "explanation": "matched ^OK\\.?$",
+                "withOnly": false,
+                "scored": true
+              }
+            ]
+          },
+          {
+            "score": 0,
+            "passed": false,
+            "turns": 1,
+            "costUsd": 0.03,
+            "judgeCostUsd": 0.0,
+            "durationSeconds": 2,
+            "startedAt": "2026-01-01T00:00:00.000Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-xxxxxx/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "aucun-fichier",
+                "passed": false,
+                "weight": 1,
+                "explanation": "*.md absent as expected",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "reponse",
+                "passed": false,
+                "weight": 1,
+                "explanation": "matched ^OK\\.?$",
+                "withOnly": false,
+                "scored": true
+              }
+            ]
+          }
+        ]
+      },
+      "aggregates": {
+        "score": 0.3333333333333333,
+        "passRate": 0.3333333333333333
+      }
+    },
+    {
+      "name": "beta",
+      "dir": "evals/beta",
+      "source": "prose",
+      "promptMarkdown": "Réponds exactement OK, sans rien d'autre.",
+      "runsPerCase": 3,
+      "timeoutSeconds": 300,
+      "maxTurns": 3,
+      "graders": [
+        {
+          "name": "aucun-fichier",
+          "type": "file_exists",
+          "weight": 1,
+          "config": {
+            "path": "*.md",
+            "exists": false
+          }
+        },
+        {
+          "name": "reponse",
+          "type": "regex",
+          "weight": 1,
+          "config": {
+            "target": "last_message",
+            "pattern": "^OK\\.?$",
+            "flags": "",
+            "match": "contains"
+          }
+        }
+      ],
+      "arms": {
+        "with": [
+          {
+            "score": 0,
+            "passed": false,
+            "turns": 1,
+            "costUsd": 0.03,
+            "judgeCostUsd": 0.0,
+            "durationSeconds": 2,
+            "startedAt": "2026-01-01T00:00:00.000Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-xxxxxx/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "aucun-fichier",
+                "passed": false,
+                "weight": 1,
+                "explanation": "*.md absent as expected",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "reponse",
+                "passed": false,
+                "weight": 1,
+                "explanation": "matched ^OK\\.?$",
+                "withOnly": false,
+                "scored": true
+              }
+            ]
+          },
+          {
+            "score": 0,
+            "passed": false,
+            "turns": 1,
+            "costUsd": 0.03,
+            "judgeCostUsd": 0.0,
+            "durationSeconds": 2,
+            "startedAt": "2026-01-01T00:00:00.000Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-xxxxxx/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "aucun-fichier",
+                "passed": false,
+                "weight": 1,
+                "explanation": "*.md absent as expected",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "reponse",
+                "passed": false,
+                "weight": 1,
+                "explanation": "matched ^OK\\.?$",
+                "withOnly": false,
+                "scored": true
+              }
+            ]
+          },
+          {
+            "score": 0,
+            "passed": false,
+            "turns": 1,
+            "costUsd": 0.03,
+            "judgeCostUsd": 0.0,
+            "durationSeconds": 2,
+            "startedAt": "2026-01-01T00:00:00.000Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-xxxxxx/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "aucun-fichier",
+                "passed": false,
+                "weight": 1,
+                "explanation": "*.md absent as expected",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "reponse",
+                "passed": false,
+                "weight": 1,
+                "explanation": "matched ^OK\\.?$",
+                "withOnly": false,
+                "scored": true
+              }
+            ]
+          }
+        ]
+      },
+      "aggregates": {
+        "score": 0.0,
+        "passRate": 0.0
+      }
+    },
+    {
+      "name": "gamma",
+      "dir": "evals/gamma",
+      "source": "prose",
+      "promptMarkdown": "Réponds exactement OK, sans rien d'autre.",
+      "runsPerCase": 3,
+      "timeoutSeconds": 300,
+      "maxTurns": 3,
+      "graders": [
+        {
+          "name": "aucun-fichier",
+          "type": "file_exists",
+          "weight": 1,
+          "config": {
+            "path": "*.md",
+            "exists": false
+          }
+        },
+        {
+          "name": "reponse",
+          "type": "regex",
+          "weight": 1,
+          "config": {
+            "target": "last_message",
+            "pattern": "^OK\\.?$",
+            "flags": "",
+            "match": "contains"
+          }
+        }
+      ],
+      "arms": {
+        "with": [
+          {
+            "score": 1,
+            "passed": true,
+            "turns": 1,
+            "costUsd": 0.03,
+            "judgeCostUsd": 0.0,
+            "durationSeconds": 2,
+            "startedAt": "2026-01-01T00:00:00.000Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-xxxxxx/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "aucun-fichier",
+                "passed": true,
+                "weight": 1,
+                "explanation": "*.md absent as expected",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "reponse",
+                "passed": true,
+                "weight": 1,
+                "explanation": "matched ^OK\\.?$",
+                "withOnly": false,
+                "scored": true
+              }
+            ]
+          },
+          {
+            "score": 1,
+            "passed": true,
+            "turns": 1,
+            "costUsd": 0.03,
+            "judgeCostUsd": 0.0,
+            "durationSeconds": 2,
+            "startedAt": "2026-01-01T00:00:00.000Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-xxxxxx/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "aucun-fichier",
+                "passed": true,
+                "weight": 1,
+                "explanation": "*.md absent as expected",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "reponse",
+                "passed": true,
+                "weight": 1,
+                "explanation": "matched ^OK\\.?$",
+                "withOnly": false,
+                "scored": true
+              }
+            ]
+          },
+          {
+            "score": 0,
+            "passed": false,
+            "turns": 1,
+            "costUsd": 0.03,
+            "judgeCostUsd": 0.0,
+            "durationSeconds": 2,
+            "startedAt": "2026-01-01T00:00:00.000Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-xxxxxx/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "aucun-fichier",
+                "passed": false,
+                "weight": 1,
+                "explanation": "*.md absent as expected",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "reponse",
+                "passed": false,
+                "weight": 1,
+                "explanation": "matched ^OK\\.?$",
+                "withOnly": false,
+                "scored": true
+              }
+            ]
+          }
+        ]
+      },
+      "aggregates": {
+        "score": 0.6666666666666666,
+        "passRate": 0.6666666666666666
+      }
+    },
+    {
+      "name": "delta",
+      "dir": "evals/delta",
+      "source": "prose",
+      "promptMarkdown": "Réponds exactement OK, sans rien d'autre.",
+      "runsPerCase": 3,
+      "timeoutSeconds": 300,
+      "maxTurns": 3,
+      "graders": [
+        {
+          "name": "aucun-fichier",
+          "type": "file_exists",
+          "weight": 1,
+          "config": {
+            "path": "*.md",
+            "exists": false
+          }
+        },
+        {
+          "name": "reponse",
+          "type": "regex",
+          "weight": 1,
+          "config": {
+            "target": "last_message",
+            "pattern": "^OK\\.?$",
+            "flags": "",
+            "match": "contains"
+          }
+        }
+      ],
+      "arms": {
+        "with": [
+          {
+            "score": 0,
+            "passed": false,
+            "turns": 1,
+            "costUsd": 0.03,
+            "judgeCostUsd": 0.0,
+            "durationSeconds": 2,
+            "startedAt": "2026-01-01T00:00:00.000Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-xxxxxx/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "aucun-fichier",
+                "passed": false,
+                "weight": 1,
+                "explanation": "*.md absent as expected",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "reponse",
+                "passed": false,
+                "weight": 1,
+                "explanation": "matched ^OK\\.?$",
+                "withOnly": false,
+                "scored": true
+              }
+            ]
+          },
+          {
+            "score": 0,
+            "passed": false,
+            "turns": 1,
+            "costUsd": 0.03,
+            "judgeCostUsd": 0.0,
+            "durationSeconds": 2,
+            "startedAt": "2026-01-01T00:00:00.000Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-xxxxxx/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "aucun-fichier",
+                "passed": false,
+                "weight": 1,
+                "explanation": "*.md absent as expected",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "reponse",
+                "passed": false,
+                "weight": 1,
+                "explanation": "matched ^OK\\.?$",
+                "withOnly": false,
+                "scored": true
+              }
+            ]
+          },
+          {
+            "score": 1,
+            "passed": true,
+            "turns": 1,
+            "costUsd": 0.03,
+            "judgeCostUsd": 0.0,
+            "durationSeconds": 2,
+            "startedAt": "2026-01-01T00:00:00.000Z",
+            "error": null,
+            "tracePath": "/tmp/claude-eval-xxxxxx/out/trace.jsonl",
+            "skippedPaidGraders": false,
+            "graders": [
+              {
+                "name": "aucun-fichier",
+                "passed": true,
+                "weight": 1,
+                "explanation": "*.md absent as expected",
+                "withOnly": false,
+                "scored": true
+              },
+              {
+                "name": "reponse",
+                "passed": true,
+                "weight": 1,
+                "explanation": "matched ^OK\\.?$",
+                "withOnly": false,
+                "scored": true
+              }
+            ]
+          }
+        ]
+      },
+      "aggregates": {
+        "score": 0.3333333333333333,
+        "passRate": 0.3333333333333333
+      }
+    }
+  ],
+  "aggregates": {
+    "casesTotal": 4,
+    "casesPassed": 0,
+    "overallScore": 0.3333333333333333,
+    "overallPassRate": 0.3333333333333333
+  }
+}

@@ -1,0 +1,34 @@
+name: Veille
+
+# Chaque semaine, relire les pages de doc dont dépendent nos règles : si la
+# citation d'un fait porteur (docs/veille.md, partie 2) n'y est plus, ouvrir une
+# issue « Doc Claude changée : <fait> ». Aucun modèle, aucun secret autre que le
+# jeton du workflow : le script compare du texte, il ne juge rien.
+on:
+  schedule:
+    - cron: '17 6 * * 1'   # le lundi, 06 h 17 UTC
+  workflow_dispatch:
+
+# Le strict nécessaire : lire le dépôt, ouvrir des issues.
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  faits:
+    name: Faits porteurs de la doc
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Relire les pages, ouvrir une issue par fait changé
+        # `--ouvrir-issues` n'est passé qu'ici : en local, le script rapporte
+        # sans rien créer. Pas de doublon : une issue ouverte du même titre
+        # empêche d'en ouvrir une autre.
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: python3 scripts/veille_faits.py --ouvrir-issues
