@@ -1,0 +1,14 @@
+{
+  "schema": "evals_ab/bruit-1",
+  "mesure": "demi-largeur d'intervalle à 95 % (pas un écart-type), sur l'écart entre deux jeux identiques",
+  "n_cas": 16,
+  "passages": 3,
+  "rms_ecarts_cas": 0.04623550726094339,
+  "demi_largeur_ic95_cas": 0.09062159423144904,
+  "demi_largeur_ic95_globale": 0.02265539855786226,
+  "plugin": "plans-notion",
+  "reference": "d7e0b94 (v0.16.1) contre elle-même : les deux bras du run CI 36727952436 (PR #17), plugin identique",
+  "modele": "claude-opus-5-5",
+  "environnement": "runner GitHub (ubuntu-latest), --concurrency 3",
+  "date": "2026-09-30"
+}
