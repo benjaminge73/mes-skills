@@ -1,0 +1,427 @@
+"""Tests de ``evals_selection.py`` (le plancher des évals) et des propriétés de
+``ci.yml`` qui en dépendent.
+
+Le script est joué comme la CI le joue : en sous-processus, le corps de la PR
+dans la variable d'environnement ``PR_BODY`` (jamais en argument), les fichiers
+touchés dans un fichier (un chemin par ligne, comme ``git diff --name-only``).
+Chaque test fabrique son ``categories.json`` : aucun ne dépend des vrais cas,
+sauf la classe ``VraiDepot``, qui vérifie l'exemple du plan sur le vrai fichier.
+
+Le jeu de catégories fabriqué (plugin ``jouet``, et un second plugin ``autre``
+pour « une catégorie se cherche dans tous les plugins touchés ») :
+
+    recherche  exerce skills/plan/ et agents/chercheur.md       cas a1 a2
+    bruit      exerce skills/plan/                              cas b1
+    depart     exerce skills/plan/ et agents/enqueteur.md       cas c1 c2 c3
+    execution  exerce skills/executer/ et agents/executant.md   cas d1
+    (autre) solo  exerce skills/z/                              cas z1
+
+Les attendus sont écrits à la main : « recherche + bruit » = a1, a2, b1.
+"""
+from __future__ import annotations
+
+import json
+import os
+import re
+import subprocess
+import sys
+import tempfile
+import unittest
+from pathlib import Path
+
+RACINE = Path(__file__).resolve().parents[1]
+SCRIPT = RACINE / "scripts" / "evals_selection.py"
+CI = RACINE / ".github" / "workflows" / "ci.yml"
+
+CATEGORIES = {
+    "_commentaire": "jeu fabriqué pour les tests",
+    "jouet": {
+        "recherche": {"exerce": ["skills/plan/", "agents/chercheur.md"], "cas": ["a1", "a2"]},
+        "bruit": {"exerce": ["skills/plan/"], "cas": ["b1"]},
+        "depart": {"exerce": ["skills/plan/", "agents/enqueteur.md"], "cas": ["c1", "c2", "c3"]},
+        "execution": {"exerce": ["skills/executer/", "agents/executant.md"], "cas": ["d1"]},
+    },
+    "autre": {"solo": {"exerce": ["skills/z/"], "cas": ["z1"]}},
+}
+TOUS_LES_CAS_DE_JOUET = ["a1", "a2", "b1", "c1", "c2", "c3", "d1"]
+
+PLAN = "plugins/jouet/skills/plan/SKILL.md"
+EXECUTER = "plugins/jouet/skills/executer/SKILL.md"
+CHERCHEUR = "plugins/jouet/agents/chercheur.md"
+ENQUETEUR = "plugins/jouet/agents/enqueteur.md"
+
+
+def jouer_script(fichiers, corps, plugin, categories, cwd):
+    """(code, stdout, stderr) ; ``corps=None`` : PR_BODY n'est pas défini."""
+    liste = Path(cwd) / "fichiers.txt"
+    liste.write_text("".join(f + "\n" for f in fichiers), "utf-8")
+    env = {k: v for k, v in os.environ.items() if k != "PR_BODY"}
+    if corps is not None:
+        env["PR_BODY"] = corps
+    argv = [sys.executable, str(SCRIPT), "--plugin", plugin, "--fichiers", str(liste)]
+    if categories is not None:
+        argv += ["--categories", str(categories)]
+    r = subprocess.run(argv, capture_output=True, text=True, env=env, cwd=cwd)
+    return r.returncode, r.stdout, r.stderr
+
+
+class Selection(unittest.TestCase):
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self._tmp.cleanup)
+        self.dossier = Path(self._tmp.name)
+        self.categories = self.dossier / "categories.json"
+        self.categories.write_text(json.dumps(CATEGORIES), "utf-8")
+
+    def jouer(self, fichiers, corps=None, plugin="jouet", categories=None):
+        return jouer_script(fichiers, corps, plugin, categories or self.categories, self.dossier)
+
+    def selection(self, fichiers, corps=None, plugin="jouet"):
+        code, sortie, erreur = self.jouer(fichiers, corps, plugin)
+        self.assertEqual(code, 0, erreur)
+        return json.loads(sortie)
+
+
+class LigneDuCorpsDePr(Selection):
+    def test_une_ligne_absente_joue_tout_et_dit_pourquoi(self):
+        s = self.selection([PLAN], corps="Un corps sans la ligne attendue.\n")
+        self.assertTrue(s["tout"])
+        self.assertEqual(s["cas"], TOUS_LES_CAS_DE_JOUET)
+        self.assertIn("Evals", s["pourquoi_tout"])
+
+    def test_sans_variable_pr_body_on_joue_tout(self):
+        # Lancement manuel : pas de PR, donc pas de corps.
+        s = self.selection([], corps=None)
+        self.assertTrue(s["tout"])
+        self.assertEqual(s["cas"], TOUS_LES_CAS_DE_JOUET)
+
+    def test_une_ligne_vide_joue_tout(self):
+        for corps in ("Evals:", "Evals:   \n", "Evals: — parce que\n"):
+            with self.subTest(corps=corps):
+                s = self.selection([PLAN], corps=corps)
+                self.assertTrue(s["tout"])
+
+    def test_le_mot_tout_joue_tout_quelle_que_soit_la_casse_ou_les_espaces(self):
+        for corps in ("Evals: tout", "  evals :  TOUT  ", "EVALS: Tout — je ne sais pas"):
+            with self.subTest(corps=corps):
+                s = self.selection([PLAN], corps=corps)
+                self.assertTrue(s["tout"])
+                self.assertEqual(s["cas"], TOUS_LES_CAS_DE_JOUET)
+
+    def test_des_categories_donnent_l_union_de_leurs_cas_et_la_raison(self):
+        s = self.selection(
+            [PLAN],
+            corps="Résumé.\n\nEvals: recherche, bruit — B1 ne touche que la recherche\n\nFin.",
+        )
+        self.assertFalse(s["tout"])
+        self.assertEqual(s["categories"], ["recherche", "bruit"])
+        self.assertEqual(s["cas"], ["a1", "a2", "b1"])
+        self.assertEqual(s["raison"], "B1 ne touche que la recherche")
+        self.assertEqual(s["plugin"], "jouet")
+        self.assertEqual(s["pourquoi_tout"], "")
+
+    def test_le_double_tiret_introduit_aussi_la_raison(self):
+        s = self.selection([PLAN], corps="Evals: bruit -- essai")
+        self.assertEqual(s["categories"], ["bruit"])
+        self.assertEqual(s["raison"], "essai")
+
+    def test_un_cas_partage_entre_deux_categories_n_est_joue_qu_une_fois(self):
+        categories = json.loads(json.dumps(CATEGORIES))
+        categories["jouet"]["bruit"]["cas"] = ["a2", "b1"]  # a2 est déjà dans « recherche »
+        self.categories.write_text(json.dumps(categories), "utf-8")
+        s = self.selection([PLAN], corps="Evals: recherche, bruit")
+        self.assertEqual(s["cas"], ["a1", "a2", "b1"])
+
+    def test_les_fins_de_ligne_windows_d_un_corps_de_pr_sont_tolerees(self):
+        s = self.selection([PLAN], corps="Titre\r\n\r\nEvals: bruit — essai\r\nSuite\r\n")
+        self.assertEqual(s["categories"], ["bruit"])
+        self.assertEqual(s["raison"], "essai")
+
+    def test_la_casse_des_noms_de_categories_n_est_pas_significative(self):
+        s = self.selection([PLAN], corps="Evals: Recherche, BRUIT")
+        self.assertEqual(s["categories"], ["recherche", "bruit"])
+
+    def test_une_categorie_inconnue_est_refusee_et_les_categories_connues_sont_listees(self):
+        code, _, erreur = self.jouer([PLAN], corps="Evals: recherche, fantome")
+        self.assertEqual(code, 1)
+        self.assertIn("fantome", erreur)
+        for connue in ("recherche", "bruit", "depart", "execution", "solo"):
+            self.assertIn(connue, erreur)
+
+    def test_une_categorie_d_un_autre_plugin_n_est_pas_inconnue(self):
+        # « Une catégorie se cherche dans tous les plugins touchés » : « solo »
+        # existe chez « autre », pas chez « jouet ».
+        s = self.selection([PLAN], corps="Evals: bruit, solo", plugin="jouet")
+        self.assertEqual(s["cas"], ["b1"])
+        s = self.selection(["plugins/autre/skills/z/SKILL.md"], corps="Evals: bruit, solo",
+                           plugin="autre")
+        self.assertEqual(s["cas"], ["z1"])
+
+    def test_la_sortie_a_les_cles_du_contrat(self):
+        s = self.selection([PLAN], corps="Evals: bruit")
+        self.assertEqual(
+            set(s), {"plugin", "tout", "categories", "cas", "raison", "pourquoi_tout"}
+        )
+
+    def test_un_corps_hostile_reste_une_donnee_et_ne_change_pas_le_code_de_sortie(self):
+        # Le corps d'une PR est une entrée non fiable : il n'est jamais évalué.
+        corps = "Evals: bruit; touch pirate ; $(touch pirate) — `touch pirate`"
+        code, _, erreur = self.jouer([PLAN], corps=corps)
+        self.assertEqual(code, 1, erreur)  # « bruit; touch pirate ; … » : catégorie inconnue
+        self.assertFalse((self.dossier / "pirate").exists())
+
+
+class FichiersDuSocleCommun(Selection):
+    CHEMINS = [
+        "plugins/jouet/skills/_partage/regle.md",
+        "plugins/jouet/hooks/hooks.json",
+        "evals/jouet/a1/prompt.md",
+        "evals/outillage/lancer.sh",
+        "evals/categories.json",
+        "scripts/evals_ab.py",
+        "scripts/evals_selection.py",
+        ".github/workflows/ci.yml",
+    ]
+
+    def test_chacun_de_ces_fichiers_force_tout_malgre_la_ligne_et_est_nomme(self):
+        for chemin in self.CHEMINS:
+            with self.subTest(fichier=chemin):
+                s = self.selection([PLAN, chemin], corps="Evals: bruit")
+                self.assertTrue(s["tout"])
+                self.assertEqual(s["cas"], TOUS_LES_CAS_DE_JOUET)
+                self.assertIn(chemin, s["pourquoi_tout"])
+
+    def test_le_socle_d_un_autre_plugin_ne_force_pas_tout_pour_celui_ci(self):
+        s = self.selection(
+            [PLAN, "plugins/autre/hooks/hooks.json", "plugins/autre/skills/_partage/x.md",
+             "evals/autre/z1/prompt.md"],
+            corps="Evals: bruit",
+        )
+        self.assertFalse(s["tout"])
+        self.assertEqual(s["cas"], ["b1"])
+
+
+class CouvertureDesFichiersTouches(Selection):
+    def test_un_skill_exerce_par_une_categorie_choisie_est_couvert(self):
+        s = self.selection([PLAN], corps="Evals: bruit")
+        self.assertFalse(s["tout"])
+        self.assertEqual(s["cas"], ["b1"])
+
+    def test_un_skill_que_les_categories_choisies_n_exercent_pas_est_refuse_et_nomme(self):
+        # Le skill d'exécution est touché, la ligne ne choisit que « recherche ».
+        code, sortie, erreur = self.jouer([EXECUTER], corps="Evals: recherche")
+        self.assertEqual(code, 1)
+        self.assertIn("skills/executer/SKILL.md", erreur)
+        self.assertIn("execution", erreur)  # la catégorie qui le couvrirait
+        self.assertEqual(sortie.strip(), "")
+
+    def test_un_agent_est_couvert_par_son_chemin_exact(self):
+        s = self.selection([CHERCHEUR], corps="Evals: recherche")
+        self.assertEqual(s["cas"], ["a1", "a2"])
+        code, _, erreur = self.jouer([CHERCHEUR], corps="Evals: bruit")
+        self.assertEqual(code, 1)
+        self.assertIn("agents/chercheur.md", erreur)
+
+    def test_chaque_fichier_touche_doit_etre_couvert_pas_seulement_le_premier(self):
+        code, _, erreur = self.jouer([PLAN, EXECUTER], corps="Evals: bruit")
+        self.assertEqual(code, 1)
+        self.assertIn("skills/executer/SKILL.md", erreur)
+        self.assertNotIn("skills/plan/SKILL.md", erreur)
+        s = self.selection([PLAN, EXECUTER], corps="Evals: bruit, execution")
+        self.assertEqual(s["cas"], ["b1", "d1"])
+
+    def test_un_fichier_que_nulle_categorie_n_exerce_joue_tout_par_prudence(self):
+        inconnu = "plugins/jouet/skills/nouveau/SKILL.md"
+        s = self.selection([inconnu], corps="Evals: bruit")
+        self.assertTrue(s["tout"])
+        self.assertEqual(s["cas"], TOUS_LES_CAS_DE_JOUET)
+        self.assertIn(inconnu, s["pourquoi_tout"])
+
+    def test_un_fichier_hors_skills_et_agents_ne_demande_aucune_couverture(self):
+        s = self.selection(
+            ["docs/veille.md", "plugins/jouet/.claude-plugin/plugin.json", "README.md"],
+            corps="Evals: bruit",
+        )
+        self.assertFalse(s["tout"])
+        self.assertEqual(s["cas"], ["b1"])
+
+    def test_un_fichier_d_un_autre_plugin_n_est_pas_a_couvrir_ici(self):
+        s = self.selection(["plugins/autre/skills/z/SKILL.md"], corps="Evals: bruit")
+        self.assertFalse(s["tout"])
+        self.assertEqual(s["cas"], ["b1"])
+
+    def test_la_categorie_inconnue_est_refusee_meme_si_tout_est_force_par_un_fichier(self):
+        code, _, erreur = self.jouer(
+            ["plugins/jouet/hooks/hooks.json"], corps="Evals: fantome"
+        )
+        self.assertEqual(code, 1)
+        self.assertIn("fantome", erreur)
+
+
+class Pannes(Selection):
+    def test_un_fichier_de_chemins_illisible_est_une_panne(self):
+        r = subprocess.run(
+            [sys.executable, str(SCRIPT), "--plugin", "jouet",
+             "--fichiers", str(self.dossier / "n-existe-pas.txt"),
+             "--categories", str(self.categories)],
+            capture_output=True, text=True, cwd=self.dossier,
+        )
+        self.assertEqual(r.returncode, 2)
+        self.assertIn("n-existe-pas.txt", r.stderr)
+
+    def test_un_categories_json_illisible_est_une_panne(self):
+        self.categories.write_text("{ pas du json", "utf-8")
+        code, _, erreur = self.jouer([PLAN], corps="Evals: bruit")
+        self.assertEqual(code, 2)
+        self.assertIn("categories.json", erreur)
+
+    def test_un_categories_json_absent_est_une_panne(self):
+        code, _, erreur = self.jouer([PLAN], corps="Evals: bruit",
+                                      categories=self.dossier / "absent.json")
+        self.assertEqual(code, 2)
+        self.assertIn("absent.json", erreur)
+
+    def test_un_plugin_sans_categories_joue_tout_faute_de_mieux(self):
+        s = self.selection([PLAN], corps="Evals: bruit", plugin="inconnu-du-fichier")
+        self.assertTrue(s["tout"])
+        self.assertEqual(s["cas"], [])
+        self.assertIn("inconnu-du-fichier", s["pourquoi_tout"])
+
+
+class VraiDepot(unittest.TestCase):
+    """L'exemple du plan, joué sur le vrai ``evals/categories.json``."""
+
+    def jouer(self, fichier, corps):
+        with tempfile.TemporaryDirectory() as tmp:
+            return jouer_script([fichier], corps, "plans-notion", None, tmp)
+
+    def test_existant_et_bruit_couvrent_plan_notion_avec_cinq_cas(self):
+        code, sortie, erreur = self.jouer(
+            "plugins/plans-notion/skills/plan-notion/SKILL.md",
+            "Evals: existant, bruit — essai",
+        )
+        self.assertEqual(code, 0, erreur)
+        s = json.loads(sortie)
+        self.assertFalse(s["tout"])
+        self.assertEqual(
+            sorted(s["cas"]),
+            sorted(["existant-jeu-de-donnees", "existant-jeu-de-questions",
+                    "bruit-bounded", "bruit-doc-seule", "report-sans-seuil"]),
+        )
+
+    def test_decouvertes_ne_couvre_pas_plan_notion(self):
+        code, _, erreur = self.jouer(
+            "plugins/plans-notion/skills/plan-notion/SKILL.md", "Evals: decouvertes"
+        )
+        self.assertEqual(code, 1)
+        self.assertIn("skills/plan-notion/SKILL.md", erreur)
+
+
+# --------------------------------------------------------------------------
+# Propriétés de ci.yml : le plancher, le verdict au nom fixe, le corps de PR
+# --------------------------------------------------------------------------
+def _job(texte: str, nom: str) -> str:
+    """Le texte d'un job de ci.yml : de « <nom>: » au job suivant."""
+    m = re.search(rf"^  {re.escape(nom)}:\n(.*?)(?=^  [a-z][\w-]*:\n|\Z)", texte,
+                  re.MULTILINE | re.DOTALL)
+    assert m, f"job {nom} introuvable dans ci.yml"
+    return m.group(1)
+
+
+class CiYml(unittest.TestCase):
+    def setUp(self):
+        self.ci = CI.read_text(encoding="utf-8")
+
+    def test_le_corps_de_la_pr_ne_passe_que_par_env_jamais_dans_un_run(self):
+        lignes = [l for l in self.ci.splitlines() if "pull_request.body" in l]
+        self.assertTrue(lignes, "le corps de la PR n'est pas transmis à evals-portee")
+        for ligne in lignes:
+            self.assertRegex(
+                ligne, r"^\s+PR_BODY: \$\{\{ github\.event\.pull_request\.body \}\}\s*$",
+                "le corps de la PR est une entrée non fiable : seulement via `env:`",
+            )
+
+    def test_aucune_donnee_de_pr_n_est_interpolee_dans_un_run(self):
+        # Une interpolation `${{ … }}` dans un `run:` est évaluée avant le shell :
+        # un titre, une branche ou un corps de PR y deviendrait du code.
+        dangereux = re.compile(
+            r"\$\{\{\s*github\.(event\.pull_request\.(title|body|head\.ref|head\.label)"
+            r"|head_ref|event\.head_commit\.message)")
+        indent_run = None  # indentation de la clé `run:` dont on lit le bloc
+        for ligne in self.ci.splitlines():
+            if not ligne.strip():
+                continue
+            indent = len(ligne) - len(ligne.lstrip(" "))
+            en_run = re.match(r"^(\s*)(- )?run:", ligne)
+            if en_run:
+                indent_run = len(en_run.group(1)) + (2 if en_run.group(2) else 0)
+                continuer = ligne.split("run:", 1)[1]
+                self.assertIsNone(dangereux.search(continuer), ligne)
+                continue
+            if indent_run is not None and indent > indent_run:
+                self.assertIsNone(dangereux.search(ligne), ligne)
+            else:
+                indent_run = None
+
+    def test_evals_portee_appelle_le_script_et_sort_la_selection(self):
+        portee = _job(self.ci, "evals-portee")
+        self.assertIn("scripts/evals_selection.py", portee)
+        self.assertRegex(portee, r"(?m)^      selection: \$\{\{ steps\.portee\.outputs\.selection \}\}")
+
+    def test_evals_passe_les_cas_le_bruit_et_cinq_agents_en_parallele(self):
+        evals = _job(self.ci, "evals")
+        self.assertIn("--cas", evals)
+        self.assertIn("--bruit", evals)
+        self.assertIn("EVALS_CONCURRENCE: '5'", evals)
+        # Le modèle ne change pas ici : le pilote le change après la sonde Sonnet.
+        self.assertIn("EVALS_MODELE: claude-opus-5-5", evals)
+
+    def test_la_cle_du_cache_de_la_base_inclut_la_liste_des_cas_joues(self):
+        evals = _job(self.ci, "evals")
+        cle = evals.split("id: cle", 1)[1].split("- name:", 1)[0]
+        self.assertIn("SELECTION", cle)
+        self.assertRegex(cle, r"echo \"cle=[^\"]*\$selec")
+
+    def test_le_job_evals_garde_son_nom_fixe_par_plugin(self):
+        self.assertIn("name: Évals (${{ matrix.plugin }})", _job(self.ci, "evals"))
+
+    def test_le_verdict_est_un_job_au_nom_fixe_sans_secret_ni_droit(self):
+        verdict = _job(self.ci, "evals-verdict")
+        self.assertIn("name: Verdict des évals", verdict)
+        self.assertIn("needs: [evals-portee, evals]", verdict)
+        self.assertRegex(verdict, r"(?m)^    if: always\(\)\s*$")
+        self.assertIn("runs-on: ubuntu-latest", verdict)
+        self.assertRegex(verdict, r"(?m)^    permissions: \{\}\s*$")
+        self.assertNotIn("checkout", verdict)
+        self.assertNotIn("secrets.", verdict)
+
+    def test_le_verdict_est_rouge_sur_echec_ou_annulation_de_la_portee_ou_des_evals(self):
+        verdict = _job(self.ci, "evals-verdict")
+        for amont in ("evals-portee", "evals"):
+            with self.subTest(amont=amont):
+                self.assertIn(f"needs.{amont}.result", verdict)
+        for etat in ("failure", "cancelled"):
+            self.assertIn(etat, verdict)
+        self.assertIn("exit 1", verdict)
+
+    def test_le_merge_automatique_attend_le_verdict_avec_la_meme_condition(self):
+        merge = _job(self.ci, "merge-auto")
+        self.assertIn("evals-verdict", merge.split("if:")[0])
+        self.assertIn(
+            "(needs.evals-verdict.result == 'success' || needs.evals-verdict.result == 'skipped')",
+            merge,
+        )
+
+    def test_le_yaml_se_charge(self):
+        try:
+            import yaml
+        except ImportError:
+            self.skipTest("PyYAML absent")
+        doc = yaml.safe_load(self.ci)
+        self.assertIn("evals-verdict", doc["jobs"])
+        self.assertEqual(doc["jobs"]["evals-verdict"]["name"], "Verdict des évals")
+        self.assertEqual(doc["jobs"]["evals-verdict"]["permissions"], {})
+
+
+if __name__ == "__main__":
+    unittest.main()
