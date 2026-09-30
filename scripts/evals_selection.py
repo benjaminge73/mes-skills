@@ -86,6 +86,10 @@ _LIGNE = re.compile(r"^[ \t]*evals[ \t]*:(.*)$", re.IGNORECASE)
 _RAISON = re.compile(r"\s*(?:—|--)\s*")
 
 
+SUITE = ("Corriger la ligne « Evals: » du corps de la PR, puis relancer le run "
+         "(Re-run all jobs) ou pousser un commit")
+
+
 class Refus(Exception):
     """Une PR que le plancher refuse (code 1)."""
 
@@ -169,8 +173,7 @@ def selectionner(plugin: str, fichiers: list[str], corps: str,
     if inconnues:
         raise Refus(
             f"catégorie inconnue : {', '.join(f'« {n} »' for n in inconnues)}. "
-            f"Catégories connues : {', '.join(connues)}. Corriger la ligne « Evals: … » du "
-            "corps de la PR, ou écrire « Evals: tout »."
+            f"Catégories connues : {', '.join(connues)}. {SUITE} (ou écrire « Evals: tout »)."
         )
 
     cats = categories.get(plugin)
@@ -222,8 +225,7 @@ def selectionner(plugin: str, fichiers: list[str], corps: str,
         raise Refus(
             f"modifié(s) mais exercé(s) par aucune catégorie choisie "
             f"({', '.join(choisies) or 'aucune pour ce plugin'}) : {detail}. Ajouter l'une "
-            "de ces catégories à la ligne « Evals: … » du corps de la PR, ou écrire "
-            "« Evals: tout ».")
+            f"de ces catégories à la ligne « Evals: » (ou écrire « Evals: tout »). {SUITE}.")
     return {"plugin": plugin, "tout": False, "categories": choisies,
             "cas": _union(cats, choisies), "raison": raison, "pourquoi_tout": ""}
 

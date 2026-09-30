@@ -251,13 +251,17 @@ prouverait rien.
 le verrou de `main` exigera, quelle que soit la sélection (les jobs joués
 changent d'une PR à l'autre, pas lui).
 
-**Éditer le corps de la PR relance la sélection.** `ci.yml` écoute `edited` en
-plus de `opened`, `synchronize` et `reopened` : ajouter ou corriger la ligne
-`Evals:` après l'ouverture rejoue le tri des plugins et des cas. Une édition qui
-ne change pas le corps (un titre) ne rejoue rien de payant : aucun plugin n'est
-choisi, `evals` est sauté, et le merge automatique ne part pas. Éditer le corps
-alors qu'un run est en cours annule ce run (même groupe de `concurrency`) : la
-mesure de l'ancienne sélection ne compte plus.
+**Éditer le corps de la PR, puis relancer le run.** Le job `evals-portee` relit
+le corps de la PR par l'API GitHub à chaque run (et non dans le payload de
+l'événement, périmé dès qu'on rejoue un run). Ajouter ou corriger la ligne
+`Evals:` demande donc de **relancer le run** (« Re-run all jobs ») ou de pousser
+un commit ; c'est aussi ce que dit le message de refus du plancher. `ci.yml`
+n'écoute pas `edited` : une édition de titre rejouerait une CI où `evals` est
+sauté, et son « Verdict des évals » serait vert sur un commit dont les évals
+étaient rouges. Si l'appel API échoue, le job est rouge : il ne se replie jamais
+sur « tout » ni sur une sélection vide. Un lancement manuel `ab` ou `aa` a son
+propre groupe de concurrence (le mode en fait partie) : un `ab` n'annule plus un
+`aa` en cours.
 
 **Le seuil par cas est aveugle sans bruit mesuré pour le bon modèle.** Sans
 fichier `evals/bruit-<plugin>.json` mesuré **pour le modèle joué**, le seuil par

@@ -10,14 +10,15 @@ on:
   # `evals-verdict` (nom fixe) est le seul contrôle d'évals que le verrou de
   # `main` puisse exiger : le nom de `evals` change avec la matrice.
   #
-  # `edited` : sans `types:`, `pull_request` ne se déclenche ni sur l'édition du
-  # titre ni sur celle du corps. Or le corps porte la ligne `Evals:` (les
-  # catégories à jouer) : l'ajouter ou la corriger après l'ouverture doit rejouer
-  # la sélection. Une édition qui ne change pas le corps (un titre) ne rejoue
-  # rien de payant : `evals-portee` n'y choisit aucun plugin, et `merge-auto`
-  # n'y merge pas.
+  # Pas de `types: [.., edited]`, et c'est voulu. L'édition d'une PR (un titre, le
+  # corps) rejouerait toute la CI : `evals` serait sauté, et le
+  # « Verdict des évals » de ce run serait vert sur ce SHA alors que ses évals
+  # étaient rouges. Le verrou de `main` risque de ne voir que ce dernier statut.
+  # Le corps de la PR, lui, porte la ligne `Evals:` (les catégories à jouer) :
+  # `evals-portee` le relit donc par l'API à chaque run, au lieu de lire le
+  # payload de l'événement (qui est celui d'origine, périmé). Corriger la ligne
+  # `Evals:`, puis « Re-run all jobs » ou pousser un commit, suffit.
   pull_request:
-    types: [opened, synchronize, reopened, edited]
   push:
     branches: [main]
   workflow_dispatch:
@@ -88,11 +89,12 @@ jobs:
       || (github.event_name == 'pull_request'
           && github.event.pull_request.user.login == 'benjaminge73'
           && github.event.pull_request.draft == false
-          && github.event.pull_request.state == 'open'
           && github.event.pull_request.head.repo.full_name == github.repository)
     runs-on: ubuntu-latest
+    # `pull-requests: read` : relire le corps de la PR par l'API, rien de plus.
     permissions:
       contents: read
+      pull-requests: read
     outputs:
       touche: ${{ steps.portee.outputs.touche }}
       plugins: ${{ steps.portee.outputs.plugins }}
@@ -115,34 +117,32 @@ jobs:
         id: portee
         env:
           EVENT_NAME: ${{ github.event_name }}
-          EVENT_ACTION: ${{ github.event.action }}
-          # `changes.body` n'existe que si le corps a changé : un objet (vrai),
-          # sinon rien. Passe par l'environnement comme le reste.
-          CORPS_EDITE: ${{ github.event.changes.body && 'oui' || 'non' }}
+          # Le corps est relu par l'API (voir le script), avec ce jeton en lecture
+          # seule et ce numéro : des entrées passées par l'environnement, jamais
+          # interpolées dans le script.
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
           PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
           PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
-          # Le corps de la PR est une entrée non fiable : il ne passe que par
-          # cette variable d'environnement, jamais par une interpolation
-          # `${{ … }}` dans le script (qui serait du code, pas une donnée).
-          PR_BODY: ${{ github.event.pull_request.body }}
         run: |
           set -euo pipefail
-          # Une édition de la PR qui ne change pas le corps (un titre, par
-          # exemple) ne change ni la tête ni la sélection : rien à rejouer, donc
-          # aucun plugin, donc `evals` est sauté.
-          if [ "$EVENT_NAME" = "pull_request" ] && [ "$EVENT_ACTION" = "edited" ] && [ "$CORPS_EDITE" != "oui" ]; then
-            {
-              echo "touche=false"
-              echo "plugins="
-              echo "base="
-              echo "selection={}"
-            } >> "$GITHUB_OUTPUT"
-            echo "### Portée des évals" >> "$GITHUB_STEP_SUMMARY"
-            echo >> "$GITHUB_STEP_SUMMARY"
-            echo "Édition de la PR sans changement du corps : rien à rejouer." >> "$GITHUB_STEP_SUMMARY"
-            echo "Édition sans changement du corps : aucun plugin à jouer."
-            exit 0
+          # --- corps de la PR (début)
+          # Le corps est une entrée non fiable : il n'existe que dans la variable
+          # d'environnement PR_BODY, jamais interpolé (`${{ … }}` serait du code,
+          # pas une donnée). Relu par l'API et non lu dans le payload : un « Re-run »
+          # rejoue le payload d'origine, dont le corps est périmé. Un échec de
+          # l'appel est un échec du job, jamais un repli sur « tout » ni sur une
+          # sélection vide : ce serait jouer (et payer) autre chose que ce que la
+          # PR a demandé, sans le dire.
+          if [ "$EVENT_NAME" = "pull_request" ]; then
+            if ! PR_BODY=$(gh api "repos/$REPO/pulls/$PR_NUMBER" --jq '.body // ""'); then
+              echo "::error title=Corps de la PR illisible::L'appel à l'API GitHub pour relire le corps de la PR a échoué : la sélection des évals n'a pas pu être faite. Relancer le run (Re-run all jobs)."
+              exit 1
+            fi
+            export PR_BODY
           fi
+          # --- corps de la PR (fin)
           # Base = l'ancêtre commun de la PR et de `main`, pas la pointe de
           # `main` : si `main` a avancé depuis, ses changements ne sont pas un
           # « recul » de la PR. C'est aussi un SHA de `main`, la clé du cache.
@@ -266,7 +266,9 @@ jobs:
     # une tête déjà périmée. Au niveau du job (et non du workflow), pour ne
     # jamais interrompre `merge-auto` en plein merge.
     concurrency:
-      group: evals-${{ github.event.pull_request.number || github.ref }}-${{ matrix.plugin }}
+      # Le mode fait partie du groupe : un lancement manuel `ab` n'annule plus un
+      # `aa` payé en cours (hors lancement manuel, `inputs.mode` est vide : `ab`).
+      group: evals-${{ github.event.pull_request.number || github.ref }}-${{ inputs.mode || 'ab' }}-${{ matrix.plugin }}
       cancel-in-progress: true
     strategy:
       fail-fast: false
@@ -609,8 +611,6 @@ jobs:
       && github.event_name == 'pull_request'
       && github.event.pull_request.user.login == 'benjaminge73'
       && github.event.pull_request.draft == false
-      && github.event.pull_request.state == 'open'
-      && (github.event.action != 'edited' || github.event.changes.body)
       && !contains(github.event.pull_request.labels.*.name, 'review-required')
     runs-on: ubuntu-latest
     permissions:
