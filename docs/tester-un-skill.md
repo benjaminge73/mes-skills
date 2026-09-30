@@ -108,6 +108,14 @@ plus consigne), ou les deux.
   redéfini et un environnement minimal. Il dispose de 120 s ; un échec donne un
   score de 0. Comme il n'est pas isolé, la règle est qu'**un `fixture.sh`
   n'écrit que dans son répertoire courant**.
+- **Les motifs `regex` s'évaluent en JavaScript** dans `claude plugin eval`,
+  mais avec le module `re` de **Python** dans le pré-vol d'`evals_ab.py` : les
+  deux ne se valent pas. Par exemple `clé\b` : en Python `é` est une lettre, en
+  JavaScript sans le drapeau `u` non, donc un motif peut passer le pré-vol et se
+  comporter autrement en vrai. Écrire des motifs qui ont le même sens des deux
+  côtés : `(?!\w)` plutôt que `\b` après une lettre accentuée, pas de syntaxe
+  propre à Python (`(?P<nom>…)`, drapeaux en ligne `(?i)`), et passer par
+  `flags:` pour les drapeaux.
 - **Le modèle** : jouer les cas avec le modèle par défaut du lanceur, pas un
   petit modèle. Au passage de fumée, haiku n'a pas appelé l'outil `Skill` : il
   a écrit « à la manière » du skill, ce qui ne prouve rien. Un petit modèle ne
