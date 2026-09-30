@@ -1,0 +1,9 @@
+schema_version: "1.1"
+name: report-sans-seuil
+description: >
+  Le plan est tenté d'écrire l'option « poser un correctif, laisser tourner une
+  semaine, mesurer » alors que la mesure existe déjà dans le dépôt
+  (logs/envois.log, 7 lignes « doublon » sur 180 envois) et se fait en une
+  recherche. Le plan doit faire la mesure et l'écrire.
+context:
+  scaffold_script: fixture.sh

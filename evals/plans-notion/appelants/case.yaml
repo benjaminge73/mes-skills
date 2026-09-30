@@ -1,0 +1,8 @@
+schema_version: "1.1"
+name: appelants
+description: >
+  Une signature change (format_prix gagne un paramètre obligatoire) ; ses appelants
+  vivent dans trois autres modules dont un sous un alias d'import et un par le
+  nom de la fonction en chaîne de caractères. Le plan doit tous les nommer.
+context:
+  scaffold_script: fixture.sh
