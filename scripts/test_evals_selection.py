@@ -655,5 +655,66 @@ class CiYml(unittest.TestCase):
         self.assertEqual(doc["jobs"]["evals-verdict"]["permissions"], {})
 
 
+def _blocs_run(texte: str):
+    """Les corps de ``run:`` d'un workflow, sans PyYAML : (ligne, texte).
+
+    Couvre ``run: |`` / ``run: >`` (avec ou sans ``-``/``+``) : le corps est
+    l'ensemble des lignes suivantes plus indentées que la clé ``run:``, lignes
+    vides et commentaires compris. Couvre aussi ``run: commande`` sur une ligne.
+    """
+    lignes = texte.split("\n")
+    i = 0
+    while i < len(lignes):
+        m = re.match(r"^(\s*)(?:-\s+)?run:\s*(.*)$", lignes[i])
+        if not m:
+            i += 1
+            continue
+        indent = len(m.group(1))
+        reste = m.group(2).strip()
+        if re.fullmatch(r"[|>][-+]?\d*", reste):
+            debut = i + 1
+            corps = []
+            i += 1
+            while i < len(lignes) and (
+                not lignes[i].strip() or len(lignes[i]) - len(lignes[i].lstrip()) > indent
+            ):
+                corps.append(lignes[i])
+                i += 1
+            yield debut + 1, "\n".join(corps)
+        else:
+            yield i + 1, reste
+            i += 1
+
+
+class WorkflowsSansExpressionDansRun(unittest.TestCase):
+    def test_aucun_bloc_run_ne_contient_d_expression_meme_en_commentaire(self):
+        fautifs = []
+        for fichier in sorted((RACINE / ".github" / "workflows").glob("*.yml")):
+            for debut, corps in _blocs_run(fichier.read_text(encoding="utf-8")):
+                for k, ligne in enumerate(corps.split("\n")):
+                    if "${{" in ligne:
+                        fautifs.append(f"{fichier.name}:{debut + k}: {ligne.strip()}")
+        self.assertEqual(
+            fautifs, [],
+            "Un bloc `run:` contient `${{` : GitHub évalue les expressions dans tout "
+            "le texte d'un `run:`, commentaires bash compris, et un `${{` invalide "
+            "(p. ex. `${{ … }}` cité en exemple dans un commentaire) rend le workflow "
+            "entier inutilisable (HTTP 422 « failed to parse workflow », aucune CI ne "
+            "démarre). Une donnée passe par `env:`, jamais par une interpolation dans "
+            "`run:`. Occurrences :\n" + "\n".join(fautifs),
+        )
+
+    def test_l_extracteur_voit_un_commentaire_dans_un_bloc_et_ignore_env(self):
+        texte = (
+            "jobs:\n  a:\n    steps:\n      - name: x\n        env:\n"
+            "          V: ${{ github.sha }}\n        run: |\n"
+            "          # exemple (`${{ … }}`)\n          echo ok\n"
+            "      - run: echo ${{ 1 }}\n      - run: echo propre\n"
+        )
+        blocs = [c for _, c in _blocs_run(texte)]
+        self.assertEqual(len(blocs), 3)
+        self.assertEqual([("${{" in c) for c in blocs], [True, True, False])
+
+
 if __name__ == "__main__":
     unittest.main()
