@@ -173,7 +173,7 @@ Puis, dans le même tour, avant la première étape :
 
 - **Calculer les vagues**, une fois pour tout le plan : lire le tableau de
   chevauchement du chapitre `Exécution` (`Étape · Fichiers touchés · Dépend de
-  · Vague`) et déterminer quelles étapes peuvent tourner en parallèle, et
+  · Vague · Relecture`) et déterminer quelles étapes peuvent tourner en parallèle, et
   lesquelles se regroupent dans un seul sous-agent. Le calcul, l'isolation par
   worktree et le report sur la branche du plan vivent dans un fichier
   partagé :
@@ -448,10 +448,12 @@ en disant quelles étapes ont été faites en direct et pourquoi.
   ou touché un fichier de plus que ce que la commande couvrait.
 - **Commiter l'étape sur la branche du plan**, et la pousser si le relevé du §2
   l'autorise (sous-section précédente). Pas de PR.
-- **Faire relire l'étape par l'agent `relecteur`**, et boucler jusqu'à
+- **Faire relire par l'agent `relecteur` selon la colonne `Relecture`** :
+  une étape `étape` se relit seule, ici ; une étape `lot` attend la preuve de
+  fin de son lot, relu d'un seul coup avec les autres. On boucle jusqu'à
   `RIEN À SIGNALER` : chaque remarque se vérifie avant d'être retenue (correctif
-  délégué) ou écartée (raison écrite). Le brief, la boucle et le garde-fou à
-  trois tours vivent dans un fichier partagé :
+  délégué) ou écartée (raison écrite). Les deux régimes, le brief, la boucle et
+  le garde-fou à trois tours vivent dans un fichier partagé :
 
   📄 `${CLAUDE_PLUGIN_ROOT}/skills/_partage/revue.md`
 - **Pour une étape qui change ce qui s'affiche, comparer le résultat à la

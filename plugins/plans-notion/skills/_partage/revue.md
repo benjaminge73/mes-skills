@@ -1,8 +1,8 @@
 # La revue au regard neuf
 
 Fichier **partagé**, lu par `executer-plan-notion` (§3, dans « Après chaque
-étape »), pour faire relire chaque étape par l'agent `relecteur` avant de
-passer à la suivante. Comme `vagues.md` et `preuve-du-rouge.md`, il vit à un
+étape »), pour faire relire chaque étape — ou chaque lot d'étapes — par
+l'agent `relecteur`. Comme `vagues.md` et `preuve-du-rouge.md`, il vit à un
 seul endroit pour que le skill garde sa taille : la règle ne se duplique pas,
 elle se référence.
 
@@ -13,22 +13,43 @@ boucler jusqu'à un verdict propre.
 
 ## Quand
 
-Après **chaque** étape — décision de Benjamin du 2026-09-23 (Q2) — une fois
-la preuve rejouée verte par le pilote et l'étape commitée, **avant** l'entrée
-de journal (§4 du skill) : la revue et ses éventuels correctifs doivent
-apparaître dans le journal de l'étape, pas dans une entrée séparée après
-coup.
+**Deux régimes**, lus dans la colonne « Relecture » du tableau du chapitre
+`Exécution` (`Étape · Fichiers touchés · Dépend de · Vague · Relecture` —
+`plan-notion` l'écrit, le pilote la lit) :
 
-Portée : la plage de commits de l'étape, `<base>..<tête>` — un commit pour
-une étape ordinaire, deux (rouge, vert) pour une étape testée
-(`preuve-du-rouge.md`), quatre pour un regroupement (`vagues.md`).
+- **`étape`** — relue **seule**, une fois la preuve rejouée verte par le pilote
+  et l'étape commitée, **avant** l'entrée de journal (§4 du skill) : la revue et
+  ses éventuels correctifs apparaissent dans le journal de l'étape, pas dans
+  une entrée séparée après coup. Portée : la plage de commits de l'étape,
+  `<base>..<tête>` — un commit pour une étape ordinaire, deux (rouge, vert) pour
+  une étape testée (`preuve-du-rouge.md`), quatre pour un regroupement
+  (`vagues.md`).
+- **`lot`** — **pas de relecture à l'étape.** Des étapes `lot` consécutives
+  forment **un lot**, relu **en une fois, à la preuve de fin de lot** : la
+  dernière étape du lot commitée et sa preuve rejouée verte, un seul appel sur
+  la plage `<base>..<tête>` qui couvre tout le lot. Le lot se ferme à la
+  première étape `étape` qui suit, ou à la dernière étape du plan. Le journal
+  de chaque étape du lot dit `Revue — avec le lot (étapes N à M)` ; la ligne
+  `Revue` complète (voir plus bas) se pose sous la **dernière** étape du lot.
+  Un correctif se commite sur la branche du plan : `fix(…): lot N à M — revue`.
+- **Colonne absente** (plan écrit avant elle) : `étape` partout — c'est le
+  régime d'avant, le plus prudent.
 
-**Pour une étape de vague** (`vagues.md`) : la revue a lieu **dans le
-worktree de l'étape, sur sa branche d'étape** — avant le report par
-`cherry-pick` sur la branche du plan (`vagues.md`, « Au retour », étape 3).
-Un correctif de revue se commite dans ce même worktree, et se reporte avec
-le reste de l'étape : sans ça, le report emporterait un diff que le relecteur
-n'a jamais vu.
+**Une étape de vague** (`vagues.md`) : si elle est `étape`, la revue a lieu
+**dans le worktree de l'étape, sur sa branche d'étape** — avant le report par
+`cherry-pick` sur la branche du plan (`vagues.md`, « Au retour », étape 3). Un
+correctif de revue se commite dans ce même worktree, et se reporte avec le
+reste de l'étape : sans ça, le report emporterait un diff que le relecteur n'a
+jamais vu. Si elle est `lot`, le lot se relit **sur la branche du plan**, après
+le report de toutes ses étapes, dans l'ordre des numéros.
+
+**Pourquoi deux régimes.** Décision de Benjamin du 2026-09-23 (Q2) : relire
+**après chaque** étape, sans distinction. **Remplacée par la décision du
+2026-09-30 (Q6)** : la vérification se proportionne. Un appel Opus par étape
+coûte autant pour une étape de doc de dix lignes que pour une migration ; le
+plan dit, étape par étape, laquelle mérite son regard seul (`étape`) et
+lesquelles se relisent d'un seul coup (`lot`). Le régime `étape` est
+exactement celui du 2026-09-23 ; seul le second est nouveau.
 
 ## Comment l'appeler
 
@@ -113,8 +134,9 @@ Une ligne par remarque, quel que soit le tour où elle est apparue.
 
 ## Coût assumé
 
-Un appel Opus effort low par étape, plus un par tour de correction — décision
-de Benjamin. Avant ce fichier, le pilote ne rejouait que des tests, jamais un
+Un appel Opus effort low par étape marquée `étape` et par lot, plus un par
+tour de correction — décisions de Benjamin du 2026-09-23 et du 2026-09-30.
+Avant ce fichier, le pilote ne rejouait que des tests, jamais un
 regard neuf sur le diff : c'est exactement la dérive que superpowers
 `executing-plans` met en garde — « Do not skip it, and do not replace it with
 your own read of the diff » — un pilote qui a écrit ou brief l'étape partage
