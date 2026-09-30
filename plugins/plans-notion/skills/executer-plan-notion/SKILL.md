@@ -862,6 +862,9 @@ distinctes, et il faut entendre laquelle est faite :
   local à la clôture ; le label n'est que la bretelle. Sur `vahiny`, il commande
   aussi le merge par la CI une fois tout vert : y demander la PR, c'est demander
   la remontée, et Benjamin le sait.
+  Si le chapitre `Exécution` porte une ligne `Évals à jouer : …`, la recopier dans le
+  corps de la PR sous la forme `Evals: <catégories> — <raison>` (ou `Evals: tout`) ;
+  sans elle, la CI joue tout le banc.
 - **« merge sur main »** → la PR (ouverte à cette occasion si elle ne l'est
   pas), CI verte, merge, vérification sur pièce, `execute`.
 

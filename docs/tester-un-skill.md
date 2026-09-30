@@ -17,6 +17,7 @@ montée de version à chaque retouche.
 - [Le format d'un cas](#le-format-dun-cas)
 - [Mesurer le bruit avant de fixer un seuil](#mesurer-le-bruit-avant-de-fixer-un-seuil)
 - [Comparer deux versions](#comparer-deux-versions)
+- [Choisir les évals d'une PR](#choisir-les-évals-dune-pr)
 - [Ce que la méthode interdit](#ce-que-la-méthode-interdit)
 - [Où tourne quoi](#où-tourne-quoi)
 - [Le jeton de CI](#le-jeton-de-ci)
@@ -25,7 +26,7 @@ montée de version à chaque retouche.
 
 | Palier | Où | Quand | Ce qu'il prouve |
 |---|---|---|---|
-| **Cas simulés**, publics | `evals/<plugin>/` dans ce dépôt | joués en CI à chaque PR qui touche `skills/`, `agents/` ou `_partage/` | qu'une consigne produit le bon état final sur une situation inventée |
+| **Cas simulés**, publics | `evals/<plugin>/` dans ce dépôt | joués en CI à chaque PR qui touche `skills/`, `agents/` ou `_partage/` — la PR choisit les catégories à jouer ([voir plus bas](#choisir-les-évals-dune-pr)) | qu'une consigne produit le bon état final sur une situation inventée |
 | **Cas réels**, privés | `bancs/skills/` dans le dépôt privé `hermes-custom` | rejoués **en local** pour tout changement de doctrine | que la consigne tient sur de vraies situations, qu'on ne publie pas |
 
 Le second palier est privé parce que les cas réels contiennent des noms de
@@ -117,8 +118,8 @@ plus consigne), ou les deux.
   côtés : `(?!\w)` plutôt que `\b` après une lettre accentuée, pas de syntaxe
   propre à Python (`(?P<nom>…)`, drapeaux en ligne `(?i)`), et passer par
   `flags:` pour les drapeaux.
-- **Le modèle** : jouer les cas avec le modèle par défaut du lanceur, pas un
-  petit modèle. Au passage de fumée, haiku n'a pas appelé l'outil `Skill` : il
+- **Le modèle** : jouer les cas avec un modèle de taille courante (celui de
+  `EVALS_MODELE` dans `ci.yml`), pas un petit modèle. Au passage de fumée, haiku n'a pas appelé l'outil `Skill` : il
   a écrit « à la manière » du skill, ce qui ne prouve rien. Un petit modèle ne
   sert qu'à vérifier un format.
 
@@ -204,6 +205,58 @@ on rejoue, on ne tranche pas sur un seul tirage.
 **Lire au moins trois transcriptions par passe**, pas seulement les scores. Un
 score identique peut cacher un cas gagné pour la mauvaise raison ; un score en
 baisse peut venir d'un juge trop strict. Les transcriptions sont ce qui le dit.
+
+## Choisir les évals d'une PR
+
+Jouer tout le banc à chaque PR coûte cher et n'apprend rien quand la PR ne
+touche qu'un skill : le banc est donc **découpé en catégories**, et la PR dit
+lesquelles jouer. Le plan choisit, la CI tient un plancher.
+
+**Les catégories** vivent dans `evals/categories.json`, plugin par plugin ; c'est
+la **seule** liste (les cas n'ont pas d'étiquette). Chaque catégorie nomme les
+cas qu'elle regroupe et les fichiers qu'elle exerce. Pour `plans-notion` :
+
+| Catégorie | Exerce | Cas |
+|---|---|---|
+| `existant` | `skills/plan-notion/`, `agents/chercheur.md` | `existant-jeu-de-donnees`, `existant-jeu-de-questions` |
+| `bruit` | `skills/plan-notion/` | `bruit-bounded`, `bruit-doc-seule`, `report-sans-seuil` |
+| `etat-de-depart` | `skills/plan-notion/`, `agents/enqueteur.md` | `appelants`, `garde-fou-cache`, `hook-claude`, `depart-rouge` |
+| `maquette` | `skills/plan-notion/` | `maquette-requise` |
+| `decouvertes` | `skills/executer-plan-notion/`, `agents/executant.md`, `agents/relecteur.md` | les quatre `decouverte-*` |
+| `perimetre` | `skills/executer-plan-notion/`, `agents/executant.md` | `no-verify`, `rien-hors-plan` |
+
+**La ligne `Evals:` du corps de la PR** porte le choix :
+`Evals: <catégories séparées par des virgules> — <raison>`, ou `Evals: tout`.
+Elle vient de la ligne « Évals à jouer » du chapitre `Exécution` du plan
+(`plan-notion` l'écrit, `executer-plan-notion` la recopie). **Sans cette ligne,
+la CI joue tout le banc.**
+
+**Le plancher** (`scripts/evals_selection.py`, job `evals-portee`) : chaque
+fichier touché sous `skills/` ou `agents/` d'un plugin doit être exercé par au
+moins une catégorie choisie, sinon le job est rouge et nomme le fichier. Le
+choix reste libre au-dessus du plancher. Et le banc entier est joué, quelle
+que soit la ligne, si la PR touche `skills/_partage/`, `hooks/`, le banc
+lui-même (`evals/<plugin>/`, `evals/outillage/`, `evals/categories.json`),
+`scripts/evals_ab.py`, `scripts/evals_selection.py`, `ci.yml`, ou un fichier
+qu'aucune catégorie n'exerce : dans tous ces cas, une sélection partielle ne
+prouverait rien.
+
+**Le job de verdict** s'appelle `Verdict des évals`, nom fixe : c'est lui que
+le verrou de `main` exigera, quelle que soit la sélection (les jobs joués
+changent d'une PR à l'autre, pas lui).
+
+**Le seuil par cas est aveugle sans bruit mesuré pour le bon modèle.** Sans
+fichier `evals/bruit-<plugin>.json` mesuré **pour le modèle joué**, le seuil par
+cas est le repli de la formule, qui dépasse 100 points (± 123 pts pour 16 cas
+× 3 passages) : `evals_ab.py` dit alors « non concluant par cas » et ne voit
+aucun recul cas par cas. Le fichier de bruit porte un champ `"modele"` ; un
+bruit mesuré sur un autre modèle est **ignoré**, pas utilisé de travers.
+
+**Changer de modèle, c'est remesurer le bruit.** Le modèle joué est
+`EVALS_MODELE` dans `ci.yml` ; quand il change, rejouer l'A/A
+([Mesurer le bruit](#mesurer-le-bruit-avant-de-fixer-un-seuil)) avec ce modèle
+et commiter le nouveau `evals/bruit-<plugin>.json`. La CI joue les sessions à
+5 en parallèle : c'est une donnée de coût, pas un réglage de la mesure.
 
 ## Ce que la méthode interdit
 
