@@ -49,7 +49,7 @@ class LireLesFaits(unittest.TestCase):
                 self.assertTrue(f.citation.strip())
                 self.assertRegex(f.url, r"^https://")
                 self.assertRegex(f.verifie, r"^\d{4}-\d{2}-\d{2}$")
-                chemins = re.findall(r"`(scripts/[\w./-]+)`", f.controle)
+                chemins = re.findall(r"`((?:scripts|evals|\.github)/[\w./-]+)`", f.controle)
                 self.assertTrue(chemins, f"le contrôle de « {f.fait} » ne cite aucun script")
                 for chemin in chemins:
                     self.assertTrue((RACINE / chemin).is_file(), f"{chemin} n'existe pas")
@@ -145,7 +145,7 @@ class Issues(unittest.TestCase):
 
         class Fausse(veille_faits.GitHubAPI):
             def appel(self, methode, chemin, corps=None):
-                page = int(re.search(r"page=(\d+)", chemin).group(1))
+                page = int(re.search(r"[?&]page=(\d+)", chemin).group(1))
                 return pages.get(page, [])
         titres = Fausse("proprietaire/depot", "jeton").titres_ouverts()
         self.assertEqual(titres, {"Doc Claude changée : A", "Doc Claude changée : C"})
