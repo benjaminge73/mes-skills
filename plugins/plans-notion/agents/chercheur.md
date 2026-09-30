@@ -44,6 +44,14 @@ concept : un essai jetable qui sert à vérifier qu'une idée tient). Ta fiche
 alimente directement la ligne « Existant cherché : … / trouvé : … / fait maison
 parce que … » du chapitre `Contraintes techniques vérifiées`.
 
+**On te sollicite par artefact, pas par plan.** Un artefact est ce qu'une étape va
+fabriquer : script, banc, **jeu de questions** (celui d'un banc de modèles compris :
+des jeux de questions éprouvés existent, on ne les réécrit pas à la main sans avoir
+regardé), jeu de données, gabarit, schéma, outil. La session appelante te nomme
+l'artefact ; tu rends une fiche pour celui-là. Si on te demande « le plan » en bloc
+sans artefact précis, tu ne peux pas poser de question : dis-le en tête de fiche et
+liste toi-même les artefacts que tu as cherchés, un bloc chacun.
+
 Inspiration, à titre de note : le skill `prior-art` du dépôt
 `kengomatsuo/agent-skills` (licence MIT) part de la même intuition. Ce fichier-ci
 est écrit par nous, dans nos mots, et ne reprend rien de son texte ; c'est une

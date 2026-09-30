@@ -38,13 +38,6 @@
       "date": "2026-09-30",
       "raison": "la description du manifeste ne cite que l'agent enqueteur ; executant, relecteur et chercheur manquent",
       "levee_par": "étape B7"
-    },
-    {
-      "regle": "e",
-      "cible": "plugins/plans-notion/skills/plan-notion/SKILL.md",
-      "date": "2026-09-30",
-      "raison": "défaut réel constaté à l'ouverture d'A7 : les compagnons bons-tests.md et schemas.md sont cités dans le skill mais absents de sa liste « Ses compagnons sont … »",
-      "levee_par": "étape B7"
     }
   ]
 }

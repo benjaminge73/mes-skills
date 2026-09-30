@@ -171,13 +171,26 @@ qui est déjà su.** Six gisements, du moins cher au plus cher :
    La recherche est **obligatoire** dès qu'on crée quelque chose de non propre au
    projet — donc pas pour de la logique métier que seul ce dépôt connaît, mais pour
    tout ce qui ressemble à un problème que d'autres ont eu — et **obligatoire aussi
-   pour la documentation de tout outil d'un POC**. Son résultat s'écrit dans
-   `Contraintes techniques vérifiées`, sous une ligne qui n'est pas facultative :
+   pour la documentation de tout outil d'un POC**. Elle se fait **par artefact, pas
+   par plan** : avant de chercher, lister ce que les étapes vont **fabriquer** —
+   script, banc, **jeu de questions**, jeu de données, gabarit, schéma, outil — et
+   chercher l'existant de chacun de ceux qui ne sont pas propres au projet. Un plan
+   qui cherche « un banc » sans avoir listé ses artefacts oublie le jeu de questions
+   qu'il va écrire à la main, alors qu'un jeu éprouvé existe souvent. Le résultat
+   s'écrit dans `Contraintes techniques vérifiées`, sous une ligne qui n'est pas
+   facultative, **une par artefact** :
    *« Existant cherché : … / trouvé : … / fait maison parce que … »*.
 
 Le budget d'enquête est **proportionnel à l'enjeu**, pas à la longueur du plan : une
 étape qui touche un fichier et se relit d'un coup d'œil ne mérite pas une fouille
 d'historique. Une étape qui change un réglage de production, oui.
+
+**Une vérification nomme la décision qu'elle peut changer, ou le risque qu'elle
+couvre — sinon elle ne se fait pas.** Une recherche, une mesure ou un POC dont le
+résultat, quel qu'il soit, laisserait le plan tel quel n'est que du bruit : elle
+coûte une étape de la passe et n'éclaire rien. Sur un plan `Bounded`, cela donne :
+ni `chercheur`, sauf si une étape fabrique un artefact non propre au projet, ni POC,
+sauf si une option dépend d'une incertitude mesurable.
 
 ### Vérifier un candidat *use*
 
@@ -444,9 +457,9 @@ les traite toutes pareil.
 **Deux blocs propres à ce chapitre**, issus de l'enquête (« L'enquête avant les
 options ») :
 
-- **La ligne « Existant »**, obligatoire dès que le plan crée quelque chose de non
-  propre au projet : *« Existant cherché : … / trouvé : … / fait maison parce que
-  … »*. Elle reprend le verdict d'ensemble du `chercheur`, avec, pour un candidat
+- **La ligne « Existant »**, obligatoire, **une par artefact**, dès que le plan crée
+  quelque chose de non propre au projet : *« Existant cherché : … / trouvé : … /
+  fait maison parce que … »*. Elle reprend le verdict d'ensemble du `chercheur`, avec, pour un candidat
   *use*, les chiffres rejoués par `gh api` et le verdict de l'outil de vérification
   (« Vérifier un candidat *use* »). « Sans objet » est une réponse, à condition de
   dire pourquoi.
@@ -842,9 +855,9 @@ Quand Benjamin valide le plan :
    9. la répétition à blanc a été **jouée et reportée** dans `Contraintes
       techniques vérifiées`, sous « État de départ » (« La répétition à blanc et
       le POC de décision ») ;
-   10. la ligne « Existant cherché : … / trouvé : … / fait maison parce que … »
-      est présente dans `Contraintes techniques vérifiées` quand la règle de
-      l'enquête l'exige (gisement 6, « L'extérieur »).
+   10. une ligne « Existant cherché : … / trouvé : … / fait maison parce que … »
+      **par artefact** non propre au projet que les étapes fabriquent, présente
+      dans `Contraintes techniques vérifiées` (gisement 6, « L'extérieur »).
 
    Les points 5 à 8 viennent de l'enquête sur les plans passés : la
    page du plan elle-même est la source de **11 %** des découvertes manquées à
@@ -890,8 +903,10 @@ comment de la séance de code.
   travail. Ses compagnons sont les fichiers partagés
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/ecrire-dans-notion.md`,
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/maquettes-html.md`,
-  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/poc.md` et
-  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/outils-et-quotas.md`, ainsi que les
+  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/poc.md`,
+  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/outils-et-quotas.md`,
+  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/schemas.md` et
+  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/bons-tests.md`, ainsi que les
   agents `${CLAUDE_PLUGIN_ROOT}/agents/enqueteur.md` et
   `${CLAUDE_PLUGIN_ROOT}/agents/chercheur.md`, livrés par le plugin
   `plans-notion` — pas par le dépôt de travail, quel qu'il soit.
