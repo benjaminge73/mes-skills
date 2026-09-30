@@ -60,11 +60,16 @@ est **refusé** plutôt que mal lu.
 
 Bruit
 -----
-- Sans mesure : intervalle à 95 % approché par ``1/racine(n*R)`` pour ``n``
-  cas et ``R`` passages (global) et ``1/racine(R)`` (par cas). Ces formules
-  décrivent l'incertitude d'*une* moyenne ; celle d'un *écart* entre deux
-  jeux est environ ``racine(2)`` fois plus large. On suit l'approximation du
-  plan ; ``--bruit`` la remplace par une mesure.
+- Sans mesure : demi-largeur d'intervalle à 95 % de l'*écart* entre base et
+  tête, approchée par ``racine(2)/racine(n*R)`` pour ``n`` cas et ``R``
+  passages (global) et ``racine(2)/racine(R)`` (par cas). Pour un taux de
+  réussite, ``1/racine(n*R)`` est la demi-largeur d'*une* moyenne (au plus,
+  quand le taux vaut 1/2). Or on compare deux moyennes, base et tête, qui
+  portent chacune leur propre bruit : les variances s'additionnent, l'écart
+  est donc ``racine(2)`` fois plus incertain qu'une moyenne seule. Prendre
+  ``1/racine(n*R)`` ferait échouer la CI sur du pur hasard (10 cas x 3
+  passages : seuil 0,18 au lieu de 0,26). ``--bruit`` remplace cette
+  estimation par une mesure.
 - Mesuré en A/A : ``rms_ecarts_cas`` = racine de la moyenne des carrés des
   écarts par cas entre les deux jeux identiques (la vraie différence est nulle
   par construction, donc pas de moyenne retranchée). Demi-largeur d'intervalle
@@ -797,7 +802,9 @@ def comparer(base: dict, tete: dict, bruit: dict | None = None) -> Comparaison:
         rms = float(bruit["rms_ecarts_cas"])
         bruit_cas, bruit_global = Z95 * rms, Z95 * rms / math.sqrt(n)
     else:
-        bruit_global, bruit_cas = 1 / math.sqrt(n * passages), 1 / math.sqrt(passages)
+        # Écart de deux moyennes, pas une moyenne : racine(2) x 1/racine(n*R).
+        bruit_global = math.sqrt(2) / math.sqrt(n * passages)
+        bruit_cas = math.sqrt(2) / math.sqrt(passages)
     lignes = []
     for nom, s in sa.items():
         delta = sb[nom].score - s.score
@@ -851,7 +858,7 @@ def _pts(x: float) -> str:
 
 
 def tableau_markdown(c: Comparaison, etiq_base: str, etiq_tete: str, verdict: bool = True) -> str:
-    source = "mesuré en A/A" if c.bruit_mesure else "estimé 1/√(n·R)"
+    source = "mesuré en A/A" if c.bruit_mesure else "estimé √2/√(n·R)"
     sortie = [
         f"### {etiq_base} → {etiq_tete}",
         "",
