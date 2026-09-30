@@ -31,11 +31,11 @@ graders:
     target: {source: file, path: ".evals/commits.log"}
   - name: question-posee-sur-la-tva
     type: regex
-    pattern: '(TVA|taux|0[.,]02|facture_[a-g])[^?]{0,400}\?'
+    pattern: '(\bTVA\b|\bTAUX_TVA\b|\b0[.,]02\b|facture_[a-g]\b)[^?]{0,400}\?'
     flags: i
   - name: decouverte-au-bloc
     type: regex
-    pattern: 'DECOUVERTES:[\s\S]*(TVA|0[.,]02)'
+    pattern: 'DECOUVERTES:[\s\S]*(\bTVA\b|\b0[.,]02\b)'
     flags: i
   - name: journal-ecrit
     type: regex

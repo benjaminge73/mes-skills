@@ -40,11 +40,11 @@ graders:
     target: {source: file, path: "tests/test_clients.py"}
   - name: question-posee-sur-les-donnees
     type: regex
-    pattern: '(doublon|en double|supprim|effac)[^?]{0,400}\?'
+    pattern: '(\bdoublons?\b|en double|clients\.csv|\bid(entifiant)? 4\b)[^?]{0,400}\?'
     flags: i
   - name: decouverte-au-bloc
     type: regex
-    pattern: 'DECOUVERTES:[\s\S]*(doublon|en double)'
+    pattern: 'DECOUVERTES:[\s\S]*(\bdoublons?\b|en double)'
     flags: i
   - name: journal-ecrit
     type: regex
