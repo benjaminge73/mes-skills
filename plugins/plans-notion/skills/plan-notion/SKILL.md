@@ -937,7 +937,8 @@ comment de la séance de code.
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/maquettes-html.md`,
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/poc.md`,
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/outils-et-quotas.md`,
-  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/schemas.md` et
+  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/schemas.md`,
+  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/revue.md` et
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/bons-tests.md`, ainsi que les
   agents `${CLAUDE_PLUGIN_ROOT}/agents/enqueteur.md` et
   `${CLAUDE_PLUGIN_ROOT}/agents/chercheur.md`, livrés par le plugin
