@@ -19,6 +19,12 @@ en sont dérivés à la main, à l'attendu calculé sur le papier :
 4 cas x 3 passages : bruit estimé racine(2)/racine(4*3) = 0,4082 (global) et
 racine(2)/racine(3) = 0,8165 (par cas) : celui d'un *écart* entre deux moyennes
 (base, tête), qui portent chacune leur propre bruit, et non celui d'une seule.
+
+Le seuil **par cas** est corrigé pour les comparaisons multiples (Bonferroni,
+bilatéral) : z_n = inv_cdf(1 - 0,05/(2n)) au lieu de 1,96. Valeurs de z_n
+écrites en dur ci-dessous (table de la loi normale), jamais recalculées par le
+code testé : n=4 -> 2,4977 ; n=9 -> 2,7729 ; n=16 -> 2,9552. Le seuil global
+ne change pas.
 """
 from __future__ import annotations
 
@@ -184,6 +190,15 @@ def rapport_synthetique(passages_par_cas: dict[str, list[int]]) -> dict:
     return {**modele, "cases": cas}
 
 
+def jeux_uniformes(n: int, base: float, tete: float, un_cas: str = "c0", passages: int = 3):
+    """n cas à ``base`` partout côté base ; côté tête, tous à ``base`` sauf
+    ``un_cas`` à ``tete``."""
+    noms = [f"c{i}" for i in range(n)]
+    rb = rapport_synthetique({nom: [base] * passages for nom in noms})
+    rt = rapport_synthetique({nom: [tete if nom == un_cas else base] * passages for nom in noms})
+    return rb, rt
+
+
 class Comparer(unittest.TestCase):
     def test_l_ecart_par_cas_est_tete_moins_base(self):
         c = comparer("tete_stable")
@@ -206,13 +221,18 @@ class Comparer(unittest.TestCase):
         self.assertFalse(any(ligne.recul for ligne in c.lignes))
 
     def test_un_cas_qui_s_effondre_fait_echouer_meme_si_la_moyenne_tient(self):
-        # gamma 1 -> 0 : moyenne -1/4, sous le seuil global 0,4082 ; mais
-        # l'écart du cas (-1) dépasse le bruit par cas (0,8165).
-        c = comparer("tete_recul_cas")
-        self.assertAlmostEqual(c.delta_moyen, -0.25)
+        # 8 cas x 12 passages, bruit estimé. Un cas perd 1 : moyenne -1/8 = -0,125,
+        # sous le seuil global racine(2)/racine(96) = 0,1443 ; mais l'écart du cas
+        # (-1) dépasse le seuil par cas de Bonferroni, (2,7344/1,96) x racine(2)/racine(12)
+        # = 0,5695. (Avec 4 cas x 3 passages, ce seuil vaut 1,04 : un cas ne peut plus
+        # reculer seul, d'où ce jeu plus large que la fixture.)
+        base, tete = jeux_uniformes(8, 1, 0, passages=12)
+        c = evals_ab.comparer(base, tete)
+        self.assertAlmostEqual(c.delta_moyen, -0.125)
+        self.assertLess(-c.delta_moyen, c.bruit_global)
         self.assertTrue(c.recul)
         reculs = [ligne.nom for ligne in c.lignes if ligne.recul]
-        self.assertEqual(reculs, ["gamma"])
+        self.assertEqual(reculs, ["c0"])
 
     def test_une_amelioration_ne_fait_pas_echouer(self):
         c = comparer("tete_amelioree")
@@ -236,7 +256,9 @@ class Comparer(unittest.TestCase):
         c = comparer("tete_stable")
         self.assertFalse(c.bruit_mesure)
         self.assertAlmostEqual(c.bruit_global, math.sqrt(2) / math.sqrt(n * r))
-        self.assertAlmostEqual(c.bruit_cas, math.sqrt(2) / math.sqrt(r))
+        # Par cas : le même √2/√R, élargi par Bonferroni pour n = 4 cas
+        # (z_4 = 2,4977 au lieu de 1,96, en dur : table de la loi normale).
+        self.assertAlmostEqual(c.bruit_cas, math.sqrt(2) / math.sqrt(r) * 2.4977 / 1.96, places=3)
 
     def test_un_cas_de_3_sur_3_a_1_sur_3_est_dans_le_bruit_estime_d_un_ecart(self):
         # Scénario de revue : deux références identiques (le vrai écart est nul),
@@ -276,13 +298,54 @@ class Comparer(unittest.TestCase):
         c = comparer("tete_recul_global", bruit=bruit)
         self.assertTrue(c.bruit_mesure)
         self.assertAlmostEqual(c.bruit_global, 0.49)
-        self.assertAlmostEqual(c.bruit_cas, 0.98)
+        # Seuil par cas de Bonferroni pour 4 cas : 2,4977 x 0,5 = 1,2489.
+        self.assertAlmostEqual(c.bruit_cas, 1.2489, places=3)
         self.assertFalse(c.recul)
 
     def test_un_bruit_mesure_n_excuse_pas_un_effondrement_plus_grand_que_lui(self):
-        # gamma perd 1,0 ; bruit par cas mesuré 0,98 : le recul reste signalé.
-        c = comparer("tete_recul_cas", bruit={"rms_ecarts_cas": 0.5})
+        # rms 0,2 -> seuil par cas de Bonferroni (4 cas) 2,4977 x 0,2 = 0,4995 ;
+        # gamma perd 1,0 : le recul du cas reste signalé.
+        c = comparer("tete_recul_cas", bruit={"rms_ecarts_cas": 0.2})
+        gamma = next(ligne for ligne in c.lignes if ligne.nom == "gamma")
+        self.assertTrue(gamma.recul)
         self.assertTrue(c.recul)
+
+    def test_un_cas_a_moins_10_points_sur_9_cas_est_dans_le_bruit_mesure_multiple(self):
+        # A/A réel du 2026-09-30 : 9 cas x 3 passages, rms 0,0385, deux jeux
+        # identiques ; un cas a bougé de -10 pts. Seuil par cas non corrigé
+        # 1,96 x 0,0385 = 7,5 pts (faux recul) ; corrigé pour 9 cas :
+        # 2,7729 x 0,0385 = 10,7 pts (table de la loi normale) : pas de recul.
+        base, tete = jeux_uniformes(9, 1.0, 0.9)
+        c = evals_ab.comparer(base, tete, bruit={"rms_ecarts_cas": 0.0385})
+        self.assertAlmostEqual(c.lignes[0].delta, -0.10)
+        self.assertAlmostEqual(c.bruit_cas, 0.1068, places=3)
+        self.assertFalse(c.lignes[0].recul)
+        self.assertFalse(c.recul)
+
+    def test_un_cas_a_moins_20_points_sur_16_cas_est_un_recul_et_le_seuil_vaut_11_points(self):
+        # 16 cas, rms 0,0385 : z_16 = 2,9552 (~2,95) -> seuil par cas 11,4 pts.
+        # Seuil global inchangé : 1,96 x 0,0385 / racine(16) = 0,018865.
+        base, tete = jeux_uniformes(16, 1.0, 0.8)
+        c = evals_ab.comparer(base, tete, bruit={"rms_ecarts_cas": 0.0385})
+        self.assertAlmostEqual(c.bruit_cas, 0.1138, places=3)
+        self.assertAlmostEqual(c.bruit_global, 1.96 * 0.0385 / 4, places=6)
+        self.assertTrue(c.lignes[0].recul)
+        self.assertTrue(c.recul)
+        self.assertIn("± 11 pts", evals_ab.tableau_markdown(c, "v1", "v2"))
+
+    def test_pour_un_seul_cas_le_seuil_par_cas_reste_1_96_fois_le_rms(self):
+        # n = 1 : aucune comparaison multiple, aucune correction.
+        base, tete = jeux_uniformes(1, 1.0, 1.0)
+        c = evals_ab.comparer(base, tete, bruit={"rms_ecarts_cas": 0.1})
+        self.assertAlmostEqual(c.bruit_cas, 0.196, places=3)
+        self.assertAlmostEqual(c.bruit_global, 0.196, places=3)
+
+    def test_le_seuil_global_ne_depend_pas_de_la_correction_par_cas(self):
+        # Une seule comparaison (la moyenne) : 1,96 x rms / racine(n), pour n = 9
+        # comme pour n = 4 (0,49 plus haut). rms 0,0385, n = 9 -> 0,025.
+        base, tete = jeux_uniformes(9, 1.0, 1.0)
+        c = evals_ab.comparer(base, tete, bruit={"rms_ecarts_cas": 0.0385})
+        self.assertAlmostEqual(c.bruit_global, 1.96 * 0.0385 / 3, places=6)
 
 
 class BruitAA(unittest.TestCase):
@@ -308,7 +371,7 @@ class BruitAA(unittest.TestCase):
 # --------------------------------------------------------------------------
 class Presentation(unittest.TestCase):
     def test_le_tableau_marque_le_cas_en_recul_et_le_verdict(self):
-        c = comparer("tete_recul_cas")
+        c = comparer("tete_recul_cas", bruit={"rms_ecarts_cas": 0.2})
         tableau = evals_ab.tableau_markdown(c, "v1", "v2")
         lignes = tableau.splitlines()
         gamma = next(ligne for ligne in lignes if "gamma" in ligne)
@@ -316,6 +379,12 @@ class Presentation(unittest.TestCase):
         self.assertIn("0 %", gamma)
         self.assertIn("RECUL", gamma)
         self.assertIn("RECUL", tableau.splitlines()[-1])
+
+    def test_le_tableau_nomme_le_seuil_par_cas_de_bonferroni_et_son_nombre_de_cas(self):
+        # rms 0,2, 4 cas : 2,4977 x 0,2 = 0,4995 -> « ± 50 pts ».
+        c = comparer("tete_recul_cas", bruit={"rms_ecarts_cas": 0.2})
+        tableau = evals_ab.tableau_markdown(c, "v1", "v2")
+        self.assertIn("seuil par cas (Bonferroni, 4 cas) : ± 50 pts", tableau)
 
     def test_le_journal_cree_son_entete_puis_ajoute_sans_la_dupliquer(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -589,8 +658,13 @@ class BoutEnBout(DepotEtLanceur):
         self.assertNotIn("RECUL", sortie)
 
     def test_un_ab_avec_recul_rend_un(self):
+        # Bruit mesuré rms 0,2 (seuil par cas de Bonferroni, 4 cas : 0,4995) :
+        # gamma perd 1,0. Sans fichier de bruit, le seuil estimé 1,04 (4 cas x 3
+        # passages) ne laisse plus un cas reculer seul.
+        bruit = self.racine / "bruit-recul.json"
+        ecrire(bruit, json.dumps({"rms_ecarts_cas": 0.2}))
         self.env["FAUX_RAPPORT_TETE"] = str(FIXTURES / "rapport_tete_recul_cas.json")
-        code, sortie, _ = jouer(self.argv(), self.env)
+        code, sortie, _ = jouer(self.argv("--bruit", str(bruit)), self.env)
         self.assertEqual(code, 1, sortie)
         self.assertIn("RECUL", sortie)
 
