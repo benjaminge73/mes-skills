@@ -13,7 +13,12 @@
 #     sable ici), seulement les cas marqués `tags: [lecture]`.
 #
 # Environnement (optionnel) :
-#   EVALS_MODELE         modèle des cas (défaut : claude-opus-5-5)
+#   EVALS_MODELE         modèle des cas (défaut : claude-sonnet-5-5)
+#   EVALS_EFFORT         effort de réflexion du modèle (défaut : high) ; exporté en
+#                        CLAUDE_CODE_EFFORT_LEVEL, la variable que `claude plugin eval`
+#                        lit (mesuré : ≈ 350 à 550 jetons de réflexion en low, 4 800 à
+#                        7 800 en high). Un effort qui change change la mesure, donc le
+#                        bruit : les deux (modèle, effort) sont figés par ci.yml.
 #   EVALS_MAX_COUT_USD   plafond de coût, passé à --max-cost-usd
 #   TMPDIR               dossier des traces (--keep-temp) ; s'il est absent, un
 #                        dossier mktemp -d est créé et son chemin affiché
@@ -34,6 +39,10 @@ sortie=$2
 shift 2
 
 mkdir -p "$(dirname -- "$sortie")"
+
+# L'effort vient d'EVALS_EFFORT et de rien d'autre : un CLAUDE_CODE_EFFORT_LEVEL
+# déjà présent dans l'environnement (session interactive) est écrasé.
+export CLAUDE_CODE_EFFORT_LEVEL="${EVALS_EFFORT:-high}"
 
 if [ -z "${TMPDIR:-}" ]; then
   TMPDIR=$(mktemp -d)
@@ -57,7 +66,7 @@ options=(
   --trust-plugin
   --scaffold
   --threshold 0
-  --model "${EVALS_MODELE:-claude-opus-5-5}"
+  --model "${EVALS_MODELE:-claude-sonnet-5-5}"
 )
 if [ -n "${EVALS_MAX_COUT_USD:-}" ]; then
   options+=(--max-cost-usd "$EVALS_MAX_COUT_USD")

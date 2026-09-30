@@ -118,10 +118,16 @@ plus consigne), ou les deux.
   côtés : `(?!\w)` plutôt que `\b` après une lettre accentuée, pas de syntaxe
   propre à Python (`(?P<nom>…)`, drapeaux en ligne `(?i)`), et passer par
   `flags:` pour les drapeaux.
-- **Le modèle** : jouer les cas avec un modèle de taille courante (celui de
-  `EVALS_MODELE` dans `ci.yml`), pas un petit modèle. Au passage de fumée, haiku n'a pas appelé l'outil `Skill` : il
-  a écrit « à la manière » du skill, ce qui ne prouve rien. Un petit modèle ne
-  sert qu'à vérifier un format.
+- **Le modèle** : jouer les cas avec un modèle de taille courante, pas un petit
+  modèle. La CI joue **Sonnet (`claude-sonnet-5-5`) en effort `high`**, fixés par
+  `EVALS_MODELE` et `EVALS_EFFORT` dans le job `evals` de `ci.yml` (le lanceur
+  `evals/outillage/lancer.sh` a les mêmes défauts, et exporte l'effort en
+  `CLAUDE_CODE_EFFORT_LEVEL`, la variable que `claude plugin eval` lit). Mesuré sur
+  le cas `hook-claude` (3 passages) : Sonnet appelle le skill 3 fois sur 3 et
+  obtient 90 %, contre 95 % pour Opus ; l'effort `high` fait réfléchir 4 800 à
+  7 800 jetons, contre 350 à 550 en `low`. Au passage de fumée, haiku n'a pas
+  appelé l'outil `Skill` : il a écrit « à la manière » du skill, ce qui ne prouve
+  rien. Un petit modèle ne sert qu'à vérifier un format.
 
 ## Mesurer le bruit avant de fixer un seuil
 
@@ -245,18 +251,46 @@ prouverait rien.
 le verrou de `main` exigera, quelle que soit la sélection (les jobs joués
 changent d'une PR à l'autre, pas lui).
 
+**Éditer le corps de la PR relance la sélection.** `ci.yml` écoute `edited` en
+plus de `opened`, `synchronize` et `reopened` : ajouter ou corriger la ligne
+`Evals:` après l'ouverture rejoue le tri des plugins et des cas. Une édition qui
+ne change pas le corps (un titre) ne rejoue rien de payant : aucun plugin n'est
+choisi, `evals` est sauté, et le merge automatique ne part pas. Éditer le corps
+alors qu'un run est en cours annule ce run (même groupe de `concurrency`) : la
+mesure de l'ancienne sélection ne compte plus.
+
 **Le seuil par cas est aveugle sans bruit mesuré pour le bon modèle.** Sans
 fichier `evals/bruit-<plugin>.json` mesuré **pour le modèle joué**, le seuil par
 cas est le repli de la formule, qui dépasse 100 points (± 123 pts pour 16 cas
 × 3 passages) : `evals_ab.py` dit alors « non concluant par cas » et ne voit
 aucun recul cas par cas. Le fichier de bruit porte un champ `"modele"` ; un
-bruit mesuré sur un autre modèle est **ignoré**, pas utilisé de travers.
+bruit mesuré sur un autre modèle est **ignoré**, pas utilisé de travers. **Tant
+que `evals/bruit-<plugin>.json` porte un autre modèle que Sonnet** (c'est le cas
+de `evals/bruit-plans-notion.json`, mesuré sur Opus, jusqu'à la nouvelle mesure),
+le verdict par cas est donc « non concluant » : la moyenne reste jugée, pas
+chaque cas.
 
-**Changer de modèle, c'est remesurer le bruit.** Le modèle joué est
-`EVALS_MODELE` dans `ci.yml` ; quand il change, rejouer l'A/A
-([Mesurer le bruit](#mesurer-le-bruit-avant-de-fixer-un-seuil)) avec ce modèle
-et commiter le nouveau `evals/bruit-<plugin>.json`. La CI joue les sessions à
-5 en parallèle : c'est une donnée de coût, pas un réglage de la mesure.
+**Changer de modèle ou d'effort, c'est remesurer le bruit.** Le modèle et
+l'effort joués sont `EVALS_MODELE` et `EVALS_EFFORT` dans le job `evals` de
+`ci.yml` (Sonnet, `high`) ; quand l'un change, rejouer l'A/A
+([Mesurer le bruit](#mesurer-le-bruit-avant-de-fixer-un-seuil)) avec ces
+réglages. Le tableau de `evals_ab.py` rappelle le modèle et l'effort joués. La
+CI joue les sessions à 5 en parallèle : c'est une donnée de coût, pas un
+réglage de la mesure.
+
+**Mesurer le bruit sur le runner** (avec le vrai modèle, les vraies limites de
+la CI) :
+
+```bash
+gh workflow run ci.yml --ref <branche> -f mode=aa
+```
+
+Le lancement manuel joue la tête deux fois sur tout le banc, sans lire ni écrire
+le cache de la base, puis publie le bruit en artefact `evals-bruit-<plugin>`
+(le résumé du job le rappelle). Le télécharger (`gh run download <id> -n
+evals-bruit-<plugin>`), le commiter en `evals/bruit-<plugin>.json` dans la PR,
+et pousser : la CI suivante l'utilise. Sans `-f mode=aa`, le lancement manuel
+joue l'A/B habituel (`mode=ab`, le défaut).
 
 ## Ce que la méthode interdit
 

@@ -93,10 +93,13 @@ Bruit
 
 - Un fichier de bruit **porte le modèle qu'il mesure** (``"modele"``) : le bruit
   d'un modèle n'est pas celui d'un autre. ``EVALS_MODELE`` (défaut
-  ``claude-opus-5-5``, comme ``evals/outillage/lancer.sh``) dit le modèle joué ;
+  ``claude-sonnet-5-5``, comme ``evals/outillage/lancer.sh``) dit le modèle joué ;
   un fichier d'un autre modèle, ou sans ``modele``, est **ignoré** — le tableau
   le dit, et le seuil retombe sur l'estimation. Le mode ``aa`` écrit le
-  ``modele`` qu'il a joué.
+  ``modele`` qu'il a joué, et l'``effort`` (``EVALS_EFFORT``, défaut ``high``,
+  comme le lanceur) : le tableau les rappelle, un effort qui change change la
+  mesure. L'effort n'est pas un critère d'acceptation du fichier de bruit, il
+  n'est là que pour l'audit.
 - Un seuil qui ne peut rien voir se dit : un score va de 0 à 1, donc un seuil par
   cas d'au moins 1,0 (100 pts) ne peut jamais être franchi. Le tableau écrit
   alors « non concluant par cas » au lieu de « pas de recul au-delà du bruit »
@@ -908,12 +911,18 @@ def bruit_aa(a: dict, b: dict) -> dict:
     }
 
 
-MODELE_PAR_DEFAUT = "claude-opus-5-5"
+MODELE_PAR_DEFAUT = "claude-sonnet-5-5"
+EFFORT_PAR_DEFAUT = "high"
 
 
 def modele_joue() -> str:
     """Le modèle des cas : ``EVALS_MODELE``, comme ``evals/outillage/lancer.sh``."""
     return os.environ.get("EVALS_MODELE") or MODELE_PAR_DEFAUT
+
+
+def effort_joue() -> str:
+    """L'effort de réflexion des cas : ``EVALS_EFFORT``, comme le lanceur."""
+    return os.environ.get("EVALS_EFFORT") or EFFORT_PAR_DEFAUT
 
 
 def filtrer_bruit(bruit: dict, modele: str) -> tuple[dict | None, str]:
@@ -945,7 +954,8 @@ def _pts(x: float) -> str:
     return f"{x * 100:+.0f} pts"
 
 
-def tableau_markdown(c: Comparaison, etiq_base: str, etiq_tete: str, verdict: bool = True) -> str:
+def tableau_markdown(c: Comparaison, etiq_base: str, etiq_tete: str, verdict: bool = True,
+                     modele: str | None = None, effort: str | None = None) -> str:
     source = "mesuré en A/A" if c.bruit_mesure else "estimé √2/√(n·R)"
     sortie = [
         f"### {etiq_base} → {etiq_tete}",
@@ -974,6 +984,8 @@ def tableau_markdown(c: Comparaison, etiq_base: str, etiq_tete: str, verdict: bo
         f"± {c.bruit_global * 100:.0f} pts sur la moyenne ; "
         f"seuil par cas (Bonferroni, {c.n_cas} cas) : ± {c.bruit_cas * 100:.0f} pts.",
     ]
+    if modele:
+        sortie.append(f"Modèle joué : {modele}, effort {effort or EFFORT_PAR_DEFAUT}.")
     for note in c.notes:
         sortie.append(f"Note : {note}.")
     if c.bruit_mesure and c.n_cas_bruit and c.n_cas < c.n_cas_bruit and c.bruit_global_complet:
@@ -1214,12 +1226,14 @@ def _executer(args, options_lanceur: list[str], commande: str) -> int:
     cout = sum(cout_rapport(r) for r in rapports_joues) or None
     if args.mode == "aa":
         mesure = bruit_aa(rapport_base, rapport_tete)
-        mesure.update(plugin=plugin, reference=etiq_tete, modele=modele_joue())
+        mesure.update(plugin=plugin, reference=etiq_tete, modele=modele_joue(),
+                      effort=effort_joue())
         chemin = Path(args.sortie_bruit or f"bruit-{plugin}.json")
         chemin.parent.mkdir(parents=True, exist_ok=True)
         chemin.write_text(json.dumps(mesure, indent=2, ensure_ascii=False) + "\n", "utf-8")
         c = comparer(rapport_base, rapport_tete)
-        print(tableau_markdown(c, "A/A passage 1", "A/A passage 2", verdict=False))
+        print(tableau_markdown(c, "A/A passage 1", "A/A passage 2", verdict=False,
+                               modele=modele_joue(), effort=effort_joue()))
         print(
             f"\nBruit mesuré : demi-largeur d'intervalle à 95 % de "
             f"± {mesure['demi_largeur_ic95_globale'] * 100:.0f} pts sur la moyenne, "
@@ -1230,7 +1244,8 @@ def _executer(args, options_lanceur: list[str], commande: str) -> int:
         c = comparer(rapport_base, rapport_tete, bruit=bruit)
         if note_bruit:
             c.notes.append(note_bruit)
-        print(tableau_markdown(c, etiq_base, etiq_tete))
+        print(tableau_markdown(c, etiq_base, etiq_tete,
+                               modele=modele_joue(), effort=effort_joue()))
         code = 1 if c.recul else 0
 
     if args.journal is not None:
