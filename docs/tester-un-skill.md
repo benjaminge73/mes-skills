@@ -13,6 +13,7 @@ montée de version à chaque retouche.
 
 - [Deux paliers](#deux-paliers)
 - [Écrire un cas](#écrire-un-cas)
+- [Le format d'un cas](#le-format-dun-cas)
 - [Mesurer le bruit avant de fixer un seuil](#mesurer-le-bruit-avant-de-fixer-un-seuil)
 - [Comparer deux versions](#comparer-deux-versions)
 - [Ce que la méthode interdit](#ce-que-la-méthode-interdit)
@@ -59,21 +60,58 @@ Ensuite :
   se déclenche sur tout. Compter 15 à 100 cas au total, dont des négatifs.
 - **Les juges gratuits d'abord** : `regex`, `tool_used`, `file_exists`. Le juge
   `llm` coûte et bruite sur les longs fichiers ; on préfère un `regex` sur un
-  bloc court et structuré. `file_exists` ne voit que les fichiers **créés
-  pendant le passage** ; un `regex` sur un fichier se déclare
-  `target: {source: file, path: …}`.
-- **Les tags se posent dans le frontmatter de `prompt.md`** (`tags: [lecture]`) :
-  c'est là qu'ils sont vérifiés, avec `--tag lecture`. Dans `case.yaml`, `tags`
-  n'est **pas** vérifié : l'écrire ne filtre rien. Un cas qui a besoin de Bash
-  n'a simplement pas le tag `lecture` : il ne se joue alors que sur le runner
-  GitHub (voir [Où tourne quoi](#où-tourne-quoi)).
-- **Un cas qui ne se charge pas** (fichier mal formé, juge inconnu) fait sortir
-  `claude plugin eval` en **code 1**, le même code qu'un score sous le seuil.
-  Le code de sortie seul ne distingue donc pas une panne d'un mauvais score :
-  lire la sortie.
+  bloc court et structuré. Un `regex` sur un fichier se déclare
+  `target: {source: file, path: …}` et lit le disque **en fin de passage** : un
+  fichier créé, modifié **ou préexistant**. `file_exists`, lui, ne voit que les
+  fichiers **créés pendant le passage**.
+- **`tool_used` : `min` vaut 1 par défaut.** « Jamais appelé » s'écrit donc
+  `min: 0` **et** `max: 0` ; avec `max: 0` seul, le juge échoue toujours. Et
+  pour qu'un skill de plugin puisse être appelé, `Skill` doit figurer dans
+  `allowed_tools`. Un cas dont un juge ne peut pas passer avec les outils
+  accordés émet un avertissement au chargement : le lire.
+- **Les tags filtrent avec `--tag`**, qu'ils soient posés dans le frontmatter de
+  `prompt.md` ou dans `case.yaml` (`tags: [lecture]`). Un cas qui a besoin de
+  Bash n'a simplement pas le tag `lecture` : il ne se joue alors que sur le
+  runner GitHub (voir [Où tourne quoi](#où-tourne-quoi)).
+- **Un cas qui ne se charge pas** fait sortir `claude plugin eval` en **code 1**,
+  le même code qu'un score sous le seuil. Le code de sortie seul ne distingue
+  donc pas une panne d'un mauvais score : lire la sortie. Seule une erreur de
+  syntaxe YAML a été vue rejetée au chargement ; un type de juge inconnu ou une
+  regex invalide ne l'ont pas été lors d'un essai, et c'est pourquoi le pré-vol
+  de `evals_ab.py` (sans modèle, sans coût) compte. Pour vérifier gratuitement
+  que la suite se charge : `--tag inexistant` sort proprement (« No eval cases
+  found »).
 - **Toute leçon ajoutée à un skill arrive avec son cas.** Pas de règle nouvelle
   dans un `SKILL.md`, un agent ou un `_partage/` sans le cas qui la prouve dans
   la même PR.
+
+## Le format d'un cas
+
+Ce que le lanceur charge tient dans un format précis. Un cas est un dossier
+`evals/<plugin>/<cas>/` qui porte un `case.yaml`, un `prompt.md` (frontmatter
+plus consigne), ou les deux.
+
+- **`case.yaml`** exige `schema_version: "1.1"` et `name`.
+- **Le frontmatter de `prompt.md`** n'accepte que : `schema_version`, `name`,
+  `description`, `tags`, `plugins`, `runs`, `expected_outcome`, `model`,
+  `max_turns`, `timeout_seconds`, `allowed_tools`, `artifact_publish`,
+  `growthbook_overrides`, `append_system_prompt`, `env`. Toute autre clé, dont
+  `context`, est une erreur.
+- **Quand les deux fichiers coexistent, ils fusionnent** : `prompt.md` gagne sur
+  les clés de haut niveau et sur `execution`, les `graders` s'additionnent.
+  C'est la forme à utiliser dès qu'un cas a besoin d'un scaffold, puisque
+  `context.scaffold_script` ne va que dans `case.yaml`.
+- **Le scaffold** (`context.scaffold_script`, chemin relatif au dossier du cas)
+  prépare l'état de départ. Il n'est joué qu'avec `--scaffold`, en bash, **hors
+  bac à sable et sous le compte de l'utilisateur**, dans le répertoire de travail
+  de l'agent : un dossier vide sous le `TMPDIR` de l'éval, avec `HOME`
+  redéfini et un environnement minimal. Il dispose de 120 s ; un échec donne un
+  score de 0. Comme il n'est pas isolé, la règle est qu'**un `fixture.sh`
+  n'écrit que dans son répertoire courant**.
+- **Le modèle** : jouer les cas avec le modèle par défaut du lanceur, pas un
+  petit modèle. Au passage de fumée, haiku n'a pas appelé l'outil `Skill` : il
+  a écrit « à la manière » du skill, ce qui ne prouve rien. Un petit modèle ne
+  sert qu'à vérifier un format.
 
 ## Mesurer le bruit avant de fixer un seuil
 
@@ -127,7 +165,8 @@ partiel, lanceur en échec, donnée illisible).
 
 **Les traces se lisent après un `chmod`.** Le lanceur passe `--keep-temp`, qui
 garde les dossiers de passage, mais **scellés** (mode `000`) : pour les lire,
-`chmod 700 <dossier> <dossier>/sealed`.
+`chmod 700 <dossier> <dossier>/sealed`. La trace d'un passage se trouve ensuite
+dans `<TMPDIR>/claude-eval-*/out/trace.jsonl`.
 
 **Un changement par tour.** Deux retouches dans la même comparaison, et on ne
 sait plus laquelle a bougé le score.
