@@ -5,6 +5,27 @@ description: Écrit et fait évoluer un plan de travail dans Notion au lieu du c
 
 # Plan dans Notion
 
+## Invariants — ce qui tient même après un compactage
+
+Un compactage du contexte ne recolle que le début de ce fichier : ce qui ne
+doit jamais se perdre est donc ici, une ligne chacun, avec la section qui le
+détaille.
+
+- **Après un compactage, ré-invoquer ce skill** (outil `Skill`) avant
+  d'écrire dans Notion ou de reprendre une passe — le compactage ne garde que
+  le début du skill.
+- **Ne jamais cocher une case** à la place de Benjamin, pas même la reco
+  (« 1. Ne jamais cocher une case… »).
+- **Rien de livré avant `valide`** : ni fichier dans le dépôt, ni commit, ni
+  sous-agent d'implémentation (« 2. Ne rien coder de livré… »).
+- **`Statut` sans accents** : `brouillon`, `en revue`, `valide`, `en cours`,
+  `a merger`, `execute`, `archive` (fin de « 2. Ne rien coder… »).
+- **Relevé avant d'écrire, recompte après** : cases cochées et textes libres
+  relevés avant toute écriture, recomptés après (§4, `_partage/ecrire-dans-notion.md`).
+- **Ce qui est découvert s'écrit dans le plan**, avec sa conséquence sur les
+  étapes : une découverte gardée en tête disparaît au compactage (« Le
+  chapitre `Exécution` »).
+
 ## Suis-je la bonne version ?
 
 Le 2026-09-08, une session a chargé ce skill depuis une copie synchronisée

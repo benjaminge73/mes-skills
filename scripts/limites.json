@@ -22,7 +22,10 @@
       "octets": 53665
     }
   },
-  "invariants_en_tete": [],
+  "invariants_en_tete": [
+    "plugins/plans-notion/skills/plan-notion/SKILL.md",
+    "plugins/plans-notion/skills/executer-plan-notion/SKILL.md"
+  ],
   "veille_jours_max": 30,
   "exceptions": [
     {

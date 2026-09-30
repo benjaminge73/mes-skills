@@ -6,6 +6,31 @@ description: >-
 
 # Exécuter un plan Notion
 
+## Invariants — ce qui tient même après un compactage
+
+Un compactage du contexte ne recolle que le début de ce fichier : ce qui ne
+doit jamais se perdre est donc ici, une ligne chacun, avec la section qui le
+détaille.
+
+- **Après un compactage, ré-invoquer ce skill** (outil `Skill`) avant
+  d'écrire dans Notion ou de lancer une étape — le compactage ne garde que le
+  début du skill.
+- **Rien avant `valide`** : lire le `Statut` de la page avant toute ligne de
+  code (« La porte d'entrée »).
+- **`Statut` sans accents** : `brouillon`, `en revue`, `valide`, `en cours`,
+  `a merger`, `execute`, `archive` (« La porte d'entrée »).
+- **Ne jamais cocher une case** de Benjamin : le seul `- [x]` écrit est celui
+  que le relevé portait déjà (§5, `_partage/ecrire-dans-notion.md`).
+- **Relevé avant d'écrire, recompte après** : chaque écriture Notion part du
+  relevé du §1 et se vérifie en recomptant (§5).
+- **Jamais `--no-verify`**, ni check désactivé, ni test rendu tolérant : une
+  preuve rouge se corrige (§3, « Une étape = un commit… »).
+- **Pas de PR vers `main` sans demande explicite** de Benjamin : l'exécution
+  s'arrête à la branche (§6, « La PR, puis la remontée sur `main` »).
+- **Découvertes hors plan** : réversible, hors sécurité et petite → étape
+  `D<n>` ; sinon question à Benjamin ; un secret ne se corrige jamais seul et
+  sa valeur ne s'écrit nulle part (§4, « Découvertes hors plan »).
+
 ## Suis-je la bonne version ?
 
 Le 2026-09-08, une session a chargé ce skill depuis une copie synchronisée
