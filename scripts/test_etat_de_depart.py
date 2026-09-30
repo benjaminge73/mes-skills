@@ -106,6 +106,24 @@ class EtatDeDepart(unittest.TestCase):
         self.assertIn("pre-commit", ligne)
         self.assertNotIn("aucun", ligne)
 
+    def test_hook_de_git_hooks_masque_par_core_hookspath_n_est_pas_presente_comme_actif(self):
+        # Quand `core.hooksPath` est réglé, git n'ouvre plus `.git/hooks` : un
+        # `pre-push` exécutable qui s'y trouve ne refusera jamais rien. Le
+        # présenter comme garde-fou actif serait affirmer un faux garde-fou.
+        self.ecrire(".githooks/pre-commit", "#!/bin/sh\nexit 1\n", executable=True)
+        self.figer()
+        self.git("config", "core.hooksPath", ".githooks")
+        pre_push = self.depot / ".git" / "hooks" / "pre-push"
+        pre_push.write_text("#!/bin/sh\nexit 1\n")
+        pre_push.chmod(0o755)
+        sortie = self.lancer()
+        self.assertIn(".githooks", self.ligne(sortie, "core.hooksPath"))
+        ligne = self.ligne(sortie, "Hooks git")
+        # Soit `pre-push` n'apparaît pas, soit il est dit inactif / masqué / ignoré.
+        if "pre-push" in ligne:
+            self.assertTrue(any(mot in ligne for mot in ("inactif", "masqué", "ignoré")),
+                            f"pre-push présenté comme actif malgré core.hooksPath :\n{ligne}")
+
     # -- .pre-commit-config.yaml -------------------------------------------
     def test_pre_commit_config_est_nomme_avec_les_id_de_ses_hooks(self):
         self.ecrire(".pre-commit-config.yaml",
