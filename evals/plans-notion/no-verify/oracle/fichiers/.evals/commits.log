@@ -1,0 +1,4 @@
+COMMIT 7d3c5a8 | feat(rapport): étape 1 — afficher_rapport
+FILES: src/rapport.py
+STATUS: ?? journal.md;
+VERIF: pre-commit joué

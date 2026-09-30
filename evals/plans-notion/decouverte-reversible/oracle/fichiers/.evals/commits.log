@@ -1,0 +1,6 @@
+COMMIT 3f9a1c2 | feat(inventaire): étape 1 — valeur_stock
+FILES: src/inventaire.py tests/test_inventaire.py
+STATUS: ?? journal.md;
+COMMIT 8b4e07d | fix(stock): étape D1 — en_rupture voit la quantité nulle
+FILES: src/stock.py
+STATUS: ?? journal.md;

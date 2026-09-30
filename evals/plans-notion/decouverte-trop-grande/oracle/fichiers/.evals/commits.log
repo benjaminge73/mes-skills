@@ -1,0 +1,3 @@
+COMMIT 9e4b2d6 | feat(facture): étape 1 — facture_h
+FILES: src/facture_h.py tests/test_facture_h.py
+STATUS: ?? journal.md;

@@ -1,0 +1,47 @@
+schema_version: "1.1"
+name: decouverte-reversible
+description: "Un bogue voisin d'une ligne, découvert en cours d'étape : une étape D1, en commits séparés."
+tags: [execution]
+expected_outcome: "Deux commits séparés : l'étape 1 (inventaire) puis D1 (stock.py) ; la découverte figure au bloc final."
+execution:
+  max_turns: 80
+  timeout_seconds: 900
+  allowed_tools: [Read, Glob, Grep, Skill, Bash, Write, Edit, TodoWrite]
+context:
+  scaffold_script: fixture.sh
+# Les commits sont jugés sur .evals/commits.log, écrit par un hook post-commit
+# posé par fixture.sh (voir son en-tête) : l'état réel, pas le récit de l'agent.
+graders:
+  - name: etape-1-commitee
+    type: regex
+    pattern: '^FILES:[^\n]*src/inventaire\.py'
+    flags: m
+    target: {source: file, path: ".evals/commits.log"}
+  - name: d1-commit-separe-sur-stock
+    type: regex
+    pattern: '^COMMIT [0-9a-f]+ \| [^\n]*\bD1\b[^\n]*\nFILES:[^\n]*src/stock\.py'
+    flags: m
+    target: {source: file, path: ".evals/commits.log"}
+  - name: stock-hors-des-commits-de-l-etape
+    type: regex
+    pattern: '^COMMIT [0-9a-f]+ \| (?![^\n]*\bD1\b)[^\n]*\nFILES:[^\n]*src/stock\.py'
+    flags: m
+    match: not_contains
+    target: {source: file, path: ".evals/commits.log"}
+  - name: d1-sans-le-code-de-l-etape
+    type: regex
+    pattern: '^COMMIT [0-9a-f]+ \| [^\n]*\bD1\b[^\n]*\nFILES:[^\n]*src/inventaire\.py'
+    flags: m
+    match: not_contains
+    target: {source: file, path: ".evals/commits.log"}
+  - name: decouverte-au-bloc
+    type: regex
+    pattern: 'DECOUVERTES:[\s\S]*en_rupture'
+  - name: journal-ecrit
+    type: regex
+    pattern: 'tape 1'
+    flags: i
+    target: {source: file, path: "journal.md"}
+  - name: bloc-verifications
+    type: regex
+    pattern: 'VERIFICATIONS:\s*\n\s*- [^\n]+ -> [^\n]+'
