@@ -189,10 +189,12 @@ jobs:
     # sauté compte comme réussi, `merge-auto` continue.
     if: needs.evals-portee.outputs.touche == 'true'
     runs-on: ubuntu-latest
-    # Passe complète : 16 cas x 3 passages x 2 versions, à 3 agents en parallèle,
-    # plus ≈ 1 min 30 de préparation. La marge couvre un modèle lent, pas une
-    # boucle : au-delà, le job est tué plutôt que de consommer l'abonnement.
-    timeout-minutes: 45
+    # Sans base en cache (premier run de chaque base) : deux bras joués l'un
+    # après l'autre, de 16 cas x 3 passages = 48 passages à ≈ 2 min, à 3 agents
+    # en parallèle, soit ≈ 32 min par bras et ≈ 64 min pour les deux, plus
+    # ≈ 1 min 30 de préparation. 90 min laissent la marge d'un modèle lent, pas
+    # d'une boucle : au-delà, le job est tué plutôt que de consommer l'abonnement.
+    timeout-minutes: 90
     permissions:
       contents: read
     # Une poussée sur la PR annule l'exécution en cours : ses mesures portent sur
@@ -211,9 +213,11 @@ jobs:
       # Figés : un modèle qui change change le bruit, donc toute la mesure.
       EVALS_MODELE: claude-opus-5-5
       # Plafond par appel de `claude plugin eval` (une fois pour la base, une fois
-      # pour la tête). Un rapport tronqué par le plafond est refusé par
-      # `evals_ab.py` : le job échoue, il ne compare pas des cas non joués.
-      EVALS_MAX_COUT_USD: '15'
+      # pour la tête). Mesuré au POC avec claude-opus-5-5 : ≈ 0,65 $ par passage,
+      # donc un bras de 16 cas x 3 passages ≈ 31 $. 60 $ couvrent un bras complet
+      # avec marge. Un plafond plus bas couperait chaque bras : rapport partiel,
+      # refusé par `evals_ab.py` (code 3), job rouge à tous les coups.
+      EVALS_MAX_COUT_USD: '60'
       EVALS_RUNS: '3'
       EVALS_CONCURRENCE: '3'
     steps:
