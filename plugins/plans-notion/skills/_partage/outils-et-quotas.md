@@ -249,13 +249,17 @@ commune pour comparer les postes.
 **Bonne pratique** :
 
 - **Estimer avant de lancer** :
-  `python3 scripts/evals_ab.py --plugin <p> --estimer --cas …` donne le coût
-  prévu d'après les derniers rapports. L'annoncer à Benjamin avant de lancer.
+  `python3 scripts/evals_ab.py --plugin <p> --estimer --base-rapport <json>
+  --cas a --cas b` donne le coût du bras de tête d'après ce rapport de base
+  (`--reference <json>` de même). `--cas` se répète, il n'accepte pas de liste
+  séparée par des virgules. L'annoncer à Benjamin avant de lancer.
 - **Un seul banc à la fois.** En CI, le groupe de concurrence `evals-<plugin>`
-  met un second banc en attente. En local, prendre le jeton de la machine avant
-  de lancer : `etat-machine.py prendre evals-locales` (script de
-  `_partage/scripts/`). Ne passer outre (`EVALS_FORCER=1`) que sur ordre
-  explicite.
+  met un second banc en attente. En local, `evals/outillage/lancer.sh` prend
+  lui-même le jeton de la machine (`evals-locales`), attend `EVALS_ATTENDRE`
+  secondes (300 par défaut) s'il est tenu, puis refuse (code 75), et le rend à
+  la sortie : ne pas le prendre à la main avant, le lanceur attendrait puis
+  refuserait. `EVALS_FORCER=1` ne passe outre que le contrôle des bancs de CI
+  (`gh`), jamais le jeton ; sur ordre explicite seulement.
 - **Cibler.** Choisir les catégories d'après les fichiers touchés ; ne jouer
   « tout » que pour `_partage/`, un hook ou le banc lui-même.
 - **Garder 3 passages par cas** : le bruit mesuré ne vaut que pour 3.

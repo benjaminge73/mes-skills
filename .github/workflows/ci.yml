@@ -541,7 +541,11 @@ jobs:
             # jouée sur cette sélection même (on les prend tous). Dans les deux
             # cas evals_ab.py refuse un cas absent du rapport.
             args+=(--base-rapport "$cache/base.json")
-            echo "Résultat : base reprise du cache (${CACHE_TROUVE##*-})."
+            case "$CACHE_TROUVE" in
+              *-tout) portee="base complète" ;;
+              *) portee="base de cette sélection" ;;
+            esac
+            echo "Résultat : base reprise du cache ($portee)."
           else
             args+=(--garder-base "$cache/base.json")
           fi
