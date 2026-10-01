@@ -17,6 +17,12 @@ pour « une catégorie se cherche dans tous les plugins touchés ») :
     (autre) solo  exerce skills/z/                              cas z1
 
 Les attendus sont écrits à la main : « recherche + bruit » = a1, a2, b1.
+
+Les évals se jouent **à la demande** : le script reçoit les labels de la PR
+(``--labels``, un par ligne). Sans le label ``evals``, rien ne se joue, et une PR
+qui touche un skill, un agent, un hook ou ``_partage/`` doit dire ``Evals: aucun —
+<raison>``. Les helpers posent ``labels="evals"`` par défaut : sauf mention, une
+PR de ces tests porte le label.
 """
 from __future__ import annotations
 
@@ -51,14 +57,18 @@ CHERCHEUR = "plugins/jouet/agents/chercheur.md"
 ENQUETEUR = "plugins/jouet/agents/enqueteur.md"
 
 
-def jouer_script(fichiers, corps, plugin, categories, cwd):
-    """(code, stdout, stderr) ; ``corps=None`` : PR_BODY n'est pas défini."""
+def jouer_script(fichiers, corps, plugin, categories, cwd, labels="evals"):
+    """(code, stdout, stderr) ; ``corps=None`` : PR_BODY n'est pas défini.
+
+    ``labels`` : les labels de la PR, un par ligne (``""`` : aucun label).
+    """
     liste = Path(cwd) / "fichiers.txt"
     liste.write_text("".join(f + "\n" for f in fichiers), "utf-8")
     env = {k: v for k, v in os.environ.items() if k != "PR_BODY"}
     if corps is not None:
         env["PR_BODY"] = corps
-    argv = [sys.executable, str(SCRIPT), "--plugin", plugin, "--fichiers", str(liste)]
+    argv = [sys.executable, str(SCRIPT), "--plugin", plugin, "--fichiers", str(liste),
+            "--labels", labels]
     if categories is not None:
         argv += ["--categories", str(categories)]
     r = subprocess.run(argv, capture_output=True, text=True, env=env, cwd=cwd)
@@ -73,11 +83,12 @@ class Selection(unittest.TestCase):
         self.categories = self.dossier / "categories.json"
         self.categories.write_text(json.dumps(CATEGORIES), "utf-8")
 
-    def jouer(self, fichiers, corps=None, plugin="jouet", categories=None):
-        return jouer_script(fichiers, corps, plugin, categories or self.categories, self.dossier)
+    def jouer(self, fichiers, corps=None, plugin="jouet", categories=None, labels="evals"):
+        return jouer_script(fichiers, corps, plugin, categories or self.categories,
+                            self.dossier, labels)
 
-    def selection(self, fichiers, corps=None, plugin="jouet"):
-        code, sortie, erreur = self.jouer(fichiers, corps, plugin)
+    def selection(self, fichiers, corps=None, plugin="jouet", labels="evals"):
+        code, sortie, erreur = self.jouer(fichiers, corps, plugin, labels=labels)
         self.assertEqual(code, 0, erreur)
         return json.loads(sortie)
 
@@ -168,6 +179,111 @@ class LigneDuCorpsDePr(Selection):
         corps = "Evals: bruit; touch pirate ; $(touch pirate) — `touch pirate`"
         code, _, erreur = self.jouer([PLAN], corps=corps)
         self.assertEqual(code, 1, erreur)  # « bruit; touch pirate ; … » : catégorie inconnue
+        self.assertFalse((self.dossier / "pirate").exists())
+
+
+class AVotreDemande(Selection):
+    """Les évals ne se jouent que si la PR porte le label ``evals``.
+
+    Sans le label : une PR qui touche un skill, un agent, un hook ou ``_partage/``
+    doit porter ``Evals: aucun — <raison>`` ; sinon refus, avec les deux sorties.
+    """
+
+    def test_un_skill_touche_sans_label_ni_ligne_aucun_est_refuse_et_les_deux_sorties_sont_dites(self):
+        code, sortie, erreur = self.jouer([PLAN], corps="Un corps sans la ligne attendue.\n",
+                                          labels="")
+        self.assertEqual(code, 1, erreur)
+        self.assertEqual(sortie.strip(), "")
+        self.assertIn("evals", erreur)            # la sortie « poser le label »
+        self.assertIn("Evals: aucun", erreur)     # la sortie « la ligne aucun »
+
+    def test_le_skill_du_vrai_plugin_est_refuse_de_meme_sans_label_ni_ligne(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            code, _, erreur = jouer_script(
+                ["plugins/plans-notion/skills/plan-notion/SKILL.md"], "", "plans-notion",
+                None, tmp, labels="")
+        self.assertEqual(code, 1, erreur)
+        self.assertIn("skills/plan-notion/SKILL.md", erreur)
+
+    def test_une_ligne_aucun_avec_raison_est_acceptee_et_ne_joue_rien(self):
+        s = self.selection([PLAN], corps="Résumé.\n\nEvals: aucun — doc\n", labels="")
+        self.assertFalse(s["tout"])
+        self.assertEqual(s["categories"], [])
+        self.assertEqual(s["cas"], [])
+        self.assertEqual(s["raison"], "doc")
+
+    def test_une_ligne_aucun_sans_raison_est_refusee(self):
+        for corps in ("Evals: aucun —", "Evals: aucun — ", "Evals: aucun", "Evals: aucun --"):
+            with self.subTest(corps=corps):
+                code, _, erreur = self.jouer([PLAN], corps=corps, labels="")
+                self.assertEqual(code, 1, erreur)
+                self.assertIn("raison", erreur)
+
+    def test_le_label_evals_avec_une_ligne_de_categories_joue_les_cas_de_ces_categories(self):
+        s = self.selection([PLAN], corps="Evals: bruit — essai", labels="evals")
+        self.assertFalse(s["tout"])
+        self.assertEqual(s["categories"], ["bruit"])
+        self.assertEqual(s["cas"], ["b1"])
+
+    def test_le_label_evals_sans_ligne_joue_tout(self):
+        s = self.selection([PLAN], corps="Un corps sans la ligne attendue.\n", labels="evals")
+        self.assertTrue(s["tout"])
+        self.assertEqual(s["cas"], TOUS_LES_CAS_DE_JOUET)
+
+    def test_le_label_se_reconnait_parmi_d_autres_et_sans_egard_a_la_casse(self):
+        for labels in ("bug\nEvals", "EVALS\nbug", "  evals  "):
+            with self.subTest(labels=labels):
+                s = self.selection([PLAN], corps="Evals: bruit", labels=labels)
+                self.assertEqual(s["cas"], ["b1"])
+
+    def test_un_autre_label_ne_vaut_pas_le_label_evals(self):
+        for labels in ("", "bug", "review-required\nevals-plus", "pas-evals"):
+            with self.subTest(labels=labels):
+                code, _, erreur = self.jouer([PLAN], corps="Evals: bruit", labels=labels)
+                self.assertEqual(code, 1, erreur)
+
+    def test_sans_label_une_ligne_de_categories_ou_tout_ne_dispense_pas_de_la_ligne_aucun(self):
+        for corps in ("Evals: bruit — essai", "Evals: tout", "Evals:"):
+            with self.subTest(corps=corps):
+                code, _, erreur = self.jouer([PLAN], corps=corps, labels="")
+                self.assertEqual(code, 1, erreur)
+
+    def test_sans_label_chaque_dossier_qui_change_un_comportement_demande_la_ligne_aucun(self):
+        # Un skill, un agent, un hook, un `_partage/` : les quatre changent ce que les
+        # évals mesurent.
+        for chemin in (EXECUTER, CHERCHEUR, "plugins/jouet/hooks/hooks.json",
+                       "plugins/jouet/skills/_partage/regle.md"):
+            with self.subTest(fichier=chemin):
+                code, _, erreur = self.jouer([chemin], corps="", labels="")
+                self.assertEqual(code, 1, erreur)
+                self.assertIn(chemin, erreur)
+
+    def test_sans_label_une_pr_qui_ne_touche_aucun_de_ces_dossiers_passe_sans_ligne(self):
+        s = self.selection(
+            ["docs/veille.md", "plugins/jouet/.claude-plugin/plugin.json", "README.md",
+             "scripts/evals_selection.py", ".github/workflows/ci.yml"],
+            corps="", labels="")
+        self.assertFalse(s["tout"])
+        self.assertEqual(s["cas"], [])
+
+    def test_sans_label_le_skill_d_un_autre_plugin_n_est_pas_a_justifier_ici(self):
+        s = self.selection(["plugins/autre/skills/z/SKILL.md"], corps="", labels="")
+        self.assertEqual(s["cas"], [])
+
+    def test_aucun_ne_se_combine_pas_avec_une_categorie(self):
+        code, _, erreur = self.jouer([PLAN], corps="Evals: aucun, bruit — x", labels="")
+        self.assertEqual(code, 1, erreur)
+        self.assertIn("aucun", erreur)
+
+    def test_le_label_evals_et_la_ligne_aucun_se_contredisent_et_sont_refuses(self):
+        code, _, erreur = self.jouer([PLAN], corps="Evals: aucun — doc", labels="evals")
+        self.assertEqual(code, 1, erreur)
+        self.assertIn("label", erreur)
+
+    def test_sans_label_un_corps_hostile_reste_une_donnee(self):
+        corps = "Evals: aucun — $(touch pirate) ; `touch pirate`"
+        s = self.selection([PLAN], corps=corps, labels="")
+        self.assertEqual(s["cas"], [])
         self.assertFalse((self.dossier / "pirate").exists())
 
 
@@ -310,7 +426,7 @@ class VraiDepot(unittest.TestCase):
 
     def jouer(self, fichier, corps):
         with tempfile.TemporaryDirectory() as tmp:
-            return jouer_script([fichier], corps, "plans-notion", None, tmp)
+            return jouer_script([fichier], corps, "plans-notion", None, tmp, labels="evals")
 
     def test_existant_et_bruit_couvrent_plan_notion_avec_cinq_cas(self):
         code, sortie, erreur = self.jouer(
@@ -501,6 +617,8 @@ class CiYml(unittest.TestCase):
         self.assertIn("evals-bruit", controle)
 
     def test_la_pr_ne_rejoue_pas_sur_edition_pas_de_edited_dans_les_types(self):
+        # `labeled` s'ajoute aux types par défaut (le label `evals` lance les évals) ;
+        # `edited` reste exclu.
         # `edited` produisait un « Verdict des évals » vert sur un SHA dont les
         # évals étaient rouges (une édition de titre saute `evals`), et le verrou
         # de `main` risquait de ne voir que ce dernier statut.
@@ -509,7 +627,7 @@ class CiYml(unittest.TestCase):
         if types is not None:  # sans `types:`, c'est le défaut : opened, synchronize, reopened
             liste = {t.strip() for t in types.group(1).split(",")}
             self.assertNotIn("edited", liste)
-            self.assertLessEqual(liste, {"opened", "synchronize", "reopened"})
+            self.assertLessEqual(liste, {"opened", "synchronize", "reopened", "labeled"})
         self.assertNotRegex(bloc, r"(?m)^    types:\s*\n")  # pas non plus la forme en liste
 
     def test_le_commentaire_de_on_dit_pourquoi_pas_edited_et_pourquoi_l_api(self):
@@ -584,6 +702,56 @@ class CiYml(unittest.TestCase):
     def test_le_lancement_manuel_n_appelle_pas_l_api(self):
         r, appels = self._jouer_corps_relu(None, evenement="workflow_dispatch")
         self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(appels, "")
+
+    def _labels_lus(self) -> str:
+        """Le morceau du script d'`evals-portee` qui relit les labels, dédenté."""
+        import textwrap
+        etape = _job(self.ci, "evals-portee").split("id: portee", 1)[1]
+        m = re.search(r"(?ms)^ *# --- labels \(début\)\n(.*?)^ *# --- labels \(fin\)", etape)
+        self.assertIsNotNone(m, "repères « labels (début/fin) » absents")
+        return textwrap.dedent(m.group(1))
+
+    def _jouer_labels_lus(self, faux_gh: str | None, evenement: str = "pull_request"):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp = Path(tmp)
+            (tmp / "bin").mkdir()
+            trace = tmp / "gh-args.txt"
+            if faux_gh is not None:
+                gh = tmp / "bin" / "gh"
+                gh.write_text(f'#!/bin/sh\necho "$*" >> "{trace}"\n{faux_gh}\n', "utf-8")
+                gh.chmod(0o755)
+            env = {k: v for k, v in os.environ.items() if k not in ("LABELS", "GITHUB_ACTIONS")}
+            env.update(PATH=f"{tmp / 'bin'}{os.pathsep}{env['PATH']}", EVENT_NAME=evenement,
+                       REPO="proprietaire/depot", PR_NUMBER="42")
+            script = "set -euo pipefail\n" + self._labels_lus() + '\nprintf "LABELS=[%s]" "${LABELS-}"\n'
+            r = subprocess.run(["bash", "-c", script], env=env, capture_output=True, text=True)
+            appels = trace.read_text("utf-8") if trace.exists() else ""
+            return r, appels
+
+    def test_les_labels_relus_par_l_api_sont_exportes_pour_la_decision_des_evals(self):
+        r, appels = self._jouer_labels_lus('printf "bug\\nevals\\n"')
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("LABELS=[bug\nevals]", r.stdout)
+        self.assertIn("42", appels)
+
+    def test_un_echec_de_l_api_sur_les_labels_rend_le_job_rouge_sans_repli_silencieux(self):
+        # Ni « le label est là » (on paierait le banc), ni « il n'y est pas » (on
+        # sauterait des évals demandées) : l'incertitude est une panne.
+        r, _ = self._jouer_labels_lus('echo "HTTP 502" >&2; exit 1')
+        self.assertNotEqual(r.returncode, 0)
+        self.assertNotIn("LABELS=", r.stdout)
+        self.assertIn("::error", r.stdout + r.stderr)
+
+    def test_une_pr_sans_label_donne_des_labels_vides_pas_une_erreur(self):
+        r, _ = self._jouer_labels_lus('printf ""')
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("LABELS=[]", r.stdout)
+
+    def test_le_lancement_manuel_vaut_la_demande_du_label_sans_appeler_l_api(self):
+        r, appels = self._jouer_labels_lus(None, evenement="workflow_dispatch")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("LABELS=[evals]", r.stdout)
         self.assertEqual(appels, "")
 
     def test_evals_portee_n_a_que_lecture_du_contenu_et_des_pull_requests(self):
