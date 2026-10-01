@@ -127,11 +127,33 @@ Verdict : code de sortie 1 si la moyenne recule de plus que le bruit global,
 **ou** si un cas seul recule de plus que le seuil par cas corrigé (un skill
 modifié n'affecte souvent qu'un ou deux cas, et la moyenne le diluerait).
 
+Panne d'infrastructure
+----------------------
+Un passage dont ``error`` n'est pas nul (limite de session, délai dépassé…) n'a
+rien mesuré du plugin : son score est celui d'une panne. Ils sont **comptés à
+part**, en A/B comme en fumée. Un bras qui en porte rend le code 4, « non
+concluant — panne d'infrastructure, à relancer », jamais le code 1 : le rapport
+de la tête de la PR #19 avait perdu 21 sessions sur 48 à une limite de session,
+et cet effondrement se serait lu comme un recul du plugin.
+
+Test de fumée
+-------------
+``--fumee`` joue la **tête seule**, un seul passage (``--runs 1`` ; le lanceur
+fixe déjà ``--ablation none``), sur les cas choisis, et juge chaque catégorie de
+``evals/categories.json`` par son score moyen contre son ``plancher`` (le plus
+bas tirage sain mesuré, moins 0,10). ``--fumee --tete-rapport <json>`` juge un
+rapport déjà joué sans rien jouer, **tirage par tirage** : le tirage ``k`` d'une
+catégorie est la moyenne de ses cas sur leur passage ``k``. Une catégorie sans
+plancher fait refuser le mode (code 3) : jamais un plancher implicite à 0, qui
+ne verrait aucun effondrement.
+
 Codes de sortie
 ---------------
 ``0`` pas de recul au-delà du bruit (ou mode ``aa``, ou ``--previol-seul``
-réussi) ; ``1`` recul ; ``2`` erreur d'usage (argparse) ; ``3`` refus (pré-vol,
-rapport partiel, lanceur en échec, donnée illisible).
+réussi, ou fumée verte) ; ``1`` recul (ou, en fumée, une catégorie sous son
+plancher) ; ``2`` erreur d'usage (argparse) ; ``3`` refus (pré-vol, rapport
+partiel, lanceur en échec, donnée illisible, catégorie sans plancher) ; ``4``
+non concluant : un bras a des sessions en erreur, à relancer.
 
 Le lanceur
 ----------
@@ -839,6 +861,38 @@ def estimer_cout(rapport: dict, passages: int | None = None) -> float:
     return total
 
 
+def passages_du_cas(cas: dict) -> list[dict]:
+    return (cas.get("arms") or {}).get("with") or []
+
+
+def sessions_en_erreur(rapport: dict) -> tuple[list[tuple[str, int, str]], int]:
+    """(les sessions dont ``error`` n'est pas nul, nombre total de sessions).
+
+    Chaque session en erreur est ``(cas, numéro de tirage à partir de 0, motif)``.
+    """
+    erreurs: list[tuple[str, int, str]] = []
+    total = 0
+    for cas in rapport.get("cases", []):
+        for k, passage in enumerate(passages_du_cas(cas)):
+            total += 1
+            if passage.get("error"):
+                erreurs.append((cas.get("name", "?"), k, str(passage["error"])))
+    return erreurs, total
+
+
+def motif_panne(bras: dict[str, dict]) -> str:
+    """Le motif de non-conclusion pour les bras qui portent des sessions en erreur, ou ``""``."""
+    morceaux, premier = [], ""
+    for nom, rapport in bras.items():
+        erreurs, total = sessions_en_erreur(rapport)
+        if erreurs:
+            morceaux.append(f"{nom} {len(erreurs)} sur {total}")
+            premier = premier or " ".join(erreurs[0][2].split())[:120]
+    if not morceaux:
+        return ""
+    return f"Sessions en erreur : {', '.join(morceaux)}. Premier motif : {premier}"
+
+
 def lire_rapport(chemin: Path, etiquette: str) -> dict:
     try:
         rapport = json.loads(Path(chemin).read_text("utf-8"))
@@ -1014,7 +1068,8 @@ def _pts(x: float) -> str:
 
 
 def tableau_markdown(c: Comparaison, etiq_base: str, etiq_tete: str, verdict: bool = True,
-                     modele: str | None = None, effort: str | None = None) -> str:
+                     modele: str | None = None, effort: str | None = None,
+                     panne: str = "") -> str:
     source = "mesuré en A/A" if c.bruit_mesure else "estimé √2/√(n·R)"
     sortie = [
         f"### {etiq_base} → {etiq_tete}",
@@ -1023,7 +1078,10 @@ def tableau_markdown(c: Comparaison, etiq_base: str, etiq_tete: str, verdict: bo
         "|---|---|---|---|---|",
     ]
     for x in c.lignes:
-        if x.recul:
+        if panne:
+            # Des sessions en erreur ont faussé les scores : ni recul ni mieux ne se lit.
+            mot = "=" if abs(x.delta) < EPSILON else "non concluant"
+        elif x.recul:
             mot = "RECUL"
         elif abs(x.delta) < EPSILON:
             mot = "="
@@ -1062,7 +1120,13 @@ def tableau_markdown(c: Comparaison, etiq_base: str, etiq_tete: str, verdict: bo
             f"Seuil par cas de {c.bruit_cas * 100:.0f} pts, au-delà de 100 : non concluant par "
             f"cas — {pourquoi} (un score va de 0 à 100 %, aucun recul d'un cas ne peut être vu)."
         )
-    if verdict:
+    if panne:
+        sortie.append(f"{panne}.")
+        sortie.append(
+            "**Verdict : NON CONCLUANT — panne d'infrastructure, à relancer** "
+            "(ces scores ne mesurent pas le plugin)."
+        )
+    elif verdict:
         if c.recul:
             reculs = [x.nom for x in c.lignes if x.recul]
             detail = f"cas en recul : {', '.join(reculs)}" if reculs else "la moyenne recule"
@@ -1114,6 +1178,146 @@ def ajouter_au_journal(chemin: Path, ligne: str) -> None:
         if not existant.endswith("\n"):
             f.write("\n")
         f.write(ligne + "\n")
+
+
+# ==========================================================================
+# Test de fumée : planchers par catégorie
+# ==========================================================================
+@dataclass
+class LigneFumee:
+    categorie: str
+    cas: list[str]
+    scores: list[float]  # un score par tirage
+    plancher: float
+    cout: float
+
+
+@dataclass
+class Fumee:
+    lignes: list[LigneFumee]
+    tirages: int
+    erreurs_par_tirage: list[int]
+    sessions: int
+    ignores: list[str]  # cas du rapport qu'aucune catégorie ne porte
+
+    def sous_plancher(self, tirage: int) -> list[LigneFumee]:
+        return [x for x in self.lignes if x.scores[tirage] < x.plancher - EPSILON]
+
+
+def lire_planchers(depot: Path, plugin: str) -> dict[str, dict]:
+    """Les catégories de ``plugin`` dans ``evals/categories.json``, planchers validés.
+
+    Une catégorie sans plancher est un refus qui la nomme : un plancher implicite
+    à 0 laisserait passer n'importe quel effondrement.
+    """
+    chemin = depot / "evals" / "categories.json"
+    try:
+        categories = json.loads(chemin.read_text("utf-8"))[plugin]
+    except (OSError, ValueError, KeyError, TypeError) as e:
+        raise ErreurRefus(f"catégories de « {plugin} » illisibles dans {chemin} : {e!r}") from e
+    sans, invalides = [], []
+    for nom, categorie in categories.items():
+        plancher = categorie.get("plancher") if isinstance(categorie, dict) else None
+        if plancher is None:
+            sans.append(nom)
+        elif isinstance(plancher, bool) or not isinstance(plancher, (int, float)) or not 0 <= plancher <= 1:
+            invalides.append(nom)
+    if sans:
+        raise ErreurRefus(
+            f"catégorie(s) sans plancher : {', '.join(sans)}. Le test de fumée refuse de "
+            f"juger sans plancher (jamais 0 par défaut) : en ajouter un dans {chemin}."
+        )
+    if invalides:
+        raise ErreurRefus(
+            f"plancher invalide (un nombre de 0 à 1 est attendu) : {', '.join(invalides)}"
+        )
+    return categories
+
+
+def juger_fumee(rapport: dict, categories: dict[str, dict]) -> Fumee:
+    """Le score de chaque catégorie **jouée** (au moins un de ses cas est au rapport), par tirage."""
+    par_cas = {c["name"]: passages_du_cas(c) for c in rapport.get("cases", [])}
+    tirages = min((len(p) for p in par_cas.values()), default=0)
+    if tirages < 1:
+        raise ErreurRefus("un cas du rapport n'a aucun passage joué : rien à juger")
+    lignes = []
+    for nom, categorie in categories.items():
+        joues = [n for n in categorie["cas"] if n in par_cas]
+        if not joues:
+            continue
+        scores = [
+            sum(float(par_cas[n][k].get("score", 0)) for n in joues) / len(joues)
+            for k in range(tirages)
+        ]
+        cout = sum(
+            float(p.get("costUsd", 0)) + float(p.get("judgeCostUsd", 0))
+            for n in joues for p in par_cas[n]
+        )
+        lignes.append(LigneFumee(nom, joues, scores, float(categorie["plancher"]), cout))
+    if not lignes:
+        raise ErreurRefus("aucun cas du rapport n'appartient à une catégorie : rien à juger")
+    classes = {n for x in lignes for n in x.cas}
+    erreurs, total = sessions_en_erreur(rapport)
+    par_tirage = [sum(1 for _, k, _ in erreurs if k == t) for t in range(tirages)]
+    return Fumee(lignes, tirages, par_tirage, total, sorted(set(par_cas) - classes))
+
+
+def _score(x: float) -> str:
+    return f"{x:.2f}".replace(".", ",")
+
+
+def tableau_fumee(f: Fumee, etiquette_tete: str, motif_panne_texte: str) -> str:
+    entetes = " | ".join(f"tirage {k + 1}" for k in range(f.tirages))
+    sortie = [
+        f"### Fumée — {etiquette_tete}",
+        "",
+        f"| catégorie | cas | {entetes} | plancher | coût |",
+        "|---|---|" + "---|" * f.tirages + "---|---|",
+    ]
+    for x in f.lignes:
+        scores = " | ".join(_score(v) for v in x.scores)
+        sortie.append(
+            f"| {x.categorie} | {len(x.cas)} | {scores} | {_score(x.plancher)} | ${x.cout:.2f} |"
+        )
+    sortie.append("")
+    for k in range(f.tirages):
+        raisons = []
+        if f.erreurs_par_tirage[k]:
+            raisons.append(f"{f.erreurs_par_tirage[k]} sessions en erreur")
+        sous = f.sous_plancher(k)
+        if sous:
+            raisons.append(
+                "sous plancher : "
+                + ", ".join(f"{x.categorie} {_score(x.scores[k])} < {_score(x.plancher)}" for x in sous)
+            )
+        sortie.append(f"tirage {k + 1} : " + (f"ROUGE — {' ; '.join(raisons)}" if raisons else "VERT"))
+    if f.ignores:
+        sortie.append(f"Note : cas sans catégorie, non jugés : {', '.join(f.ignores)}.")
+    sortie.append("")
+    if motif_panne_texte:
+        sortie.append(f"{motif_panne_texte}.")
+        sortie.append(
+            "**Verdict : ROUGE — NON CONCLUANT, panne d'infrastructure, à relancer** "
+            "(jamais lu comme un recul)."
+        )
+    elif any(f.sous_plancher(k) for k in range(f.tirages)):
+        sortie.append("**Verdict : ROUGE — une catégorie est sous son plancher.**")
+    else:
+        sortie.append("**Verdict : VERT — toutes les catégories jouées sont au-dessus de leur plancher.**")
+    return "\n".join(sortie)
+
+
+def options_une_passe(options: list[str]) -> list[str]:
+    """Les options du lanceur, avec un seul passage : la fumée n'en paie jamais plus."""
+    reste, saute = [], False
+    for o in options:
+        if saute:
+            saute = False
+        elif o == "--runs":
+            saute = True
+        elif not o.startswith("--runs="):
+            reste.append(o)
+    return ["--runs", "1", *reste]
 
 
 # ==========================================================================
@@ -1207,6 +1411,13 @@ def construire_parseur() -> argparse.ArgumentParser:
                    help="annonce le coût du bras de tête (cas choisis, passages de --runs) "
                         "d'après le rapport de --base-rapport ou --reference, puis s'arrête "
                         "sans rien jouer")
+    p.add_argument("--fumee", action="store_true",
+                   help="test de fumée : joue la tête seule, un passage, sur les cas choisis, et "
+                        "juge chaque catégorie de evals/categories.json contre son plancher "
+                        "(code 1 sous un plancher, 4 si des sessions sont en erreur)")
+    p.add_argument("--tete-rapport", metavar="FICHIER",
+                   help="avec --fumee : juge ce rapport déjà joué, tirage par tirage, sans "
+                        "rien jouer ni lancer le pré-vol")
     p.add_argument("--previol-seul", action="store_true",
                    help="ne fait que le pré-vol (gratuit) et s'arrête")
     return p
@@ -1256,6 +1467,57 @@ def _estimer(args, options_lanceur: list[str]) -> int:
     return 0
 
 
+def _previol_ou_refus(sources: list[Path]) -> None:
+    """Pré-vol : gratuit, et il commande tout le reste. Refus si un cas n'y satisfait pas."""
+    verdicts = [v for s in sources for v in previol(decouvrir_cas(s))]
+    if not verdicts:
+        raise ErreurRefus(f"aucun cas trouvé dans {', '.join(map(str, sources))}")
+    for v in verdicts:
+        for note in v.non_verifies:
+            print(f"note : {note}", file=sys.stderr)
+    erreurs = [e for v in verdicts for e in v.erreurs]
+    if erreurs:
+        raise ErreurRefus(
+            "pré-vol : rien n'est joué.\n  - " + "\n  - ".join(erreurs)
+        )
+    print(f"pré-vol : {len(verdicts)} cas, oracles et témoins nuls conformes", file=sys.stderr)
+
+
+def _fumee(args, options_lanceur: list[str], depot: Path, plugin: str,
+           sources: list[Path], lanceur: Path) -> int:
+    """``--fumee`` : la tête seule, un passage, jugée par catégorie contre son plancher.
+
+    Les planchers sont lus **avant** de payer quoi que ce soit : une catégorie sans
+    plancher est un refus, pas un jeu perdu. Rend 4 (non concluant) si une session
+    est en erreur, 1 si une catégorie est sous son plancher, 0 sinon.
+    """
+    categories = lire_planchers(depot, plugin)
+    if args.tete_rapport:
+        rapport = lire_rapport(Path(args.tete_rapport), "de tête")
+        if args.cas:
+            rapport = extraire_cas_du_rapport(rapport, args.cas, "de tête")
+        etiq = f"rapport {Path(args.tete_rapport).name}"
+    else:
+        racine = Path(tempfile.mkdtemp(prefix="evals-ab-"))
+        try:
+            rapport = jouer_reference(
+                depot, args.tete, plugin, sources, racine, "tete", lanceur,
+                options_une_passe(options_lanceur), "de tête", args.cas,
+            )
+        finally:
+            if args.conserver:
+                print(f"copies conservées : {racine}", file=sys.stderr)
+            else:
+                shutil.rmtree(racine, ignore_errors=True)
+        etiq = etiquette(depot, args.tete, plugin)
+    f = juger_fumee(rapport, categories)
+    panne = motif_panne({"tête": rapport})
+    print(tableau_fumee(f, etiq, panne))
+    if panne:
+        return 4
+    return 1 if any(f.sous_plancher(k) for k in range(f.tirages)) else 0
+
+
 def _executer(args, options_lanceur: list[str], commande: str) -> int:
     depot = Path(args.depot).resolve() if args.depot else DEPOT
     plugin = args.plugin
@@ -1279,19 +1541,14 @@ def _executer(args, options_lanceur: list[str], commande: str) -> int:
     if args.estimer:
         return _estimer(args, options_lanceur)
 
-    # Pré-vol : gratuit, et il commande tout le reste.
-    verdicts = [v for s in sources for v in previol(decouvrir_cas(s))]
-    if not verdicts:
-        raise ErreurRefus(f"aucun cas trouvé dans {', '.join(map(str, sources))}")
-    for v in verdicts:
-        for note in v.non_verifies:
-            print(f"note : {note}", file=sys.stderr)
-    erreurs = [e for v in verdicts for e in v.erreurs]
-    if erreurs:
-        raise ErreurRefus(
-            "pré-vol : rien n'est joué.\n  - " + "\n  - ".join(erreurs)
-        )
-    print(f"pré-vol : {len(verdicts)} cas, oracles et témoins nuls conformes", file=sys.stderr)
+    if args.tete_rapport and not args.fumee:
+        raise ErreurRefus("--tete-rapport ne sert qu'avec --fumee")
+    if args.fumee and args.tete_rapport:
+        return _fumee(args, options_lanceur, depot, plugin, sources, lanceur)
+
+    _previol_ou_refus(sources)
+    if args.fumee:
+        return _fumee(args, options_lanceur, depot, plugin, sources, lanceur)
     if args.previol_seul:
         return 0
 
@@ -1358,9 +1615,11 @@ def _executer(args, options_lanceur: list[str], commande: str) -> int:
         c = comparer(rapport_base, rapport_tete, bruit=bruit)
         if note_bruit:
             c.notes.append(note_bruit)
+        panne = motif_panne({"base": rapport_base, "tête": rapport_tete})
         print(tableau_markdown(c, etiq_base, etiq_tete,
-                               modele=modele_joue(), effort=effort_joue()))
-        code = 1 if c.recul else 0
+                               modele=modele_joue(), effort=effort_joue(), panne=panne))
+        # Des sessions en erreur ont faussé les scores : jamais un recul (code 1).
+        code = 4 if panne else (1 if c.recul else 0)
 
     if args.journal is not None:
         chemin_journal = Path(args.journal) if args.journal else depot / "evals" / "RESULTATS.md"
