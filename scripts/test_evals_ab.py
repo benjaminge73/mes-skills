@@ -1192,6 +1192,190 @@ class SeuilGlobalElargi(unittest.TestCase):
         c = evals_ab.comparer(base, tete, bruit={"rms_ecarts_cas": 0.0385, "n_cas": 16})
         self.assertNotIn("élargi", evals_ab.tableau_markdown(c, "v1", "v2"))
 
+# --------------------------------------------------------------------------
+# Étape 3 : une base réutilisée par contenu (--base-rapport, clé par empreinte)
+# --------------------------------------------------------------------------
+# Faux lanceur qui note son appel, puis écrit un rapport dont les cas sont ceux
+# réellement assemblés (3 passages, tous réussis) : c'est la tête.
+LANCEUR_QUI_NOTE_ET_LIT_LES_CAS = """#!/bin/sh
+dossier="$1"; sortie="$2"; shift 2
+echo "APPEL $(cat "$dossier/marqueur.txt")" >> "$FAUX_JOURNAL"
+python3 - "$dossier" "$sortie" <<'PY'
+import json, pathlib, sys
+copie, sortie = pathlib.Path(sys.argv[1]), sys.argv[2]
+noms = sorted(p.name for p in (copie / "evals").iterdir() if p.is_dir())
+passage = {"score": 1, "passed": True, "costUsd": 0, "judgeCostUsd": 0}
+cas = [{"name": n, "arms": {"with": [passage, passage, passage]}, "aggregates": {"score": 1}}
+       for n in noms]
+json.dump({"schemaVersion": 1, "cases": cas}, open(sortie, "w"))
+PY
+exit 0
+"""
+
+
+class BaseReprise(DepotEtLanceur):
+    """``--base-rapport`` : la base vient d'un rapport déjà joué, on en extrait les cas choisis.
+
+    Le rapport figé ``rapport_base_16_cas.json`` porte seize cas (alpha à 1,
+    beta à 2/3 sur trois passages, les autres à 1). Le banc du dépôt jetable en
+    a trois : alpha, beta, et ``epsilon`` (que le rapport ne porte pas).
+    """
+
+    def setUp(self):
+        super().setUp()
+        CasChoisis.ajouter_cas(self, "beta")
+        CasChoisis.ajouter_cas(self, "epsilon")
+        lanceur = self.racine / "lanceur_note_et_lit.sh"
+        ecrire(lanceur, LANCEUR_QUI_NOTE_ET_LIT_LES_CAS)
+        lanceur.chmod(0o755)
+        self.lanceur = lanceur
+        self.rapport_16 = FIXTURES / "rapport_base_16_cas.json"
+
+    def test_une_base_extraite_de_seize_cas_donne_un_tableau_des_seuls_cas_choisis_sans_jouer_la_base(self):
+        code, sortie, erreur = jouer(
+            self.argv("--base-rapport", str(self.rapport_16), "--cas", "alpha", "--cas", "beta"),
+            self.env,
+        )
+        self.assertEqual(code, 0, erreur)
+        # Seule la tête a été jouée : la base vient du rapport.
+        self.assertEqual([l for l in self.appels() if l.startswith("APPEL")], ["APPEL tete"])
+        # Un tableau à deux cas, ceux qu'on a choisis, et aucun des quatorze autres.
+        self.assertIn("2 cas \u00d7 3 passages", sortie)
+        self.assertIn("alpha", sortie)
+        self.assertIn("beta", sortie)
+        self.assertNotIn("cas-03", sortie)
+        # La base de ces deux cas : (1 + 2/3) / 2 = 83 %, pas la moyenne des seize.
+        self.assertIn("83 %", sortie)
+        self.assertIn("base reprise du cache", erreur)
+
+    def test_un_cas_choisi_absent_du_rapport_est_refuse_et_nomme_avant_tout_jeu(self):
+        code, sortie, erreur = jouer(
+            self.argv("--base-rapport", str(self.rapport_16), "--cas", "alpha", "--cas", "epsilon"),
+            self.env,
+        )
+        self.assertEqual(code, 3, sortie)
+        self.assertIn("epsilon", erreur)
+        self.assertEqual(self.appels(), [])  # ni base ni tête jouées : rien payé
+
+    def test_un_rapport_de_base_partiel_est_refuse_meme_extrait(self):
+        code, _, erreur = jouer(
+            self.argv("--base-rapport", str(FIXTURES / "rapport_partiel.json"), "--cas", "alpha"),
+            self.env,
+        )
+        self.assertEqual(code, 3)
+        self.assertIn("partial", erreur)
+        self.assertEqual(self.appels(), [])
+
+    def test_base_rapport_et_reference_ensemble_sont_refuses_avant_tout_jeu(self):
+        code, _, _ = jouer(
+            self.argv("--base-rapport", str(self.rapport_16), "--reference", str(self.rapport_16)),
+            self.env,
+        )
+        self.assertEqual(code, 3)
+        self.assertEqual(self.appels(), [])
+
+
+class CleDuCacheDeLaBase(unittest.TestCase):
+    """Le pas « Clé du cache de la base » de ci.yml, joué pour de bon.
+
+    Un dépôt jetable (un plugin-jouet, un banc de deux cas) et le corps
+    ``run:`` du pas exécuté par bash avec les variables que le job lui donne.
+    On lit ce qu'il écrit dans ``GITHUB_OUTPUT`` : ``cle_tout`` (la clé d'une
+    base complète) et ``cle_ecriture`` (la clé sous laquelle ce run sauve sa
+    base : la complète si tout est joué, sinon celle de la sélection).
+    """
+
+    TOUT = '{"jouet": {"tout": true}}'
+
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self._tmp.cleanup)
+        self.depot = Path(self._tmp.name) / "depot"
+        d = self.depot
+        d.mkdir()
+        git(d, "init", "-q", "-b", "main")
+        ecrire(d / "plugins" / "jouet" / "skills" / "s" / "SKILL.md", "v1\n")
+        ecrire(d / "evals" / "jouet" / "alpha" / "prompt.md", "Réponds OK.\n")
+        ecrire(d / "evals" / "jouet" / "beta" / "prompt.md", "Réponds NON.\n")
+        ecrire(d / "evals" / "outillage" / "preparer-runner.sh", "CLAUDE_CODE_VERSION=2.1.285\n")
+        ecrire(d / "evals" / "outillage" / "lancer.sh", "#!/bin/sh\n")
+        ecrire(d / "README.md", "doc\n")
+        self.valider("base")
+        self.sha_base = self.sha()
+
+    def valider(self, message: str) -> None:
+        git(self.depot, "add", ".")
+        git(self.depot, "commit", "-q", "-m", message)
+
+    def sha(self) -> str:
+        return git(self.depot, "rev-parse", "HEAD").strip()
+
+    def cles(self, sha: str, selection: str = TOUT, **env) -> dict:
+        import textwrap
+        ci = (Path(__file__).resolve().parent.parent / ".github" / "workflows" / "ci.yml").read_text("utf-8")
+        pas = ci.split("- name: Clé du cache de la base", 1)[1].split("\n      - name:", 1)[0]
+        corps = textwrap.dedent(pas.split("        run: |\n", 1)[1])
+        sortie = self.depot / "github_output.txt"
+        sortie.write_text("", "utf-8")
+        e = {k: v for k, v in os.environ.items() if not k.startswith(("EVALS_", "GITHUB_"))}
+        e.update(PLUGIN="jouet", BASE_SHA=sha, SELECTION=selection, GITHUB_OUTPUT=str(sortie),
+                 EVALS_MODELE=MODELE, EVALS_EFFORT="high", EVALS_RUNS="3")
+        e.update(env)
+        r = subprocess.run(["bash", "-c", corps], cwd=self.depot, env=e, capture_output=True, text=True)
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        return dict(l.split("=", 1) for l in sortie.read_text("utf-8").splitlines() if "=" in l)
+
+    def test_un_merge_de_doc_sur_main_ne_change_pas_la_cle_de_la_base(self):
+        avant = self.cles(self.sha_base)
+        ecrire(self.depot / "docs" / "note.md", "une note\n")
+        ecrire(self.depot / "README.md", "doc modifiée\n")
+        self.valider("doc")
+        apres = self.cles(self.sha())
+        self.assertNotEqual(self.sha(), self.sha_base)
+        self.assertEqual(avant["cle_tout"], apres["cle_tout"])
+
+    def test_un_changement_du_plugin_a_la_base_change_la_cle(self):
+        avant = self.cles(self.sha_base)
+        ecrire(self.depot / "plugins" / "jouet" / "skills" / "s" / "SKILL.md", "v2\n")
+        self.valider("skill")
+        self.assertNotEqual(avant["cle_tout"], self.cles(self.sha())["cle_tout"])
+
+    def test_un_cas_dont_le_contenu_change_change_la_cle(self):
+        avant = self.cles(self.sha_base)
+        ecrire(self.depot / "evals" / "jouet" / "alpha" / "prompt.md", "Réponds autre chose.\n")
+        self.valider("cas")
+        self.assertNotEqual(avant["cle_tout"], self.cles(self.sha_base)["cle_tout"])
+
+    def test_le_modele_et_l_effort_changent_la_cle(self):
+        ref = self.cles(self.sha_base)["cle_tout"]
+        self.assertNotEqual(ref, self.cles(self.sha_base, EVALS_MODELE=AUTRE_MODELE)["cle_tout"])
+        self.assertNotEqual(ref, self.cles(self.sha_base, EVALS_EFFORT="low")["cle_tout"])
+
+    def test_la_cle_de_la_base_complete_ne_depend_pas_de_la_selection(self):
+        selection = '{"jouet": {"tout": false, "cas": ["alpha"]}}'
+        self.assertEqual(
+            self.cles(self.sha_base)["cle_tout"], self.cles(self.sha_base, selection)["cle_tout"]
+        )
+
+    def test_une_base_complete_se_sauve_sous_la_cle_tout_et_une_selection_sous_sa_propre_cle(self):
+        complete = self.cles(self.sha_base)
+        self.assertEqual(complete["cle_ecriture"], complete["cle_tout"])
+        self.assertTrue(complete["cle_tout"].endswith("-tout"), complete["cle_tout"])
+
+        un = self.cles(self.sha_base, '{"jouet": {"tout": false, "cas": ["alpha"]}}')
+        deux = self.cles(self.sha_base, '{"jouet": {"tout": false, "cas": ["alpha", "beta"]}}')
+        deux_autre_ordre = self.cles(self.sha_base, '{"jouet": {"tout": false, "cas": ["beta", "alpha"]}}')
+        for sel in (un, deux):
+            self.assertIn("-sel-", sel["cle_ecriture"])
+            self.assertNotEqual(sel["cle_ecriture"], sel["cle_tout"])
+            self.assertTrue(sel["cle_ecriture"].startswith(sel["cle_tout"][: -len("tout")]))
+        self.assertNotEqual(un["cle_ecriture"], deux["cle_ecriture"])
+        self.assertEqual(deux["cle_ecriture"], deux_autre_ordre["cle_ecriture"])
+
+    def test_sans_selection_pour_le_plugin_la_base_jouee_est_la_complete(self):
+        r = self.cles(self.sha_base, "{}")
+        self.assertEqual(r["cle_ecriture"], r["cle_tout"])
+
 
 if __name__ == "__main__":
     unittest.main()

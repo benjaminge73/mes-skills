@@ -767,12 +767,6 @@ class CiYml(unittest.TestCase):
         verdict = _job(self.ci, "evals-verdict")
         self.assertNotIn("inputs", verdict)
 
-    def test_la_cle_du_cache_de_la_base_inclut_la_liste_des_cas_joues(self):
-        evals = _job(self.ci, "evals")
-        cle = evals.split("id: cle", 1)[1].split("- name:", 1)[0]
-        self.assertIn("SELECTION", cle)
-        self.assertRegex(cle, r"echo \"cle=[^\"]*\$selec")
-
     def test_le_job_evals_garde_son_nom_fixe_par_plugin(self):
         self.assertIn("name: Évals (${{ matrix.plugin }})", _job(self.ci, "evals"))
 
