@@ -18,7 +18,17 @@ on:
   # `evals-portee` le relit donc par l'API à chaque run, au lieu de lire le
   # payload de l'événement (qui est celui d'origine, périmé). Corriger la ligne
   # `Evals:`, puis « Re-run all jobs » ou pousser un commit, suffit.
+  #
+  # Les évals se jouent à la demande : seulement si la PR porte le label `evals`.
+  # `labeled` s'ajoute donc aux types par défaut, pour que poser le label lance le
+  # run sans rien pousser. Les labels sont relus par l'API comme le corps, jamais
+  # lus dans l'événement : un « Re-run » rejoue le payload d'origine, dont les
+  # labels sont périmés (même trou que `edited`, fermé de la même façon). Sans le
+  # label, une PR qui touche un skill, un agent, un hook ou un `_partage/` doit
+  # porter `Evals: aucun — <raison>` dans son corps, sinon `evals-portee` est
+  # rouge et le verdict avec lui.
   pull_request:
+    types: [opened, synchronize, reopened, labeled]
   push:
     branches: [main]
   workflow_dispatch:
@@ -143,6 +153,23 @@ jobs:
             export PR_BODY
           fi
           # --- corps de la PR (fin)
+          # --- labels (début)
+          # Les évals se jouent à la demande : sans le label `evals`, `touche` vaut
+          # `false`. Relus par l'API, pour la même raison que le corps (un
+          # « Re-run » rejoue le payload d'origine, dont les labels sont périmés), et
+          # un échec de l'appel est un échec du job : ni « le label est là » (on
+          # paierait le banc), ni « il n'y est pas » (on sauterait des évals
+          # demandées). Un lancement manuel vaut la demande : il joue tout le banc.
+          if [ "$EVENT_NAME" = "pull_request" ]; then
+            if ! LABELS=$(gh api "repos/$REPO/pulls/$PR_NUMBER" --jq '.labels[].name'); then
+              echo "::error title=Labels de la PR illisibles::L'appel à l'API GitHub pour relire les labels de la PR a échoué : on ne sait pas si les évals sont demandées. Relancer le run (Re-run all jobs)."
+              exit 1
+            fi
+          else
+            LABELS=evals
+          fi
+          export LABELS
+          # --- labels (fin)
           # Base = l'ancêtre commun de la PR et de `main`, pas la pointe de
           # `main` : si `main` a avancé depuis, ses changements ne sont pas un
           # « recul » de la PR. C'est aussi un SHA de `main`, la clé du cache.
@@ -201,13 +228,26 @@ jobs:
           # de la PR dans PR_BODY ; en lancement manuel il n'y en a pas, donc
           # « tout ». Un refus (code 1) ou une panne (code 2) rend le job rouge :
           # `evals` est alors sauté, et `evals-verdict` le voit.
+          # Sans le label `evals`, rien ne se joue, mais le script tourne quand même
+          # pour chaque plugin dont un skill, un agent ou un hook change : il refuse
+          # la PR qui n'a ni label ni ligne « Evals: aucun — <raison> ».
+          if grep -qixF evals <<<"$LABELS"; then
+            a_le_label=1
+            a_verifier=("${choisis[@]}")
+          else
+            a_le_label=0
+            a_verifier=()
+            for t in "${touches[@]}"; do
+              case " ${a_verifier[*]-} " in *" $t "*) ;; *) a_verifier+=("$t") ;; esac
+            done
+          fi
           liste="$RUNNER_TEMP/fichiers-touches.txt"
           : > "$liste"
           if [ "${#fichiers[@]}" -gt 0 ]; then printf '%s\n' "${fichiers[@]}" > "$liste"; fi
           selection='{}'
           refus=0
-          for nom in "${choisis[@]}"; do
-            if sel=$(python3 scripts/evals_selection.py --plugin "$nom" --fichiers "$liste" 2>"$RUNNER_TEMP/selection.err"); then
+          for nom in "${a_verifier[@]}"; do
+            if sel=$(python3 scripts/evals_selection.py --plugin "$nom" --fichiers "$liste" --labels "$LABELS" 2>"$RUNNER_TEMP/selection.err"); then
               selection=$(jq -c --arg p "$nom" --argjson s "$sel" '. + {($p): $s}' <<<"$selection")
             else
               refus=1
@@ -216,6 +256,11 @@ jobs:
             fi
           done
 
+          # Sans label, la sélection est vide partout : rien à jouer.
+          if [ "$a_le_label" = 0 ]; then
+            choisis=()
+            selection='{}'
+          fi
           if [ "${#choisis[@]}" -gt 0 ]; then
             plugins=$(printf '%s\n' "${choisis[@]}" | jq -R . | jq -cs .)
             touche=true
@@ -234,7 +279,7 @@ jobs:
             echo "### Portée des évals"
             echo
             if [ "$selection" = '{}' ]; then
-              echo "Aucun plugin à jouer."
+              echo "Aucun plugin à jouer$([ "$a_le_label" = 0 ] && echo " (pas de label evals sur la PR)")."
             else
               jq -r 'to_entries[] | "- **\(.key)** : " + (if .value.tout then "tout le banc (\(.value.cas | length) cas) — \(.value.pourquoi_tout | .[0:200])" else "\(.value.categories | join(", ")) (\(.value.cas | length) cas)" end)' <<<"$selection"
             fi
@@ -244,8 +289,9 @@ jobs:
   evals:
     name: Évals (${{ matrix.plugin }})
     needs: evals-portee
-    # Sauté quand la PR ne touche ni skill, ni agent, ni hook, ni banc : un job
-    # sauté compte comme réussi, `merge-auto` continue.
+    # Sauté quand rien n'est à jouer : la PR ne touche ni skill, ni agent, ni
+    # hook, ni banc, ou — le cas courant — elle ne porte pas le label `evals`.
+    # Un job sauté compte comme réussi, `merge-auto` continue.
     if: needs.evals-portee.outputs.touche == 'true'
     runs-on: ubuntu-latest
     # Sans base en cache (premier run de chaque base) : deux bras joués l'un

@@ -9,8 +9,16 @@ justifie en une ligne.
 
 <!-- Le comportement modifié, en une ou deux phrases — pas la liste des fichiers. -->
 
-<!-- Évals à jouer : catégories de `evals/categories.json` séparées par des virgules, puis
-« — raison » ; ou `tout`. Sans cette ligne remplie, la CI joue tout le banc. -->
+<!-- Les évals se jouent à la demande (le banc complet coûte ~55 $). Deux formes, une seule
+à garder :
+  1. Jouer les évals : poser le label `evals` sur la PR, puis écrire ici les catégories de
+     `evals/categories.json` séparées par des virgules, puis « — raison » ; ou `tout`.
+     Label posé sans cette ligne remplie, la CI joue tout le banc.
+        Evals: existant, bruit — la PR ne touche que la recherche de l'existant
+  2. Ne pas les jouer : écrire « aucun » et la raison (obligatoire), sans label.
+        Evals: aucun — doc seule, aucun comportement ne change
+Une PR qui touche un skill, un agent, un hook ou un `_partage/` sans label `evals` et sans
+la ligne `Evals: aucun — <raison>` rend la CI rouge. -->
 Evals: 
 
 ## Avant de merger
