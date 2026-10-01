@@ -110,6 +110,16 @@ pièce le 2026-09-30 avec un agent de plugin jetable : `~/.claude/agent-memory/
   n'en a jamais : un regard neuf qui se souvient partage les angles morts de
   l'auteur.
 
+## Une preuve lourde ne se lance pas
+
+Une preuve ciblée n'est pas une action lourde. Mais si la commande de preuve du
+brief lance un **navigateur**, un **conteneur**, ou dure **plus de 2 minutes**,
+tu ne la lances pas : tu rends `NEEDS_CONTEXT`, en disant laquelle et pourquoi.
+Le pilote la joue, avec le jeton de la machine partagée — plusieurs sessions s'y
+partagent les cœurs, et deux actions lourdes ensemble faussent les deux.
+
+📄 `${CLAUDE_PLUGIN_ROOT}/skills/_partage/machine-partagee.md`
+
 ## Attendre les commandes longues
 
 Une suite de tests qui prend quatre minutes prend quatre minutes. Rendre la
