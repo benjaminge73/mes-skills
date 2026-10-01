@@ -131,10 +131,12 @@ Panne d'infrastructure
 ----------------------
 Un passage dont ``error`` n'est pas nul (limite de session, délai dépassé…) n'a
 rien mesuré du plugin : son score est celui d'une panne. Ils sont **comptés à
-part**, en A/B comme en fumée. Un bras qui en porte rend le code 4, « non
+part**, en A/B, en A/A comme en fumée. Un bras qui en porte rend le code 4, « non
 concluant — panne d'infrastructure, à relancer », jamais le code 1 : le rapport
 de la tête de la PR #19 avait perdu 21 sessions sur 48 à une limite de session,
 et cet effondrement se serait lu comme un recul du plugin.
+En A/A, le même code s'accompagne de l'absence de fichier de bruit : un rms
+gonflé par la panne fausserait le seuil de toutes les A/B suivantes.
 
 Test de fumée
 -------------
@@ -1349,9 +1351,10 @@ def lancer(lanceur: Path, dossier: Path, sortie: Path, options: list[str]) -> No
         )
     except OSError as e:
         raise ErreurRefus(f"lanceur introuvable ou non exécutable ({lanceur}) : {e}") from e
-    for ligne in p.stdout:
-        sys.stderr.write(ligne)
-    code = p.wait()
+    with p:  # ferme le tube de sortie (sinon : ResourceWarning: unclosed file)
+        for ligne in p.stdout:
+            sys.stderr.write(ligne)
+        code = p.wait()
     if code == 2:
         raise ErreurRefus("le lanceur rend 2 : rapport partiel, refusé")
     if code not in (0, 1):  # 1 = un cas sous son seuil : le sujet, pas une panne
@@ -1595,22 +1598,29 @@ def _executer(args, options_lanceur: list[str], commande: str) -> int:
 
     cout = sum(cout_rapport(r) for r in rapports_joues) or None
     if args.mode == "aa":
-        mesure = bruit_aa(rapport_base, rapport_tete)
-        mesure.update(plugin=plugin, reference=etiq_tete, modele=modele_joue(),
-                      effort=effort_joue())
-        chemin = Path(args.sortie_bruit or f"bruit-{plugin}.json")
-        chemin.parent.mkdir(parents=True, exist_ok=True)
-        chemin.write_text(json.dumps(mesure, indent=2, ensure_ascii=False) + "\n", "utf-8")
         c = comparer(rapport_base, rapport_tete)
+        # Des sessions en erreur gonfleraient le rms : aucun bruit n'est écrit, car toute
+        # A/B qui le lirait jugerait ensuite avec un seuil faux. Même motif que l'A/B.
+        panne = motif_panne({"passage 1": rapport_base, "passage 2": rapport_tete})
         print(tableau_markdown(c, "A/A passage 1", "A/A passage 2", verdict=False,
-                               modele=modele_joue(), effort=effort_joue()))
-        print(
-            f"\nBruit mesuré : demi-largeur d'intervalle à 95 % de "
-            f"± {mesure['demi_largeur_ic95_globale'] * 100:.0f} pts sur la moyenne, "
-            f"± {mesure['demi_largeur_ic95_cas'] * 100:.0f} pts par cas — écrit dans {chemin}"
-        )
+                               modele=modele_joue(), effort=effort_joue(), panne=panne))
+        if panne:
+            print("Aucun fichier de bruit écrit : un bruit mesuré sur une panne serait faux.")
+            code = 4
+        else:
+            mesure = bruit_aa(rapport_base, rapport_tete)
+            mesure.update(plugin=plugin, reference=etiq_tete, modele=modele_joue(),
+                          effort=effort_joue())
+            chemin = Path(args.sortie_bruit or f"bruit-{plugin}.json")
+            chemin.parent.mkdir(parents=True, exist_ok=True)
+            chemin.write_text(json.dumps(mesure, indent=2, ensure_ascii=False) + "\n", "utf-8")
+            print(
+                f"\nBruit mesuré : demi-largeur d'intervalle à 95 % de "
+                f"± {mesure['demi_largeur_ic95_globale'] * 100:.0f} pts sur la moyenne, "
+                f"± {mesure['demi_largeur_ic95_cas'] * 100:.0f} pts par cas — écrit dans {chemin}"
+            )
+            code = 0
         print(f"Coût : {f'${cout:.2f}' if cout is not None else 'n/d'} (les deux passages joués)")
-        code = 0
     else:
         c = comparer(rapport_base, rapport_tete, bruit=bruit)
         if note_bruit:
