@@ -125,7 +125,9 @@ plus consigne), ou les deux.
   modèle. La CI joue **Sonnet (`claude-sonnet-5-5`) en effort `high`**, fixés par
   `EVALS_MODELE` et `EVALS_EFFORT` dans le job `evals` de `ci.yml` (le lanceur
   `evals/outillage/lancer.sh` a les mêmes défauts, et exporte l'effort en
-  `CLAUDE_CODE_EFFORT_LEVEL`, la variable que `claude plugin eval` lit). Mesuré sur
+  `CLAUDE_CODE_EFFORT_LEVEL`, la variable que `claude plugin eval` lit ; en local,
+  le même lanceur pose aussi deux gardes avant de jouer, dites dans
+  [Où tourne quoi](#où-tourne-quoi)). Mesuré sur
   le cas `hook-claude` (3 passages) : Sonnet appelle le skill 3 fois sur 3 et
   obtient 90 %, contre 95 % pour Opus ; l'effort `high` fait réfléchir 4 800 à
   7 800 jetons, contre 350 à 550 en `low`. Au passage de fumée, haiku n'a pas
@@ -148,7 +150,11 @@ python3 scripts/evals_ab.py --plugin <nom> --mode aa --tete <ref> \
 
 En mode `aa`, seule la tête est jouée (deux fois) : `--base` n'y sert à rien.
 Tout ce qui suit `--` est transmis tel quel au lanceur (`--runs 3` : trois
-passages par cas) ; `--runs` n'est pas une option d'`evals_ab.py`.
+passages par cas) ; `--runs` n'est pas une option d'`evals_ab.py`. Le mode `aa`
+affiche son coût (les deux passages joués). **Si un des deux jeux a des sessions
+en erreur, il rend le code 4 et n'écrit aucun fichier de bruit** : un bruit
+mesuré sur une panne serait trop large, et toute A/B qui le lirait jugerait avec
+un seuil faux. Il faut alors rejouer la mesure.
 
 Ordre de grandeur, pour savoir à quoi s'attendre, tant qu'aucune mesure
 n'existe. L'intervalle de confiance à 95 % d'**une** moyenne vaut environ
@@ -190,15 +196,44 @@ python3 scripts/evals_ab.py --plugin <nom> --mode ab --base <ref> --tete <ref> \
 `evals_ab.py` assemble, pour chaque référence git, une copie temporaire du
 plugin avec les cas de `evals/<plugin>/`, joue les deux bras et compare. Avec
 `--prive`, il ajoute les cas réels du dépôt privé ; c'est le geste du second
-palier. Le script est la source de ses propres options ; ce document ne les
-recopie pas. Les résultats se consignent dans `evals/RESULTATS.md`.
+palier. Le script est la source de ses propres options ; ce document ne
+recopie que celles qui évitent de payer pour rien. Les résultats se consignent
+dans `evals/RESULTATS.md`.
+
+- **`--cas <nom>`** ne joue que ce cas ; l'option se répète
+  (`--cas a --cas b`), elle ne prend pas de liste séparée par des virgules. Un nom
+  inconnu est un refus avant tout jeu.
+- **`--base-rapport <json>`** (ou `--reference`) ne rejoue pas la base : elle est
+  lue dans un rapport déjà joué, dont `--base-rapport` extrait les cas choisis
+  même s'il porte tout le banc. Un cas absent du rapport est un refus. C'est ce
+  que fait la CI avec la base de son cache
+  ([plus bas](#choisir-les-évals-dune-pr)).
+- **`--estimer`** annonce le coût **avant** de payer, puis s'arrête sans rien
+  jouer. Le montant est lu dans le rapport de `--base-rapport` ou `--reference` ;
+  seul le bras de tête est compté, multiplié par le `--runs` passé après `--`.
+  Sans rapport, c'est un refus : jamais un « 0 $ » qui dirait gratuit. Le geste
+  complet est dans [Lancer une évaluation](#lancer-une-évaluation).
+- **`--fumee`** joue la tête seule, en un passage : voir
+  [La fumée](#la-fumée--ce-quelle-voit-ce-quelle-ne-voit-pas).
+
+**En local, `evals_ab.py` ne prend pas le jeton de la machine lui-même.** C'est
+`lancer.sh`, qu'il appelle une fois par bras, qui le prend puis le rend à chaque
+appel ([Où tourne quoi](#où-tourne-quoi)). Prendre le jeton à la main avant un
+A/B local est donc une erreur : la prise du lanceur trouverait le jeton tenu,
+attendrait 300 s (`EVALS_ATTENDRE`), puis refuserait (code 75).
 
 **Le verdict se lit dans `evals_ab.py`, pas dans le code de sortie brut de
 `claude plugin eval`.** Ce dernier rend 1 aussi bien pour un cas sous le seuil
 que pour un cas qui ne se charge pas, et le lanceur passe `--threshold 0` : le
 seuil de l'outil ne juge rien ici. Le script, lui, distingue : `0` pas de recul
 au-delà du bruit, `1` recul, `2` erreur d'usage, `3` refus (pré-vol, rapport
-partiel, lanceur en échec, donnée illisible).
+partiel, lanceur en échec, donnée illisible), `4` **non concluant**. Le `4` veut
+dire qu'un bras a des sessions en erreur (limite de session, délai dépassé) : une
+session en erreur n'a rien mesuré du plugin, son score est celui d'une panne.
+C'est « panne d'infrastructure, à relancer », jamais un recul ; le `4` prime sur
+le `1`, en A/B comme en A/A et en fumée. Sans lui, le rapport d'une tête qui avait
+perdu 21 sessions sur 48 à une limite de session se serait lu comme un plugin qui
+régresse.
 
 **Les traces se lisent après un `chmod`.** Le lanceur passe `--keep-temp`, qui
 garde les dossiers de passage, mais **scellés** (mode `000`) : pour les lire,
@@ -240,6 +275,15 @@ ce label doit dire pourquoi : `Evals: aucun — <raison>` dans son corps, sinon
 la CI est rouge, le refus n'étant jamais silencieux. Choisir des catégories
 implique donc le label ; `aucun` ne le pose pas.
 
+**Le label est lu par l'API, et le poser lance la CI.** `evals-portee` relit les
+labels par `gh api`, comme le corps de la PR, et non dans l'événement : un
+« Re-run » rejoue l'événement d'origine, dont les labels sont périmés. Le type
+`labeled` fait partie des déclencheurs de `ci.yml`, pour que poser `evals` lance le
+banc sans rien pousser. **Un label étranger ne relance ni le banc ni la fumée** :
+poser `review-required` sur une PR qui porte déjà `evals` ne doit pas payer un
+second banc. Le contrôle « label ou `aucun` » tourne quand même sur ce run, mais
+le verdict n'y est pas rendu à la légère : voir plus bas.
+
 **La ligne `Evals:` du corps de la PR** porte le choix :
 `Evals: <catégories séparées par des virgules> — <raison>`, `Evals: tout`, ou
 `Evals: aucun — <raison>`. Elle vient de la ligne « Évals à jouer » du chapitre
@@ -259,7 +303,14 @@ prouverait rien.
 
 **Le job de verdict** s'appelle `Verdict des évals`, nom fixe : c'est lui que
 le verrou de `main` exigera, quelle que soit la sélection (les jobs joués
-changent d'une PR à l'autre, pas lui).
+changent d'une PR à l'autre, pas lui). Il compte la portée, les bras de l'A/B
+**et la [fumée](#la-fumée--ce-quelle-voit-ce-quelle-ne-voit-pas)** : un job rouge
+ou annulé, et il est rouge. **Sur un run déclenché par un label étranger**, tous
+les jobs sont sautés et leur « vert » ne dit rien du SHA : le verdict **recopie le
+dernier verdict terminé de ce SHA** (lu dans les check-runs, d'où la permission
+`checks: read`), et il est rouge s'il n'y en a aucun ou si le dernier était rouge.
+Sans cela, poser un label étranger rendrait vert un SHA dont les évals étaient
+rouges.
 
 **Éditer le corps de la PR, puis relancer le run.** Le job `evals-portee` relit
 le corps de la PR par l'API GitHub à chaque run (et non dans le payload de
@@ -272,6 +323,16 @@ sauté, et son « Verdict des évals » serait vert sur un commit dont les éval
 sur « tout » ni sur une sélection vide. Un lancement manuel `ab` ou `aa` a son
 propre groupe de concurrence (le mode en fait partie) : un `ab` n'annule plus un
 `aa` en cours.
+
+**Un seul banc à la fois, sans annulation.** Les jobs `evals` et `fumee` d'un
+plugin partagent le groupe de concurrence `evals-<plugin>`, avec
+`cancel-in-progress: false` : tous les bancs puisent dans la limite de débit d'un
+même abonnement, et trois bancs simultanés (le 2026-09-30) ont rendu des mesures
+inexploitables. Le second run attend donc la fin du premier, et ne l'annule pas.
+**Limite de GitHub** : un seul run peut attendre par groupe ; un troisième annule
+celui qui attendait, et le run annulé se relance (il ne vaut pas verdict). Le
+lancement manuel `aa` a un groupe à part, `evals-aa-<plugin>`, pour qu'une mesure
+de bruit payée ne soit pas annulée par un A/B.
 
 **Le seuil par cas est aveugle sans bruit mesuré pour le bon modèle.** Sans
 fichier `evals/bruit-<plugin>.json` mesuré **pour le modèle joué**, le seuil par
@@ -300,11 +361,39 @@ gh workflow run ci.yml --ref <branche> -f mode=aa
 ```
 
 Le lancement manuel joue la tête deux fois sur tout le banc, sans lire ni écrire
-le cache de la base, puis publie le bruit en artefact `evals-bruit-<plugin>`
-(le résumé du job le rappelle). Le télécharger (`gh run download <id> -n
+le cache de la base (décrit ci-dessous), puis publie le bruit en artefact
+`evals-bruit-<plugin>` (le résumé du job le rappelle). Si un des deux jeux a des
+sessions en erreur, le job est rouge (code 4) et aucun bruit n'est publié. Le télécharger (`gh run download <id> -n
 evals-bruit-<plugin>`), le commiter en `evals/bruit-<plugin>.json` dans la PR,
 et pousser : la CI suivante l'utilise. Sans `-f mode=aa`, le lancement manuel
 joue l'A/B habituel (`mode=ab`, le défaut).
+
+**La base est rejouée le moins possible : elle vit dans un cache de contenu.**
+Rejouer la base d'une PR coûte autant que sa tête, pour un résultat qui ne change
+que si la base change. La clé du cache (le pas « Clé du cache de la base » de `ci.yml`)
+porte donc tout ce qui ferait changer le rapport de la base, et rien de plus :
+
+- l'empreinte de `git ls-tree -r <base> plugins/<plugin>`, c'est-à-dire le
+  **contenu** du plugin à la base, et non le SHA du commit : un merge de doc sur
+  `main` ne change pas le plugin, il ne doit pas invalider la base ;
+- l'empreinte des cas (`evals/<plugin>/`), le modèle, l'effort, le nombre de
+  passages, la version de Claude Code du runner et l'empreinte du lanceur.
+
+La clé finit par `-tout` quand tout le banc a été joué, sinon par
+`-sel-<empreinte de la sélection>`. **Une base complète sert toute sélection** :
+la restauration essaie la clé exacte, puis se replie sur la clé `-tout`
+(jamais sur une autre sélection) et `evals_ab.py --base-rapport <json>` en extrait
+les cas choisis, sans rejouer la base. Le résumé du job le dit
+(« base reprise du cache »). Une base jouée sur une sélection seulement est
+sauvée sous sa propre clé `-sel-…`.
+
+**Le coût est annoncé avant de payer**, en tête du résumé du job. Avec une base
+en cache, c'est `--estimer` (bras de tête seul, lu dans le rapport de la base).
+Sans base en cache, aucun rapport ne dit les coûts, et la CI annonce le pire :
+au plus 70 $, soit deux bras au plafond. **Le plafond est de 35 $ par bras**
+(`EVALS_MAX_COUT_USD`, passé à `claude plugin eval --max-cost-usd`) ; un bras
+complet coûte 27,53 $ sur Sonnet, soit un quart de marge. Un bras qui dépasse est
+rendu partiel et refusé (code 3), et la facture s'arrête là.
 
 ## Lancer une évaluation
 
@@ -329,12 +418,14 @@ d'un skill si une session se trompe encore de geste.
    ont rendu des scores inexploitables. En CI, le groupe de concurrence
    `evals-<plugin>` met un second banc en attente ; GitHub n'en garde qu'un,
    un troisième annule celui qui attendait, et il faut alors reposer le label.
-   En local, le lanceur refuse de démarrer tant qu'un banc tourne en CI ; avant
-   de lancer, prendre le jeton de la machine :
-   ```bash
-   python3 plugins/plans-notion/skills/_partage/scripts/etat-machine.py prendre evals-locales
-   ```
-   `EVALS_FORCER=1` passe outre : sur ordre explicite seulement.
+   En local, **rien à prendre à la main** : `evals/outillage/lancer.sh` refuse de
+   démarrer tant qu'un job « Évals » tourne en CI, puis prend lui-même le jeton de
+   la machine (`etat-machine.py prendre evals-locales`) et le rend en sortant.
+   Ses gardes, ses variables (`EVALS_FORCER`, `EVALS_PLAN`, `EVALS_ATTENDRE`) et
+   ses codes de refus (75, 69) sont dans [Où tourne quoi](#où-tourne-quoi).
+   Prendre le jeton avant de lancer serait une erreur : la prise du lanceur
+   attendrait 300 s, puis refuserait. `EVALS_FORCER=1` passe outre le contrôle de
+   la CI : sur ordre explicite seulement.
 3. **Lancer.** En CI : poser le label `evals` et écrire la ligne `Evals:` de la
    PR ([voir plus haut](#choisir-les-évals-dune-pr)). En local, sur le VPS,
    seuls les cas `tags: [lecture]` se jouent ([Où tourne quoi](#où-tourne-quoi)) :
@@ -351,9 +442,18 @@ part pour `_partage/` et les hooks. Elle coûte 0,54 $ à 2,38 $ par catégorie,
 environ 9,2 $ au plus. La fumée ne remplace pas l'A/B : c'est le label `evals`
 qui remplace la fumée par l'A/B.
 
-**Elle est rouge** si une session plante, ou si une catégorie passe sous son
-plancher. Le plancher est le plus bas tirage sain mesuré, moins 0,10 (15 tirages
-sains sur Sonnet et Opus, 2026-10-01) :
+Elle est jouée par le job `fumee` de `ci.yml`, qui partage le groupe de
+concurrence `evals-<plugin>` de l'A/B (un seul banc à la fois, voir
+[Choisir les évals d'une PR](#choisir-les-évals-dune-pr)), annonce son coût en
+tête du résumé avant de jouer, et compte dans `Verdict des évals`. Un label
+étranger ne la relance pas.
+
+**Le job est rouge dans deux cas, que son message distingue.** Une catégorie
+passe sous son plancher (code 1) : c'est un recul. Ou des sessions plantent
+(code 4, « non concluant — panne d'infrastructure, à relancer ») : ce n'est pas un
+recul, parce qu'un score tiré vers le bas par des sessions en erreur ne dit rien
+du skill ; le 4 prime sur le 1. Le plancher est le plus bas tirage sain mesuré,
+moins 0,10 (15 tirages sains sur Sonnet et Opus, 2026-10-01) :
 
 | Catégorie | Tirage sain (min – max) | Plancher |
 |---|---|---|
@@ -458,14 +558,32 @@ plus sur sa page ouvre une issue « Doc Claude changée : <fait> ».
 imbriqué dont le bac à sable a besoin, y compris en conteneur. Donc :
 
 - **en local**, seuls les cas taggés `tags: [lecture]` (sans Bash), sur la
-  session habituelle, sans jeton ;
-- **sur le runner GitHub**, tous les cas : `evals/outillage/preparer-runner.sh`
-  lève la restriction sur la VM jetable, `evals/outillage/lancer.sh` joue les
-  cas. La version de Claude Code du runner y est **figée** et se monte **à la
+  session habituelle, sans le jeton OAuth de la CI.
+  `evals/outillage/lancer.sh` pose alors **deux gardes** avant de jouer, parce que
+  tous les bancs partagent la limite de débit de l'abonnement (le 2026-09-30, un
+  A/B local lancé pendant deux bancs de CI a rendu des résultats inexploitables) :
+  1. **refus si un job « Évals » tourne en CI** (`gh run list`, puis les jobs de
+     chaque run en cours) : code **75**. Si `gh` ne répond pas (absent, hors
+     ligne, non authentifié), il refuse aussi, faute de savoir : code **69**.
+     `EVALS_FORCER=1` passe outre ce contrôle et le dit sur stderr ; à réserver à
+     un ordre explicite, les mesures peuvent être faussées ;
+  2. **prise du jeton de la machine** (`etat-machine.py prendre evals-locales
+     --plan "${EVALS_PLAN:-évals locales}" --attendre "${EVALS_ATTENDRE:-300}"`).
+     Si une autre action lourde le tient, le lanceur attend jusqu'à
+     `EVALS_ATTENDRE` secondes (300 par défaut, de quoi laisser finir une suite de
+     tests ; une autre éval locale dure plus), puis refuse avec le code 75. Le
+     jeton est rendu en sortant, par un `trap`, même si `claude` échoue ou est
+     interrompu. `EVALS_FORCER` ne dispense pas de cette prise : le jeton protège
+     les autres sessions de la machine, pas la limite de débit. `EVALS_PLAN` dit
+     au nom de quel plan il est pris, pour que `etat-machine.py qui` le montre ;
+- **sur le runner GitHub**, tous les cas, **ni `gh` ni jeton machine** (le
+  runner n'est pas le VPS) : `evals/outillage/preparer-runner.sh` lève la
+  restriction sur la VM jetable, `evals/outillage/lancer.sh` joue les cas. La
+  version de Claude Code du runner y est **figée** et se monte **à la
   main** : la CI n'installe pas « la dernière » pour ce job, sinon le bruit de
   mesure changerait avec la CLI.
 
-Le job `evals` de la CI est déclenché par `pull_request`, **jamais par
+Les jobs `evals` et `fumee` de la CI sont déclenchés par `pull_request`, **jamais par
 `pull_request_target`**, limité aux PR de `benjaminge73` et hors brouillons.
 Ce dernier point n'est pas de la précaution gratuite : `pull_request_target`
 exécute le code d'une PR avec les secrets du dépôt, donc le jeton ci-dessous.
@@ -474,7 +592,7 @@ fork (source : doc « Claude Code GitHub Actions », section « Run a skill »).
 
 ## Le jeton de CI
 
-Le job `evals` s'authentifie avec un jeton OAuth lié à l'abonnement Max de
+Les jobs `evals` et `fumee` s'authentifient avec un jeton OAuth lié à l'abonnement Max de
 Benjamin, rangé en secret GitHub `CLAUDE_CODE_OAUTH_TOKEN`. Les faits ci-dessous
 ont été vérifiés le 2026-09-30 ; ce qui n'a pas pu l'être est dit comme tel.
 

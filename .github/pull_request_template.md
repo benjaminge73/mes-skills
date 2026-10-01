@@ -33,10 +33,14 @@ Evals:
 - [ ] **Veille** : si la PR touche un skill, un agent, un hook ou un `_partage/`, la passe
       de veille est faite (`chercheur`, brief de `docs/veille.md`) et l'entrée datée
       est au journal (la CI refuse un journal de plus de 30 jours).
-- [ ] **A/B** : résultat de l'A/B collé ici, ou dit pourquoi il n'y en a pas
-      (`python3 scripts/evals_ab.py`, job `evals`).
+- [ ] **Évals** : l'A/B se joue à la demande (label `evals` posé, résultat collé plus
+      bas), ou la ligne `Evals: aucun — <raison>` plus haut dit pourquoi il n'y en a
+      pas. Sans label, la fumée tourne seule (job `fumee`) ; son verdict se lit
+      dans « Verdict des évals ».
 - [ ] **`scripts/ci_locale.sh`** est vert en local.
 
 ## Résultat A/B
 
-<!-- Le tableau du job `evals`, ou « sans objet : la PR ne touche ni skill, ni agent, ni hook ». -->
+<!-- Seulement si le label `evals` est posé : le tableau du job `evals`. Sinon « sans objet :
+évals non demandées (voir la ligne `Evals:`) » : le résumé de la fumée n'a pas à être
+collé ici. -->
