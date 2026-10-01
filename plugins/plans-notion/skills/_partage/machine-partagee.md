@@ -29,23 +29,29 @@ jeton**.
 
 ## Le geste
 
-Le script est `${CLAUDE_PLUGIN_ROOT}/skills/_partage/scripts/etat-machine.py`.
-Avant toute action lourde, dans cet ordre :
+**Tout tient dans un seul appel de shell.** Une session Claude ouvre un shell
+**neuf à chaque appel de l'outil `Bash`**, et il meurt à la fin de l'appel. Le
+jeton a pour détenteur un PID, et un jeton dont le PID a disparu est repris
+aussitôt : un `prendre --pid $$` joué dans un appel et l'action dans un autre,
+c'est un jeton qui ne protège rien. Relevé, `prendre`, `trap` de `rendre`, puis
+l'action, **dans le même appel** (ou le même script). Une action plus longue que
+le délai d'un appel se lance en arrière-plan (`run_in_background`) **dans ce
+même appel**, jamais en deux.
 
-1. **`releve`** : `etat-machine.py releve` rend le verdict (`libre`, `chargée`
-   ou `saturée`) sur la première ligne, puis les causes.
-2. **`prendre`** : `etat-machine.py prendre "<action>" --plan "<titre du plan>"
-   [--attendre <s>] --pid $$`. Code 0 : le jeton est à toi ; 3 : un autre le
-   tient ; 4 : machine `saturée` ; 2 : usage. Le détenteur est par défaut le
-   **PID parent** du script : si l'appelant est lancé dans un sous-shell
-   éphémère, `$$` y vaut le PID de ce sous-shell et le jeton est repris aussitôt
-   (le processus a disparu). Passer alors `--pid` avec le PID d'un processus qui
-   **vivra autant que l'action**, par exemple celui du script qui l'enchaîne.
-3. **L'action.**
-4. **`rendre`** : `etat-machine.py rendre --pid <le même pid>`, **toujours**,
-   même si l'action a échoué ou été interrompue. En shell, un `trap` sur `EXIT`
-   posé juste après `prendre`. Un jeton non rendu bloque les autres plans
-   jusqu'à la mort du PID.
+```bash
+EM="${CLAUDE_PLUGIN_ROOT}/skills/_partage/scripts/etat-machine.py"
+python3 "$EM" releve                       # 1. verdict en 1re ligne ; saturée : stop
+python3 "$EM" prendre "<action>" --plan "<titre du plan>" --attendre 0 --pid $$ \
+  || exit $?                               # 2. 0 accordé, 3 occupé, 4 saturée, 2 usage
+trap 'python3 "$EM" rendre --pid $$' EXIT  # 3. rendu même si l'action échoue
+<l'action>                                 # 4. la suite, l'e2e, l'éval
+```
+
+`$$` est le PID du shell de l'appel : il vit autant que l'action, et c'est le
+`trap` qui rend le jeton à sa sortie. (Dans un sous-shell `( … )`, `$$` reste
+celui du shell **parent** ; `$BASHPID` donne celui du sous-shell.) `--attendre
+<s>` fait réessayer une prise sur un jeton tenu ; le détail des attentes par
+paliers est plus bas.
 
 `etat-machine.py qui` dit qui le tient. Le journal gagne, sur chaque action
 lourde, une ligne `Machine : <verdict> — attente <n> min` (verdict du relevé au
