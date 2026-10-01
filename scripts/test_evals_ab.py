@@ -1475,5 +1475,140 @@ class CoutDeLAA(DepotEtLanceur):
         self.assertIn("$0.72", sortie)
 
 
+class FumeeEtPlanchers(DepotEtLanceur):
+    """``--fumee`` : le test de fumée juge une tête seule, catégorie par catégorie.
+
+    ``rapport_tete_session_limite.json`` est dérivé du vrai rapport de la tête de
+    la PR #19 (trois cas sur seize, 3 passages chacun, ramenés à l'essentiel) :
+
+      appelants                  1 · 1 · 1                  aucune session en erreur
+      existant-jeu-de-questions  0,83 · 0,83 · 0,17         3 sessions en erreur
+      maquette-requise           0,10 · 0,10 · 0,10         3 sessions en erreur
+
+    soit 6 sessions en erreur sur 9. Les planchers de ces tests sont ceux du plan
+    (depart 0,82 ; existant 0,65 ; maquette 0,80), écrits ici à la main : le test
+    ne lit jamais ``evals/categories.json`` du vrai dépôt.
+    """
+
+    PLANCHERS = {"depart": 0.82, "existant": 0.65, "maquette": 0.80}
+    CAS = {
+        "depart": "appelants",
+        "existant": "existant-jeu-de-questions",
+        "maquette": "maquette-requise",
+    }
+
+    def setUp(self):
+        super().setUp()
+        self.ecrire_categories(self.PLANCHERS)
+
+    def ecrire_categories(self, planchers: dict[str, float | None]) -> None:
+        categories = {}
+        for nom, plancher in planchers.items():
+            categorie = {"exerce": ["skills/s/"], "cas": [self.CAS[nom]]}
+            if plancher is not None:
+                categorie["plancher"] = plancher
+            categories[nom] = categorie
+        ecrire(self.depot / "evals" / "categories.json", json.dumps({"jouet": categories}))
+
+    def rapport_sain(self, scores: dict[str, float]) -> Path:
+        """Le rapport figé, sans aucune session en erreur, dont chaque passage
+        d'un cas vaut le score donné pour ce cas."""
+        r = json.loads((FIXTURES / "rapport_tete_session_limite.json").read_text("utf-8"))
+        for c in r["cases"]:
+            for passage in c["arms"]["with"]:
+                passage["error"] = None
+                passage["score"] = scores[c["name"]]
+        chemin = self.racine / "rapport-sain.json"
+        ecrire(chemin, json.dumps(r))
+        return chemin
+
+    def fumee(self, rapport_json: Path | str):
+        return jouer(self.argv("--fumee", "--tete-rapport", str(rapport_json)), self.env)
+
+    def test_une_session_en_erreur_rend_la_fumee_rouge_et_non_concluante(self):
+        code, sortie, erreur = self.fumee(FIXTURES / "rapport_tete_session_limite.json")
+        # 4 : « panne d'infrastructure, à relancer », jamais 1 (recul) ni 0 (vert).
+        self.assertEqual(code, 4, sortie + erreur)
+        self.assertIn("ROUGE", sortie)
+        self.assertIn("6 sur 9", sortie)  # les sessions en erreur sont comptées à part
+        self.assertEqual(self.appels(), [])  # le rapport est jugé, rien n'est joué
+
+    def test_une_categorie_a_0_60_pour_un_plancher_de_0_70_est_nommee_sous_plancher(self):
+        self.PLANCHERS = {**self.PLANCHERS, "maquette": 0.70}
+        self.ecrire_categories(self.PLANCHERS)
+        chemin = self.rapport_sain(
+            {"appelants": 1.0, "existant-jeu-de-questions": 0.9, "maquette-requise": 0.60}
+        )
+        code, sortie, erreur = self.fumee(chemin)
+        self.assertEqual(code, 1, sortie + erreur)
+        verdicts = [ligne for ligne in sortie.splitlines() if ligne.startswith("tirage")]
+        self.assertEqual(len(verdicts), 3)  # un verdict par tirage
+        for ligne in verdicts:
+            self.assertIn("ROUGE", ligne)
+            self.assertIn("maquette", ligne)
+            self.assertNotIn("existant", ligne)  # seule la catégorie fautive est nommée
+            self.assertNotIn("depart", ligne)
+
+    def test_un_rapport_sain_rend_la_fumee_verte(self):
+        chemin = self.rapport_sain(
+            {"appelants": 1.0, "existant-jeu-de-questions": 0.9, "maquette-requise": 0.9}
+        )
+        code, sortie, erreur = self.fumee(chemin)
+        self.assertEqual(code, 0, sortie + erreur)
+        self.assertNotIn("ROUGE", sortie)
+
+    def test_une_categorie_sans_plancher_est_refusee_et_nommee_jamais_un_plancher_a_zero(self):
+        self.ecrire_categories({**self.PLANCHERS, "maquette": None})
+        chemin = self.rapport_sain(
+            {"appelants": 1.0, "existant-jeu-de-questions": 0.9, "maquette-requise": 0.0}
+        )
+        # Une maquette à 0 passerait sous un plancher implicite de 0 : le refus l'empêche.
+        code, sortie, erreur = self.fumee(chemin)
+        self.assertEqual(code, 3, sortie)
+        self.assertIn("maquette", erreur)
+        self.assertNotIn("VERT", sortie)
+
+    def test_un_ab_dont_la_tete_a_des_sessions_en_erreur_rend_quatre_et_non_un(self):
+        # Test construit pour la panne réelle de la PR #19 : la tête a perdu 6 sessions
+        # sur 9 à une limite de session, ses scores s'effondrent. Sans la règle, cet
+        # effondrement se lirait « RECUL » (code 1) alors que rien n'a été mesuré.
+        base = json.loads((FIXTURES / "rapport_tete_session_limite.json").read_text("utf-8"))
+        for c in base["cases"]:
+            for passage in c["arms"]["with"]:
+                passage["error"], passage["score"] = None, 1.0
+        ecrire(self.racine / "base-saine.json", json.dumps(base))
+        bruit = self.racine / "bruit.json"
+        ecrire(bruit, json.dumps({"rms_ecarts_cas": 0.05, "modele": MODELE}))
+        self.env["FAUX_RAPPORT_BASE"] = str(self.racine / "base-saine.json")
+        self.env["FAUX_RAPPORT_TETE"] = str(FIXTURES / "rapport_tete_session_limite.json")
+        # Témoin : la même tête sans la panne est bien un recul.
+        sans_panne = json.loads((FIXTURES / "rapport_tete_session_limite.json").read_text("utf-8"))
+        for c in sans_panne["cases"]:
+            for passage in c["arms"]["with"]:
+                passage["error"] = None
+        ecrire(self.racine / "tete-sans-panne.json", json.dumps(sans_panne))
+        temoin = dict(self.env, FAUX_RAPPORT_TETE=str(self.racine / "tete-sans-panne.json"))
+        code_temoin, _, erreur_temoin = jouer(self.argv("--bruit", str(bruit)), temoin)
+        self.assertEqual(code_temoin, 1, erreur_temoin)
+        # La panne, elle, n'est pas un recul.
+        code, sortie, erreur = jouer(self.argv("--bruit", str(bruit)), self.env)
+        self.assertEqual(code, 4, sortie + erreur)
+        self.assertNotIn("RECUL", sortie)
+        self.assertIn("6 sur 9", sortie)
+
+    def test_la_fumee_ne_joue_que_la_tete_avec_un_seul_passage(self):
+        # Test en plus des cinq attendus : la panne est coûteuse et autre. Une fumée
+        # qui rejouerait la base, ou garderait les 3 passages d'un A/B, coûterait
+        # six fois le prix annoncé sans que rien dans le verdict ne le montre.
+        ecrire(
+            self.depot / "evals" / "categories.json",
+            json.dumps({"jouet": {"unique": {"exerce": ["skills/s/"], "cas": ["alpha"], "plancher": 0.5}}}),
+        )
+        code, sortie, erreur = jouer(self.argv("--fumee"), self.env)
+        self.assertEqual(code, 0, sortie + erreur)
+        self.assertEqual([l for l in self.appels() if l.startswith("APPEL")], ["APPEL tete"])
+        self.assertEqual([l for l in self.appels() if l.startswith("OPTIONS")], ["OPTIONS --runs 1"])
+
+
 if __name__ == "__main__":
     unittest.main()
