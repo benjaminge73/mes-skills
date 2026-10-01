@@ -15,6 +15,7 @@ garde-fou est déplacé sous le premier ``sudo``.
 from __future__ import annotations
 
 import os
+import re
 import shutil
 import subprocess
 import tempfile
@@ -26,6 +27,7 @@ PREPARER = Path(
     os.environ.get("PREPARER_RUNNER") or RACINE / "evals" / "outillage" / "preparer-runner.sh"
 )
 LANCER = RACINE / "evals" / "outillage" / "lancer.sh"
+CI = RACINE / ".github" / "workflows" / "ci.yml"
 
 BASH = shutil.which("bash") or "/bin/bash"
 
@@ -122,6 +124,81 @@ class LancerSansArgumentsAfficheUsage(unittest.TestCase):
 
     def test_un_seul_argument_code_64_et_claude_jamais_lance(self):
         self._verifier_usage(["un-plugin"])
+
+
+def _concurrence_du_job_evals() -> tuple[str, str]:
+    """(groupe, cancel-in-progress) du bloc ``concurrency:`` du job ``evals`` de ci.yml."""
+    texte = CI.read_text(encoding="utf-8")
+    job = re.search(r"^  evals:\n(.*?)(?=^  [a-z][\w-]*:\n|\Z)", texte, re.MULTILINE | re.DOTALL)
+    assert job, "job evals introuvable dans ci.yml"
+    bloc = re.search(
+        r"^    concurrency:\n(?:      #.*\n)*      group: (.+)\n(?:      #.*\n)*      cancel-in-progress: (\S+)",
+        job.group(1),
+        re.MULTILINE,
+    )
+    assert bloc, "bloc concurrency (group puis cancel-in-progress) introuvable dans le job evals"
+    return bloc.group(1).strip(), bloc.group(2)
+
+
+def _groupe_pour(expression: str, *, pr: str, ref: str, mode: str, plugin: str) -> str:
+    """Le nom du groupe que GitHub calculerait pour ce lancement.
+
+    Évalue les ``${{ ... }}`` de l'expression (``||``, ``&&``, ``==``, chaînes,
+    contextes) avec les valeurs données ; un contexte vide vaut la chaîne vide,
+    comme chez GitHub.
+    """
+    contextes = {
+        "github.event.pull_request.number": pr,
+        "github.ref": ref,
+        "inputs.mode": mode,
+        "matrix.plugin": plugin,
+    }
+
+    def valeur(m: re.Match) -> str:
+        code = m.group(1)
+        for nom in sorted(contextes, key=len, reverse=True):
+            code = code.replace(nom, repr(contextes[nom]))
+        code = code.replace("||", " or ").replace("&&", " and ")
+        return str(eval(code, {"__builtins__": {}}, {}))  # noqa: S307 - expression de notre propre ci.yml
+
+    return re.sub(r"\$\{\{\s*(.*?)\s*\}\}", valeur, expression)
+
+
+class UnSeulBancALaFoisParPlugin(unittest.TestCase):
+    """Deux bancs d'évals d'un même plugin se partagent un groupe et ne s'annulent pas.
+
+    Mesure du 2026-09-30 : trois bancs simultanés ont partagé la limite de débit
+    de l'abonnement et rendu des têtes à 50 % et 44 % au lieu de 76 %.
+    """
+
+    def setUp(self):
+        self.expression, self.annulation = _concurrence_du_job_evals()
+
+    def _groupe(self, *, pr="", ref="refs/heads/x", mode="", plugin="plans-notion") -> str:
+        return _groupe_pour(self.expression, pr=pr, ref=ref, mode=mode, plugin=plugin)
+
+    def test_deux_pr_differentes_du_meme_plugin_tombent_dans_le_meme_groupe(self):
+        self.assertEqual(self._groupe(pr="12", ref="refs/pull/12/merge"),
+                         self._groupe(pr="34", ref="refs/pull/34/merge"))
+
+    def test_une_pr_et_un_lancement_manuel_du_meme_plugin_tombent_dans_le_meme_groupe(self):
+        self.assertEqual(self._groupe(pr="12", ref="refs/pull/12/merge"),
+                         self._groupe(pr="", ref="refs/heads/main", mode="ab"))
+
+    def test_deux_plugins_ne_se_bloquent_pas_entre_eux(self):
+        self.assertNotEqual(self._groupe(plugin="plans-notion"),
+                            self._groupe(plugin="methode-de-travail"))
+
+    def test_une_mesure_du_bruit_garde_un_groupe_a_part_du_banc_ab(self):
+        self.assertNotEqual(self._groupe(mode="aa"), self._groupe(mode="ab"))
+        self.assertNotEqual(self._groupe(mode="aa"), self._groupe(mode=""))
+
+    def test_deux_mesures_du_bruit_du_meme_plugin_partagent_leur_groupe(self):
+        self.assertEqual(self._groupe(mode="aa", ref="refs/heads/a"),
+                         self._groupe(mode="aa", ref="refs/heads/b"))
+
+    def test_un_second_banc_attend_au_lieu_d_annuler_le_premier(self):
+        self.assertEqual(self.annulation, "false")
 
 
 if __name__ == "__main__":
