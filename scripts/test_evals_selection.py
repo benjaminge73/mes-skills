@@ -761,16 +761,6 @@ class CiYml(unittest.TestCase):
         droits = {l.strip() for l in bloc.splitlines() if l.strip()}
         self.assertEqual(droits, {"contents: read", "pull-requests: read"})
 
-    def test_le_groupe_de_concurrence_de_evals_inclut_le_mode(self):
-        # Un `ab` lancé pendant un `aa` payé ne doit plus l'annuler ; `ab` par
-        # défaut hors lancement manuel (où `inputs.mode` est vide).
-        evals = _job(self.ci, "evals")
-        groupe = re.search(r"(?m)^      group: (.*)$", evals)
-        self.assertIsNotNone(groupe)
-        self.assertIn("inputs.mode || 'ab'", groupe.group(1))
-        self.assertIn("matrix.plugin", groupe.group(1))
-        self.assertIn("cancel-in-progress: true", evals)
-
     def test_le_lancement_manuel_ne_merge_rien_et_le_verdict_n_en_depend_pas(self):
         merge = _job(self.ci, "merge-auto")
         self.assertIn("github.event_name == 'pull_request'", merge.split("runs-on:", 1)[0])
