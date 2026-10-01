@@ -329,14 +329,19 @@ jobs:
     timeout-minutes: 150
     permissions:
       contents: read
-    # Une poussée sur la PR annule l'exécution en cours : ses mesures portent sur
-    # une tête déjà périmée. Au niveau du job (et non du workflow), pour ne
-    # jamais interrompre `merge-auto` en plein merge.
+    # Un seul banc à la fois par plugin : tous les bancs partagent la limite de
+    # débit d'un même abonnement, et trois bancs simultanés (le 2026-09-30) ont
+    # rendu des mesures inexploitables. Le second attend donc la fin du premier,
+    # sans l'annuler. Limite de GitHub : un seul run peut attendre par groupe ;
+    # un troisième annule celui qui attendait. Au niveau du job (et non du
+    # workflow), pour ne jamais interrompre `merge-auto` en plein merge.
     concurrency:
-      # Le mode fait partie du groupe : un lancement manuel `ab` n'annule plus un
-      # `aa` payé en cours (hors lancement manuel, `inputs.mode` est vide : `ab`).
-      group: evals-${{ github.event.pull_request.number || github.ref }}-${{ inputs.mode || 'ab' }}-${{ matrix.plugin }}
-      cancel-in-progress: true
+      # Ni la PR ni la ref n'entrent dans le groupe, sinon deux PR ne
+      # s'attendraient pas. Le bruit (`aa`) garde un groupe à part, pour qu'une
+      # mesure payée n'en annule pas une autre (hors lancement manuel,
+      # `inputs.mode` est vide : `ab`).
+      group: evals-${{ inputs.mode == 'aa' && 'aa-' || '' }}${{ matrix.plugin }}
+      cancel-in-progress: false
     strategy:
       fail-fast: false
       matrix:
