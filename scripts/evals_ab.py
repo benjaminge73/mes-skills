@@ -808,6 +808,25 @@ def lire_rapport(chemin: Path, etiquette: str) -> dict:
     return rapport
 
 
+def extraire_cas_du_rapport(rapport: dict, cas: list[str], etiquette: str) -> dict:
+    """Le rapport réduit aux cas nommés. Un cas absent du rapport est un refus.
+
+    Un 0 silencieux pour un cas que la base n'a jamais joué ferait passer la
+    tête pour une amélioration : mieux vaut s'arrêter avant de payer la tête.
+    """
+    noms = [c.get("name") for c in rapport.get("cases", [])]
+    absents = [c for c in dict.fromkeys(cas) if c not in noms]
+    if absents:
+        raise ErreurRefus(
+            f"rapport {etiquette} : cas absent(s) du rapport : {', '.join(absents)}. "
+            "Cette base n'a pas joué ces cas : la rejouer (sans --base-rapport)."
+        )
+    voulus = set(cas)
+    reduit = dict(rapport)
+    reduit["cases"] = [c for c in rapport["cases"] if c.get("name") in voulus]
+    return reduit
+
+
 # ==========================================================================
 # Comparaison et bruit
 # ==========================================================================
@@ -1129,6 +1148,11 @@ def construire_parseur() -> argparse.ArgumentParser:
                         "ignoré s'il mesure un autre modèle que EVALS_MODELE")
     p.add_argument("--reference", metavar="FICHIER",
                    help="rapport JSON de la base déjà joué (cache CI) : la base n'est pas rejouée")
+    p.add_argument("--base-rapport", metavar="FICHIER",
+                   help="rapport JSON d'une base déjà jouée (cache CI), souvent sur plus de "
+                        "cas que ceux choisis : on en extrait les cas de --cas (tous sans "
+                        "--cas) et la base n'est pas rejouée ; un cas absent du rapport est "
+                        "un refus")
     p.add_argument("--journal", nargs="?", const="", default=None, metavar="FICHIER",
                    help="ajoute une ligne à evals/RESULTATS.md (ou au fichier donné)")
     p.add_argument("--sortie-bruit", metavar="FICHIER",
@@ -1172,6 +1196,10 @@ def _executer(args, options_lanceur: list[str], commande: str) -> int:
         if not s.is_dir():
             raise ErreurRefus(f"dossier de cas introuvable : {s}")
 
+    if args.base_rapport and args.reference:
+        raise ErreurRefus("--base-rapport et --reference disent deux fois d'où vient la base")
+    if args.base_rapport and args.mode == "aa":
+        raise ErreurRefus("--base-rapport n'a pas de sens en mode aa : la tête y est jouée deux fois")
     if args.cas:
         verifier_cas_demandes(args.cas, sources)  # avant tout jeu, donc avant tout coût
 
@@ -1202,7 +1230,16 @@ def _executer(args, options_lanceur: list[str], commande: str) -> int:
     racine = Path(tempfile.mkdtemp(prefix="evals-ab-"))
     try:
         rapports_joues = []
-        if args.reference:
+        if args.base_rapport:
+            rapport_base = lire_rapport(Path(args.base_rapport), "de base")
+            if args.cas:
+                rapport_base = extraire_cas_du_rapport(rapport_base, args.cas, "de base")
+            print(
+                f"base reprise du cache : {len(rapport_base['cases'])} cas extraits de "
+                f"{args.base_rapport}, la base n'est pas rejouée",
+                file=sys.stderr,
+            )
+        elif args.reference:
             rapport_base = lire_rapport(Path(args.reference), "de référence")
         else:
             rapport_base = jouer_reference(
@@ -1210,7 +1247,7 @@ def _executer(args, options_lanceur: list[str], commande: str) -> int:
                 options_lanceur, "de base", args.cas,
             )
             rapports_joues.append(rapport_base)
-        if args.garder_base and not args.reference:
+        if args.garder_base and not (args.reference or args.base_rapport):
             shutil.copyfile(racine / "base.json", args.garder_base)
         rapport_tete = jouer_reference(
             depot, args.tete, plugin, sources, racine, "tete", lanceur,

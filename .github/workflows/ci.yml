@@ -404,25 +404,48 @@ jobs:
         run: |
           set -euo pipefail
           # Une base rejouée doit donner le même rapport : la clé porte tout ce
-          # qui le ferait changer. Le SHA de la base (plugin à cette référence),
-          # les cas (assemblés dans les deux copies), la liste des cas joués (une
-          # base jouée sur trois cas ne sert pas une comparaison sur seize), le
-          # modèle, l'effort de réflexion, le nombre de passages, la version de
-          # Claude Code du runner et le lanceur.
+          # qui le ferait changer, et rien de plus. Le contenu du plugin à la
+          # base (l'empreinte de `git ls-tree -r`, pas le SHA : un merge de doc
+          # sur `main` ne change pas le plugin, donc ne doit pas invalider la
+          # base), les cas (assemblés dans les deux copies), le modèle, l'effort
+          # de réflexion, le nombre de passages, la version de Claude Code du
+          # runner et le lanceur. La liste des cas joués n'y est plus : une base
+          # complète (suffixe `-tout`) sert toute sélection, dont le rapport
+          # fournit les cas ; une sélection jouée seule se sauve sous
+          # `-sel-<empreinte de sa liste>`.
+          contenu=$(git ls-tree -r "$BASE_SHA" "plugins/$PLUGIN" | sha256sum | cut -c1-16)
           cas=$(git ls-files -z "evals/$PLUGIN" | sort -z | xargs -0 sha256sum | sha256sum | cut -c1-16)
-          joues=$(jq -r --arg p "$PLUGIN" '(.[$p] // {"tout": true}) | if .tout then "tout" else (.cas | sort | join(",")) end' <<<"$SELECTION")
-          selec=$(printf '%s' "$joues" | sha256sum | cut -c1-12)
           version=$(sed -n 's/^CLAUDE_CODE_VERSION=//p' evals/outillage/preparer-runner.sh)
           lanceur=$(sha256sum evals/outillage/lancer.sh | cut -c1-12)
-          echo "cle=evals-base-$PLUGIN-$BASE_SHA-$cas-s$selec-$EVALS_MODELE-e$EVALS_EFFORT-r$EVALS_RUNS-cc$version-$lanceur" >> "$GITHUB_OUTPUT"
+          echo "cle=evals-base-$PLUGIN-$contenu-$cas-$EVALS_MODELE-e$EVALS_EFFORT-r$EVALS_RUNS-cc$version-$lanceur" >> "$GITHUB_OUTPUT"
+          cle=$(sed -n 's/^cle=//p' "$GITHUB_OUTPUT")
+          echo "cle_tout=$cle-tout" >> "$GITHUB_OUTPUT"
+          # Sélection : ses cas, triés (l'ordre ne change pas la base) ; « tout »
+          # quand elle le dit ou qu'elle manque (le défaut est le banc entier).
+          if [ "$(jq -r --arg p "$PLUGIN" '(.[$p] // {"tout": true}) | .tout' <<<"$SELECTION")" = "true" ]; then
+            echo "joue_tout=true" >> "$GITHUB_OUTPUT"
+            echo "cle_ecriture=$cle-tout" >> "$GITHUB_OUTPUT"
+          else
+            joues=$(jq -r --arg p "$PLUGIN" '.[$p].cas | sort | join(",")' <<<"$SELECTION")
+            selec=$(printf '%s' "$joues" | sha256sum | cut -c1-12)
+            echo "joue_tout=false" >> "$GITHUB_OUTPUT"
+            echo "cle_ecriture=$cle-sel-$selec" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Reprendre la base du cache
         id: cache
         if: inputs.mode != 'aa'
+        # Un seul pas : la clé exacte d'abord (la base complète si tout est joué,
+        # sinon celle de cette sélection), puis la base complète en repli. Le repli
+        # est le seul préfixe essayé et il se termine par `-tout` : il ne peut
+        # attraper ni la base d'une autre sélection (`-sel-…`), ni une autre clé.
+        # `cache-matched-key` dit ce qui a été trouvé (`cache-hit` ne vaut `true`
+        # que pour la clé exacte).
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ runner.temp }}/evals-cache/base.json
-          key: ${{ steps.cle.outputs.cle }}
+          key: ${{ steps.cle.outputs.cle_ecriture }}
+          restore-keys: ${{ steps.cle.outputs.cle_tout }}
 
       - name: Jouer la tête et la base, comparer
         id: jeu
@@ -431,7 +454,7 @@ jobs:
           PLUGIN: ${{ matrix.plugin }}
           BASE_SHA: ${{ needs.evals-portee.outputs.base }}
           SELECTION: ${{ needs.evals-portee.outputs.selection }}
-          CACHE_HIT: ${{ steps.cache.outputs.cache-hit }}
+          CACHE_TROUVE: ${{ steps.cache.outputs.cache-matched-key }}
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
         run: |
           set -euo pipefail
@@ -462,9 +485,12 @@ jobs:
           else
             echo "Pas de evals/bruit-$PLUGIN.json : bruit estimé (plus large qu'une mesure)."
           fi
-          if [ "$CACHE_HIT" = "true" ]; then
-            args+=(--reference "$cache/base.json")
-            echo "Base reprise du cache."
+          if [ -n "$CACHE_TROUVE" ]; then
+            # La base vient du cache : complète (on en extrait les cas joués) ou
+            # jouée sur cette sélection même (on les prend tous). Dans les deux
+            # cas evals_ab.py refuse un cas absent du rapport.
+            args+=(--base-rapport "$cache/base.json")
+            echo "Résultat : base reprise du cache (${CACHE_TROUVE##*-})."
           else
             args+=(--garder-base "$cache/base.json")
           fi
@@ -486,7 +512,7 @@ jobs:
             [ -f "$racine/base.json" ] && cp "$racine/base.json" "$sortie/rapport-base.json"
             rm -rf "$racine"
           fi
-          if [ ! -f "$sortie/rapport-base.json" ] && [ "$CACHE_HIT" = "true" ]; then
+          if [ ! -f "$sortie/rapport-base.json" ] && [ -n "$CACHE_TROUVE" ]; then
             cp "$cache/base.json" "$sortie/rapport-base.json"
           fi
 
@@ -562,7 +588,7 @@ jobs:
 
       - name: Base gardée pour le cache
         id: base
-        if: always() && inputs.mode != 'aa' && steps.cache.outputs.cache-hit != 'true'
+        if: always() && inputs.mode != 'aa' && steps.cache.outputs.cache-matched-key == ''
         run: |
           if [ -s "$RUNNER_TEMP/evals-cache/base.json" ]; then
             echo "gardee=true" >> "$GITHUB_OUTPUT"
@@ -576,7 +602,7 @@ jobs:
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ runner.temp }}/evals-cache/base.json
-          key: ${{ steps.cle.outputs.cle }}
+          key: ${{ steps.cle.outputs.cle_ecriture }}
 
       - name: Vérifier que l'artefact ne contient pas le jeton
         if: always()
