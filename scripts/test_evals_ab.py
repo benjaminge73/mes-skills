@@ -823,6 +823,39 @@ class BoutEnBout(DepotEtLanceur):
         code, _, _ = jouer(self.argv(), self.env)  # sans bruit mesuré : recul
         self.assertEqual(code, 1)
 
+    def test_une_aa_dont_un_jeu_a_des_sessions_en_erreur_rend_quatre_et_n_ecrit_pas_de_bruit(self):
+        # Un jeu perd 6 sessions sur 9 à une limite de session : ses scores s'effondrent,
+        # le rms de l'écart entre les deux jeux est gonflé, et toute A/B qui lirait ce
+        # fichier jugerait avec un seuil faux. Même règle que l'A/B : code 4, aucun bruit.
+        # Le faux lanceur de la classe rend le même rapport aux deux passages ; celui-ci
+        # rend la fixture en panne au premier et sa copie sans erreur au second.
+        sain = rapport("tete_session_limite")
+        for c in sain["cases"]:
+            for passage in c["arms"]["with"]:
+                passage["error"] = None
+        ecrire(self.racine / "jeu-sain.json", json.dumps(sain))
+        ecrire(
+            self.lanceur,
+            FAUX_LANCEUR.replace(
+                'if [ "$marqueur" = "base" ]; then cp "$FAUX_RAPPORT_BASE" "$sortie"; '
+                'else cp "$FAUX_RAPPORT_TETE" "$sortie"; fi',
+                'if [ "$(grep -c "^APPEL" "$FAUX_JOURNAL")" = "1" ]; '
+                'then cp "$FAUX_RAPPORT_TETE" "$sortie"; else cp "$FAUX_RAPPORT_BASE" "$sortie"; fi',
+            ),
+        )
+        self.env["FAUX_RAPPORT_TETE"] = str(FIXTURES / "rapport_tete_session_limite.json")
+        self.env["FAUX_RAPPORT_BASE"] = str(self.racine / "jeu-sain.json")
+        sortie_bruit = self.racine / "bruit.json"
+        code, sortie, erreur = jouer(
+            self.argv("--sortie-bruit", str(sortie_bruit), mode="aa"), self.env
+        )
+        self.assertEqual(code, 4, sortie + erreur)
+        self.assertFalse(sortie_bruit.exists())
+        self.assertIn("non concluant", sortie.lower())
+        self.assertIn("panne d'infrastructure, à relancer", sortie)
+        self.assertIn("6 sur 9", sortie)
+        self.assertNotIn("Bruit mesuré", sortie)
+
     def test_une_option_de_ligne_de_commande_inconnue_est_un_echec_d_usage(self):
         code, _, _ = jouer(["--n-importe-quoi"], self.env)
         self.assertEqual(code, 2)
