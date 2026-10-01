@@ -799,13 +799,14 @@ class CiYml(unittest.TestCase):
     def test_le_job_evals_garde_son_nom_fixe_par_plugin(self):
         self.assertIn("name: Évals (${{ matrix.plugin }})", _job(self.ci, "evals"))
 
-    def test_le_verdict_est_un_job_au_nom_fixe_sans_secret_ni_droit(self):
+    def test_le_verdict_est_un_job_au_nom_fixe_sans_secret_et_ne_peut_que_lire_les_checks(self):
         verdict = _job(self.ci, "evals-verdict")
         self.assertIn("name: Verdict des évals", verdict)
         self.assertIn("needs: [evals-portee, evals, fumee]", verdict)
         self.assertRegex(verdict, r"(?m)^    if: always\(\)\s*$")
         self.assertIn("runs-on: ubuntu-latest", verdict)
-        self.assertRegex(verdict, r"(?m)^    permissions: \{\}\s*$")
+        bloc = verdict.split("    permissions:\n", 1)[1].split("\n    steps:", 1)[0]
+        self.assertEqual({l.strip() for l in bloc.splitlines() if l.strip()}, {"checks: read"})
         self.assertNotIn("checkout", verdict)
         self.assertNotIn("secrets.", verdict)
 
@@ -834,7 +835,7 @@ class CiYml(unittest.TestCase):
         doc = yaml.safe_load(self.ci)
         self.assertIn("evals-verdict", doc["jobs"])
         self.assertEqual(doc["jobs"]["evals-verdict"]["name"], "Verdict des évals")
-        self.assertEqual(doc["jobs"]["evals-verdict"]["permissions"], {})
+        self.assertEqual(doc["jobs"]["evals-verdict"]["permissions"], {"checks": "read"})
 
 
 class PorteeDuLabelAjoute(unittest.TestCase):
@@ -908,6 +909,7 @@ class PorteeDuLabelAjoute(unittest.TestCase):
         self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
         self.assertEqual(sorties["touche"], "false")
         self.assertEqual(sorties["selection"], "{}")
+        self.assertEqual(sorties["label_etranger"], "1")  # le verdict recopie alors le précédent
         self.assertIn("review-required", r.stdout)  # le log dit pourquoi on ne joue pas
 
     def test_le_label_evals_qui_vient_d_etre_pose_joue_les_evals(self):
@@ -916,6 +918,7 @@ class PorteeDuLabelAjoute(unittest.TestCase):
                 r, sorties = self.jouer("evals", ajoute)
                 self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
                 self.assertEqual(sorties["touche"], "true")
+                self.assertEqual(sorties["label_etranger"], "0")
                 self.assertEqual(json.loads(sorties["plugins"]), ["jouet"])
 
     def test_sans_label_ajoute_ni_opened_ni_synchronize_ne_changent_rien(self):
@@ -952,6 +955,64 @@ class PorteeDuLabelAjoute(unittest.TestCase):
         r, sorties = self.jouer("", "", corps=sans_label)
         categories = json.loads(sorties["fumee_selection"])["jouet"]["categories"]
         self.assertEqual(sorted(categories), ["bruit", "depart", "recherche"])
+
+
+class VerdictDUnLabelEtranger(unittest.TestCase):
+    """Un label étranger ne relance rien : le verdict recopie alors le précédent du SHA.
+
+    Sans cela, la fumée rouge du run `synchronize` serait « blanchie » par le run
+    `labeled` qui saute tout : même SHA, verdict vert, `merge-auto` merge. Le vrai `run:`
+    du job `evals-verdict` est joué en `bash -c`, avec un faux `gh` qui rend un
+    fichier de check-runs que le vrai filtre `jq` de `--jq` lit.
+    """
+
+    def _verdict(self, runs, **env_en_plus):
+        import textwrap
+        with tempfile.TemporaryDirectory() as tmp:
+            d = Path(tmp)
+            (d / "bin").mkdir()
+            (d / "checks.json").write_text(json.dumps({"check_runs": runs}), "utf-8")
+            gh = d / "bin" / "gh"
+            gh.write_text(
+                '#!/bin/bash\nwhile [ $# -gt 0 ]; do [ "$1" = --jq ] && q=$2; shift; done\n'
+                'exec jq -r "$q" "$FAUX_CHECKS"\n', "utf-8")
+            gh.chmod(0o755)
+            env = {k: v for k, v in os.environ.items()
+                   if k not in ("GH_TOKEN", "LABEL_ETRANGER")}
+            env.update(PATH=f"{d / 'bin'}{os.pathsep}{env['PATH']}", FAUX_CHECKS=str(d / "checks.json"),
+                       PORTEE="success", EVALS="skipped", FUMEE="skipped", LABEL_ETRANGER="1",
+                       GH_TOKEN="x", REPO="proprietaire/depot", SHA="abc123")
+            env.update(env_en_plus)
+            run = _job(CI.read_text(encoding="utf-8"), "evals-verdict").split("        run: |\n", 1)[1]
+            r = subprocess.run(["bash", "-c", textwrap.dedent(run)], cwd=d, env=env,
+                               capture_output=True, text=True)
+            return r.returncode, r.stdout + r.stderr
+
+    @staticmethod
+    def _check(nom, conclusion, fin, statut="completed"):
+        return {"name": nom, "status": statut, "conclusion": conclusion, "completed_at": fin}
+
+    def test_un_label_etranger_recopie_le_dernier_verdict_du_sha_et_ne_blanchit_pas_un_rouge(self):
+        verdict = "Verdict des évals"
+        autre = self._check("Gardes de distribution", "success", "2026-10-01T10:09:00Z")
+        en_cours = self._check(verdict, None, None, statut="in_progress")  # le run présent
+        # Le dernier verdict rendu (10:05) est rouge, un plus ancien (10:00) était vert.
+        rouge, code = self._verdict([
+            self._check(verdict, "success", "2026-10-01T10:00:00Z"),
+            self._check(verdict, "failure", "2026-10-01T10:05:00Z"), autre, en_cours])
+        self.assertNotEqual(rouge, 0, code)
+        # Témoin : l'inverse rend vert, sinon un verdict toujours rouge passerait.
+        vert, sortie = self._verdict([
+            self._check(verdict, "failure", "2026-10-01T10:00:00Z"),
+            self._check(verdict, "success", "2026-10-01T10:05:00Z"), autre, en_cours])
+        self.assertEqual(vert, 0, sortie)
+        # Une portée rouge dans ce run reste rouge, même si le précédent verdict était vert.
+        portee, _ = self._verdict([self._check(verdict, "success", "2026-10-01T10:05:00Z")],
+                                  PORTEE="failure")
+        self.assertNotEqual(portee, 0)
+        # Aucun verdict antérieur sur le SHA : rouge, on ne sait pas ce qui a été joué.
+        aucun, _ = self._verdict([autre, en_cours])
+        self.assertNotEqual(aucun, 0)
 
 
 def _blocs_run(texte: str):
