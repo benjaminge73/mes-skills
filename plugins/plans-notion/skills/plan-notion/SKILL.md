@@ -711,7 +711,8 @@ Sous chaque titre, le contenu de l'étape :
 - **Preuve de fin** : la commande ou l'observation qui dit que l'étape est faite.
 - **Test attendu** — pour une étape qui écrit du code : la panne que le test
   attrapera, le comportement cassé qu'il doit voir rouge avant d'écrire le
-  code. « — » si l'étape n'écrit pas de test.
+  code. Cette ligne est le budget de tests : un test par panne nommée.
+  « — » si l'étape n'écrit pas de test.
 
   📄 `${CLAUDE_PLUGIN_ROOT}/skills/_partage/bons-tests.md`
 

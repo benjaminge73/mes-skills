@@ -46,13 +46,17 @@ de rapport attendu. Ce fichier-ci porte ce qui ne change jamais.
 
 ## Quand tu écris un test
 
-Un test que tu écris suit les six règles ci-dessous — nommer la panne
+Un test que tu écris suit les six premières règles ci-dessous — nommer la panne
 dans son nom, un attendu dérivé indépendamment du code, pas de « change
 detector », pas d'assertion miroir, tester le contrat et non l'implémentation
 (règle 5), ni prose, ni compte, ni recopie (règle 6). Un test qui n'y satisfait
 pas ne prouve rien, même rouge, même vert. Concrètement, deux gestes à ne pas
 faire : un mock qui vérifie les arguments exacts d'un `subprocess.run`, et un
 test qui relit un fichier de CI au lieu de le faire tourner.
+
+La ligne « Test attendu » de l'objectif est ton budget : un test par panne
+nommée (règle 7). Un test en plus se justifie dans ton rapport, en disant
+quelle autre panne il attrape.
 
 📄 `${CLAUDE_PLUGIN_ROOT}/skills/_partage/bons-tests.md`
 
