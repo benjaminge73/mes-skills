@@ -114,6 +114,15 @@ et le seuil de Bonferroni ne portent que sur les cas joués. Le seuil global
 s'élargit quand il y en a moins que dans la mesure du bruit, et le tableau le
 dit. Un nom inconnu est un refus (code 3) avant tout jeu. Sans ``--cas``, tous.
 
+Coût annoncé avant, compté après
+--------------------------------
+``--estimer --base-rapport <rapport> [--cas …] [-- --runs N]`` additionne, sur
+le rapport déjà joué, le coût moyen **par passage** des cas choisis, multiplié
+par les N passages demandés (ceux du rapport sans ``--runs``), et s'arrête sans
+rien jouer (code 0). La base étant lue dans le rapport, seul le bras de tête est
+compté. Sans rapport : refus (code 3). Le mode ``aa`` écrit, lui, le coût des
+deux passages qu'il a joués.
+
 Verdict : code de sortie 1 si la moyenne recule de plus que le bruit global,
 **ou** si un cas seul recule de plus que le seuil par cas corrigé (un skill
 modifié n'affecte souvent qu'un ou deux cas, et la moyenne le diluerait).
@@ -799,6 +808,37 @@ def cout_rapport(rapport: dict) -> float:
     return sum(s.cout for s in scores_par_cas(rapport).values())
 
 
+def passages_demandes(options_lanceur: list[str]) -> int | None:
+    """Le nombre de passages que le lanceur recevra (``--runs N`` ou ``--runs=N``), s'il est dit."""
+    for i, option in enumerate(options_lanceur):
+        valeur = None
+        if option == "--runs" and i + 1 < len(options_lanceur):
+            valeur = options_lanceur[i + 1]
+        elif option.startswith("--runs="):
+            valeur = option.split("=", 1)[1]
+        if valeur is not None:
+            try:
+                n = int(valeur)
+            except ValueError:
+                return None
+            return n if n > 0 else None
+    return None
+
+
+def estimer_cout(rapport: dict, passages: int | None = None) -> float:
+    """Coût d'un bras joué sur les cas de ``rapport``, d'après ce rapport.
+
+    Le coût moyen **par passage** de chaque cas, multiplié par le nombre de
+    passages demandés (ceux du rapport si ``passages`` n'est pas donné) : un
+    rapport joué à 3 passages sert une estimation à 2 ou à 5.
+    """
+    total = 0.0
+    for score in scores_par_cas(rapport).values():
+        if score.passages:
+            total += score.cout / score.passages * (passages or score.passages)
+    return total
+
+
 def lire_rapport(chemin: Path, etiquette: str) -> dict:
     try:
         rapport = json.loads(Path(chemin).read_text("utf-8"))
@@ -1163,6 +1203,10 @@ def construire_parseur() -> argparse.ArgumentParser:
                    help="défaut : <dépôt>/evals/outillage/lancer.sh")
     p.add_argument("--depot", metavar="CHEMIN", help="racine du dépôt (défaut : celui du script)")
     p.add_argument("--conserver", action="store_true", help="ne pas supprimer les copies temporaires")
+    p.add_argument("--estimer", action="store_true",
+                   help="annonce le coût du bras de tête (cas choisis, passages de --runs) "
+                        "d'après le rapport de --base-rapport ou --reference, puis s'arrête "
+                        "sans rien jouer")
     p.add_argument("--previol-seul", action="store_true",
                    help="ne fait que le pré-vol (gratuit) et s'arrête")
     return p
@@ -1181,6 +1225,35 @@ def main(argv: list[str] | None = None) -> int:
     except (ErreurRefus, ErreurYaml) as e:
         print(f"REFUS : {e}", file=sys.stderr)
         return 3
+
+
+def _estimer(args, options_lanceur: list[str]) -> int:
+    """``--estimer`` : le coût annoncé avant de payer, sans rien jouer.
+
+    Le coût par cas vient d'un rapport déjà joué. La base y étant lue, seul le
+    bras de tête sera payé : c'est lui qu'on additionne. Sans rapport, aucun
+    montant n'est dérivable : refus, plutôt qu'un « 0 $ » qui dirait gratuit.
+    """
+    if args.mode == "aa":
+        raise ErreurRefus("--estimer n'a pas de sens en mode aa : pas de rapport où lire les coûts")
+    source = args.base_rapport or args.reference
+    if not source:
+        raise ErreurRefus(
+            "--estimer lit les coûts dans un rapport déjà joué : passer --base-rapport "
+            "<rapport> (le cache de la base)"
+        )
+    rapport = lire_rapport(Path(source), "source de l'estimation")
+    if args.cas:
+        rapport = extraire_cas_du_rapport(rapport, args.cas, "source de l'estimation")
+    passages = passages_demandes(options_lanceur)
+    montant = estimer_cout(rapport, passages)
+    n_passages = f"{passages} passages" if passages else "passages du rapport"
+    print(
+        f"Coût estimé : ${montant:.2f} — {len(rapport['cases'])} cas, {n_passages}, "
+        f"bras de tête seul (la base vient du rapport, elle n'est pas rejouée). "
+        "Coût moyen par passage de ce rapport ; rien n'est joué."
+    )
+    return 0
 
 
 def _executer(args, options_lanceur: list[str], commande: str) -> int:
@@ -1202,6 +1275,9 @@ def _executer(args, options_lanceur: list[str], commande: str) -> int:
         raise ErreurRefus("--base-rapport n'a pas de sens en mode aa : la tête y est jouée deux fois")
     if args.cas:
         verifier_cas_demandes(args.cas, sources)  # avant tout jeu, donc avant tout coût
+
+    if args.estimer:
+        return _estimer(args, options_lanceur)
 
     # Pré-vol : gratuit, et il commande tout le reste.
     verdicts = [v for s in sources for v in previol(decouvrir_cas(s))]
@@ -1276,6 +1352,7 @@ def _executer(args, options_lanceur: list[str], commande: str) -> int:
             f"± {mesure['demi_largeur_ic95_globale'] * 100:.0f} pts sur la moyenne, "
             f"± {mesure['demi_largeur_ic95_cas'] * 100:.0f} pts par cas — écrit dans {chemin}"
         )
+        print(f"Coût : {f'${cout:.2f}' if cout is not None else 'n/d'} (les deux passages joués)")
         code = 0
     else:
         c = comparer(rapport_base, rapport_tete, bruit=bruit)

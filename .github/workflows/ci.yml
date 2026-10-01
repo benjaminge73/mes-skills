@@ -359,14 +359,14 @@ jobs:
       EVALS_MODELE: claude-sonnet-5-5
       EVALS_EFFORT: high
       # Plafond par appel de `claude plugin eval` (une fois pour la base, une fois
-      # pour la tête). Mesuré le 2026-09-30 avec Opus (A/A local de
-      # l'étape A4) : 54 passages pour 53,14 $, soit ≈ 0,98 $ par passage (de
-      # 0,48 à 2,15 $ selon le cas), donc un bras de 16 cas x 3 passages ≈ 47 $.
-      # 120 $ couvrent un bras complet avec plus de deux fois de marge, pour les
-      # cas d'exécution (Bash, commits) sans doute plus chers que les cas de
-      # lecture mesurés. Un plafond plus bas couperait chaque bras : rapport
-      # partiel, refusé par `evals_ab.py` (code 3), job rouge à tous les coups.
-      EVALS_MAX_COUT_USD: '120'
+      # pour la tête), donc par bras. Mesuré avec Sonnet, le modèle joué ici (run
+      # 36758086456) : un bras complet de 16 cas x 3 passages coûte 27,53 $, et un
+      # cas entre 0,98 et 3,57 $. Décision de Benjamin (Q5, 2026-10-01) : 35 $, soit
+      # un quart de marge au-dessus du bras complet. Un bras qui dépasse est rendu
+      # partiel, refusé par `evals_ab.py` (code 3) : le job est rouge, et la
+      # facture s'arrête là. Le coût attendu s'écrit en tête du résumé avant de
+      # payer (`--estimer`).
+      EVALS_MAX_COUT_USD: '35'
       EVALS_RUNS: '3'
       # Décision de Benjamin (étape B9) : 5 agents en parallèle.
       EVALS_CONCURRENCE: '5'
@@ -495,6 +495,23 @@ jobs:
             args+=(--garder-base "$cache/base.json")
           fi
 
+          # Le coût annoncé avant de payer, en tête du résumé (le tableau s'y
+          # ajoute après le jeu). Avec la base du cache : seul le bras de tête est
+          # payé, et `--estimer` en donne le montant d'après ce rapport. Sans
+          # cache, les deux bras sont joués et aucun rapport ne dit leur coût : on
+          # annonce le pire, deux fois le plafond.
+          {
+            echo "## Évals — $PLUGIN"
+            echo
+            if [ -n "$CACHE_TROUVE" ]; then
+              python3 scripts/evals_ab.py "${args[@]}" --estimer -- --runs "$EVALS_RUNS" \
+                || echo "Coût estimé : indisponible (voir le journal du job)."
+            else
+              echo "Coût estimé : base absente du cache, deux bras joués, au plus $((2 * EVALS_MAX_COUT_USD)) \$ (plafond de $EVALS_MAX_COUT_USD \$ par bras)."
+            fi
+            echo
+          } >> "$GITHUB_STEP_SUMMARY"
+
           # stdout = le tableau Markdown ; stderr = la trace, qui reste dans le
           # journal du job (jamais téléversée). Aucun `set -x`, aucun `env`.
           set +e
@@ -517,8 +534,6 @@ jobs:
           fi
 
           {
-            echo "## Évals — $PLUGIN"
-            echo
             if [ -s "$sortie/tableau.md" ]; then
               cat "$sortie/tableau.md"
             else
