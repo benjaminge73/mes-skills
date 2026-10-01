@@ -18,6 +18,9 @@ montée de version à chaque retouche.
 - [Mesurer le bruit avant de fixer un seuil](#mesurer-le-bruit-avant-de-fixer-un-seuil)
 - [Comparer deux versions](#comparer-deux-versions)
 - [Choisir les évals d'une PR](#choisir-les-évals-dune-pr)
+- [Lancer une évaluation](#lancer-une-évaluation)
+- [La fumée : ce qu'elle voit, ce qu'elle ne voit pas](#la-fumée--ce-quelle-voit-ce-quelle-ne-voit-pas)
+- [Rejeu réel : quand et combien](#rejeu-réel--quand-et-combien)
 - [Ce que la méthode interdit](#ce-que-la-méthode-interdit)
 - [Où tourne quoi](#où-tourne-quoi)
 - [Le jeton de CI](#le-jeton-de-ci)
@@ -26,7 +29,7 @@ montée de version à chaque retouche.
 
 | Palier | Où | Quand | Ce qu'il prouve |
 |---|---|---|---|
-| **Cas simulés**, publics | `evals/<plugin>/` dans ce dépôt | joués en CI à chaque PR qui touche `skills/`, `agents/` ou `_partage/` — la PR choisit les catégories à jouer ([voir plus bas](#choisir-les-évals-dune-pr)) | qu'une consigne produit le bon état final sur une situation inventée |
+| **Cas simulés**, publics | `evals/<plugin>/` dans ce dépôt | joués en CI **à la demande** (label `evals`, [voir plus bas](#choisir-les-évals-dune-pr)) ; sans le label, une [fumée](#la-fumée--ce-quelle-voit-ce-quelle-ne-voit-pas) à chaque PR qui touche `skills/`, `agents/`, un hook ou `_partage/` | qu'une consigne produit le bon état final sur une situation inventée |
 | **Cas réels**, privés | `bancs/skills/` dans le dépôt privé `hermes-custom` | rejoués **en local** pour tout changement de doctrine | que la consigne tient sur de vraies situations, qu'on ne publie pas |
 
 Le second palier est privé parce que les cas réels contiennent des noms de
@@ -231,11 +234,18 @@ cas qu'elle regroupe et les fichiers qu'elle exerce. Pour `plans-notion` :
 | `decouvertes` | `skills/executer-plan-notion/`, `agents/executant.md`, `agents/relecteur.md` | les quatre `decouverte-*` |
 | `perimetre` | `skills/executer-plan-notion/`, `agents/executant.md` | `no-verify`, `rien-hors-plan` |
 
+**Les évals se jouent à la demande.** La CI ne joue l'A/B que si la PR porte le
+label `evals`. Une PR qui touche un skill, un agent, un hook ou `_partage/` sans
+ce label doit dire pourquoi : `Evals: aucun — <raison>` dans son corps, sinon
+la CI est rouge, le refus n'étant jamais silencieux. Choisir des catégories
+implique donc le label ; `aucun` ne le pose pas.
+
 **La ligne `Evals:` du corps de la PR** porte le choix :
-`Evals: <catégories séparées par des virgules> — <raison>`, ou `Evals: tout`.
-Elle vient de la ligne « Évals à jouer » du chapitre `Exécution` du plan
-(`plan-notion` l'écrit, `executer-plan-notion` la recopie). **Sans cette ligne,
-la CI joue tout le banc.**
+`Evals: <catégories séparées par des virgules> — <raison>`, `Evals: tout`, ou
+`Evals: aucun — <raison>`. Elle vient de la ligne « Évals à jouer » du chapitre
+`Exécution` du plan (`plan-notion` l'écrit, `executer-plan-notion` la recopie et
+ne pose le label que si des catégories sont choisies). **Avec le label et sans
+cette ligne, la CI joue tout le banc.**
 
 **Le plancher** (`scripts/evals_selection.py`, job `evals-portee`) : chaque
 fichier touché sous `skills/` ou `agents/` d'un plugin doit être exercé par au
@@ -295,6 +305,117 @@ le cache de la base, puis publie le bruit en artefact `evals-bruit-<plugin>`
 evals-bruit-<plugin>`), le commiter en `evals/bruit-<plugin>.json` dans la PR,
 et pousser : la CI suivante l'utilise. Sans `-f mode=aa`, le lancement manuel
 joue l'A/B habituel (`mode=ab`, le défaut).
+
+## Lancer une évaluation
+
+Il n'y a pas de skill pour ça, et c'est voulu : un skill est une consigne qu'un
+modèle lit, il ne refuse rien. Les garde-fous sont dans les scripts, qui
+refusent ou annoncent d'eux-mêmes. La porte d'entrée est donc
+`scripts/evals_ab.py`, et le geste tient en trois temps. On rouvrira la question
+d'un skill si une session se trompe encore de geste.
+
+1. **Estimer.** Le coût se lit avant de payer :
+   ```bash
+   python3 scripts/evals_ab.py --plugin <p> --estimer --cas …
+   ```
+   Le script l'établit d'après le coût par cas des derniers rapports. Une A/B
+   joue deux bras (base et tête), un bras complet coûte 27,53 $ sur Sonnet,
+   et une catégorie 1,61 $ à 7,13 $ par bras (tableau de la fiche
+   `claude plugin eval` de `outils-et-quotas.md`). **Annoncer ce coût à
+   Benjamin avant de lancer.** Le plafond est de 35 $ par bras
+   (`EVALS_MAX_COUT_USD=35`), contre 120 $ avant, jamais atteint.
+2. **Vérifier le verrou.** Un seul banc à la fois : toutes les sessions d'un
+   appel partagent la limite de débit de leur compte, et trois bancs ensemble
+   ont rendu des scores inexploitables. En CI, le groupe de concurrence
+   `evals-<plugin>` met un second banc en attente ; GitHub n'en garde qu'un,
+   un troisième annule celui qui attendait, et il faut alors reposer le label.
+   En local, le lanceur refuse de démarrer tant qu'un banc tourne en CI ; avant
+   de lancer, prendre le jeton de la machine :
+   ```bash
+   python3 plugins/plans-notion/skills/_partage/scripts/etat-machine.py prendre evals-locales
+   ```
+   `EVALS_FORCER=1` passe outre : sur ordre explicite seulement.
+3. **Lancer.** En CI : poser le label `evals` et écrire la ligne `Evals:` de la
+   PR ([voir plus haut](#choisir-les-évals-dune-pr)). En local, sur le VPS,
+   seuls les cas `tags: [lecture]` se jouent ([Où tourne quoi](#où-tourne-quoi)) :
+   `evals_ab.py --mode ab`, comme dans [Comparer deux versions](#comparer-deux-versions).
+   Garder 3 passages par cas : le bruit mesuré ne vaut que pour 3.
+
+## La fumée : ce qu'elle voit, ce qu'elle ne voit pas
+
+Quand une PR touche un skill, un agent, un hook ou `_partage/` sans porter le
+label `evals`, la CI joue une **fumée** : la tête seule, en **un passage**, sur
+Sonnet, sur les catégories que les fichiers touchés exercent. Ces catégories
+sont **calculées** par `scripts/evals_selection.py`, pas choisies ; tout le banc
+part pour `_partage/` et les hooks. Elle coûte 0,54 $ à 2,38 $ par catégorie,
+environ 9,2 $ au plus. La fumée ne remplace pas l'A/B : c'est le label `evals`
+qui remplace la fumée par l'A/B.
+
+**Elle est rouge** si une session plante, ou si une catégorie passe sous son
+plancher. Le plancher est le plus bas tirage sain mesuré, moins 0,10 (15 tirages
+sains sur Sonnet et Opus, 2026-10-01) :
+
+| Catégorie | Tirage sain (min – max) | Plancher |
+|---|---|---|
+| `existant` | 0,75 – 0,92 | 0,65 |
+| `bruit` | 0,80 – 0,92 | 0,70 |
+| `etat-de-depart` | 0,92 – 1,00 | 0,82 |
+| `maquette` | 0,90 – 1,00 | 0,80 |
+| `decouvertes` | 0,51 – 0,57 | 0,41 |
+| `perimetre` | 0,31 – 0,45 | 0,21 |
+
+Ces valeurs sont l'origine des planchers ; ceux que la CI applique sont dans son
+code. Sur le seul bras cassé mesuré (trois bancs simultanés), les tirages
+tombaient à 0,48 – 0,52 pour 0,73 – 0,78 en bonne santé, avec 21 sessions en
+erreur sur 48 : un seul tirage l'aurait vu.
+
+**Ce qu'elle ne voit pas :**
+
+- un **recul fin**, de moins de 0,10 sur une catégorie : c'est le rôle de l'A/B ;
+- sur `decouvertes`, le bras cassé gardait un score dans la plage saine : seules
+  les sessions en erreur l'auraient signalé ;
+- le **taux de faux rouges** : 15 tirages ne le mesurent pas, seul l'usage le
+  dira ;
+- **Haiku** : aucun tirage mesuré, donc aucun plancher connu.
+
+**Un rouge à tort se relance une fois** ; au second rouge, on pose `evals`
+pour trancher par l'A/B. Attention à la file : le groupe `evals-<plugin>` ne
+garde qu'un run en attente, et **une fumée en attente peut annuler un A/B en
+attente**. Un run annulé se relance, il ne vaut pas verdict.
+
+## Rejeu réel : quand et combien
+
+Le rejeu réel, c'est le second palier : rejouer en local de vrais cas passés,
+avec des sous-agents qui refont le travail puis des juges qui le notent. **Il se
+lance seulement sur demande explicite de Benjamin, avec le coût annoncé avant** :
+nombre de rejeux × 3,30 $, plus les juges à 0,75 $ pièce, et un seul tirage par
+défaut. Aucun skill ne le prescrit ; un lot de plan n'en lance pas de son chef.
+
+**Ce que ça coûte, mesuré** (2026-09-30, dans les transcriptions des
+sous-agents ; équivalent tarif API) :
+
+| Poste | Jetons | Coût |
+|---|---|---|
+| un rejeu | ≈ 10 M | ≈ 3,30 $ |
+| un juge | ≈ 0,9 M | ≈ 0,75 $ |
+| 18 rejeux | 191 M | ≈ 60 $ |
+| 12 juges | 11 M | ≈ 9 $ |
+| un retest | 72,4 M | ≈ 25 $ |
+| le rejeu d'un lot de doctrine, juges compris | ≈ 202 M | ≈ 69 $ |
+
+Ce dernier rejeu a donné un écart de + 1,9 point, resté sous le bruit : 69 $ pour
+un verdict qui ne tranche pas. D'où la règle ci-dessus.
+
+**La méthode de mesure : compter les relectures cumulées, pas la taille
+finale.** Un agent fait 40 à 60 tours, et **à chaque tour** il relit tout son
+contexte (≈ 270 000 jetons en fin de rejeu), en lecture de cache. Un rejeu
+relit donc ≈ 10 M de jetons, pas 270 000. Un coût annoncé d'après la taille
+finale du contexte (≈ 2,84 M de jetons pour le retest) était faux d'un facteur
+25 : le mesuré est 72,4 M. Pour mesurer : sommer, tour par tour, l'`usage` de la
+transcription du sous-agent (entrée, écriture de cache, lecture de cache,
+sortie), puis multiplier par le tarif du modèle (par million de jetons, Sonnet :
+2 $ en entrée, 10 $ en sortie, 4 $ l'écriture de cache d'une heure, 0,20 $ la
+lecture ; Opus : 4 $, 20 $, 8 $, 0,20 $).
 
 ## Ce que la méthode interdit
 

@@ -674,10 +674,10 @@ partout. Les deux régimes, la définition du lot et la décision de Benjamin du
 
 **Si le plan modifie un plugin d'un dépôt qui a un banc d'évals par catégorie** (un
 `evals/categories.json`), le chapitre porte une ligne `Évals à jouer : <catégories> —
-pourquoi`, choisie d'après les skills et agents que les étapes touchent. Le choix est
-libre, mais la CI refuse une sélection qui ne couvre pas un skill touché, et joue tout
-le banc pour `_partage/`, les hooks ou le banc lui-même ; « tout » est une réponse.
-Sans ce fichier dans le dépôt, la règle ne s'applique pas.
+pourquoi`, ou `aucun — <raison>`. La CI ne joue les évals que sur demande : choisir des
+catégories, c'est demander le label `evals` ; « tout » et « aucun » sont des réponses.
+Coûts et geste : `${CLAUDE_PLUGIN_ROOT}/skills/_partage/outils-et-quotas.md`, fiche
+`claude plugin eval`. Sans ce fichier dans le dépôt, la règle ne s'applique pas.
 
 **Une étape = un titre H3** : `Étape 1 — Titre court de l'étape`. Comme pour les
 questions, c'est le H3 qui met l'étape dans la table des matières et permet d'y
