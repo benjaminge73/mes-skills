@@ -1031,9 +1031,18 @@ class LanceurModeleEtEffort(unittest.TestCase):
     """``evals/outillage/lancer.sh`` avec un faux ``claude`` dans le ``PATH`` : le
     faux écrit dans un fichier ce qu'il a reçu (arguments et effort), rien
     d'autre. Aucun vrai appel, aucun jeton réel (un jeton factice sert à vérifier
-    que le lanceur ne l'affiche pas)."""
+    que le lanceur ne l'affiche pas).
+
+    Hors CI, le lanceur contrôle les bancs de CI avec ``gh`` puis prend le jeton
+    machine : un faux ``gh`` (aucun run en cours) et un ``XDG_STATE_HOME`` jetable
+    simulent ces deux gardes, de sorte que ni le vrai ``gh`` (réseau) ni le vrai
+    ``~/.local/state`` ne sont touchés. Le jeton lui-même reste le vrai script, et
+    il refuse une machine saturée : le relevé de ``/proc`` n'étant pas injectable
+    depuis le lanceur, les tests sont alors sautés."""
 
     LANCEUR = Path(__file__).resolve().parents[1] / "evals" / "outillage" / "lancer.sh"
+    ETAT_MACHINE = (Path(__file__).resolve().parents[1] / "plugins" / "plans-notion"
+                    / "skills" / "_partage" / "scripts" / "etat-machine.py")
     JETON = "jeton-factice-a-ne-jamais-afficher"
 
     def setUp(self):
@@ -1050,6 +1059,14 @@ class LanceurModeleEtEffort(unittest.TestCase):
             f'echo "args=$*" >> "{self.trace}"\n'
             "exit 0\n", "utf-8")
         faux.chmod(0o755)
+        # Faux gh : aucun run en cours (sortie vide, code 0), sans réseau.
+        gh = self.bin / "gh"
+        gh.write_text("#!/bin/sh\nexit 0\n", "utf-8")
+        gh.chmod(0o755)
+        releve = subprocess.run([sys.executable, str(self.ETAT_MACHINE), "releve"],
+                                capture_output=True, text=True, timeout=30)
+        if releve.stdout.splitlines()[:1] == ["saturée"]:
+            self.skipTest("la machine est saturée : le jeton refuse, quoi que fasse le lanceur")
 
     def _lancer(self, **env_extra) -> tuple[subprocess.CompletedProcess, str]:
         assert "GITHUB_ACTIONS" not in env_extra, "jamais de GITHUB_ACTIONS=true dans un test"
@@ -1058,6 +1075,7 @@ class LanceurModeleEtEffort(unittest.TestCase):
                             "EVALS_MAX_COUT_USD", "CLAUDE_CODE_EFFORT_LEVEL", "TMPDIR")}
         env["PATH"] = f"{self.bin}{os.pathsep}{env.get('PATH', '')}"
         env["TMPDIR"] = str(self.racine / "traces")
+        env["XDG_STATE_HOME"] = str(self.racine / "etat")
         env["CLAUDE_CODE_OAUTH_TOKEN"] = self.JETON
         env.update(env_extra)
         r = subprocess.run(
