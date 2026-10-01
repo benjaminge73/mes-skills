@@ -29,6 +29,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -821,6 +822,101 @@ class CiYml(unittest.TestCase):
         self.assertIn("evals-verdict", doc["jobs"])
         self.assertEqual(doc["jobs"]["evals-verdict"]["name"], "Verdict des évals")
         self.assertEqual(doc["jobs"]["evals-verdict"]["permissions"], {})
+
+
+class PorteeDuLabelAjoute(unittest.TestCase):
+    """Un ``labeled`` dont le label ajouté n'est pas ``evals`` ne relance pas le banc.
+
+    Le pas ``portee`` d'``evals-portee`` est joué pour de bon, dans un dépôt jetable
+    (deux commits, le second change un skill), avec un faux ``gh`` qui répond ce
+    que l'API répondrait. On lit ce que le job sort : ``touche`` dans le fichier
+    ``GITHUB_OUTPUT``. ``LABEL_AJOUTE`` est le nom du label de l'événement
+    ``labeled`` (vide pour ``opened``, ``synchronize`` et ``reopened``).
+    """
+
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self._tmp.cleanup)
+        d = self.depot = Path(self._tmp.name) / "depot"
+        (d / "bin").mkdir(parents=True)
+        (d / "scripts").mkdir()
+        (d / "evals" / "jouet").mkdir(parents=True)
+        (d / "plugins" / "jouet" / ".claude-plugin").mkdir(parents=True)
+        (d / "plugins" / "jouet" / "skills" / "plan").mkdir(parents=True)
+        shutil.copy(SCRIPT, d / "scripts" / "evals_selection.py")
+        (d / "evals" / "categories.json").write_text(json.dumps(CATEGORIES), "utf-8")
+        (d / "evals" / "jouet" / "a1.md").write_text("cas\n", "utf-8")
+        (d / "plugins" / "jouet" / ".claude-plugin" / "plugin.json").write_text("{}\n", "utf-8")
+        skill = d / "plugins" / "jouet" / "skills" / "plan" / "SKILL.md"
+        skill.write_text("v1\n", "utf-8")
+        self.git("init", "-q", "-b", "main")
+        self.git("add", ".")
+        self.git("commit", "-q", "-m", "base")
+        self.base = self.git("rev-parse", "HEAD").strip()
+        skill.write_text("v2\n", "utf-8")
+        self.git("commit", "-q", "-am", "change le skill")
+        self.tete = self.git("rev-parse", "HEAD").strip()
+        gh = d / "bin" / "gh"
+        gh.write_text('#!/bin/sh\ncase "$*" in *labels*) printf \'%s\' "$FAUX_LABELS";;'
+                      ' *) printf \'%s\' "$FAUX_BODY";; esac\n', "utf-8")
+        gh.chmod(0o755)
+
+    def git(self, *args):
+        r = subprocess.run(
+            ["git", "-c", "user.name=t", "-c", "user.email=t@example.org", *args],
+            cwd=self.depot, capture_output=True, text=True, check=True)
+        return r.stdout
+
+    def _pas_portee(self) -> str:
+        import textwrap
+        ci = CI.read_text(encoding="utf-8")
+        run = _job(ci, "evals-portee").split("        run: |\n", 1)[1]
+        return textwrap.dedent(run)
+
+    def jouer(self, labels, label_ajoute, corps="Evals: bruit — essai"):
+        """(code, sortie du pas, dict de GITHUB_OUTPUT)."""
+        d = self.depot
+        sortie = d / "github_output.txt"
+        sortie.write_text("", "utf-8")
+        env = {k: v for k, v in os.environ.items() if k not in ("PR_BODY", "LABELS")}
+        env.update(
+            PATH=f"{d / 'bin'}{os.pathsep}{env['PATH']}", EVENT_NAME="pull_request",
+            GH_TOKEN="x", PR_NUMBER="7", REPO="proprietaire/depot",
+            PR_BASE_SHA=self.base, PR_HEAD_SHA=self.tete, RUNNER_TEMP=str(d),
+            GITHUB_OUTPUT=str(sortie), GITHUB_STEP_SUMMARY=str(d / "resume.md"),
+            FAUX_LABELS=labels, FAUX_BODY=corps, LABEL_AJOUTE=label_ajoute)
+        r = subprocess.run(["bash", "-c", self._pas_portee()], cwd=d, env=env,
+                           capture_output=True, text=True)
+        sorties = dict(l.split("=", 1) for l in sortie.read_text("utf-8").splitlines() if "=" in l)
+        return r, sorties
+
+    def test_un_label_etranger_ajoute_sur_une_pr_qui_porte_evals_ne_relance_pas_le_banc(self):
+        r, sorties = self.jouer("evals\nreview-required", "review-required")
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        self.assertEqual(sorties["touche"], "false")
+        self.assertEqual(sorties["selection"], "{}")
+        self.assertIn("review-required", r.stdout)  # le log dit pourquoi on ne joue pas
+
+    def test_le_label_evals_qui_vient_d_etre_pose_joue_les_evals(self):
+        for ajoute in ("evals", "Evals"):
+            with self.subTest(label_ajoute=ajoute):
+                r, sorties = self.jouer("evals", ajoute)
+                self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+                self.assertEqual(sorties["touche"], "true")
+                self.assertEqual(json.loads(sorties["plugins"]), ["jouet"])
+
+    def test_sans_label_ajoute_ni_opened_ni_synchronize_ne_changent_rien(self):
+        # `opened`, `synchronize`, `reopened` : pas de label dans l'événement.
+        r, sorties = self.jouer("evals", "")
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        self.assertEqual(sorties["touche"], "true")
+
+    def test_un_label_etranger_ne_dispense_pas_du_controle_label_ou_aucun(self):
+        # Sans ce contrôle, un `labeled` étranger rendrait vert un SHA que le run
+        # précédent avait rendu rouge (le trou de `edited`).
+        r, sorties = self.jouer("review-required", "review-required", corps="")
+        self.assertNotEqual(r.returncode, 0)
+        self.assertEqual(sorties["touche"], "false")
 
 
 def _blocs_run(texte: str):
