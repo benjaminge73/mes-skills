@@ -5,7 +5,7 @@ dépôts, en local comme en session cloud, et mis à jour tout seuls.
 
 | Plugin | Ce qu'il apporte |
 |---|---|
-| `plans-notion` | Skills `plan-notion` et `executer-plan-notion`, agents `enqueteur`, `executant`, `relecteur` et `chercheur`. Les plans de travail s'écrivent, se relisent et s'exécutent dans Notion plutôt que dans le chat : chaque plan porte un chapitre `Cartes` (carte du dépôt et carte du plan en schémas Mermaid, tenues à jour à chaque passe) et un tableau de chevauchement avec `Dépend de` / `Taille` / `Blocs touchés` par étape ; l'exécution en tire des **vagues** — étapes parallèles dans des worktrees, étapes voisines regroupées dans un même sous-agent — avec rapport de sous-agent à quatre états, décompte des découvertes vérifié et rétrospective en cinq questions ; l'enquêteur est passé de six à quatorze gestes d'investigation, dont chercher une constante par sa valeur et non par son nom et rejouer les tests des fichiers touchés et de leurs consommateurs ; le chercheur va voir sur le web ce qui existe déjà avant qu'on ne construise ; le plan dit ce qui existe déjà, prouve son point risqué par un POC (preuve de faisabilité) et se répète à blanc avant validation ; l'exécution mène plusieurs plans dans une même session, avec un plan maître, et exige le libellé `Découvertes :` dans chaque entrée d'étape du journal. Une étape testée prouve son rouge avant son vert — commit rouge rejoué par le pilote, `git diff` vide sur les fichiers de test entre rouge et vert ; le relecteur relit chaque étape au regard neuf, sans le contexte de la session qui a écrit le code, jusqu'à `RIEN À SIGNALER` ; la clôture contrôle qu'aucune branche de vague n'a survécu au plan. |
+| `plans-notion` | Skills `plan-notion` et `executer-plan-notion`, agents `enqueteur`, `executant`, `relecteur` et `chercheur`. Les plans de travail s'écrivent, se relisent et s'exécutent dans Notion plutôt que dans le chat : chaque plan porte un chapitre `Cartes` (carte du dépôt et carte du plan en schémas Mermaid, tenues à jour à chaque passe) et un tableau de chevauchement avec `Dépend de` / `Taille` / `Blocs touchés` par étape ; l'exécution en tire des **vagues** — étapes parallèles dans des worktrees, étapes voisines regroupées dans un même sous-agent — avec rapport de sous-agent à quatre états, décompte des découvertes vérifié et rétrospective en cinq questions ; l'enquêteur est passé de six à quatorze gestes d'investigation, dont chercher une constante par sa valeur et non par son nom et rejouer les tests des fichiers touchés et de leurs consommateurs ; le chercheur va voir sur le web ce qui existe déjà avant qu'on ne construise ; le plan dit ce qui existe déjà, prouve son point risqué par un POC (preuve de faisabilité) et se répète à blanc avant validation ; l'exécution mène plusieurs plans dans une même session, avec un plan maître, et exige le libellé `Découvertes :` dans chaque entrée d'étape du journal. Une étape testée prouve son rouge avant son vert — commit rouge rejoué par le pilote, `git diff` vide sur les fichiers de test entre rouge et vert ; le relecteur relit chaque étape au regard neuf, sans le contexte de la session qui a écrit le code, jusqu'à `RIEN À SIGNALER` ; la clôture contrôle qu'aucune branche de vague n'a survécu au plan ; la machine est partagée entre sessions (`_partage/scripts/etat-machine.py` en relève l'état et tient un jeton pour les actions lourdes), et la règle 7 de `bons-tests.md` limite chaque étape à un test par panne nommée. |
 | `methode-de-travail` | Skills `brainstorming`, `systematic-debugging`, `verification-before-completion`. Dialoguer avant de créer, avec l'outil de question natif, chercher la cause racine avant de corriger, prouver avant d'annoncer que c'est fini : `brainstorming` route désormais chaque demande en Spike / Bounded / Architectural et proportionne la sortie — réponse dans le chat, page de plan allégée, ou page complète ; `verification-before-completion` exige la preuve du rouge sur un test de fonctionnalité neuve, vu échouer avant le code et inchangé jusqu'au vert. |
 
 ## Pourquoi ce dépôt est public
@@ -300,12 +300,28 @@ CLI Claude Code elle-même (`claude plugin validate`), joue les tests des
 scripts de garde et attrape les renvois `${CLAUDE_PLUGIN_ROOT}/…` pointant dans
 le vide, ainsi que les frontmatters incomplets ou mal nommés.
 
-Le banc d'évals a ses propres jobs. `evals-portee` (« Portée des évals »,
-gratuit) décide si la PR touche un plugin à évaluer, et ferme la voie aux forks ; `evals`
-(« Évals (<plugin>) », **payant**, il tourne sur le runner GitHub) joue les cas
-du dossier `evals/` en A/B sur chaque PR qui change un skill. La méthode est
-dans [docs/tester-un-skill.md](docs/tester-un-skill.md), les résultats
-comparés dans [evals/RESULTATS.md](evals/RESULTATS.md).
+Le banc d'évals a ses propres jobs, et il ne joue plus sur chaque PR : il part
+à la demande. `evals-portee` (« Portée des évals », gratuit) décide si la PR
+touche un plugin à évaluer, et ferme la voie aux forks. `evals` (« Évals
+(<plugin>) », **payant**, il tourne sur le runner GitHub) joue les cas du
+dossier `evals/` en A/B (la tête contre sa base), seulement si la PR porte le
+label `evals`. Sans ce label, une PR qui touche un skill, un agent, un hook ou
+un `_partage/` doit porter dans son corps une ligne `Evals: aucun — <raison>`,
+sinon `evals-portee` est rouge. Elle passe alors par le job `fumee` : la tête
+seule, en un passage, sur les catégories que ses fichiers exercent, jugée sur
+des planchers par catégorie (`evals/categories.json`), pour 0,54 à 9,2 $.
+
+Le banc est sobre. Un seul banc tourne par plugin à la fois
+(`concurrency: evals-<plugin>`). Le rapport de la base est repris du cache selon
+son contenu (`--base-rapport`) au lieu d'être rejoué. Le coût est annoncé avant
+de jouer (`--estimer`), avec un plafond de 35 $ par bras. Des sessions en erreur
+rendent « non concluant » (code 4), jamais un recul. Un label étranger ajouté à
+la PR ne relance rien et ne blanchit pas le verdict (« Verdict des évals »).
+`scripts/ci_locale.sh` ne joue ni `evals` ni `fumee`. Côté poste,
+`evals/outillage/lancer.sh` refuse une éval locale si un banc tourne en CI et
+prend lui-même le jeton de la machine (voir `_partage/machine-partagee.md`). La
+méthode est dans [docs/tester-un-skill.md](docs/tester-un-skill.md), les
+résultats comparés dans [evals/RESULTATS.md](evals/RESULTATS.md).
 
 Il n'y a pas de job de déploiement (CD, *continuous delivery*) parce qu'il n'y
 a rien à déployer : ce dépôt n'est pas un service qui tourne quelque part, il
@@ -329,7 +345,7 @@ scripts/ci_locale.sh
 Ce script est la **seule** liste des contrôles : c'est exactement ce que la CI
 joue dans ses jobs `garde` et `validation`, dans l'ordre. Rien à énumérer ici —
 un contrôle ajouté au dépôt s'ajoute dans ce script, et la CI comme les
-contributeurs le reprennent. Il ne joue pas le job `evals`, payant, qui tourne
+contributeurs le reprennent. Il ne joue ni le job `evals`, payant, ni `fumee` : ils tournent
 sur le runner GitHub. Sur une branche de PR il compare à `origin/main` (une
 autre base : `BASE_REF=<réf>`) ; la CLI `claude` doit être installée.
 
