@@ -1395,5 +1395,85 @@ class CleDuCacheDeLaBase(unittest.TestCase):
         self.assertEqual(r["cle_ecriture"], r["cle_tout"])
 
 
+# --------------------------------------------------------------------------
+# Étape 4 : le coût annoncé avant (--estimer), et compté en A/A
+# --------------------------------------------------------------------------
+def rapport_a_couts_distincts(couts: dict[str, list[tuple[float, float]]]) -> dict:
+    """Un rapport où chaque passage porte son coût (jeu, juge) : des montants tous
+    différents, pour qu'une somme sur le mauvais ensemble de cas se voie."""
+    cas = [
+        {"name": nom, "arms": {"with": [
+            {"score": 1, "passed": True, "costUsd": jeu, "judgeCostUsd": juge}
+            for jeu, juge in passages]}, "aggregates": {"score": 1}}
+        for nom, passages in couts.items()
+    ]
+    return {"schemaVersion": 1, "cases": cas}
+
+
+class CoutAnnonceAvant(DepotEtLanceur):
+    """``--estimer`` additionne, sur un rapport déjà joué, le coût des cas choisis.
+
+    Rapport de la base, calculé à la main (3 passages par cas, jeu + juge) :
+      alpha  0,40 + 0,50 + 0,30 + 3 x 0,05 = 1,35 $
+      beta   0,70 + 0,60 + 0,55 + 3 x 0,10 = 2,15 $
+      gamma  3,00 + 3,00 + 3,00            = 9,00 $  (jamais choisi)
+    """
+
+    def setUp(self):
+        super().setUp()
+        CasChoisis.ajouter_cas(self, "beta")
+        self.rapport_source = self.racine / "rapport-source.json"
+        ecrire(self.rapport_source, json.dumps(rapport_a_couts_distincts({
+            "alpha": [(0.40, 0.05), (0.50, 0.05), (0.30, 0.05)],
+            "beta": [(0.70, 0.10), (0.60, 0.10), (0.55, 0.10)],
+            "gamma": [(3.00, 0.0), (3.00, 0.0), (3.00, 0.0)],
+        })))
+
+    def estimer(self, *extra: str):
+        return jouer(
+            self.argv("--base-rapport", str(self.rapport_source), "--cas", "alpha",
+                      "--cas", "beta", "--estimer", *extra),
+            self.env,
+        )
+
+    def test_l_estimation_somme_au_centime_le_cout_des_seuls_cas_choisis(self):
+        code, sortie, erreur = self.estimer()
+        self.assertEqual(code, 0, erreur)
+        self.assertIn("$3.50", sortie)  # 1,35 + 2,15 ; ni gamma, ni le total du rapport (12,50)
+
+    def test_estimer_ne_joue_aucun_bras(self):
+        # Test en plus de celui de la somme : la panne est autre (l'estimation
+        # lancerait quand même les évals, et coûterait ce qu'elle annonce).
+        code, _, erreur = self.estimer()
+        self.assertEqual(code, 0, erreur)
+        self.assertEqual(self.appels(), [])
+
+    def test_l_estimation_suit_le_nombre_de_passages_demande_et_non_celui_du_rapport(self):
+        # Test en plus : le rapport source a 3 passages par cas, la CI en demande
+        # `--runs 2`. Coût moyen par passage x 2 : 3,50 x 2/3 = 2,33 $.
+        code, sortie, erreur = self.estimer("--", "--runs", "2")
+        self.assertEqual(code, 0, erreur)
+        self.assertIn("$2.33", sortie)
+
+    def test_estimer_sans_rapport_ou_lire_les_couts_est_un_refus_et_ne_joue_rien(self):
+        # Test en plus : sans rapport, aucun montant n'est dérivable ; mieux vaut
+        # un refus lisible qu'un « $0.00 » qui annoncerait gratuit.
+        code, sortie, erreur = jouer(self.argv("--cas", "alpha", "--estimer"), self.env)
+        self.assertEqual(code, 3, sortie)
+        self.assertIn("--base-rapport", erreur)
+        self.assertEqual(self.appels(), [])
+
+
+class CoutDeLAA(DepotEtLanceur):
+    def test_le_mode_aa_ecrit_le_cout_des_deux_passages_joues(self):
+        # Les rapports figés `base` et `tete_stable` coûtent chacun 0,36 $ (4 cas
+        # x 3 passages x 0,03 $) : l'A/A, qui les joue tous les deux, coûte 0,72 $.
+        code, sortie, erreur = jouer(
+            self.argv("--sortie-bruit", str(self.racine / "bruit.json"), mode="aa"), self.env
+        )
+        self.assertEqual(code, 0, erreur)
+        self.assertIn("$0.72", sortie)
+
+
 if __name__ == "__main__":
     unittest.main()
