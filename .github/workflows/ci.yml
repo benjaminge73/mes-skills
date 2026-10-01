@@ -135,6 +135,9 @@ jobs:
           REPO: ${{ github.repository }}
           PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
           PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          # Le label que l'événement `labeled` vient de poser (vide pour `opened`,
+          # `synchronize` et `reopened`) : voir « label ajouté » plus bas.
+          LABEL_AJOUTE: ${{ github.event.label.name }}
         run: |
           set -euo pipefail
           # --- corps de la PR (début)
@@ -241,6 +244,18 @@ jobs:
               case " ${a_verifier[*]-} " in *" $t "*) ;; *) a_verifier+=("$t") ;; esac
             done
           fi
+          # --- label ajouté (début)
+          # Un `labeled` dont le label n'est pas `evals` (`review-required` posé sur
+          # une PR qui porte déjà `evals`) ne doit pas relancer le banc payant : on
+          # ne joue rien. Le contrôle « label ou aucun » ci-dessous, lui, tourne
+          # quand même : le sauter rendrait vert, sur ce SHA, un run que le
+          # précédent avait rendu rouge (le trou de `edited`, décrit en tête).
+          joue=1
+          if [ -n "${LABEL_AJOUTE-}" ] && [ "${LABEL_AJOUTE,,}" != "evals" ]; then
+            joue=0
+            echo "Label « $LABEL_AJOUTE » ajouté : ce n'est pas « evals », les évals ne sont pas relancées."
+          fi
+          # --- label ajouté (fin)
           liste="$RUNNER_TEMP/fichiers-touches.txt"
           : > "$liste"
           if [ "${#fichiers[@]}" -gt 0 ]; then printf '%s\n' "${fichiers[@]}" > "$liste"; fi
@@ -256,8 +271,8 @@ jobs:
             fi
           done
 
-          # Sans label, la sélection est vide partout : rien à jouer.
-          if [ "$a_le_label" = 0 ]; then
+          # Sans label `evals`, ou sur un label étranger : rien à jouer.
+          if [ "$a_le_label" = 0 ] || [ "$joue" = 0 ]; then
             choisis=()
             selection='{}'
           fi
@@ -279,7 +294,13 @@ jobs:
             echo "### Portée des évals"
             echo
             if [ "$selection" = '{}' ]; then
-              echo "Aucun plugin à jouer$([ "$a_le_label" = 0 ] && echo " (pas de label evals sur la PR)")."
+              if [ "$joue" = 0 ]; then
+                echo "Aucun plugin à jouer (label « $LABEL_AJOUTE » ajouté, pas « evals »)."
+              elif [ "$a_le_label" = 0 ]; then
+                echo "Aucun plugin à jouer (pas de label evals sur la PR)."
+              else
+                echo "Aucun plugin à jouer."
+              fi
             else
               jq -r 'to_entries[] | "- **\(.key)** : " + (if .value.tout then "tout le banc (\(.value.cas | length) cas) — \(.value.pourquoi_tout | .[0:200])" else "\(.value.categories | join(", ")) (\(.value.cas | length) cas)" end)' <<<"$selection"
             fi
