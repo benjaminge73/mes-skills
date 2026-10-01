@@ -28,6 +28,7 @@ Entrées
                          '.labels[].name'``). Vide : aucun label. Seul le label
                          ``evals`` compte (casse indifférente) ; il est relu par
                          l'API à chaque run, jamais lu dans le payload.
+``--fumee``              autre sortie, pour le job ``fumee`` : voir « La fumée » plus bas.
 ``PR_BODY`` (environnement) le corps de la PR. Jamais en argument : un corps de
                          PR est une entrée non fiable, et une variable
                          d'environnement n'est jamais interprétée par un shell.
@@ -74,6 +75,20 @@ Les règles, dans l'ordre
 5. Sinon, chaque fichier touché sous ``skills/`` ou ``agents/`` doit être exercé
    par au moins une catégorie **choisie** ; sinon refus (code 1), avec le
    fichier non couvert et les catégories qui le couvriraient.
+
+La fumée
+--------
+``--fumee`` (plan « Évals sobres et machine partagée », étape 12) dit quelles
+catégories le test de fumée joue pour une PR **sans** le label ``evals`` (avec lui,
+l'A/B remplace la fumée : c'est ``ci.yml`` qui en décide, pas ce script). Elle ne
+lit ni le corps de la PR ni ``--labels`` : seuls les fichiers touchés comptent.
+Sous ``plugins/<p>/skills/``, ``agents/`` et ``hooks/`` : un fichier que des
+catégories exercent rend ces catégories ; ``skills/_partage/``, ``hooks/`` et un
+fichier qu'aucune catégorie n'exerce rendent **toutes** celles du plugin (le défaut
+prudent de la règle 4). Aucun de ces dossiers touché : sélection vide. Chaque
+catégorie retenue garde **tous** ses cas (``cas``) : la fumée juge une catégorie
+sur les seuls cas joués. Un plugin sans catégorie déclarée est refusé (code 1) :
+il n'y aurait aucun plancher à tenir.
 
 Sortie et codes
 ---------------
@@ -302,6 +317,38 @@ def selectionner(plugin: str, fichiers: list[str], corps: str,
             "cas": _union(cats, choisies), "raison": raison, "pourquoi_tout": ""}
 
 
+# Ce qui, touché, fait jouer toute la fumée : le socle d'un plugin, que nulle catégorie
+# ne peut prétendre exercer à elle seule.
+SOCLE_DE_LA_FUMEE = ("skills/_partage/", "hooks/")
+
+
+def fumee(plugin: str, fichiers: list[str], categories: dict[str, dict[str, dict]]) -> dict:
+    """Les catégories de la fumée de CI pour les fichiers touchés (voir « La fumée »)."""
+    racine = f"plugins/{plugin}/"
+    relatifs = [f[len(racine):] for f in fichiers
+                if f.startswith(tuple(racine + d for d in DOSSIERS_QUI_CHANGENT_UN_COMPORTEMENT))]
+    if not relatifs:
+        return _rien_a_jouer(plugin, "")
+    cats = categories.get(plugin)
+    if not cats:
+        raise Refus(f"aucune catégorie déclarée pour le plugin « {plugin} » dans "
+                    "evals/categories.json : la fumée n'a aucun plancher à tenir.")
+    retenues: set[str] = set()
+    pourquoi = ""
+    for r in relatifs:
+        exercees = [] if r.startswith(SOCLE_DE_LA_FUMEE) else _exercee_par(cats, r)
+        if exercees:
+            retenues.update(exercees)
+        elif not pourquoi:
+            pourquoi = (f"{racine}{r} : socle commun ou fichier qu'aucune catégorie n'exerce "
+                        "(défaut prudent : on ne sait pas quoi jouer)")
+    if pourquoi:
+        retenues = set(cats)
+    noms = [n for n in cats if n in retenues]
+    return {"plugin": plugin, "tout": bool(pourquoi), "categories": noms,
+            "cas": _union(cats, noms), "raison": "", "pourquoi_tout": pourquoi}
+
+
 def main(argv: list[str] | None = None) -> int:
     parseur = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     parseur.add_argument("--plugin", required=True)
@@ -310,12 +357,18 @@ def main(argv: list[str] | None = None) -> int:
     parseur.add_argument("--categories", type=Path, default=DEPOT / "evals" / "categories.json")
     parseur.add_argument("--labels", default="",
                          help="labels de la PR, un par ligne ; vide : aucun (rien ne se joue)")
+    parseur.add_argument("--fumee", action="store_true",
+                         help="les catégories de la fumée de CI (sans label evals) ; "
+                              "ignore le corps de la PR et les labels")
     args = parseur.parse_args(argv)
     try:
         categories = lire_categories(args.categories)
         fichiers = lire_fichiers(args.fichiers)
-        selection = selectionner(args.plugin, fichiers, os.environ.get("PR_BODY", ""), categories,
-                                 args.labels)
+        if args.fumee:
+            selection = fumee(args.plugin, fichiers, categories)
+        else:
+            selection = selectionner(args.plugin, fichiers, os.environ.get("PR_BODY", ""),
+                                     categories, args.labels)
     except Panne as e:
         print(f"evals_selection : {e}", file=sys.stderr)
         return 2

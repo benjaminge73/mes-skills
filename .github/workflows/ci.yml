@@ -26,7 +26,9 @@ on:
   # labels sont périmés (même trou que `edited`, fermé de la même façon). Sans le
   # label, une PR qui touche un skill, un agent, un hook ou un `_partage/` doit
   # porter `Evals: aucun — <raison>` dans son corps, sinon `evals-portee` est
-  # rouge et le verdict avec lui.
+  # rouge et le verdict avec lui. Elle passe alors par le job `fumee` : la tête
+  # seule, un passage, sur les catégories que les fichiers touchés exercent. Le
+  # label `evals` la remplace par l'A/B complet.
   pull_request:
     types: [opened, synchronize, reopened, labeled]
   push:
@@ -111,6 +113,10 @@ jobs:
       base: ${{ steps.portee.outputs.base }}
       # Un objet JSON {plugin: sélection} : voir scripts/evals_selection.py.
       selection: ${{ steps.portee.outputs.selection }}
+      # La fumée (job `fumee`) : les plugins, puis {plugin: sélection} comme
+      # `selection`, tirée de `evals_selection.py --fumee`. Vides sans fumée.
+      fumee_plugins: ${{ steps.portee.outputs.fumee_plugins }}
+      fumee_selection: ${{ steps.portee.outputs.fumee_selection }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -271,6 +277,37 @@ jobs:
             fi
           done
 
+          # --- fumée (début)
+          # Sans le label `evals`, une PR qui change un skill, un agent, un hook ou un
+          # `_partage/` passe par la fumée : la tête seule, sur les catégories que les
+          # fichiers touchés exercent (la ligne `Evals:` du corps n'y change rien). Avec
+          # le label, l'A/B la remplace ; un label étranger ajouté ne la relance pas, comme
+          # il ne relance pas le banc. Un plugin dont aucun fichier n'est exercé n'y entre pas.
+          fumee_plugins=""
+          fumee_selection='{}'
+          if [ "$a_le_label" = 0 ] && [ "$joue" = 1 ]; then
+            en_fumee=()
+            for nom in "${jouables[@]}"; do
+              for t in "${touches[@]}"; do
+                [ "$t" = "$nom" ] || continue
+                if sel=$(python3 scripts/evals_selection.py --fumee --plugin "$nom" --fichiers "$liste" 2>"$RUNNER_TEMP/fumee.err"); then
+                  if [ "$(jq '.cas | length' <<<"$sel")" -gt 0 ]; then
+                    fumee_selection=$(jq -c --arg p "$nom" --argjson s "$sel" '. + {($p): $s}' <<<"$fumee_selection")
+                    en_fumee+=("$nom")
+                  fi
+                else
+                  refus=1
+                  echo "::error title=Fumée non préparée ($nom)::$(tr '\n\r' '  ' < "$RUNNER_TEMP/fumee.err")"
+                fi
+                break
+              done
+            done
+            if [ "${#en_fumee[@]}" -gt 0 ]; then
+              fumee_plugins=$(printf '%s\n' "${en_fumee[@]}" | jq -R . | jq -cs .)
+            fi
+          fi
+          # --- fumée (fin)
+
           # Sans label `evals`, ou sur un label étranger : rien à jouer.
           if [ "$a_le_label" = 0 ] || [ "$joue" = 0 ]; then
             choisis=()
@@ -288,6 +325,8 @@ jobs:
             echo "plugins=$plugins"
             echo "base=$base"
             echo "selection=$selection"
+            echo "fumee_plugins=$fumee_plugins"
+            echo "fumee_selection=$fumee_selection"
           } >> "$GITHUB_OUTPUT"
           echo "base=$base touche=$touche plugins=${plugins:-aucun}"
           {
@@ -303,6 +342,12 @@ jobs:
               fi
             else
               jq -r 'to_entries[] | "- **\(.key)** : " + (if .value.tout then "tout le banc (\(.value.cas | length) cas) — \(.value.pourquoi_tout | .[0:200])" else "\(.value.categories | join(", ")) (\(.value.cas | length) cas)" end)' <<<"$selection"
+            fi
+            if [ -n "$fumee_plugins" ]; then
+              echo
+              echo "### Fumée"
+              echo
+              jq -r 'to_entries[] | "- **\(.key)** : " + (if .value.tout then "toutes les catégories (\(.value.cas | length) cas) — \(.value.pourquoi_tout | .[0:200])" else "\(.value.categories | join(", ")) (\(.value.cas | length) cas)" end)' <<<"$fumee_selection"
             fi
           } >> "$GITHUB_STEP_SUMMARY"
           exit "$refus"
@@ -546,6 +591,7 @@ jobs:
           case "$code" in
             0) ;;
             1) echo "::error title=Recul::La tête de « $PLUGIN » recule au-delà du bruit par rapport à sa base (voir le résumé du job)." ;;
+            4) echo "::error title=Non concluant::Évals de « $PLUGIN » non concluantes : panne d'infrastructure (sessions en erreur), pas un recul. À relancer (Re-run failed jobs)." ;;
             *) echo "::error title=Évals refusées::evals_ab.py a rendu le code $code pour « $PLUGIN » : pré-vol, rapport partiel (plafond de coût) ou lanceur en échec. Voir le journal du job." ;;
           esac
           exit "$code"
@@ -661,33 +707,179 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
+  fumee:
+    name: Fumée (${{ matrix.plugin }})
+    needs: evals-portee
+    # Sans le label `evals`, une PR qui touche un skill, un agent, un hook ou un
+    # `_partage/` joue la tête seule, un passage, sur les catégories que ses
+    # fichiers exercent (`evals_selection.py --fumee`, calculé par `evals-portee`).
+    # Avec le label, l'A/B la remplace. Sauté quand rien n'est à jouer : un job
+    # sauté compte comme réussi. Une fumée rouge ou annulée rend le verdict rouge,
+    # donc pas de `merge-auto`.
+    if: needs.evals-portee.outputs.fumee_plugins != ''
+    runs-on: ubuntu-latest
+    # Au plus 16 cas x 1 passage, soit ≈ 3 passages par agent à ≈ 2,7 min (voir
+    # la mesure du job `evals`), plus ≈ 1 min 30 de préparation. 45 min gardent
+    # une marge large sans tolérer une boucle.
+    timeout-minutes: 45
+    permissions:
+      contents: read
+    # Le même groupe que le job `evals` (`evals-<plugin>`) : la fumée puise dans le
+    # même abonnement, donc elle attend le banc d'un autre run au lieu de lui
+    # disputer sa limite de débit, et ne l'annule pas. Même limite de GitHub : un
+    # seul run attend par groupe, un troisième annule celui qui attendait. Pas de
+    # partie `aa-` : la fumée ne tourne jamais en lancement manuel.
+    concurrency:
+      group: evals-${{ matrix.plugin }}
+      cancel-in-progress: false
+    strategy:
+      fail-fast: false
+      matrix:
+        # « aucun » n'est jamais joué : `if` saute le job avant (voir `evals`).
+        plugin: ${{ fromJSON(needs.evals-portee.outputs.fumee_plugins || '["aucun"]') }}
+    env:
+      # Les mêmes valeurs que le job `evals` : un autre modèle ou un autre effort
+      # changerait les scores, donc les planchers de `evals/categories.json`, qui
+      # ont été mesurés avec ceux-ci.
+      EVALS_MODELE: claude-sonnet-5-5
+      EVALS_EFFORT: high
+      EVALS_MAX_COUT_USD: '35'
+      EVALS_CONCURRENCE: '5'
+    steps:
+      - name: Vérifier que le jeton est là
+        # Premier pas, avant tout coût : sans jeton, on échoue net et on le dit.
+        env:
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+        run: |
+          if [ -z "${CLAUDE_CODE_OAUTH_TOKEN:-}" ]; then
+            echo "::error title=Secret absent::Le secret CLAUDE_CODE_OAUTH_TOKEN est vide ou absent : la fumée ne peut pas s'authentifier. Le poser avec « gh secret set CLAUDE_CODE_OAUTH_TOKEN » (voir docs/tester-un-skill.md, section « Le jeton de CI »)."
+            exit 1
+          fi
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Préparer le runner
+        # Refuse de tourner hors GITHUB_ACTIONS=true (garde-fou du script).
+        run: bash evals/outillage/preparer-runner.sh
+
+      - name: Reprendre un rapport pour estimer le coût
+        id: cache
+        # Aucune clé exacte n'existe (la clé ne correspond à rien, et on ne sauve
+        # rien) : seul le préfixe sert. GitHub rend alors la base en cache la plus
+        # récente de ce plugin, sans en exiger le contenu, le modèle ni la sélection.
+        # C'est un ordre de grandeur pour annoncer un coût, pas une mesure.
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/evals-cache/base.json
+          key: fumee-sans-cle-exacte-${{ github.run_id }}
+          restore-keys: evals-base-${{ matrix.plugin }}-
+
+      - name: Jouer la fumée, juger les catégories
+        id: jeu
+        env:
+          PLUGIN: ${{ matrix.plugin }}
+          SELECTION: ${{ needs.evals-portee.outputs.fumee_selection }}
+          CACHE_TROUVE: ${{ steps.cache.outputs.cache-matched-key }}
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+        run: |
+          set -euo pipefail
+          sortie="$RUNNER_TEMP/fumee-sortie"
+          cache="$RUNNER_TEMP/evals-cache"
+          journal_log="$RUNNER_TEMP/fumee.log"
+          mkdir -p "$sortie" "$cache"
+          # Traces hors de tout dossier téléversé : rien n'est téléversé ici.
+          export TMPDIR="$RUNNER_TEMP/evals-traces"
+          mkdir -p "$TMPDIR"
+
+          # Tous les cas de chaque catégorie retenue : `--fumee` juge une catégorie
+          # sur ses seuls cas joués, un cas laissé de côté fausserait sa moyenne. Quand
+          # la sélection dit « tout » (ou manque), aucun `--cas` : le banc entier.
+          args=(--plugin "$PLUGIN" --tete HEAD)
+          if [ "$(jq -r --arg p "$PLUGIN" '(.[$p] // {"tout": true}) | .tout' <<<"$SELECTION")" = "true" ]; then
+            echo "Toutes les catégories sont jouées."
+          else
+            mapfile -t cas < <(jq -r --arg p "$PLUGIN" '.[$p].cas[]' <<<"$SELECTION")
+            for c in "${cas[@]}"; do args+=(--cas "$c"); done
+            echo "Cas joués (${#cas[@]}) : ${cas[*]}"
+          fi
+
+          # Le coût annoncé avant de payer, en tête du résumé. Un seul bras est
+          # payé (la tête, un passage) : `--estimer` le lit dans le rapport en cache.
+          # Sans rapport qui couvre ces cas, le pire cas : le plafond par appel.
+          estime=""
+          if [ -n "$CACHE_TROUVE" ]; then
+            estime=$(python3 scripts/evals_ab.py "${args[@]}" --estimer \
+              --base-rapport "$cache/base.json" -- --runs 1 2>/dev/null) || estime=""
+          fi
+          {
+            echo "## Fumée — $PLUGIN"
+            echo
+            if [ -n "$estime" ]; then
+              echo "$estime"
+            else
+              echo "Coût estimé : aucun rapport en cache pour l'estimer, au plus $EVALS_MAX_COUT_USD \$ (plafond par appel)."
+            fi
+            echo
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          # stdout = le tableau Markdown ; stderr = la trace, qui reste dans le
+          # journal du job. Aucun `set -x`, aucun `env`.
+          set +e
+          python3 scripts/evals_ab.py "${args[@]}" --fumee -- \
+            --concurrency "$EVALS_CONCURRENCE" \
+            2>&1 >"$sortie/tableau.md" | tee "$journal_log" >&2
+          code=${PIPESTATUS[0]}
+          set -e
+
+          {
+            if [ -s "$sortie/tableau.md" ]; then
+              cat "$sortie/tableau.md"
+            else
+              echo "Aucun verdict produit (code $code) : voir le journal du job."
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          case "$code" in
+            0) ;;
+            1) echo "::error title=Fumée rouge::Une catégorie de « $PLUGIN » est sous son plancher (voir le résumé du job)." ;;
+            4) echo "::error title=Non concluant::Fumée de « $PLUGIN » non concluante : panne d'infrastructure (sessions en erreur), pas un recul. À relancer (Re-run failed jobs)." ;;
+            *) echo "::error title=Fumée refusée::evals_ab.py a rendu le code $code pour « $PLUGIN » : pré-vol, planchers manquants, rapport partiel (plafond de coût) ou lanceur en échec. Voir le journal du job." ;;
+          esac
+          exit "$code"
+
   evals-verdict:
     # Le seul contrôle d'évals au nom fixe : `Évals (<plugin>)` change avec la
     # matrice, et le verrou de `main` ne peut exiger qu'un nom qui ne change pas.
     # Toujours joué (`always()`), sinon un `needs` sauté ferait sauter aussi ce
     # job, et un contrôle exigé qui n'apparaît jamais bloque tout.
-    #   - rouge : la portée (refus du plancher) ou un bras des évals a échoué ou
-    #     a été annulé (une poussée qui annule le run ne doit pas passer pour vert) ;
+    #   - rouge : la portée (refus du plancher), un bras des évals ou la fumée a
+    #     échoué ou a été annulé (une poussée qui annule le run ne doit pas passer
+    #     pour vert) ;
     #   - vert : tout est `success`, ou sauté (une PR sans skill touché ne joue
     #     rien, et c'est normal).
     # Aucune copie du dépôt, aucun jeton, aucun droit : il ne lit que les
     # résultats des jobs dont il dépend.
     name: Verdict des évals
-    needs: [evals-portee, evals]
+    needs: [evals-portee, evals, fumee]
     if: always()
     runs-on: ubuntu-latest
     permissions: {}
     steps:
-      - name: Rouge si la portée ou un bras des évals est rouge ou annulé
+      - name: Rouge si la portée, un bras des évals ou la fumée est rouge ou annulé
         env:
           PORTEE: ${{ needs.evals-portee.result }}
           EVALS: ${{ needs.evals.result }}
+          FUMEE: ${{ needs.fumee.result }}
         run: |
-          echo "portée des évals : $PORTEE ; évals : $EVALS"
-          for etat in "$PORTEE" "$EVALS"; do
+          echo "portée des évals : $PORTEE ; évals : $EVALS ; fumée : $FUMEE"
+          for etat in "$PORTEE" "$EVALS" "$FUMEE"; do
             case "$etat" in
               failure|cancelled)
-                echo "::error title=Verdict des évals::La portée des évals ($PORTEE) ou un bras des évals ($EVALS) est rouge ou annulé : voir les jobs « Portée des évals » et « Évals (…) »."
+                echo "::error title=Verdict des évals::La portée des évals ($PORTEE), un bras des évals ($EVALS) ou la fumée ($FUMEE) est rouge ou annulé : voir les jobs « Portée des évals », « Évals (…) » et « Fumée (…) »."
                 exit 1 ;;
             esac
           done
