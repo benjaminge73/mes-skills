@@ -117,6 +117,9 @@ jobs:
       # `selection`, tirée de `evals_selection.py --fumee`. Vides sans fumée.
       fumee_plugins: ${{ steps.portee.outputs.fumee_plugins }}
       fumee_selection: ${{ steps.portee.outputs.fumee_selection }}
+      # 1 quand le run vient d'un label ajouté autre que `evals` : rien n'y est
+      # rejoué, et `evals-verdict` recopie alors le verdict déjà rendu sur ce SHA.
+      label_etranger: ${{ steps.portee.outputs.label_etranger }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -257,8 +260,10 @@ jobs:
           # quand même : le sauter rendrait vert, sur ce SHA, un run que le
           # précédent avait rendu rouge (le trou de `edited`, décrit en tête).
           joue=1
+          label_etranger=0
           if [ -n "${LABEL_AJOUTE-}" ] && [ "${LABEL_AJOUTE,,}" != "evals" ]; then
             joue=0
+            label_etranger=1
             echo "Label « $LABEL_AJOUTE » ajouté : ce n'est pas « evals », les évals ne sont pas relancées."
           fi
           # --- label ajouté (fin)
@@ -327,6 +332,7 @@ jobs:
             echo "selection=$selection"
             echo "fumee_plugins=$fumee_plugins"
             echo "fumee_selection=$fumee_selection"
+            echo "label_etranger=$label_etranger"
           } >> "$GITHUB_OUTPUT"
           echo "base=$base touche=$touche plugins=${plugins:-aucun}"
           {
@@ -860,20 +866,29 @@ jobs:
     #     échoué ou a été annulé (une poussée qui annule le run ne doit pas passer
     #     pour vert) ;
     #   - vert : tout est `success`, ou sauté (une PR sans skill touché ne joue
-    #     rien, et c'est normal).
-    # Aucune copie du dépôt, aucun jeton, aucun droit : il ne lit que les
-    # résultats des jobs dont il dépend.
+    #     rien, et c'est normal) ;
+    #   - exception : un run déclenché par un label étranger (`label_etranger`)
+    #     saute tout sans rien rejouer. Il ne doit pas rendre vert un SHA dont le
+    #     run précédent était rouge : il recopie donc le dernier verdict déjà rendu
+    #     sur ce SHA (rouge s'il n'y en a pas), lu par l'API des check-runs.
+    # Aucune copie du dépôt, aucun secret : il lit les résultats des jobs dont il
+    # dépend et, pour ce seul cas, les check-runs du SHA (`checks: read`).
     name: Verdict des évals
     needs: [evals-portee, evals, fumee]
     if: always()
     runs-on: ubuntu-latest
-    permissions: {}
+    permissions:
+      checks: read
     steps:
       - name: Rouge si la portée, un bras des évals ou la fumée est rouge ou annulé
         env:
           PORTEE: ${{ needs.evals-portee.result }}
           EVALS: ${{ needs.evals.result }}
           FUMEE: ${{ needs.fumee.result }}
+          LABEL_ETRANGER: ${{ needs.evals-portee.outputs.label_etranger }}
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ github.event.pull_request.head.sha }}
         run: |
           echo "portée des évals : $PORTEE ; évals : $EVALS ; fumée : $FUMEE"
           for etat in "$PORTEE" "$EVALS" "$FUMEE"; do
@@ -883,6 +898,27 @@ jobs:
                 exit 1 ;;
             esac
           done
+          if [ "${LABEL_ETRANGER:-}" = 1 ]; then
+            # Label étranger : les jobs ci-dessus sont sautés, leur « vert » ne dit rien
+            # de ce SHA. On recopie le dernier verdict déjà rendu (le plus récent par
+            # `completed_at` ; le run présent n'est pas `completed`, il n'y figure pas).
+            if ! verdicts=$(gh api --paginate "repos/$REPO/commits/$SHA/check-runs?per_page=100" --jq '.check_runs[] | select(.name == "Verdict des évals" and .status == "completed") | "\(.completed_at)\t\(.conclusion)"'); then
+              echo "::error title=Verdict des évals::Les check-runs du SHA sont illisibles : le verdict précédent n'a pas pu être recopié. Relancer le run."
+              exit 1
+            fi
+            dernier=$(printf '%s\n' "$verdicts" | sed '/^$/d' | sort | tail -n 1)
+            if [ -z "$dernier" ]; then
+              echo "::error title=Verdict des évals::Label étranger ajouté, mais aucun verdict antérieur sur ce SHA : pousser un commit ou relancer le run précédent."
+              exit 1
+            fi
+            conclusion=$(printf '%s' "$dernier" | cut -f2)
+            if [ "$conclusion" != success ]; then
+              echo "::error title=Verdict des évals::Label étranger ajouté : rien n'a été rejoué, et le dernier verdict de ce SHA était « $conclusion ». Il reste rouge : pousser un commit ou relancer le run précédent."
+              exit 1
+            fi
+            echo "Vert : label étranger ajouté, le dernier verdict de ce SHA était « success »."
+            exit 0
+          fi
           echo "Vert : tout est réussi ou sauté."
 
   merge-auto:
