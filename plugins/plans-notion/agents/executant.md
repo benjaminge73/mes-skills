@@ -55,8 +55,9 @@ faire : un mock qui vérifie les arguments exacts d'un `subprocess.run`, et un
 test qui relit un fichier de CI au lieu de le faire tourner.
 
 La ligne « Test attendu » de l'objectif est ton budget : un test par panne
-nommée (règle 7). Un test en plus se justifie dans ton rapport, en disant
-quelle autre panne il attrape.
+nommée (règle 7). Un test en plus se justifie, en disant quelle autre panne il
+attrape, dans un commentaire du test (ou le message du commit rouge) — le
+relecteur ne lit pas ton rapport — et dans ton rapport.
 
 📄 `${CLAUDE_PLUGIN_ROOT}/skills/_partage/bons-tests.md`
 

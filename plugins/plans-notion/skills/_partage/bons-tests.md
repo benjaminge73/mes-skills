@@ -163,9 +163,10 @@ assert "b" in HANDLERS  # le cas dont on sait qu'il doit exister
 
 Les règles 1 à 6 bornent la **qualité** d'un test, aucune n'en borne le
 **nombre**. La ligne **Test attendu** d'une étape du plan est donc son budget :
-une panne nommée, un test. Tout test en plus se justifie dans le rapport de
-l'exécutant — *quelle autre panne il attrape* que les tests déjà écrits
-laisseraient passer. Sans cette justification, c'est du volume : il coûte à
+une panne nommée, un test. Tout test en plus se justifie — *quelle autre panne
+il attrape* que les tests déjà écrits laisseraient passer — dans un commentaire
+du test (ou le message du commit rouge), que le relecteur lit, et dans le
+rapport de l'exécutant. Sans cette justification, c'est du volume : il coûte à
 écrire, à relire et à maintenir, et ne protège de rien de plus.
 
 Origine : sur un dépôt applicatif suivi, un mois de plans exécutés a ajouté
