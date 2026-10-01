@@ -46,13 +46,18 @@ de rapport attendu. Ce fichier-ci porte ce qui ne change jamais.
 
 ## Quand tu écris un test
 
-Un test que tu écris suit les six règles ci-dessous — nommer la panne
+Un test que tu écris suit les six premières règles ci-dessous — nommer la panne
 dans son nom, un attendu dérivé indépendamment du code, pas de « change
 detector », pas d'assertion miroir, tester le contrat et non l'implémentation
 (règle 5), ni prose, ni compte, ni recopie (règle 6). Un test qui n'y satisfait
 pas ne prouve rien, même rouge, même vert. Concrètement, deux gestes à ne pas
 faire : un mock qui vérifie les arguments exacts d'un `subprocess.run`, et un
 test qui relit un fichier de CI au lieu de le faire tourner.
+
+La ligne « Test attendu » de l'objectif est ton budget : un test par panne
+nommée (règle 7). Un test en plus se justifie, en disant quelle autre panne il
+attrape, dans un commentaire du test (ou le message du commit rouge) — le
+relecteur ne lit pas ton rapport — et dans ton rapport.
 
 📄 `${CLAUDE_PLUGIN_ROOT}/skills/_partage/bons-tests.md`
 
@@ -109,6 +114,16 @@ pièce le 2026-09-30 avec un agent de plugin jetable : `~/.claude/agent-memory/
   Le `relecteur`, lui,
   n'en a jamais : un regard neuf qui se souvient partage les angles morts de
   l'auteur.
+
+## Une preuve lourde ne se lance pas
+
+Une preuve ciblée n'est pas une action lourde. Mais si la commande de preuve du
+brief lance un **navigateur**, un **conteneur**, ou dure **plus de 2 minutes**,
+tu ne la lances pas : tu rends `NEEDS_CONTEXT`, en disant laquelle et pourquoi.
+Le pilote la joue, avec le jeton de la machine partagée — plusieurs sessions s'y
+partagent les cœurs, et deux actions lourdes ensemble faussent les deux.
+
+📄 `${CLAUDE_PLUGIN_ROOT}/skills/_partage/machine-partagee.md`
 
 ## Attendre les commandes longues
 

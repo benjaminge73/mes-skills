@@ -9,8 +9,16 @@ justifie en une ligne.
 
 <!-- Le comportement modifié, en une ou deux phrases — pas la liste des fichiers. -->
 
-<!-- Évals à jouer : catégories de `evals/categories.json` séparées par des virgules, puis
-« — raison » ; ou `tout`. Sans cette ligne remplie, la CI joue tout le banc. -->
+<!-- Les évals se jouent à la demande (le banc complet coûte ~55 $). Deux formes, une seule
+à garder :
+  1. Jouer les évals : poser le label `evals` sur la PR, puis écrire ici les catégories de
+     `evals/categories.json` séparées par des virgules, puis « — raison » ; ou `tout`.
+     Label posé sans cette ligne remplie, la CI joue tout le banc.
+        Evals: existant, bruit — la PR ne touche que la recherche de l'existant
+  2. Ne pas les jouer : écrire « aucun » et la raison (obligatoire), sans label.
+        Evals: aucun — doc seule, aucun comportement ne change
+Une PR qui touche un skill, un agent, un hook ou un `_partage/` sans label `evals` et sans
+la ligne `Evals: aucun — <raison>` rend la CI rouge. -->
 Evals: 
 
 ## Avant de merger
@@ -25,10 +33,14 @@ Evals:
 - [ ] **Veille** : si la PR touche un skill, un agent, un hook ou un `_partage/`, la passe
       de veille est faite (`chercheur`, brief de `docs/veille.md`) et l'entrée datée
       est au journal (la CI refuse un journal de plus de 30 jours).
-- [ ] **A/B** : résultat de l'A/B collé ici, ou dit pourquoi il n'y en a pas
-      (`python3 scripts/evals_ab.py`, job `evals`).
+- [ ] **Évals** : l'A/B se joue à la demande (label `evals` posé, résultat collé plus
+      bas), ou la ligne `Evals: aucun — <raison>` plus haut dit pourquoi il n'y en a
+      pas. Sans label, la fumée tourne seule (job `fumee`) ; son verdict se lit
+      dans « Verdict des évals ».
 - [ ] **`scripts/ci_locale.sh`** est vert en local.
 
 ## Résultat A/B
 
-<!-- Le tableau du job `evals`, ou « sans objet : la PR ne touche ni skill, ni agent, ni hook ». -->
+<!-- Seulement si le label `evals` est posé : le tableau du job `evals`. Sinon « sans objet :
+évals non demandées (voir la ligne `Evals:`) » : le résumé de la fumée n'a pas à être
+collé ici. -->

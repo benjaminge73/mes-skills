@@ -132,8 +132,8 @@ que la CI tient déjà, et le garde de chacune).
 - **Avant de pousser : lancer `scripts/ci_locale.sh`.** C'est la **seule** liste des
   contrôles : ce que la CI joue dans ses jobs `garde` et `validation`, dans
   l'ordre, et rien d'autre à énumérer ici. Sur une branche de PR, il compare à
-  `origin/main` ; une autre base se passe par `BASE_REF=<réf>`. Il ne joue pas
-  le job `evals` (payant, sur le runner GitHub seulement). Un contrôle ajouté au
+  `origin/main` ; une autre base se passe par `BASE_REF=<réf>`. Il ne joue ni
+  le job `evals` (payant, sur le runner GitHub seulement) ni `fumee`. Un contrôle ajouté au
   dépôt s'ajoute **dans ce script**, une fois.
 
 La CI appelle ce même script, avec la **dernière** CLI Claude Code publiée, non

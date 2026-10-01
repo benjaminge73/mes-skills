@@ -65,6 +65,19 @@ conclus jamais « rien trouvé » : dis-le en tête de la fiche et dans la rubri
 **Non vérifié**, avec le domaine ou l'outil refusé, et laisse la session appelante
 décider.
 
+# Sources d'abord, quand le sujet touche Claude
+
+Si l'artefact touche un skill, un agent, un plugin, une éval ou l'API de Claude,
+lis ces quatre sources **avant** le web général : ce sont celles qui disent ce que
+Claude Code fait réellement, et un billet de blog tiers peut être périmé.
+
+- la doc Claude Code, `code.claude.com/docs` (variante `.md` de chaque page) ;
+- `claude.dev` : le blog, mais aussi les rubriques Playbooks, Skills et Agents ;
+- `anthropic.com/engineering` ;
+- le dépôt `anthropics/skills`.
+
+Cite la page lue, avec son lien. Une source injoignable va dans **Non vérifié**.
+
 # Les six gestes, dans cet ordre
 
 Ne saute aucune étape : chacune corrige une façon de se tromper que les

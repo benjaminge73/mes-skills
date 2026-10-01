@@ -191,3 +191,79 @@ simultanés (`vagues.md`, section « Le plafond de concurrence »).
   appel est payant, demander » s'applique sans seuil de 100 appels.
 
 **Repli** : aucun connu au 2026-08-26.
+
+## Fiche — claude plugin eval
+
+**Quota ou coût** (mesuré le 2026-09-30 sur le banc de `plans-notion`, rapports
+de CI ; fiche écrite le 2026-10-01). Les montants sont l'équivalent au tarif de
+l'API : l'abonnement ne facture pas en dollars, mais le dollar est la règle
+commune pour comparer les postes.
+
+- **Un passage est une session complète.** Chaque cas est joué 3 fois par bras,
+  donc 16 cas × 3 passages = 48 sessions par bras. Une A/B joue deux bras (la
+  base et la tête) : tout est à doubler. Le modèle joué est Sonnet, effort
+  `high` ; la correction se fait par expressions régulières, sans modèle-juge,
+  donc sans coût de juge.
+- **Un bras complet coûte 27,53 $.** Un cas coûte entre 0,98 $ et 3,57 $. Une
+  A/B sur tout le banc coûte donc environ 55 $, et une A/B ciblée sur une
+  catégorie 3 à 14 $.
+- **Par catégorie**, pour un bras de 3 passages, puis pour un seul passage (le
+  coût d'une fumée) :
+
+| Catégorie | Cas | Un bras, 3 passages | Un passage |
+|---|---|---|---|
+| `existant` | 2 | 6,43 $ | 2,14 $ |
+| `bruit` | 3 | 4,81 $ | 1,60 $ |
+| `etat-de-depart` | 4 | 7,13 $ | 2,38 $ |
+| `maquette` | 1 | 1,61 $ | 0,54 $ |
+| `decouvertes` | 4 | 4,98 $ | 1,66 $ |
+| `perimetre` | 2 | 2,56 $ | 0,85 $ |
+| **tout le banc** | 16 | 27,53 $ | ≈ 9,2 $ |
+
+- **Une A/A sur Opus** a coûté 53,14 $ : un bras de Sonnet coûte la moitié.
+- **Le plafond par appel** (`EVALS_MAX_COUT_USD`) vaut 35 $ par bras, soit un
+  bras complet plus une marge. Il valait 120 $ avant le 2026-10-01 et n'a jamais
+  été atteint : il ne protégeait de rien.
+- **Les sessions d'un appel partagent une seule limite de débit**, celle du
+  compte qui les paie. La doc de l'outil le dit pour l'option `-j` (nombre de
+  runs en parallèle) : *« Each run is a full claude child on your own
+  credential, so they share one rate limit »*. Monter `-j`, ou lancer deux appels
+  ensemble, ne va pas plus vite : cela fait entrer les sessions en concurrence
+  pour la même limite.
+
+**Pièges datés** :
+
+- **2026-09-30** : trois bancs ont tourné ensemble (deux en CI, un en local).
+  Les scores sont tombés sur les mêmes cas : 50 % et 44 % pour deux têtes, contre
+  76 % pour la tête jouée seule. La cause exacte (des sessions coupées par la
+  limite de débit) n'est pas prouvée, mais ces résultats étaient inexploitables
+  et il a fallu les rejouer.
+- **Avant le 2026-10-01**, le banc se lançait tout seul dès qu'une PR touchait un
+  skill, et en entier pour `_partage/`. Une PR d'une seule page de doc a coûté
+  71 $. Depuis, la CI joue les évals à la demande (label `evals`).
+- **2026-09-30** : le coût d'un rejeu réel écrit dans une doc privée était faux
+  d'un facteur 25 : il ne comptait que la taille finale du contexte, pas les
+  relectures à chaque tour. Mesuré dans les transcriptions : un rejeu coûte
+  environ 3,30 $ (10 M de jetons relus), un juge environ 0,75 $.
+
+**Bonne pratique** :
+
+- **Estimer avant de lancer** :
+  `python3 scripts/evals_ab.py --plugin <p> --estimer --base-rapport <json>
+  --cas a --cas b` donne le coût du bras de tête d'après ce rapport de base
+  (`--reference <json>` de même). `--cas` se répète, il n'accepte pas de liste
+  séparée par des virgules. L'annoncer à Benjamin avant de lancer.
+- **Un seul banc à la fois.** En CI, le groupe de concurrence `evals-<plugin>`
+  met un second banc en attente. En local, `evals/outillage/lancer.sh` prend
+  lui-même le jeton de la machine (`evals-locales`), attend `EVALS_ATTENDRE`
+  secondes (300 par défaut) s'il est tenu, puis refuse (code 75), et le rend à
+  la sortie : ne pas le prendre à la main avant, le lanceur attendrait puis
+  refuserait. `EVALS_FORCER=1` ne passe outre que le contrôle des bancs de CI
+  (`gh`), jamais le jeton ; sur ordre explicite seulement.
+- **Cibler.** Choisir les catégories d'après les fichiers touchés ; ne jouer
+  « tout » que pour `_partage/`, un hook ou le banc lui-même.
+- **Garder 3 passages par cas** : le bruit mesuré ne vaut que pour 3.
+
+**Repli** : jouer une catégorie à la fois plutôt que le banc entier ; sur une
+limite de débit atteinte, attendre la remise à zéro plutôt que relancer (une
+relance paie les mêmes sessions deux fois).

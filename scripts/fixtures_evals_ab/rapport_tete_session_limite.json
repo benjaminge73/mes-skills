@@ -1,0 +1,151 @@
+{
+ "schemaVersion": 1,
+ "claudeVersion": "2.1.285",
+ "startedAt": "2026-01-01T00:00:00.000Z",
+ "durationSeconds": 1478,
+ "costUsd": 7.9744317,
+ "partial": false,
+ "suite": {
+  "root": "/chemin/anonymise/plugin",
+  "ablation": "none",
+  "modelOverride": "claude-sonnet-5-5",
+  "threshold": 0,
+  "concurrency": 3,
+  "plugins": [
+   {
+    "name": "plans-notion",
+    "version": "0.0.0",
+    "path": "/chemin/anonymise/plugin"
+   }
+  ]
+ },
+ "cases": [
+  {
+   "name": "appelants",
+   "dir": "evals/appelants",
+   "source": "mixed",
+   "runsPerCase": 3,
+   "arms": {
+    "with": [
+     {
+      "score": 1,
+      "passed": true,
+      "turns": 16,
+      "costUsd": 1.2084608,
+      "judgeCostUsd": 0,
+      "durationSeconds": 202,
+      "error": null
+     },
+     {
+      "score": 1,
+      "passed": true,
+      "turns": 18,
+      "costUsd": 1.2667023000000002,
+      "judgeCostUsd": 0,
+      "durationSeconds": 210,
+      "error": null
+     },
+     {
+      "score": 1,
+      "passed": true,
+      "turns": 18,
+      "costUsd": 1.3324443,
+      "judgeCostUsd": 0,
+      "durationSeconds": 270,
+      "error": null
+     }
+    ]
+   },
+   "aggregates": {
+    "score": 1,
+    "passRate": 1
+   }
+  },
+  {
+   "name": "existant-jeu-de-questions",
+   "dir": "evals/existant-jeu-de-questions",
+   "source": "mixed",
+   "runsPerCase": 3,
+   "arms": {
+    "with": [
+     {
+      "score": 0.8333333333333334,
+      "passed": false,
+      "turns": 13,
+      "costUsd": 1.1491101000000001,
+      "judgeCostUsd": 0,
+      "durationSeconds": 223,
+      "error": "exit 1: You've hit your session limit · resets 9pm (UTC)"
+     },
+     {
+      "score": 0.8333333333333334,
+      "passed": false,
+      "turns": 21,
+      "costUsd": 1.6902865,
+      "judgeCostUsd": 0,
+      "durationSeconds": 258,
+      "error": "exit 1: You've hit your session limit · resets 9pm (UTC)"
+     },
+     {
+      "score": 0.16666666666666666,
+      "passed": false,
+      "turns": 20,
+      "costUsd": 1.3274277,
+      "judgeCostUsd": 0,
+      "durationSeconds": 113,
+      "error": "exit 1: You've hit your session limit · resets 9pm (UTC)"
+     }
+    ]
+   },
+   "aggregates": {
+    "score": 0.6111111111111112,
+    "passRate": 0
+   }
+  },
+  {
+   "name": "maquette-requise",
+   "dir": "evals/maquette-requise",
+   "source": "mixed",
+   "runsPerCase": 3,
+   "arms": {
+    "with": [
+     {
+      "score": 0.1,
+      "passed": false,
+      "turns": 1,
+      "costUsd": 0,
+      "judgeCostUsd": 0,
+      "durationSeconds": 1,
+      "error": "exit 1: You've hit your session limit · resets 9pm (UTC)"
+     },
+     {
+      "score": 0.1,
+      "passed": false,
+      "turns": 1,
+      "costUsd": 0,
+      "judgeCostUsd": 0,
+      "durationSeconds": 1,
+      "error": "exit 1: You've hit your session limit · resets 9pm (UTC)"
+     },
+     {
+      "score": 0.1,
+      "passed": false,
+      "turns": 1,
+      "costUsd": 0,
+      "judgeCostUsd": 0,
+      "durationSeconds": 1,
+      "error": "exit 1: You've hit your session limit · resets 9pm (UTC)"
+     }
+    ]
+   },
+   "aggregates": {
+    "score": 0.10000000000000002,
+    "passRate": 0
+   }
+  }
+ ],
+ "aggregates": {
+  "casesTotal": 3,
+  "casesPassed": 3
+ }
+}

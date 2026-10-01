@@ -674,10 +674,11 @@ partout. Les deux régimes, la définition du lot et la décision de Benjamin du
 
 **Si le plan modifie un plugin d'un dépôt qui a un banc d'évals par catégorie** (un
 `evals/categories.json`), le chapitre porte une ligne `Évals à jouer : <catégories> —
-pourquoi`, choisie d'après les skills et agents que les étapes touchent. Le choix est
-libre, mais la CI refuse une sélection qui ne couvre pas un skill touché, et joue tout
-le banc pour `_partage/`, les hooks ou le banc lui-même ; « tout » est une réponse.
-Sans ce fichier dans le dépôt, la règle ne s'applique pas.
+pourquoi`, ou `aucun — <raison>`. Évals à la demande : des catégories, ou « tout », c'est
+demander le label `evals` ; « aucun » ne le demande pas. La CI refuse une sélection qui
+ne couvre pas un skill touché, et joue tout le banc pour `_partage/`, les hooks ou le
+banc lui-même. Coûts : fiche `claude plugin eval` de
+`${CLAUDE_PLUGIN_ROOT}/skills/_partage/outils-et-quotas.md`.
 
 **Une étape = un titre H3** : `Étape 1 — Titre court de l'étape`. Comme pour les
 questions, c'est le H3 qui met l'étape dans la table des matières et permet d'y
@@ -710,7 +711,8 @@ Sous chaque titre, le contenu de l'étape :
 - **Preuve de fin** : la commande ou l'observation qui dit que l'étape est faite.
 - **Test attendu** — pour une étape qui écrit du code : la panne que le test
   attrapera, le comportement cassé qu'il doit voir rouge avant d'écrire le
-  code. « — » si l'étape n'écrit pas de test.
+  code. Cette ligne est le budget de tests : un test par panne nommée.
+  « — » si l'étape n'écrit pas de test.
 
   📄 `${CLAUDE_PLUGIN_ROOT}/skills/_partage/bons-tests.md`
 

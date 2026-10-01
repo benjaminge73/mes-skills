@@ -50,6 +50,12 @@ pas, invisibles à qui ne relit que les lignes changées.
    code. Le scénario à donner : le refactor sans effet observable qui le
    rendrait rouge, ou le bug réel qu'il laisserait passer.
 
+   **Le test en surnombre** relève aussi de cette catégorie : un test qui
+   n'attrape aucune panne nommée par la ligne « Test attendu » de l'objectif
+   reçu, et dont le message de commit ou le code ne dit pas quelle autre panne
+   il attrape (règle 7 de `bons-tests.md`). Le scénario à donner : la panne
+   qu'un seul des tests déjà présents attraperait de la même façon.
+
    **Le retrait incomplet** relève aussi de cette catégorie : un élément
    retiré dont survit un test, un cron, une unité ou une liste qui le cite.
    Quand le diff retire un élément (fonction, commande, fichier, tâche

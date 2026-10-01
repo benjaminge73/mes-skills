@@ -40,8 +40,12 @@ plus simplement en variante `.md`.
    [réglages](https://code.claude.com/docs/en/settings.md) ; puis le
    [changelog](https://code.claude.com/docs/en/changelog.md) et le
    [résumé hebdomadaire](https://code.claude.com/docs/en/whats-new/index.md).
-2. **Les blogs d'Anthropic** — [claude.dev/blog](https://claude.dev/blog) et
-   [anthropic.com/engineering](https://www.anthropic.com/engineering).
+2. **Les blogs d'Anthropic** — [claude.dev](https://claude.dev) en entier, pas
+   seulement [le blog](https://claude.dev/blog) : ses rubriques Playbooks, Skills et
+   Agents ne sont pas toutes dans le blog ; et
+   [anthropic.com/engineering](https://www.anthropic.com/engineering). L'agent
+   `chercheur` les lit aussi, avant le web général, quand il cherche pour un plan
+   dont le sujet touche Claude (voir son agent).
 3. **Les guides de `anthropics/skills`** —
    [le dépôt](https://github.com/anthropics/skills), dont `shared/evals/` quand il
    existe (introuvable le 2026-09-30 : le dépôt ne porte que `skills/`, `spec/` et
@@ -109,3 +113,21 @@ Une entrée par passe, la plus récente en dernier. Le titre est
 - **Ce qu'on en fait** : les quatorze faits ci-dessus entrent au tableau, chacun avec
   sa citation relevée sur la page du jour ; `veille_faits.py` les rejoue chaque
   semaine ; le seuil de 30 jours part de cette date.
+
+### 2026-10-01 — claude.dev entre dans les sources, à l'étape 13 du plan « Évals sobres et machine partagée »
+
+- **Sources lues** : [claude.dev](https://claude.dev) (page d'accueil, via
+  `WebFetch`) et, dans sa rubrique Playbooks, l'article « Automating eval design and
+  hillclimbing with Claude ». Un second article, « What a task costs on Opus 5.5 »
+  (2026-09-23), est noté mais **pas lu**.
+- **Ce qui a changé** : le site est publié par Anthropic (« Sharing tips, tricks, and
+  POVs from Anthropic's developers ») et porte des rubriques Agents, Engineering,
+  Playbooks et Skills en plus du blog. Aucun fait du tableau de la partie 2 n'en
+  dépend, donc aucun n'est touché.
+- **Ce qu'on en fait** : la source 2 de la partie 1 s'élargit de `claude.dev/blog` à
+  `claude.dev` entier ; l'agent `chercheur` gagne une section « Sources d'abord » qui
+  l'y envoie avant le web général. L'article sur les évals confirme deux choix du
+  plan : garder trois passages pour que le bruit reste sous la plus petite
+  amélioration visée, et ne pas laisser une panne d'infrastructure passer pour une
+  variance du modèle. **À lire à la prochaine passe** : « What a task costs on
+  Opus 5.5 », pour recaler nos estimations de coût.

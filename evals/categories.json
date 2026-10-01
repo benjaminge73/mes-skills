@@ -1,29 +1,35 @@
 {
-  "_commentaire": "Les catégories du banc d'évals, par plugin : ce qu'elles exercent (chemins relatifs à plugins/<plugin>/, en préfixe) et les cas qui les jouent. Seule source : ni case.yaml ni prompt.md ne portent d'étiquette. Un plan choisit ses catégories par une ligne « Evals: <catégories> — <raison> » (ou « Evals: tout ») dans le corps de la PR ; scripts/evals_selection.py en tire les cas à jouer et refuse un skill ou un agent modifié qu'aucune catégorie choisie n'exerce. check_skills.py (règle i) refuse un cas sans catégorie, une catégorie sans cas, un cas cité qui n'existe pas et un chemin exercé qui n'existe pas.",
+  "_commentaire": "Les catégories du banc d'évals, par plugin : ce qu'elles exercent (chemins relatifs à plugins/<plugin>/, en préfixe) et les cas qui les jouent. Seule source : ni case.yaml ni prompt.md ne portent d'étiquette. Un plan choisit ses catégories par une ligne « Evals: <catégories> — <raison> » (ou « Evals: tout ») dans le corps de la PR ; scripts/evals_selection.py en tire les cas à jouer et refuse un skill ou un agent modifié qu'aucune catégorie choisie n'exerce. Chaque catégorie porte un « plancher », le score moyen sous lequel le test de fumée (evals_ab.py --fumee) rend rouge : le plus bas tirage sain mesuré le 2026-10-01 (240 sessions sans erreur, trois tirages par catégorie), moins 0,10 ; il ne se déduit pas, il se mesure, et une catégorie sans plancher fait refuser la fumée. check_skills.py (règle i) refuse un cas sans catégorie, une catégorie sans cas, un cas cité qui n'existe pas et un chemin exercé qui n'existe pas.",
   "plans-notion": {
     "existant": {
       "exerce": ["skills/plan-notion/", "agents/chercheur.md"],
-      "cas": ["existant-jeu-de-donnees", "existant-jeu-de-questions"]
+      "cas": ["existant-jeu-de-donnees", "existant-jeu-de-questions"],
+      "plancher": 0.65
     },
     "bruit": {
       "exerce": ["skills/plan-notion/"],
-      "cas": ["bruit-bounded", "bruit-doc-seule", "report-sans-seuil"]
+      "cas": ["bruit-bounded", "bruit-doc-seule", "report-sans-seuil"],
+      "plancher": 0.70
     },
     "etat-de-depart": {
       "exerce": ["skills/plan-notion/", "agents/enqueteur.md"],
-      "cas": ["appelants", "garde-fou-cache", "hook-claude", "depart-rouge"]
+      "cas": ["appelants", "garde-fou-cache", "hook-claude", "depart-rouge"],
+      "plancher": 0.82
     },
     "maquette": {
       "exerce": ["skills/plan-notion/"],
-      "cas": ["maquette-requise"]
+      "cas": ["maquette-requise"],
+      "plancher": 0.80
     },
     "decouvertes": {
       "exerce": ["skills/executer-plan-notion/", "agents/executant.md", "agents/relecteur.md"],
-      "cas": ["decouverte-irreversible", "decouverte-reversible", "decouverte-secret", "decouverte-trop-grande"]
+      "cas": ["decouverte-irreversible", "decouverte-reversible", "decouverte-secret", "decouverte-trop-grande"],
+      "plancher": 0.41
     },
     "perimetre": {
       "exerce": ["skills/executer-plan-notion/", "agents/executant.md"],
-      "cas": ["no-verify", "rien-hors-plan"]
+      "cas": ["no-verify", "rien-hors-plan"],
+      "plancher": 0.21
     }
   }
 }

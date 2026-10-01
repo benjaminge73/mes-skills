@@ -823,6 +823,39 @@ class BoutEnBout(DepotEtLanceur):
         code, _, _ = jouer(self.argv(), self.env)  # sans bruit mesuré : recul
         self.assertEqual(code, 1)
 
+    def test_une_aa_dont_un_jeu_a_des_sessions_en_erreur_rend_quatre_et_n_ecrit_pas_de_bruit(self):
+        # Un jeu perd 6 sessions sur 9 à une limite de session : ses scores s'effondrent,
+        # le rms de l'écart entre les deux jeux est gonflé, et toute A/B qui lirait ce
+        # fichier jugerait avec un seuil faux. Même règle que l'A/B : code 4, aucun bruit.
+        # Le faux lanceur de la classe rend le même rapport aux deux passages ; celui-ci
+        # rend la fixture en panne au premier et sa copie sans erreur au second.
+        sain = rapport("tete_session_limite")
+        for c in sain["cases"]:
+            for passage in c["arms"]["with"]:
+                passage["error"] = None
+        ecrire(self.racine / "jeu-sain.json", json.dumps(sain))
+        ecrire(
+            self.lanceur,
+            FAUX_LANCEUR.replace(
+                'if [ "$marqueur" = "base" ]; then cp "$FAUX_RAPPORT_BASE" "$sortie"; '
+                'else cp "$FAUX_RAPPORT_TETE" "$sortie"; fi',
+                'if [ "$(grep -c "^APPEL" "$FAUX_JOURNAL")" = "1" ]; '
+                'then cp "$FAUX_RAPPORT_TETE" "$sortie"; else cp "$FAUX_RAPPORT_BASE" "$sortie"; fi',
+            ),
+        )
+        self.env["FAUX_RAPPORT_TETE"] = str(FIXTURES / "rapport_tete_session_limite.json")
+        self.env["FAUX_RAPPORT_BASE"] = str(self.racine / "jeu-sain.json")
+        sortie_bruit = self.racine / "bruit.json"
+        code, sortie, erreur = jouer(
+            self.argv("--sortie-bruit", str(sortie_bruit), mode="aa"), self.env
+        )
+        self.assertEqual(code, 4, sortie + erreur)
+        self.assertFalse(sortie_bruit.exists())
+        self.assertIn("non concluant", sortie.lower())
+        self.assertIn("panne d'infrastructure, à relancer", sortie)
+        self.assertIn("6 sur 9", sortie)
+        self.assertNotIn("Bruit mesuré", sortie)
+
     def test_une_option_de_ligne_de_commande_inconnue_est_un_echec_d_usage(self):
         code, _, _ = jouer(["--n-importe-quoi"], self.env)
         self.assertEqual(code, 2)
@@ -1031,9 +1064,18 @@ class LanceurModeleEtEffort(unittest.TestCase):
     """``evals/outillage/lancer.sh`` avec un faux ``claude`` dans le ``PATH`` : le
     faux écrit dans un fichier ce qu'il a reçu (arguments et effort), rien
     d'autre. Aucun vrai appel, aucun jeton réel (un jeton factice sert à vérifier
-    que le lanceur ne l'affiche pas)."""
+    que le lanceur ne l'affiche pas).
+
+    Hors CI, le lanceur contrôle les bancs de CI avec ``gh`` puis prend le jeton
+    machine : un faux ``gh`` (aucun run en cours) et un ``XDG_STATE_HOME`` jetable
+    simulent ces deux gardes, de sorte que ni le vrai ``gh`` (réseau) ni le vrai
+    ``~/.local/state`` ne sont touchés. Le jeton lui-même reste le vrai script, et
+    il refuse une machine saturée : le relevé de ``/proc`` n'étant pas injectable
+    depuis le lanceur, les tests sont alors sautés."""
 
     LANCEUR = Path(__file__).resolve().parents[1] / "evals" / "outillage" / "lancer.sh"
+    ETAT_MACHINE = (Path(__file__).resolve().parents[1] / "plugins" / "plans-notion"
+                    / "skills" / "_partage" / "scripts" / "etat-machine.py")
     JETON = "jeton-factice-a-ne-jamais-afficher"
 
     def setUp(self):
@@ -1050,6 +1092,14 @@ class LanceurModeleEtEffort(unittest.TestCase):
             f'echo "args=$*" >> "{self.trace}"\n'
             "exit 0\n", "utf-8")
         faux.chmod(0o755)
+        # Faux gh : aucun run en cours (sortie vide, code 0), sans réseau.
+        gh = self.bin / "gh"
+        gh.write_text("#!/bin/sh\nexit 0\n", "utf-8")
+        gh.chmod(0o755)
+        releve = subprocess.run([sys.executable, str(self.ETAT_MACHINE), "releve"],
+                                capture_output=True, text=True, timeout=30)
+        if releve.stdout.splitlines()[:1] == ["saturée"]:
+            self.skipTest("la machine est saturée : le jeton refuse, quoi que fasse le lanceur")
 
     def _lancer(self, **env_extra) -> tuple[subprocess.CompletedProcess, str]:
         assert "GITHUB_ACTIONS" not in env_extra, "jamais de GITHUB_ACTIONS=true dans un test"
@@ -1058,6 +1108,7 @@ class LanceurModeleEtEffort(unittest.TestCase):
                             "EVALS_MAX_COUT_USD", "CLAUDE_CODE_EFFORT_LEVEL", "TMPDIR")}
         env["PATH"] = f"{self.bin}{os.pathsep}{env.get('PATH', '')}"
         env["TMPDIR"] = str(self.racine / "traces")
+        env["XDG_STATE_HOME"] = str(self.racine / "etat")
         env["CLAUDE_CODE_OAUTH_TOKEN"] = self.JETON
         env.update(env_extra)
         r = subprocess.run(
@@ -1191,6 +1242,405 @@ class SeuilGlobalElargi(unittest.TestCase):
         base, tete = jeux_uniformes(16, 1.0, 1.0)
         c = evals_ab.comparer(base, tete, bruit={"rms_ecarts_cas": 0.0385, "n_cas": 16})
         self.assertNotIn("élargi", evals_ab.tableau_markdown(c, "v1", "v2"))
+
+# --------------------------------------------------------------------------
+# Étape 3 : une base réutilisée par contenu (--base-rapport, clé par empreinte)
+# --------------------------------------------------------------------------
+# Faux lanceur qui note son appel, puis écrit un rapport dont les cas sont ceux
+# réellement assemblés (3 passages, tous réussis) : c'est la tête.
+LANCEUR_QUI_NOTE_ET_LIT_LES_CAS = """#!/bin/sh
+dossier="$1"; sortie="$2"; shift 2
+echo "APPEL $(cat "$dossier/marqueur.txt")" >> "$FAUX_JOURNAL"
+python3 - "$dossier" "$sortie" <<'PY'
+import json, pathlib, sys
+copie, sortie = pathlib.Path(sys.argv[1]), sys.argv[2]
+noms = sorted(p.name for p in (copie / "evals").iterdir() if p.is_dir())
+passage = {"score": 1, "passed": True, "costUsd": 0, "judgeCostUsd": 0}
+cas = [{"name": n, "arms": {"with": [passage, passage, passage]}, "aggregates": {"score": 1}}
+       for n in noms]
+json.dump({"schemaVersion": 1, "cases": cas}, open(sortie, "w"))
+PY
+exit 0
+"""
+
+
+class BaseReprise(DepotEtLanceur):
+    """``--base-rapport`` : la base vient d'un rapport déjà joué, on en extrait les cas choisis.
+
+    Le rapport figé ``rapport_base_16_cas.json`` porte seize cas (alpha à 1,
+    beta à 2/3 sur trois passages, les autres à 1). Le banc du dépôt jetable en
+    a trois : alpha, beta, et ``epsilon`` (que le rapport ne porte pas).
+    """
+
+    def setUp(self):
+        super().setUp()
+        CasChoisis.ajouter_cas(self, "beta")
+        CasChoisis.ajouter_cas(self, "epsilon")
+        lanceur = self.racine / "lanceur_note_et_lit.sh"
+        ecrire(lanceur, LANCEUR_QUI_NOTE_ET_LIT_LES_CAS)
+        lanceur.chmod(0o755)
+        self.lanceur = lanceur
+        self.rapport_16 = FIXTURES / "rapport_base_16_cas.json"
+
+    def test_une_base_extraite_de_seize_cas_donne_un_tableau_des_seuls_cas_choisis_sans_jouer_la_base(self):
+        code, sortie, erreur = jouer(
+            self.argv("--base-rapport", str(self.rapport_16), "--cas", "alpha", "--cas", "beta"),
+            self.env,
+        )
+        self.assertEqual(code, 0, erreur)
+        # Seule la tête a été jouée : la base vient du rapport.
+        self.assertEqual([l for l in self.appels() if l.startswith("APPEL")], ["APPEL tete"])
+        # Un tableau à deux cas, ceux qu'on a choisis, et aucun des quatorze autres.
+        self.assertIn("2 cas \u00d7 3 passages", sortie)
+        self.assertIn("alpha", sortie)
+        self.assertIn("beta", sortie)
+        self.assertNotIn("cas-03", sortie)
+        # La base de ces deux cas : (1 + 2/3) / 2 = 83 %, pas la moyenne des seize.
+        self.assertIn("83 %", sortie)
+        self.assertIn("base reprise du cache", erreur)
+
+    def test_un_cas_choisi_absent_du_rapport_est_refuse_et_nomme_avant_tout_jeu(self):
+        code, sortie, erreur = jouer(
+            self.argv("--base-rapport", str(self.rapport_16), "--cas", "alpha", "--cas", "epsilon"),
+            self.env,
+        )
+        self.assertEqual(code, 3, sortie)
+        self.assertIn("epsilon", erreur)
+        self.assertEqual(self.appels(), [])  # ni base ni tête jouées : rien payé
+
+    def test_un_rapport_de_base_partiel_est_refuse_meme_extrait(self):
+        code, _, erreur = jouer(
+            self.argv("--base-rapport", str(FIXTURES / "rapport_partiel.json"), "--cas", "alpha"),
+            self.env,
+        )
+        self.assertEqual(code, 3)
+        self.assertIn("partial", erreur)
+        self.assertEqual(self.appels(), [])
+
+    def test_base_rapport_et_reference_ensemble_sont_refuses_avant_tout_jeu(self):
+        code, _, _ = jouer(
+            self.argv("--base-rapport", str(self.rapport_16), "--reference", str(self.rapport_16)),
+            self.env,
+        )
+        self.assertEqual(code, 3)
+        self.assertEqual(self.appels(), [])
+
+
+class CleDuCacheDeLaBase(unittest.TestCase):
+    """Le pas « Clé du cache de la base » de ci.yml, joué pour de bon.
+
+    Un dépôt jetable (un plugin-jouet, un banc de deux cas) et le corps
+    ``run:`` du pas exécuté par bash avec les variables que le job lui donne.
+    On lit ce qu'il écrit dans ``GITHUB_OUTPUT`` : ``cle_tout`` (la clé d'une
+    base complète) et ``cle_ecriture`` (la clé sous laquelle ce run sauve sa
+    base : la complète si tout est joué, sinon celle de la sélection).
+    """
+
+    TOUT = '{"jouet": {"tout": true}}'
+
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self._tmp.cleanup)
+        self.depot = Path(self._tmp.name) / "depot"
+        d = self.depot
+        d.mkdir()
+        git(d, "init", "-q", "-b", "main")
+        ecrire(d / "plugins" / "jouet" / "skills" / "s" / "SKILL.md", "v1\n")
+        ecrire(d / "evals" / "jouet" / "alpha" / "prompt.md", "Réponds OK.\n")
+        ecrire(d / "evals" / "jouet" / "beta" / "prompt.md", "Réponds NON.\n")
+        ecrire(d / "evals" / "outillage" / "preparer-runner.sh", "CLAUDE_CODE_VERSION=2.1.285\n")
+        ecrire(d / "evals" / "outillage" / "lancer.sh", "#!/bin/sh\n")
+        ecrire(d / "README.md", "doc\n")
+        self.valider("base")
+        self.sha_base = self.sha()
+
+    def valider(self, message: str) -> None:
+        git(self.depot, "add", ".")
+        git(self.depot, "commit", "-q", "-m", message)
+
+    def sha(self) -> str:
+        return git(self.depot, "rev-parse", "HEAD").strip()
+
+    def cles(self, sha: str, selection: str = TOUT, **env) -> dict:
+        import textwrap
+        ci = (Path(__file__).resolve().parent.parent / ".github" / "workflows" / "ci.yml").read_text("utf-8")
+        pas = ci.split("- name: Clé du cache de la base", 1)[1].split("\n      - name:", 1)[0]
+        corps = textwrap.dedent(pas.split("        run: |\n", 1)[1])
+        sortie = self.depot / "github_output.txt"
+        sortie.write_text("", "utf-8")
+        e = {k: v for k, v in os.environ.items() if not k.startswith(("EVALS_", "GITHUB_"))}
+        e.update(PLUGIN="jouet", BASE_SHA=sha, SELECTION=selection, GITHUB_OUTPUT=str(sortie),
+                 EVALS_MODELE=MODELE, EVALS_EFFORT="high", EVALS_RUNS="3")
+        e.update(env)
+        r = subprocess.run(["bash", "-c", corps], cwd=self.depot, env=e, capture_output=True, text=True)
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        return dict(l.split("=", 1) for l in sortie.read_text("utf-8").splitlines() if "=" in l)
+
+    def test_un_merge_de_doc_sur_main_ne_change_pas_la_cle_de_la_base(self):
+        avant = self.cles(self.sha_base)
+        ecrire(self.depot / "docs" / "note.md", "une note\n")
+        ecrire(self.depot / "README.md", "doc modifiée\n")
+        self.valider("doc")
+        apres = self.cles(self.sha())
+        self.assertNotEqual(self.sha(), self.sha_base)
+        self.assertEqual(avant["cle_tout"], apres["cle_tout"])
+
+    def test_un_changement_du_plugin_a_la_base_change_la_cle(self):
+        avant = self.cles(self.sha_base)
+        ecrire(self.depot / "plugins" / "jouet" / "skills" / "s" / "SKILL.md", "v2\n")
+        self.valider("skill")
+        self.assertNotEqual(avant["cle_tout"], self.cles(self.sha())["cle_tout"])
+
+    def test_un_cas_dont_le_contenu_change_change_la_cle(self):
+        avant = self.cles(self.sha_base)
+        ecrire(self.depot / "evals" / "jouet" / "alpha" / "prompt.md", "Réponds autre chose.\n")
+        self.valider("cas")
+        self.assertNotEqual(avant["cle_tout"], self.cles(self.sha_base)["cle_tout"])
+
+    def test_le_modele_et_l_effort_changent_la_cle(self):
+        ref = self.cles(self.sha_base)["cle_tout"]
+        self.assertNotEqual(ref, self.cles(self.sha_base, EVALS_MODELE=AUTRE_MODELE)["cle_tout"])
+        self.assertNotEqual(ref, self.cles(self.sha_base, EVALS_EFFORT="low")["cle_tout"])
+
+    def test_la_cle_de_la_base_complete_ne_depend_pas_de_la_selection(self):
+        selection = '{"jouet": {"tout": false, "cas": ["alpha"]}}'
+        self.assertEqual(
+            self.cles(self.sha_base)["cle_tout"], self.cles(self.sha_base, selection)["cle_tout"]
+        )
+
+    def test_une_base_complete_se_sauve_sous_la_cle_tout_et_une_selection_sous_sa_propre_cle(self):
+        complete = self.cles(self.sha_base)
+        self.assertEqual(complete["cle_ecriture"], complete["cle_tout"])
+        self.assertTrue(complete["cle_tout"].endswith("-tout"), complete["cle_tout"])
+
+        un = self.cles(self.sha_base, '{"jouet": {"tout": false, "cas": ["alpha"]}}')
+        deux = self.cles(self.sha_base, '{"jouet": {"tout": false, "cas": ["alpha", "beta"]}}')
+        deux_autre_ordre = self.cles(self.sha_base, '{"jouet": {"tout": false, "cas": ["beta", "alpha"]}}')
+        for sel in (un, deux):
+            self.assertIn("-sel-", sel["cle_ecriture"])
+            self.assertNotEqual(sel["cle_ecriture"], sel["cle_tout"])
+            self.assertTrue(sel["cle_ecriture"].startswith(sel["cle_tout"][: -len("tout")]))
+        self.assertNotEqual(un["cle_ecriture"], deux["cle_ecriture"])
+        self.assertEqual(deux["cle_ecriture"], deux_autre_ordre["cle_ecriture"])
+
+    def test_sans_selection_pour_le_plugin_la_base_jouee_est_la_complete(self):
+        r = self.cles(self.sha_base, "{}")
+        self.assertEqual(r["cle_ecriture"], r["cle_tout"])
+
+
+# --------------------------------------------------------------------------
+# Étape 4 : le coût annoncé avant (--estimer), et compté en A/A
+# --------------------------------------------------------------------------
+def rapport_a_couts_distincts(couts: dict[str, list[tuple[float, float]]]) -> dict:
+    """Un rapport où chaque passage porte son coût (jeu, juge) : des montants tous
+    différents, pour qu'une somme sur le mauvais ensemble de cas se voie."""
+    cas = [
+        {"name": nom, "arms": {"with": [
+            {"score": 1, "passed": True, "costUsd": jeu, "judgeCostUsd": juge}
+            for jeu, juge in passages]}, "aggregates": {"score": 1}}
+        for nom, passages in couts.items()
+    ]
+    return {"schemaVersion": 1, "cases": cas}
+
+
+class CoutAnnonceAvant(DepotEtLanceur):
+    """``--estimer`` additionne, sur un rapport déjà joué, le coût des cas choisis.
+
+    Rapport de la base, calculé à la main (3 passages par cas, jeu + juge) :
+      alpha  0,40 + 0,50 + 0,30 + 3 x 0,05 = 1,35 $
+      beta   0,70 + 0,60 + 0,55 + 3 x 0,10 = 2,15 $
+      gamma  3,00 + 3,00 + 3,00            = 9,00 $  (jamais choisi)
+    """
+
+    def setUp(self):
+        super().setUp()
+        CasChoisis.ajouter_cas(self, "beta")
+        self.rapport_source = self.racine / "rapport-source.json"
+        ecrire(self.rapport_source, json.dumps(rapport_a_couts_distincts({
+            "alpha": [(0.40, 0.05), (0.50, 0.05), (0.30, 0.05)],
+            "beta": [(0.70, 0.10), (0.60, 0.10), (0.55, 0.10)],
+            "gamma": [(3.00, 0.0), (3.00, 0.0), (3.00, 0.0)],
+        })))
+
+    def estimer(self, *extra: str):
+        return jouer(
+            self.argv("--base-rapport", str(self.rapport_source), "--cas", "alpha",
+                      "--cas", "beta", "--estimer", *extra),
+            self.env,
+        )
+
+    def test_l_estimation_somme_au_centime_le_cout_des_seuls_cas_choisis(self):
+        code, sortie, erreur = self.estimer()
+        self.assertEqual(code, 0, erreur)
+        self.assertIn("$3.50", sortie)  # 1,35 + 2,15 ; ni gamma, ni le total du rapport (12,50)
+
+    def test_estimer_ne_joue_aucun_bras(self):
+        # Test en plus de celui de la somme : la panne est autre (l'estimation
+        # lancerait quand même les évals, et coûterait ce qu'elle annonce).
+        code, _, erreur = self.estimer()
+        self.assertEqual(code, 0, erreur)
+        self.assertEqual(self.appels(), [])
+
+    def test_l_estimation_suit_le_nombre_de_passages_demande_et_non_celui_du_rapport(self):
+        # Test en plus : le rapport source a 3 passages par cas, la CI en demande
+        # `--runs 2`. Coût moyen par passage x 2 : 3,50 x 2/3 = 2,33 $.
+        code, sortie, erreur = self.estimer("--", "--runs", "2")
+        self.assertEqual(code, 0, erreur)
+        self.assertIn("$2.33", sortie)
+
+    def test_estimer_sans_rapport_ou_lire_les_couts_est_un_refus_et_ne_joue_rien(self):
+        # Test en plus : sans rapport, aucun montant n'est dérivable ; mieux vaut
+        # un refus lisible qu'un « $0.00 » qui annoncerait gratuit.
+        code, sortie, erreur = jouer(self.argv("--cas", "alpha", "--estimer"), self.env)
+        self.assertEqual(code, 3, sortie)
+        self.assertIn("--base-rapport", erreur)
+        self.assertEqual(self.appels(), [])
+
+
+class CoutDeLAA(DepotEtLanceur):
+    def test_le_mode_aa_ecrit_le_cout_des_deux_passages_joues(self):
+        # Les rapports figés `base` et `tete_stable` coûtent chacun 0,36 $ (4 cas
+        # x 3 passages x 0,03 $) : l'A/A, qui les joue tous les deux, coûte 0,72 $.
+        code, sortie, erreur = jouer(
+            self.argv("--sortie-bruit", str(self.racine / "bruit.json"), mode="aa"), self.env
+        )
+        self.assertEqual(code, 0, erreur)
+        self.assertIn("$0.72", sortie)
+
+
+class FumeeEtPlanchers(DepotEtLanceur):
+    """``--fumee`` : le test de fumée juge une tête seule, catégorie par catégorie.
+
+    ``rapport_tete_session_limite.json`` est dérivé du vrai rapport de la tête de
+    la PR #19 (trois cas sur seize, 3 passages chacun, ramenés à l'essentiel) :
+
+      appelants                  1 · 1 · 1                  aucune session en erreur
+      existant-jeu-de-questions  0,83 · 0,83 · 0,17         3 sessions en erreur
+      maquette-requise           0,10 · 0,10 · 0,10         3 sessions en erreur
+
+    soit 6 sessions en erreur sur 9. Les planchers de ces tests sont ceux du plan
+    (depart 0,82 ; existant 0,65 ; maquette 0,80), écrits ici à la main : le test
+    ne lit jamais ``evals/categories.json`` du vrai dépôt.
+    """
+
+    PLANCHERS = {"depart": 0.82, "existant": 0.65, "maquette": 0.80}
+    CAS = {
+        "depart": "appelants",
+        "existant": "existant-jeu-de-questions",
+        "maquette": "maquette-requise",
+    }
+
+    def setUp(self):
+        super().setUp()
+        self.ecrire_categories(self.PLANCHERS)
+
+    def ecrire_categories(self, planchers: dict[str, float | None]) -> None:
+        categories = {}
+        for nom, plancher in planchers.items():
+            categorie = {"exerce": ["skills/s/"], "cas": [self.CAS[nom]]}
+            if plancher is not None:
+                categorie["plancher"] = plancher
+            categories[nom] = categorie
+        ecrire(self.depot / "evals" / "categories.json", json.dumps({"jouet": categories}))
+
+    def rapport_sain(self, scores: dict[str, float]) -> Path:
+        """Le rapport figé, sans aucune session en erreur, dont chaque passage
+        d'un cas vaut le score donné pour ce cas."""
+        r = json.loads((FIXTURES / "rapport_tete_session_limite.json").read_text("utf-8"))
+        for c in r["cases"]:
+            for passage in c["arms"]["with"]:
+                passage["error"] = None
+                passage["score"] = scores[c["name"]]
+        chemin = self.racine / "rapport-sain.json"
+        ecrire(chemin, json.dumps(r))
+        return chemin
+
+    def fumee(self, rapport_json: Path | str):
+        return jouer(self.argv("--fumee", "--tete-rapport", str(rapport_json)), self.env)
+
+    def test_une_session_en_erreur_rend_la_fumee_rouge_et_non_concluante(self):
+        code, sortie, erreur = self.fumee(FIXTURES / "rapport_tete_session_limite.json")
+        # 4 : « panne d'infrastructure, à relancer », jamais 1 (recul) ni 0 (vert).
+        self.assertEqual(code, 4, sortie + erreur)
+        self.assertIn("ROUGE", sortie)
+        self.assertIn("6 sur 9", sortie)  # les sessions en erreur sont comptées à part
+        self.assertEqual(self.appels(), [])  # le rapport est jugé, rien n'est joué
+
+    def test_une_categorie_a_0_60_pour_un_plancher_de_0_70_est_nommee_sous_plancher(self):
+        self.PLANCHERS = {**self.PLANCHERS, "maquette": 0.70}
+        self.ecrire_categories(self.PLANCHERS)
+        chemin = self.rapport_sain(
+            {"appelants": 1.0, "existant-jeu-de-questions": 0.9, "maquette-requise": 0.60}
+        )
+        code, sortie, erreur = self.fumee(chemin)
+        self.assertEqual(code, 1, sortie + erreur)
+        verdicts = [ligne for ligne in sortie.splitlines() if ligne.startswith("tirage")]
+        self.assertEqual(len(verdicts), 3)  # un verdict par tirage
+        for ligne in verdicts:
+            self.assertIn("ROUGE", ligne)
+            self.assertIn("maquette", ligne)
+            self.assertNotIn("existant", ligne)  # seule la catégorie fautive est nommée
+            self.assertNotIn("depart", ligne)
+
+    def test_un_rapport_sain_rend_la_fumee_verte(self):
+        chemin = self.rapport_sain(
+            {"appelants": 1.0, "existant-jeu-de-questions": 0.9, "maquette-requise": 0.9}
+        )
+        code, sortie, erreur = self.fumee(chemin)
+        self.assertEqual(code, 0, sortie + erreur)
+        self.assertNotIn("ROUGE", sortie)
+
+    def test_une_categorie_sans_plancher_est_refusee_et_nommee_jamais_un_plancher_a_zero(self):
+        self.ecrire_categories({**self.PLANCHERS, "maquette": None})
+        chemin = self.rapport_sain(
+            {"appelants": 1.0, "existant-jeu-de-questions": 0.9, "maquette-requise": 0.0}
+        )
+        # Une maquette à 0 passerait sous un plancher implicite de 0 : le refus l'empêche.
+        code, sortie, erreur = self.fumee(chemin)
+        self.assertEqual(code, 3, sortie)
+        self.assertIn("maquette", erreur)
+        self.assertNotIn("VERT", sortie)
+
+    def test_un_ab_dont_la_tete_a_des_sessions_en_erreur_rend_quatre_et_non_un(self):
+        # Test construit pour la panne réelle de la PR #19 : la tête a perdu 6 sessions
+        # sur 9 à une limite de session, ses scores s'effondrent. Sans la règle, cet
+        # effondrement se lirait « RECUL » (code 1) alors que rien n'a été mesuré.
+        base = json.loads((FIXTURES / "rapport_tete_session_limite.json").read_text("utf-8"))
+        for c in base["cases"]:
+            for passage in c["arms"]["with"]:
+                passage["error"], passage["score"] = None, 1.0
+        ecrire(self.racine / "base-saine.json", json.dumps(base))
+        bruit = self.racine / "bruit.json"
+        ecrire(bruit, json.dumps({"rms_ecarts_cas": 0.05, "modele": MODELE}))
+        self.env["FAUX_RAPPORT_BASE"] = str(self.racine / "base-saine.json")
+        self.env["FAUX_RAPPORT_TETE"] = str(FIXTURES / "rapport_tete_session_limite.json")
+        # Témoin : la même tête sans la panne est bien un recul.
+        sans_panne = json.loads((FIXTURES / "rapport_tete_session_limite.json").read_text("utf-8"))
+        for c in sans_panne["cases"]:
+            for passage in c["arms"]["with"]:
+                passage["error"] = None
+        ecrire(self.racine / "tete-sans-panne.json", json.dumps(sans_panne))
+        temoin = dict(self.env, FAUX_RAPPORT_TETE=str(self.racine / "tete-sans-panne.json"))
+        code_temoin, _, erreur_temoin = jouer(self.argv("--bruit", str(bruit)), temoin)
+        self.assertEqual(code_temoin, 1, erreur_temoin)
+        # La panne, elle, n'est pas un recul.
+        code, sortie, erreur = jouer(self.argv("--bruit", str(bruit)), self.env)
+        self.assertEqual(code, 4, sortie + erreur)
+        self.assertNotIn("RECUL", sortie)
+        self.assertIn("6 sur 9", sortie)
+
+    def test_la_fumee_ne_joue_que_la_tete_avec_un_seul_passage(self):
+        # Test en plus des cinq attendus : la panne est coûteuse et autre. Une fumée
+        # qui rejouerait la base, ou garderait les 3 passages d'un A/B, coûterait
+        # six fois le prix annoncé sans que rien dans le verdict ne le montre.
+        ecrire(
+            self.depot / "evals" / "categories.json",
+            json.dumps({"jouet": {"unique": {"exerce": ["skills/s/"], "cas": ["alpha"], "plancher": 0.5}}}),
+        )
+        code, sortie, erreur = jouer(self.argv("--fumee"), self.env)
+        self.assertEqual(code, 0, sortie + erreur)
+        self.assertEqual([l for l in self.appels() if l.startswith("APPEL")], ["APPEL tete"])
+        self.assertEqual([l for l in self.appels() if l.startswith("OPTIONS")], ["OPTIONS --runs 1"])
 
 
 if __name__ == "__main__":

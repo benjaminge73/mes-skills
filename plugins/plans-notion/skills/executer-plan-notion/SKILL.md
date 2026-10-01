@@ -250,7 +250,9 @@ Le défaut, sauf avis contraire de Benjamin :
   serveur à lancer), et les jouer à chaque étape reproduirait en local le coût
   qu'on vient de retirer de la CI. Ils passent **une fois, à la clôture** (§6),
   avec la suite complète — c'est le verdict de fin de plan, rendu en local.
-  Décision de Benjamin du 2026-09-03.
+  Décision de Benjamin du 2026-09-03. Une preuve qui lance un navigateur, un
+  conteneur ou dure plus de 2 min est une action lourde : relevé, jeton, et au
+  journal `Machine : <verdict> — attente <n> min` (`machine-partagee.md`).
 
   **« Les tests des fichiers impactés », précisément.** La liste se construit à
   partir des fichiers **réellement** touchés — `git diff --name-only` depuis le
@@ -816,7 +818,8 @@ Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard » :
      page reste à `en cours`. Une suite qui n'est pas jouable sur le poste (e2e
      sans navigateur, par exemple) se dit au journal, tests nommés — ce n'est
      pas un vert, c'est un trou, et Benjamin doit le voir avant de demander la
-     PR.
+     PR. Suite complète et e2e prennent le jeton des actions lourdes :
+     `${CLAUDE_PLUGIN_ROOT}/skills/_partage/machine-partagee.md`.
   2. **Pousser la branche du plan.** C'est le seul push de la clôture quand le
      relevé du §2 a retenu les commits en local ; sans lui, le travail ne vit
      que sur un disque. La sortie de la preuve va au journal (`État final`).
@@ -863,8 +866,9 @@ distinctes, et il faut entendre laquelle est faite :
   aussi le merge par la CI une fois tout vert : y demander la PR, c'est demander
   la remontée, et Benjamin le sait.
   Si le chapitre `Exécution` porte une ligne `Évals à jouer : …`, la recopier dans le
-  corps de la PR sous la forme `Evals: <catégories> — <raison>` (ou `Evals: tout`) ;
-  sans elle, la CI joue tout le banc.
+  corps de la PR : `Evals: <catégories> — <raison>`, `Evals: tout` ou `Evals: aucun —
+  <raison>`. Poser le label `evals` pour des catégories ou `tout`, jamais pour `aucun` ;
+  sans ligne, la CI est rouge. Coûts : `${CLAUDE_PLUGIN_ROOT}/skills/_partage/outils-et-quotas.md`.
 - **« merge sur main »** → la PR (ouverte à cette occasion si elle ne l'est
   pas), CI verte, merge, vérification sur pièce, `execute`.
 
@@ -928,6 +932,9 @@ l'exécution fait attendre :
 
 - **le port des tests e2e** — deux plans ne le prennent pas en même temps ;
 - **la base locale** — même raison ;
+- **les actions lourdes** (suites, e2e, évals) — une seule à la fois sur la
+  machine : le plan maître porte leur file, le pilote les prend une par une
+  (`${CLAUDE_PLUGIN_ROOT}/skills/_partage/machine-partagee.md`) ;
 - **le quota d'un outil**, lu au registre :
 
   📄 `${CLAUDE_PLUGIN_ROOT}/skills/_partage/outils-et-quotas.md`
@@ -1001,6 +1008,7 @@ Elle s'écrit avec les mêmes précautions que le reste (§5).
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/maquettes-html.md`,
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/revue.md`,
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/bons-tests.md`,
-  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/poc.md` et
+  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/poc.md`,
+  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/machine-partagee.md` et
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/outils-et-quotas.md`, livrés par le
   plugin `plans-notion` — pas par le dépôt de travail, quel qu'il soit.

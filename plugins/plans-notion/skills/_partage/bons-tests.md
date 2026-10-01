@@ -15,12 +15,13 @@ catégorie « test qui ne teste rien » du relecteur (`agents/relecteur.md`).
 
 ## Pourquoi ce fichier
 
-Six règles. Les quatre premières sont reprises de `writing-good-tests.md`
+Sept règles. Les quatre premières sont reprises de `writing-good-tests.md`
 ([obra/superpowers](https://github.com/obra/superpowers)) et resserrées à ce
-qu'un exécutant peut vérifier lui-même avant de commiter le rouge ; les deux
-dernières (5 et 6) sont propres à ce plugin et portent la doctrine « tester le
-contrat » : ce qu'un test a le droit de regarder, et ce qu'il n'a pas le droit
-de recopier.
+qu'un exécutant peut vérifier lui-même avant de commiter le rouge ; les trois
+dernières (5, 6 et 7) sont propres à ce plugin. Les règles 5 et 6 portent la
+doctrine « tester le contrat » : ce qu'un test a le droit de regarder, et ce
+qu'il n'a pas le droit de recopier. La règle 7 borne le **nombre** de tests, que
+les six autres laissaient libre.
 
 ## 1. Nommer la panne
 
@@ -158,10 +159,24 @@ assert handle("a", payload) == expected_for_a
 assert "b" in HANDLERS  # le cas dont on sait qu'il doit exister
 ```
 
+## 7. Un test par panne nommée
+
+Les règles 1 à 6 bornent la **qualité** d'un test, aucune n'en borne le
+**nombre**. La ligne **Test attendu** d'une étape du plan est donc son budget :
+une panne nommée, un test. Tout test en plus se justifie — *quelle autre panne
+il attrape* que les tests déjà écrits laisseraient passer — dans un commentaire
+du test (ou le message du commit rouge), que le relecteur lit, et dans le
+rapport de l'exécutant. Sans cette justification, c'est du volume : il coûte à
+écrire, à relire et à maintenir, et ne protège de rien de plus.
+
+Origine : sur un dépôt applicatif suivi, un mois de plans exécutés a ajouté
++62 396 lignes de test pour +47 225 lignes de code, et 37 merges sur 53 ont
+ajouté plus de test que de code (mesure du 2026-10-01).
+
 ---
 
 *Adapté de [obra/superpowers](https://github.com/obra/superpowers) (MIT, Jesse Vincent /
-Prime Radiant). Récupéré le 2026-09-23. Les règles 5 et 6 sont propres à ce plugin.
+Prime Radiant). Récupéré le 2026-09-23. Les règles 5, 6 et 7 sont propres à ce plugin.
 Modifications : quatre règles retenues sur les
 deux principes de `writing-good-tests.md` (nommer la panne, attendu indépendant, pas de
 change detector, pas d'assertion miroir — le principe « exercer le réel », sur les
