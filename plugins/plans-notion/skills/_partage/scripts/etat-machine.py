@@ -3,6 +3,9 @@
 
 Usage :
     etat-machine.py releve [--json] [--hors-pid PID ...] [--proc RACINE]
+    etat-machine.py prendre <action> --plan <titre> [--attendre S] [--pid PID]
+    etat-machine.py rendre [--pid PID]
+    etat-machine.py qui [--json]
 
 ``releve`` lit ``/proc`` (charge moyenne, mémoire, pression CPU et mémoire,
 processus) et rend un verdict parmi trois :
@@ -26,7 +29,33 @@ a fini.
 
 ``--hors-pid PID`` (répétable) exclut ce processus et tous ses descendants du
 décompte des familles lourdes : ce que le détenteur du jeton fait tourner ne
-rend pas la machine « chargée » pour lui-même.
+rend pas la machine « chargée » pour lui-même. Les détenteurs vivants du jeton
+sont exclus d'office, sans qu'il faille les nommer.
+
+Le jeton des actions lourdes
+----------------------------
+Une action lourde (suite complète, e2e, évals locales, rejeu, build…) ne part
+qu'avec le jeton : ``PLACES_LOURDES`` places, une seule aujourd'hui.
+
+* ``prendre <action> --plan <titre>`` pose le jeton et écrit dans
+  ``${XDG_STATE_HOME:-~/.local/state}/plans-notion/lourd.lock`` le PID du
+  détenteur, l'action, le plan et l'heure. Avec ``--attendre S``, une prise sur
+  un jeton tenu réessaie (toutes les 0,2 s) pendant S secondes avant d'échouer.
+  Une machine ``saturée`` refuse tout de suite : attendre ne l'arrange pas.
+  ``chargée`` n'empêche rien : le relevé est rendu sur la 2e ligne pour que
+  l'appelant prévienne les autres.
+* ``rendre`` libère le jeton du PID donné ; sans effet pour un autre PID.
+* ``qui`` dit qui le tient (``--json`` : ``{"detenteurs": [...]}``).
+
+Le détenteur est un **PID** (``--pid``, par défaut le processus parent du
+script : ``prendre`` est appelé par un script shell qui continue ensuite, et le
+``flock`` d'un Python qui se termine se libère aussitôt). C'est donc le fichier
+d'état qui fait foi, et ``flock`` ne protège que sa lecture-écriture. Un
+détenteur dont le processus a disparu (ou dont le numéro a été réutilisé par un
+autre processus : l'heure de démarrage est comparée) est libéré à la prise
+suivante. Le PID doit exister au moment de la prise.
+
+Le fichier d'état vit hors des dépôts et ne se commite jamais.
 
 ``--proc`` change la racine de ``/proc`` : c'est ce qui permet aux tests de lire
 des fixtures au lieu de la vraie machine.
@@ -36,14 +65,20 @@ cloud, sans VPS, le script répond simplement sur la machine où il tourne. Une
 mesure illisible (pas de ``/proc/pressure``, par exemple) est ignorée, jamais
 une erreur : on répond sur ce qu'on lit.
 
-Codes de sortie : 0 relevé rendu, 2 usage.
+Codes de sortie : 0 relevé rendu / jeton accordé / jeton rendu / réponse de
+``qui`` ; 2 usage (dont un PID inexistant) ; 3 ``prendre`` refusé, jeton
+occupé ; 4 ``prendre`` refusé, machine saturée.
 """
 from __future__ import annotations
 
 import argparse
+import contextlib
+import fcntl
 import json
 import os
 import sys
+import time
+from datetime import datetime
 from pathlib import Path
 
 # --- Seuils : chacun avec sa provenance --------------------------------------
@@ -65,6 +100,21 @@ SEUIL_MEM_DISPONIBLE_KO = int(1.5 * 1024 * 1024)
 # moyenne, elle retombe en quelques secondes ; une e2e seule la pousse jusqu'à
 # 70 %, une suite seule jusqu'à 51 %, au repos elle reste à quelques pour cent.
 SEUIL_CPU_SOME_AVG10 = 50.0
+
+# --- Le jeton -------------------------------------------------------------------
+
+# Nombre d'actions lourdes simultanées. Provenance : POC de Q9, 2026-10-01 — à
+# deux (e2e Playwright de vahiny + suite de hermes-custom), l'e2e est tombée sur
+# un timeout de 30 s et la suite a pris 32 % de plus. Repasser à 2 un jour,
+# c'est changer cette ligne et refaire la mesure.
+PLACES_LOURDES = 1
+
+SORTIE_OK = 0
+SORTIE_USAGE = 2
+SORTIE_OCCUPE = 3
+SORTIE_SATUREE = 4
+
+PAS_D_ATTENTE_S = 0.2
 
 # --- Familles lourdes ---------------------------------------------------------
 
@@ -295,6 +345,149 @@ def formater(rel: dict) -> str:
     return "\n".join(lignes)
 
 
+# --- Le jeton : fichier d'état et processus détenteurs ------------------------
+
+def dossier_etat() -> Path:
+    base = os.environ.get("XDG_STATE_HOME") or os.path.join(os.path.expanduser("~"), ".local", "state")
+    return Path(base) / "plans-notion"
+
+
+def fichier_jeton() -> Path:
+    return dossier_etat() / "lourd.lock"
+
+
+def lire_demarrage(proc: Path, pid: int) -> int | None:
+    """Heure de démarrage (champ 22 de ``stat``) d'un processus vivant, sinon ``None``.
+
+    Un zombie est mort pour nous. Le couple (PID, heure de démarrage) identifie
+    un processus : le noyau recycle les PID, jamais cette paire.
+    """
+    texte = _lire(proc / str(pid) / "stat")
+    if not texte or ")" not in texte:
+        return None
+    champs = texte[texte.rindex(")") + 1:].split()
+    try:
+        if champs[0] == "Z":
+            return None
+        return int(champs[19])
+    except (IndexError, ValueError):
+        return None
+
+
+def est_vivant(proc: Path, detenteur: dict) -> bool:
+    try:
+        return lire_demarrage(proc, int(detenteur["pid"])) == detenteur["demarrage"]
+    except (KeyError, TypeError, ValueError):
+        return False
+
+
+@contextlib.contextmanager
+def verrou(creer: bool, exclusif: bool):
+    """Ouvre le fichier du jeton sous ``flock`` ; rend ``None`` s'il n'existe pas (et ``creer`` faux)."""
+    chemin = fichier_jeton()
+    if creer:
+        chemin.parent.mkdir(parents=True, exist_ok=True)
+        fd = os.open(chemin, os.O_RDWR | os.O_CREAT, 0o644)
+    else:
+        try:
+            fd = os.open(chemin, os.O_RDONLY)
+        except FileNotFoundError:
+            yield None
+            return
+    try:
+        fcntl.flock(fd, fcntl.LOCK_EX if exclusif else fcntl.LOCK_SH)
+        yield fd
+    finally:
+        os.close(fd)  # ferme aussi le verrou
+
+
+def lire_detenteurs(fd: int | None) -> list[dict]:
+    """Détenteurs écrits dans le fichier ; un fichier absent, vide ou illisible vaut « personne »."""
+    if fd is None:
+        return []
+    os.lseek(fd, 0, os.SEEK_SET)
+    brut = b""
+    while morceau := os.read(fd, 65536):
+        brut += morceau
+    try:
+        detenteurs = json.loads(brut.decode())["detenteurs"]
+        return [d for d in detenteurs if isinstance(d, dict)]
+    except (ValueError, KeyError, TypeError, UnicodeDecodeError):
+        return []
+
+
+def ecrire_detenteurs(fd: int, detenteurs: list[dict]) -> None:
+    donnees = json.dumps({"detenteurs": detenteurs}, ensure_ascii=False, indent=2).encode()
+    os.ftruncate(fd, 0)
+    os.lseek(fd, 0, os.SEEK_SET)
+    os.write(fd, donnees)
+
+
+def detenteurs_vivants(proc: Path) -> list[dict]:
+    with verrou(creer=False, exclusif=False) as fd:
+        return [d for d in lire_detenteurs(fd) if est_vivant(proc, d)]
+
+
+def prendre(proc: Path, action: str, plan: str, pid: int, attendre: float) -> int:
+    demarrage = lire_demarrage(proc, pid)
+    if demarrage is None:
+        print(f"prendre : le PID {pid} n'existe pas — le jeton se prend pour un processus vivant.",
+              file=sys.stderr)
+        return SORTIE_USAGE
+    fin = time.monotonic() + max(attendre, 0.0)
+    while True:
+        with verrou(creer=True, exclusif=True) as fd:
+            vivants = [d for d in lire_detenteurs(fd) if est_vivant(proc, d)]
+            moi = next((d for d in vivants if d["pid"] == pid), None)
+            if moi is not None:
+                # Même processus qui redemande : pas de blocage sur soi-même.
+                moi["action"], moi["plan"] = action, plan
+                ecrire_detenteurs(fd, vivants)
+                print(f"accordé\njeton déjà tenu par le PID {pid}")
+                return SORTIE_OK
+            if len(vivants) >= PLACES_LOURDES:
+                tenu_par = vivants[0]
+            else:
+                rel = releve(proc, {d["pid"] for d in vivants})
+                if rel["verdict"] == VERDICT_SATUREE:
+                    print("refusé : machine saturée", file=sys.stderr)
+                    print(formater(rel), file=sys.stderr)
+                    return SORTIE_SATUREE
+                vivants.append({"pid": pid, "demarrage": demarrage, "action": action,
+                                "plan": plan, "depuis": datetime.now().astimezone().isoformat(
+                                    timespec="seconds")})
+                ecrire_detenteurs(fd, vivants)
+                print(f"accordé\nrelevé : {rel['verdict']}")
+                return SORTIE_OK
+        reste = fin - time.monotonic()
+        if reste <= 0:
+            print(f"refusé : jeton tenu par le PID {tenu_par['pid']} — {tenu_par.get('action')} "
+                  f"({tenu_par.get('plan')}) depuis {tenu_par.get('depuis')}", file=sys.stderr)
+            return SORTIE_OCCUPE
+        time.sleep(min(PAS_D_ATTENTE_S, reste))
+
+
+def rendre(proc: Path, pid: int) -> int:
+    with verrou(creer=True, exclusif=True) as fd:
+        vivants = [d for d in lire_detenteurs(fd) if est_vivant(proc, d)]
+        restants = [d for d in vivants if d["pid"] != pid]
+        ecrire_detenteurs(fd, restants)
+    print("rendu" if len(restants) < len(vivants) else f"rien à rendre : le PID {pid} ne tient pas le jeton")
+    return SORTIE_OK
+
+
+def qui(proc: Path, en_json: bool) -> int:
+    vivants = detenteurs_vivants(proc)
+    if en_json:
+        print(json.dumps({"detenteurs": vivants}, ensure_ascii=False, indent=2))
+    elif not vivants:
+        print("libre")
+    else:
+        for d in vivants:
+            print(f"{d.get('action')} — {d.get('plan')} (PID {d['pid']}, depuis {d.get('depuis')})")
+    return SORTIE_OK
+
+
 # --- Ligne de commande --------------------------------------------------------
 
 def _parser() -> argparse.ArgumentParser:
@@ -306,16 +499,37 @@ def _parser() -> argparse.ArgumentParser:
     r.add_argument("--json", action="store_true", help="sortie structurée")
     r.add_argument("--hors-pid", type=int, action="append", default=[], metavar="PID",
                    help="exclut ce processus et ses descendants du décompte des familles")
+    t = sous.add_parser("prendre", parents=[commun], help="prend le jeton des actions lourdes")
+    t.add_argument("action", help="ce qui va tourner (ex. « e2e vahiny »)")
+    t.add_argument("--plan", required=True, help="titre du plan au nom duquel on prend le jeton")
+    t.add_argument("--attendre", type=float, default=0.0, metavar="S",
+                   help="secondes à réessayer si le jeton est tenu (défaut : 0, refus immédiat)")
+    t.add_argument("--pid", type=int, default=None, help="PID du détenteur (défaut : processus parent)")
+    d = sous.add_parser("rendre", parents=[commun], help="rend le jeton")
+    d.add_argument("--pid", type=int, default=None, help="PID du détenteur (défaut : processus parent)")
+    q = sous.add_parser("qui", parents=[commun], help="dit qui tient le jeton")
+    q.add_argument("--json", action="store_true", help="sortie structurée")
     return p
 
 
 def main(argv: list[str] | None = None) -> int:
     args = _parser().parse_args(argv)
+    proc = Path(args.proc)
     if args.commande == "releve":
-        rel = releve(args.proc, set(args.hors_pid))
+        # Ce que lance un détenteur du jeton ne compte pas contre lui-même.
+        hors = set(args.hors_pid) | {d["pid"] for d in detenteurs_vivants(proc)}
+        rel = releve(proc, hors)
         print(json.dumps(rel, ensure_ascii=False, indent=2) if args.json else formater(rel))
-        return 0
-    return 2  # inatteignable : argparse refuse toute autre commande
+        return SORTIE_OK
+    pid = getattr(args, "pid", None)
+    pid = os.getppid() if pid is None else pid
+    if args.commande == "prendre":
+        return prendre(proc, args.action, args.plan, pid, args.attendre)
+    if args.commande == "rendre":
+        return rendre(proc, pid)
+    if args.commande == "qui":
+        return qui(proc, args.json)
+    return SORTIE_USAGE  # inatteignable : argparse refuse toute autre commande
 
 
 if __name__ == "__main__":
