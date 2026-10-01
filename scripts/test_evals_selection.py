@@ -58,10 +58,11 @@ CHERCHEUR = "plugins/jouet/agents/chercheur.md"
 ENQUETEUR = "plugins/jouet/agents/enqueteur.md"
 
 
-def jouer_script(fichiers, corps, plugin, categories, cwd, labels="evals"):
+def jouer_script(fichiers, corps, plugin, categories, cwd, labels="evals", extra=()):
     """(code, stdout, stderr) ; ``corps=None`` : PR_BODY n'est pas défini.
 
     ``labels`` : les labels de la PR, un par ligne (``""`` : aucun label).
+    ``extra`` : arguments en plus (``("--fumee",)``).
     """
     liste = Path(cwd) / "fichiers.txt"
     liste.write_text("".join(f + "\n" for f in fichiers), "utf-8")
@@ -69,7 +70,7 @@ def jouer_script(fichiers, corps, plugin, categories, cwd, labels="evals"):
     if corps is not None:
         env["PR_BODY"] = corps
     argv = [sys.executable, str(SCRIPT), "--plugin", plugin, "--fichiers", str(liste),
-            "--labels", labels]
+            "--labels", labels, *extra]
     if categories is not None:
         argv += ["--categories", str(categories)]
     r = subprocess.run(argv, capture_output=True, text=True, env=env, cwd=cwd)
@@ -286,6 +287,34 @@ class AVotreDemande(Selection):
         s = self.selection([PLAN], corps=corps, labels="")
         self.assertEqual(s["cas"], [])
         self.assertFalse((self.dossier / "pirate").exists())
+
+
+class FumeeDeCi(Selection):
+    """``--fumee`` : les catégories à jouer pour une PR sans label ``evals``.
+
+    La fumée ne lit ni le corps de la PR ni les labels : seuls les fichiers touchés
+    disent quelles catégories jouer (les labels, eux, décident en amont si la
+    fumée part du tout : voir ``PorteeDuLabelAjoute``).
+    """
+
+    def fumee(self, fichiers, corps=None, plugin="jouet"):
+        code, sortie, erreur = jouer_script(fichiers, corps, plugin, self.categories,
+                                            self.dossier, labels="", extra=("--fumee",))
+        self.assertEqual(code, 0, erreur)
+        return json.loads(sortie)
+
+    def test_un_skill_touche_ne_joue_que_les_categories_qui_l_exercent_pas_tout_le_banc(self):
+        # Le corps de la PR demande « execution » : la fumée n'en tient pas compte.
+        s = self.fumee([PLAN], corps="Evals: execution — essai")
+        self.assertFalse(s["tout"])
+        self.assertEqual(sorted(s["categories"]), ["bruit", "depart", "recherche"])
+        self.assertEqual(sorted(s["cas"]), ["a1", "a2", "b1", "c1", "c2", "c3"])
+
+    def test_un_fichier_de_partage_joue_toutes_les_categories_du_plugin(self):
+        s = self.fumee(["plugins/jouet/skills/_partage/regle.md"])
+        self.assertTrue(s["tout"])
+        self.assertEqual(sorted(s["categories"]), sorted(CATEGORIES["jouet"]))
+        self.assertEqual(sorted(s["cas"]), TOUS_LES_CAS_DE_JOUET)
 
 
 class FichiersDuSocleCommun(Selection):
@@ -773,16 +802,16 @@ class CiYml(unittest.TestCase):
     def test_le_verdict_est_un_job_au_nom_fixe_sans_secret_ni_droit(self):
         verdict = _job(self.ci, "evals-verdict")
         self.assertIn("name: Verdict des évals", verdict)
-        self.assertIn("needs: [evals-portee, evals]", verdict)
+        self.assertIn("needs: [evals-portee, evals, fumee]", verdict)
         self.assertRegex(verdict, r"(?m)^    if: always\(\)\s*$")
         self.assertIn("runs-on: ubuntu-latest", verdict)
         self.assertRegex(verdict, r"(?m)^    permissions: \{\}\s*$")
         self.assertNotIn("checkout", verdict)
         self.assertNotIn("secrets.", verdict)
 
-    def test_le_verdict_est_rouge_sur_echec_ou_annulation_de_la_portee_ou_des_evals(self):
+    def test_le_verdict_est_rouge_sur_echec_ou_annulation_de_la_portee_des_evals_ou_de_la_fumee(self):
         verdict = _job(self.ci, "evals-verdict")
-        for amont in ("evals-portee", "evals"):
+        for amont in ("evals-portee", "evals", "fumee"):
             with self.subTest(amont=amont):
                 self.assertIn(f"needs.{amont}.result", verdict)
         for etat in ("failure", "cancelled"):
@@ -901,6 +930,28 @@ class PorteeDuLabelAjoute(unittest.TestCase):
         r, sorties = self.jouer("review-required", "review-required", corps="")
         self.assertNotEqual(r.returncode, 0)
         self.assertEqual(sorties["touche"], "false")
+
+    def test_sans_label_evals_une_pr_qui_touche_un_skill_part_en_fumee_et_le_label_la_remplace(self):
+        # `fumee_plugins` / `fumee_selection` : ce que le job `fumee` lit. Sans label, le
+        # corps dit « aucun » (le contrôle label-ou-aucun passe) : la fumée part quand même.
+        sans_label, avec_label = "Evals: aucun — essai", "Evals: bruit — essai"
+        cas = [
+            # (labels, label ajouté, plugins en fumée)
+            ("", "", ["jouet"]),                                  # sans label : fumée
+            ("evals", "", []),                                    # l'A/B remplace la fumée
+            ("evals", "evals", []),                               # label posé à l'instant
+            ("review-required", "review-required", []),           # label étranger : on ne repaie pas
+        ]
+        for labels, ajoute, attendus in cas:
+            with self.subTest(labels=labels, label_ajoute=ajoute):
+                corps = avec_label if "evals" in labels else sans_label
+                r, sorties = self.jouer(labels, ajoute, corps=corps)
+                self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+                plugins = json.loads(sorties["fumee_plugins"]) if sorties["fumee_plugins"] else []
+                self.assertEqual(plugins, attendus)
+        r, sorties = self.jouer("", "", corps=sans_label)
+        categories = json.loads(sorties["fumee_selection"])["jouet"]["categories"]
+        self.assertEqual(sorted(categories), ["bruit", "depart", "recherche"])
 
 
 def _blocs_run(texte: str):

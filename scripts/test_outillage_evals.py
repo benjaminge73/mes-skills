@@ -320,17 +320,18 @@ class LancerLocalPrendLeJetonMachine(unittest.TestCase):
         self.assertEqual(lancement.qui_pendant_claude.read_text(encoding="utf-8").strip(), "libre")
 
 
-def _concurrence_du_job_evals() -> tuple[str, str]:
-    """(groupe, cancel-in-progress) du bloc ``concurrency:`` du job ``evals`` de ci.yml."""
+def _concurrence_du_job(nom: str = "evals") -> tuple[str, str]:
+    """(groupe, cancel-in-progress) du bloc ``concurrency:`` d'un job de ci.yml."""
     texte = CI.read_text(encoding="utf-8")
-    job = re.search(r"^  evals:\n(.*?)(?=^  [a-z][\w-]*:\n|\Z)", texte, re.MULTILINE | re.DOTALL)
-    assert job, "job evals introuvable dans ci.yml"
+    job = re.search(rf"^  {re.escape(nom)}:\n(.*?)(?=^  [a-z][\w-]*:\n|\Z)", texte,
+                    re.MULTILINE | re.DOTALL)
+    assert job, f"job {nom} introuvable dans ci.yml"
     bloc = re.search(
         r"^    concurrency:\n(?:      #.*\n)*      group: (.+)\n(?:      #.*\n)*      cancel-in-progress: (\S+)",
         job.group(1),
         re.MULTILINE,
     )
-    assert bloc, "bloc concurrency (group puis cancel-in-progress) introuvable dans le job evals"
+    assert bloc, f"bloc concurrency (group puis cancel-in-progress) introuvable dans le job {nom}"
     return bloc.group(1).strip(), bloc.group(2)
 
 
@@ -366,7 +367,7 @@ class UnSeulBancALaFoisParPlugin(unittest.TestCase):
     """
 
     def setUp(self):
-        self.expression, self.annulation = _concurrence_du_job_evals()
+        self.expression, self.annulation = _concurrence_du_job("evals")
 
     def _groupe(self, *, pr="", ref="refs/heads/x", mode="", plugin="plans-notion") -> str:
         return _groupe_pour(self.expression, pr=pr, ref=ref, mode=mode, plugin=plugin)
@@ -393,6 +394,24 @@ class UnSeulBancALaFoisParPlugin(unittest.TestCase):
 
     def test_un_second_banc_attend_au_lieu_d_annuler_le_premier(self):
         self.assertEqual(self.annulation, "false")
+
+
+class LaFumeeAttendDansLeGroupeDesEvals(unittest.TestCase):
+    """La fumée puise dans le même abonnement que le banc : même groupe, sans annulation."""
+
+    def test_la_fumee_est_dans_le_groupe_evals_du_plugin_et_n_annule_personne(self):
+        groupe, annulation = _concurrence_du_job("fumee")
+        expression_evals, _ = _concurrence_du_job("evals")
+        for plugin in ("plans-notion", "methode-de-travail"):
+            for pr, ref in (("12", "refs/pull/12/merge"), ("34", "refs/pull/34/merge")):
+                with self.subTest(plugin=plugin, pr=pr):
+                    de_la_fumee = _groupe_pour(groupe, pr=pr, ref=ref, mode="", plugin=plugin)
+                    self.assertEqual(de_la_fumee, f"evals-{plugin}")
+                    self.assertEqual(
+                        de_la_fumee,
+                        _groupe_pour(expression_evals, pr="", ref="refs/heads/main", mode="ab",
+                                     plugin=plugin))
+        self.assertEqual(annulation, "false")
 
 
 if __name__ == "__main__":
