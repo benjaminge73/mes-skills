@@ -864,8 +864,8 @@ distinctes, et il faut entendre laquelle est faite :
   la remontée, et Benjamin le sait.
   Si le chapitre `Exécution` porte une ligne `Évals à jouer : …`, la recopier dans le
   corps de la PR : `Evals: <catégories> — <raison>`, `Evals: tout` ou `Evals: aucun —
-  <raison>`. Poser le label `evals` seulement si des catégories sont choisies ; sans
-  ligne, la CI est rouge. Coûts : `${CLAUDE_PLUGIN_ROOT}/skills/_partage/outils-et-quotas.md`.
+  <raison>`. Poser le label `evals` pour des catégories ou `tout`, jamais pour `aucun` ;
+  sans ligne, la CI est rouge. Coûts : `${CLAUDE_PLUGIN_ROOT}/skills/_partage/outils-et-quotas.md`.
 - **« merge sur main »** → la PR (ouverte à cette occasion si elle ne l'est
   pas), CI verte, merge, vérification sur pièce, `execute`.
 
