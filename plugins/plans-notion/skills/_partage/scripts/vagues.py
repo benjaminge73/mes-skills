@@ -62,8 +62,14 @@ def en_conflit(fa: list[str], fb: list[str]) -> bool:
 def calculer(lignes) -> dict[str, int]:
     ids = [l["Étape"] for l in lignes]
     fichiers = {l["Étape"]: fichiers_de(l["Fichiers touchés"]) for l in lignes}
-    deps = {l["Étape"]: [d for d in (x.strip() for x in l["Dépend de"].split(","))
-                         if d in ids and d != l["Étape"]] for l in lignes}
+    deps = {}
+    for l in lignes:
+        e = l["Étape"]
+        bruts = [x.strip() for x in l["Dépend de"].split(",")]
+        d = [x for x in bruts if x in ids and x != e]
+        if any(x.lower() == "toutes" for x in bruts):  # « toutes » : toutes les autres étapes
+            d += [o for o in ids if o != e and o not in d]
+        deps[e] = d
     vague: dict[str, int] = {}
     restantes = list(ids)
     while restantes:
