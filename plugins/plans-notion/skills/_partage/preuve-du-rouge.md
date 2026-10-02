@@ -54,7 +54,7 @@ sur ordre explicite du brief, et seulement dans ce cadre.
 
 ## Le geste du pilote : rejouer les tests sur le commit rouge
 
-Le pilote — la session qui exécute le plan — rejoue la commande de preuve du
+Le pilote — la session qui orchestre le plan — rejoue la commande de preuve du
 brief sur le **premier** commit, celui qui ne porte que les tests, avant de
 regarder le second.
 

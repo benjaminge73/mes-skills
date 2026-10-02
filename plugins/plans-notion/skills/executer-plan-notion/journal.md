@@ -34,7 +34,7 @@ Sous ce titre, l'entrée porte :
 - **ce qui a été fait**, dans le détail — assez pour comprendre sans relire le diff ;
 - les **décisions prises en route**, chacune au format « quoi — pourquoi — ce
   que ça coûte si c'est faux » (§3, « Le format du rapport attendu »), qu'elle
-  vienne du sous-agent ou de la session de pilotage elle-même ;
+  vienne du sous-agent ou du pilote lui-même ;
 - les **fichiers réellement touchés** ;
 - la **preuve** : commande jouée en local, les tests qu'elle couvre — ceux de
   l'étape, ceux des fichiers impactés — et sa sortie ;

@@ -52,7 +52,7 @@ qui est déjà su.** Six gisements, du moins cher au plus cher :
    cherche **avant tout POC** : un POC qui mesure un outil maison alors qu'un outil
    éprouvé existe mesure la mauvaise chose. Invoquer l'agent **`chercheur`** (outil
    `Agent`, `subagent_type: "plans-notion:chercheur"` — le nom qualifié par le
-   plugin, comme pour `enqueteur`) : il parcourt le web à la place de la session
+   plugin, comme pour `enqueteur`) : il parcourt le web à la place du
    pilote et ne rend qu'une fiche, un candidat par bloc.
 
    📄 `${CLAUDE_PLUGIN_ROOT}/agents/chercheur.md`
@@ -85,7 +85,7 @@ sauf si une option dépend d'une incertitude mesurable.
 
 Le `chercheur` n'a pas Bash : les chiffres qu'il rend sont **lus sur une page web**,
 et une page web peut être en cache ou fausse. Quand sa fiche propose un candidat au
-verdict *use* (on l'adopte tel quel), la session pilote le vérifie elle-même, dans
+verdict *use* (on l'adopte tel quel), le pilote le vérifie lui-même, dans
 cet ordre :
 
 1. **Rejouer `gh api repos/<owner>/<name>`** : étoiles, `pushed_at`, contributeurs,

@@ -107,7 +107,7 @@ vague utilisent en même temps.
   'refs/heads/feat/x/etape-1': 'refs/heads/feat/x' exists`. Le tiret évite le
   conflit : `<branche-du-plan>-etape-N`.
 - **Lancement** : un appel `Agent` par étape de la vague, tous dans **le même
-  tour** de la session de pilotage, avec `run_in_background: true` — c'est la
+  tour** du pilote, avec `run_in_background: true` — c'est la
   seule différence avec le gabarit séquentiel (§3 du skill) : le paramètre
   passe de `false` à `true` pour les étapes d'une même vague, tout le reste du
   gabarit et du brief (§3) reste identique, worktree en plus dans le contexte
@@ -115,8 +115,8 @@ vague utilisent en même temps.
 
   ⚠️ **Un sous-agent hérite du répertoire courant du pilote au moment de
   l'appel `Agent`, pas du worktree qu'on vient de lui décrire en prose.** Le
-  `cd` vers le worktree de l'étape doit avoir lieu **avant** l'appel, dans la
-  session de pilotage, et le brief doit le dire explicitement — « fais `cd
+  `cd` vers le worktree de l'étape doit avoir lieu **avant** l'appel, chez le
+  pilote, et le brief doit le dire explicitement — « fais `cd
   <worktree>` avant toute commande » — plutôt que de compter sur le seul
   chemin mentionné dans le contexte. Constaté le 2026-09-24 : une étape a
   commité sur la branche du plan, dans le checkout partagé, au lieu de sa

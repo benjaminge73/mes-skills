@@ -149,8 +149,8 @@ pas pour raconter l'avancement, qui va dans `Journal d'exécution` (§4).
 
 - **Une étape = un commit sur la branche du plan**, prouvé en local : pas de
   sous-branche, pas de PR d'étape. La preuve, ce sont **les tests des fichiers
-  impactés** (liste réelle, `git diff --name-only`), **jouée par la session
-  principale**, jamais la suite complète ni les e2e — ceux-là passent une fois, à
+  impactés** (liste réelle, `git diff --name-only`), **jouée par le
+  pilote** (la session qui orchestre le plan), jamais la suite complète ni les e2e — ceux-là passent une fois, à
   la clôture (§6). Rouge → on corrige jusqu'au vert, jamais de contournement ;
   seul un correctif structurant (ou un échec qu'on ne sait plus diagnostiquer)
   part à l'arbitrage de Benjamin, sur une branche de côté `-etape-N-en-echec`.
@@ -172,7 +172,7 @@ pas pour raconter l'avancement, qui va dans `Journal d'exécution` (§4).
 
 📄 `${CLAUDE_PLUGIN_ROOT}/skills/executer-plan-notion/etapes.md` — **à lire avant la première étape, puis à chaque étape** :
 le détail de la preuve locale et de la boucle rouge, l'appel `Agent` exact, le
-brief complet, ce qui reste en session principale, la liste « Après chaque
+brief complet, ce qui reste chez le pilote, la liste « Après chaque
 étape » et les cas où l'on s'arrête.
 
 Étape testée : `${CLAUDE_PLUGIN_ROOT}/skills/_partage/preuve-du-rouge.md` ; vagues :
@@ -315,7 +315,7 @@ celle qui la précède.
 Tout ce qui précède décrit un plan. Quand une session en porte plusieurs,
 chacun garde son déroulé (§2 à §7) ; ce qui s'ajoute tient en cinq points.
 
-**Un pilote unique.** La session principale pilote tous les plans, et aucun
+**Un pilote unique.** Le pilote conduit tous les plans, et aucun
 n'est confié à un « pilote » délégué. La raison est mécanique : un sous-agent
 ne peut pas lancer d'autres sous-agents. Un pilote par plan, délégué, ne
 pourrait donc plus appeler `executant` ni `relecteur` — les étapes se

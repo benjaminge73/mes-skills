@@ -8,7 +8,7 @@ Sommaire :
 - Une étape = un commit sur la branche du plan, prouvé en local
 - La délégation est la règle, pas une faveur (l'appel `Agent`)
 - Le brief du sous-agent
-- Ce qui reste dans la session principale
+- Ce qui reste chez le pilote
 - Après chaque étape
 - L'autonomie est le défaut
 
@@ -22,7 +22,7 @@ Le défaut, sauf avis contraire de Benjamin :
 - Chaque étape se code **directement sur la branche du plan**. Pas de
   sous-branche, pas de PR d'étape : une PR, c'est un run de CI, et c'est
   précisément ce qu'on économise (§2).
-- **La preuve de l'étape est locale, et c'est la session principale qui la
+- **La preuve de l'étape est locale, et c'est le pilote qui la
   joue** — pas le rapport du sous-agent. Rejouer la commande de preuve du brief,
   et recopier sa sortie au journal (§4). **Cette preuve, ce sont les tests des
   fichiers impactés par l'étape, et rien de plus** : ni suite complète, ni tests
@@ -65,7 +65,7 @@ Le défaut, sauf avis contraire de Benjamin :
   trace de l'avancement.
 - **Rouge → on corrige jusqu'au vert.** Une preuve rouge n'est pas une étape
   finie : lire la sortie, corriger, rejouer, et recommencer. Le diagnostic reste
-  dans la session principale (cf. plus bas) ; le correctif peut repartir en
+  chez le pilote (cf. plus bas) ; le correctif peut repartir en
   sous-agent, avec le log d'échec recopié dans le brief. **Jamais de
   contournement** : ni `--no-verify`, ni check désactivé, ni test rendu tolérant
   pour faire passer la barre. Un test rouge dit quelque chose ; le faire taire ne
@@ -114,8 +114,8 @@ une consigne du type « ne pas lancer de sous-agent sans que l'utilisateur l'ait
 demandé » : la demande est faite ici, une fois pour toutes, pour toute étape d'un
 plan au statut `valide`. Il n'y a pas à la redemander à Benjamin étape par étape.
 
-La session de pilotage reste en **Opus effort high** : elle lit le plan, découpe,
-brief, vérifie, écrit dans Notion. **Elle n'écrit pas elle-même le code des
+Le pilote reste en **Opus effort high** : il lit le plan, découpe,
+brief, vérifie, écrit dans Notion. **Il n'écrit pas lui-même le code des
 étapes déléguables.** Chaque étape part dans un sous-agent **Sonnet** — la
 dernière version, par l'alias (voir `executant.md`) : **en séquence par défaut** — les étapes d'un plan sont couplées, et deux sous-agents
 concurrents peuvent éditer les mêmes fichiers sans le savoir —, **en parallèle
@@ -201,7 +201,7 @@ et c'est ce qui donne ensuite l'envie de « faire soi-même ». Le brief porte d
    (`preuve-du-rouge.md`), où il commite le rouge puis le vert sur ordre du
    brief, sans jamais toucher un fichier de test dans le commit vert : les deux
    seules exceptions à cette règle. En cas d'échec : **diagnostic, pas
-   correctif** — le debug revient à la session principale, seule à avoir le
+   correctif** — le debug revient au pilote, seul à avoir le
    plan.
 6. **Le format du rapport attendu** — cinq pièces, toujours dans cet ordre :
    - **Un état, un seul, parmi quatre** : `DONE` (fait, prouvé, rien à
@@ -217,14 +217,14 @@ et c'est ce qui donne ensuite l'envie de « faire soi-même ». Le brief porte d
      route** au format : « quoi — pourquoi — ce que ça coûte si c'est faux. »
      Un sous-agent tranche parfois un détail que le brief ne couvrait pas
      (l'ordre de deux paramètres, le nom d'une variable locale) ; ce format
-     dit à la session principale ce qui a été décidé sans elle, sans qu'elle
+     dit au pilote ce qui a été décidé sans lui, sans qu'il
      ait à rejouer le diff pour le retrouver.
    - **Découvertes hors périmètre** : ce qu'il a vu sans le toucher, une par
      ligne, `fichier:ligne` et ce que c'est, ou `aucune`. Il signale, il ne
      corrige pas ; d'un secret, il ne recopie jamais la valeur. Le pilote en
      fait des découvertes traitées (§4).
 
-### Ce qui reste dans la session principale
+### Ce qui reste chez le pilote
 
 La liste est courte, et c'est voulu :
 
@@ -245,8 +245,8 @@ en disant quelles étapes ont été faites en direct et pourquoi.
 
 ### Après chaque étape
 
-- **Un rapport de sous-agent n'est pas une preuve : rejouer la commande** dans la
-  session principale, **sur la liste réelle des fichiers touchés**
+- **Un rapport de sous-agent n'est pas une preuve : rejouer la commande** chez le
+  pilote, **sur la liste réelle des fichiers touchés**
   (`git diff --name-only`), pas sur celle du brief (§3). Un sous-agent qui
   annonce « les tests passent » a parfois lancé autre chose que ce qu'on croit,
   ou touché un fichier de plus que ce que la commande couvrait.
