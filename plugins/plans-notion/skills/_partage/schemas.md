@@ -25,7 +25,7 @@ Deux faits, remontés par l'enquête sur les plans passés :
   ces deux formes ; un graphe les rend visibles avant de coder.
 
 Le schéma n'est donc pas de la décoration : c'est un outil de relecture, pour
-Benjamin comme pour la session qui exécute.
+Benjamin comme pour le pilote.
 
 ## Les trois schémas, et quand chacun se justifie
 
@@ -102,7 +102,7 @@ page :
 | Classe | Sens | Couleur | Déclaration |
 |---|---|---|---|
 | `det` | écriture déterministe, ou sous-agent | bleu | `fill:#dbe9ff,stroke:#3b6fd6,color:#000` |
-| `agent` | lecture et jugement en session de pilotage | violet | `fill:#efe0ff,stroke:#8b4fd6,color:#000` |
+| `agent` | lecture et jugement côté pilote | violet | `fill:#efe0ff,stroke:#8b4fd6,color:#000` |
 | `toi` | un geste de Benjamin | orange | `fill:#ffe3c2,stroke:#e08a1e,color:#000` |
 | `data` | un artefact (fichier, branche, page) | gris | `fill:#f1f1f1,stroke:#888,color:#000` |
 | `out` | une sortie livrée | vert | `fill:#dff5e1,stroke:#2e8b57,color:#000` |

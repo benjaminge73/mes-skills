@@ -861,6 +861,19 @@ jobs:
           esac
           exit "$code"
 
+      - name: Téléverser le tableau
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: fumee-${{ matrix.plugin }}
+          # Le seul `tableau.md` (scores par catégorie, planchers, coût par
+          # catégorie) : le résumé du job n'est lisible ni par l'API ni par la
+          # page publique, l'artefact oui. Ni les traces (hors de ce dossier),
+          # ni le journal du job (`fumee.log`, dans `RUNNER_TEMP`).
+          path: ${{ runner.temp }}/fumee-sortie
+          if-no-files-found: ignore
+          retention-days: 14
+
   evals-verdict:
     # Le seul contrôle d'évals au nom fixe : `Évals (<plugin>)` change avec la
     # matrice, et le verrou de `main` ne peut exiger qu'un nom qui ne change pas.

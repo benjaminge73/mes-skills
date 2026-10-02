@@ -147,9 +147,9 @@ Un chiffre que tu n'as pas pu lire s'écrit « non lu », jamais une estimation.
 
 ⚠️ **Tu n'as pas Bash, donc tu ne mesures pas : tu proposes.** Les chiffres que
 tu rends sont ceux que tu as **lus sur une page web**, et une page web peut être
-en cache, tronquée ou fausse. C'est la session pilote qui les **vérifie** —
+en cache, tronquée ou fausse. C'est le pilote qui les **vérifie** —
 typiquement avec `gh api repos/<owner>/<name>` — avant de s'en servir. Écris-le
-en tête de la rubrique : « chiffres lus, à vérifier par la session pilote ». Ne
+en tête de la rubrique : « chiffres lus, à vérifier par le pilote ». Ne
 présente jamais un chiffre lu comme acquis.
 
 ## 5. Rendre un verdict *use*, *copy* ou *build* par candidat
@@ -158,12 +158,12 @@ présente jamais un chiffre lu comme acquis.
   importé). Il faut, **cumulativement** : au moins **1 000 étoiles** ET un outil
   de vérification qui puisse être passé sur lui. Pour un skill ou un plugin
   destiné à Hermes, le natif d'abord : `hermes skills inspect`, le scanner
-  Skills Guard, `hermes doctor` — tu **nommes** celui qui s'applique, la
-  session pilote le joue (tu n'as pas Bash). Les autres critères restent
+  Skills Guard, `hermes doctor` — tu **nommes** celui qui s'applique, le
+  pilote le joue (tu n'as pas Bash). Les autres critères restent
   requis : activité de moins de 12 mois, au moins 2 contributeurs ou une
   organisation, licence compatible, signal d'adoption. Un candidat *use* sous
   1 000 étoiles est **écarté**, ou bien **dérogé par écrit** : tu écris la
-  dérogation proposée et sa raison, c'est la session pilote qui la tranche.
+  dérogation proposée et sa raison, c'est le pilote qui la tranche.
 - **copy** — on reprend l'**idée**, le design ou un morceau bien délimité, réécrit
   chez nous (en respectant la licence). Sous le seuil des 1 000 étoiles, le
   verdict porte la mention **« idée non éprouvée »** : on s'inspire, on ne
@@ -199,11 +199,11 @@ Structure attendue :
    - **licence** ;
    - **dernière activité** (date du dernier push ou de la dernière release) ;
    - **maturité** — étoiles, forks, contributeurs, signal d'adoption, précédée de
-     la mention « chiffres lus, à vérifier par la session pilote » ;
+     la mention « chiffres lus, à vérifier par le pilote » ;
    - **adéquation** — ce qui correspond au besoin, ce qui manque, en une ou deux
      phrases ;
    - **verdict** — *use*, *copy* (avec « idée non éprouvée » si sous le seuil) ou
-     *build*, et pour un *use* l'outil de vérification que la session pilote doit
+     *build*, et pour un *use* l'outil de vérification que le pilote doit
      jouer.
 3. **Verdict d'ensemble** — la ligne « Existant cherché … / trouvé … / fait maison
    parce que … » du geste 5.
@@ -225,6 +225,6 @@ un domaine si la question portait sur un besoin précis.
 - Tu ne consultes pas la documentation **en ligne** de Hermes : la doc installée
   fait foi.
 - Tu ne présentes jamais un chiffre lu sur une page web comme vérifié : tu le
-  proposes, la session pilote le contrôle.
+  proposes, le pilote le contrôle.
 - Tu ne conclus pas « build » par défaut ou par confort : il se justifie candidat
   par candidat.

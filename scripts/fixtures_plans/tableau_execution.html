@@ -1,0 +1,198 @@
+<table header-row="true">
+<tr>
+<td>Étape</td>
+<td>Fichiers touchés</td>
+<td>Dépend de</td>
+<td>Vague</td>
+<td>Relecture</td>
+</tr>
+<tr>
+<td>1</td>
+<td>`.github/workflows/ci.yml`, `scripts/evals_selection.py`, `scripts/test_evals_selection.py`, `.github/pull_request_template.md`</td>
+<td>Q1</td>
+<td>1</td>
+<td>étape</td>
+</tr>
+<tr>
+<td>2</td>
+<td>`.github/workflows/ci.yml`, `scripts/test_outillage_evals.py`</td>
+<td>1, Q2</td>
+<td>2</td>
+<td>lot</td>
+</tr>
+<tr>
+<td>3</td>
+<td>`.github/workflows/ci.yml`, `scripts/evals_ab.py`, `scripts/test_evals_ab.py`</td>
+<td>2, Q3</td>
+<td>3</td>
+<td>étape</td>
+</tr>
+<tr>
+<td>4</td>
+<td>`scripts/evals_ab.py`, `scripts/test_evals_ab.py`, `.github/workflows/ci.yml`</td>
+<td>3, Q5</td>
+<td>4</td>
+<td>lot</td>
+</tr>
+<tr>
+<td>5</td>
+<td>`plugins/plans-notion/skills/plan-notion/SKILL.md`, `plugins/plans-notion/skills/executer-plan-notion/SKILL.md`, `plugins/plans-notion/skills/_partage/outils-et-quotas.md`, `docs/tester-un-skill.md`</td>
+<td>Q1, Q4, Q6, Q7, Q12</td>
+<td>1</td>
+<td>étape</td>
+</tr>
+<tr>
+<td>6</td>
+<td>`hermes-custom` : `bancs/skills/README.md`</td>
+<td>—</td>
+<td>1</td>
+<td>lot</td>
+</tr>
+<tr>
+<td>7</td>
+<td>`plugins/plans-notion/skills/_partage/scripts/etat-machine.py` (créé), `scripts/test_etat_machine.py` (créé)</td>
+<td>Q8, Q9</td>
+<td>1</td>
+<td>étape</td>
+</tr>
+<tr>
+<td>8</td>
+<td>les mêmes que l'étape 7 (regroupée avec elle)</td>
+<td>7, Q9</td>
+<td>1</td>
+<td>étape</td>
+</tr>
+<tr>
+<td>9</td>
+<td>`plugins/plans-notion/skills/_partage/machine-partagee.md` (créé), `plugins/plans-notion/skills/executer-plan-notion/SKILL.md`, `plugins/plans-notion/agents/executant.md`</td>
+<td>5, 8, Q10, Q11</td>
+<td>2</td>
+<td>étape</td>
+</tr>
+<tr>
+<td>10</td>
+<td>`evals/outillage/lancer.sh`, `scripts/test_outillage_evals.py`</td>
+<td>2, 8</td>
+<td>3</td>
+<td>lot</td>
+</tr>
+<tr>
+<td>11</td>
+<td>`evals/categories.json`, `scripts/evals_ab.py`, `scripts/test_evals_ab.py`</td>
+<td>4, Q12</td>
+<td>5</td>
+<td>étape</td>
+</tr>
+<tr>
+<td>12</td>
+<td>`.github/workflows/ci.yml`, `scripts/evals_selection.py`, `scripts/test_evals_selection.py`, `scripts/test_outillage_evals.py`</td>
+<td>1, 2, 10, 11, Q12</td>
+<td>6</td>
+<td>étape</td>
+</tr>
+<tr>
+<td>13</td>
+<td>`plugins/plans-notion/agents/chercheur.md`, `docs/veille.md`</td>
+<td>—</td>
+<td>1</td>
+<td>lot</td>
+</tr>
+<tr>
+<td>14</td>
+<td>`plugins/plans-notion/skills/_partage/bons-tests.md`, `plugins/plans-notion/agents/executant.md`, `plugins/plans-notion/agents/relecteur.md`, `plugins/plans-notion/skills/plan-notion/SKILL.md`</td>
+<td>5, 9</td>
+<td>3</td>
+<td>étape</td>
+</tr>
+<tr>
+<td>D1</td>
+<td>`docs/tester-un-skill.md`, `.github/pull_request_template.md`, `docs/garde-fous.md`</td>
+<td>12</td>
+<td>7 (avant 15)</td>
+<td>étape</td>
+</tr>
+<tr>
+<td>D2</td>
+<td>`scripts/evals_ab.py`, `scripts/test_evals_ab.py`</td>
+<td>11</td>
+<td>6 (avec 12)</td>
+<td>étape</td>
+</tr>
+<tr>
+<td>D3</td>
+<td>`plugins/plans-notion/skills/_partage/outils-et-quotas.md`, `.github/workflows/ci.yml`</td>
+<td>D1</td>
+<td>7 (avec la revue de D1)</td>
+<td>étape</td>
+</tr>
+<tr>
+<td>15</td>
+<td>`plugins/plans-notion/.claude-plugin/plugin.json`, `README.md`</td>
+<td>toutes</td>
+<td>7</td>
+<td>lot</td>
+</tr>
+<tr>
+<td>D4</td>
+<td>`.github/workflows/ci.yml`</td>
+<td>lot 1 mergé</td>
+<td>L2·0</td>
+<td>étape</td>
+</tr>
+<tr>
+<td>D5</td>
+<td>`evals/categories.json`, `scripts/evals_selection.py`, `scripts/check_skills.py`, leurs tests, `docs/tester-un-skill.md`, `docs/garde-fous.md`</td>
+<td>lot 1 mergé</td>
+<td>L2·0</td>
+<td>étape</td>
+</tr>
+<tr>
+<td>D6</td>
+<td>`_partage/outils-et-quotas.md`</td>
+<td>lot 1 mergé</td>
+<td>L2·0</td>
+<td>étape</td>
+</tr>
+<tr>
+<td>16</td>
+<td>`_partage/scripts/verifier-version.sh`, `compter-cases.py`, `vagues.py` (créés), leurs tests sous `scripts/`</td>
+<td>lot 1 mergé, 7</td>
+<td>L2·1</td>
+<td>étape</td>
+</tr>
+<tr>
+<td>17</td>
+<td>`hooks/hooks.json`, `hooks/*.py` (créés), leurs tests sous `scripts/`</td>
+<td>lot 1 mergé</td>
+<td>L2·1</td>
+<td>étape</td>
+</tr>
+<tr>
+<td>18</td>
+<td>`plan-notion/SKILL.md`, `plan-notion/*.md` (références créées), `docs/retex/plan-notion.md` (créé)</td>
+<td>16</td>
+<td>L2·2</td>
+<td>étape</td>
+</tr>
+<tr>
+<td>19</td>
+<td>`executer-plan-notion/SKILL.md`, `executer-plan-notion/*.md` (références créées), `docs/retex/executer-plan-notion.md` (créé)</td>
+<td>16</td>
+<td>L2·2</td>
+<td>étape</td>
+</tr>
+<tr>
+<td>20</td>
+<td>tous les `SKILL.md`, `agents/*.md`, `_partage/*.md` du plugin</td>
+<td>17, 18, 19, Q14</td>
+<td>L2·3</td>
+<td>étape</td>
+</tr>
+<tr>
+<td>21</td>
+<td>`.claude-plugin/plugin.json`, `README.md`, `evals/RESULTATS.md`, `scripts/limites.json`, `docs/garde-fous.md`</td>
+<td>20</td>
+<td>L2·4</td>
+<td>lot</td>
+</tr>
+</table>

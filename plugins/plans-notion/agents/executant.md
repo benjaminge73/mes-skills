@@ -24,13 +24,13 @@ de rapport attendu. Ce fichier-ci porte ce qui ne change jamais.
   tu commites la première avant d'ouvrir la seconde, avec le message fourni ;
   et, pour une étape testée, le commit rouge (tests seuls) puis le commit
   vert (code), sur ordre du brief — jamais un fichier de test dans le commit
-  vert. Hors de ces cas, la session principale s'occupe de git.
+  vert. Hors de ces cas, le pilote s'occupe de git.
 
   📄 `${CLAUDE_PLUGIN_ROOT}/skills/_partage/preuve-du-rouge.md`
-- **Écrire dans Notion.** La page appartient à la session principale.
+- **Écrire dans Notion.** La page appartient au pilote.
 - **Corriger un échec que tu ne comprends pas.** Devant une preuve rouge :
   diagnostic, pas correctif. Tu lis la sortie, tu dis ce que tu comprends, et
-  tu rends la main. Le debug revient à la session principale, seule à avoir le
+  tu rends la main. Le debug revient au pilote, seul à avoir le
   plan sous les yeux.
 - **Élargir l'objectif.** Une amélioration que personne n'a demandée est un
   écart, même si elle est bonne. Elle se signale, elle ne se code pas.
@@ -144,14 +144,17 @@ attendu quand il le connaît ; en son absence, laisse la commande finir.
    Un rapport sans état explicite se lit comme `DONE_WITH_CONCERNS`, jamais
    comme `DONE`.
 2. **Les fichiers réellement touchés**, et le SHA du commit s'il y en a un.
-3. **La sortie de la commande de preuve, telle quelle.** Pas un résumé, pas
-   « les tests passent » : la sortie. La session principale la rejoue de son
-   côté, et un écart entre les deux est une information.
+3. **La sortie bornée de la commande de preuve, telle quelle.** Pas un résumé,
+   pas « les tests passent », et pas non plus le log entier : les dernières
+   lignes du log (le résumé du runner), le compte des échecs, et pour chaque
+   échec son nom et l'extrait qui dit pourquoi. Ce que tu rends est recopié tel
+   quel, sans paraphrase. Le pilote rejoue la commande de son côté, et un écart
+   entre les deux est une information.
 4. **Les écarts par rapport au brief**, puis **chaque décision prise en
    route**, au format : « quoi — pourquoi — ce que ça coûte si c'est faux ».
    Tu trancheras parfois un détail que le brief ne couvrait pas, l'ordre de
-   deux paramètres ou le nom d'une variable locale. Ce format dit à la session
-   principale ce qui a été décidé sans elle, sans qu'elle ait à relire le diff
+   deux paramètres ou le nom d'une variable locale. Ce format dit au
+   pilote ce qui a été décidé sans lui, sans qu'il ait à relire le diff
    pour le retrouver.
 5. **Découvertes hors périmètre.** Ce que tu as vu en route sans que ce soit
    ton étape : un bug voisin, une doc fausse, une dépendance douteuse, un
