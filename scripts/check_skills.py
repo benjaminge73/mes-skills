@@ -43,7 +43,12 @@ Les règles, et le fait de doc qui fonde chacune (voir ``docs/veille.md``) :
     moins un cas, et chaque chemin qu'une catégorie « exerce » existe sous
     ``plugins/<plugin>/``. Sans cela, un cas qu'aucune catégorie ne nomme ne
     serait jamais joué par une PR qui choisit ses catégories, et une catégorie
-    qui pointe dans le vide ferait croire qu'un skill est couvert.
+    qui pointe dans le vide ferait croire qu'un skill est couvert. Sens inverse
+    (étape D5) : chaque fichier sous ``skills/`` (``_partage/`` compris) et
+    ``agents/`` d'un plugin qui a un banc doit être couvert par au moins un
+    préfixe ``exerce`` ; sinon le fichier est refusé, nommé, avec la consigne de
+    le déclarer dans ``evals/categories.json``. Un nouveau fichier oblige donc à
+    dire, dans sa PR, quel cas le teste.
 
 Exceptions datées
 -----------------
@@ -401,6 +406,20 @@ def _dossiers_de_cas(evals_plugin: Path) -> list[str]:
                   if d.is_dir() and ((d / "prompt.md").is_file() or (d / "case.yaml").is_file()))
 
 
+def _fichiers_a_exercer(plugin: Path) -> list[str]:
+    """Chemins (relatifs au plugin) des fichiers sous ``skills/`` et ``agents/``.
+
+    Énumérés sur le disque, comme les règles d et e : les tests posent un dépôt
+    jetable qui n'est pas un dépôt git. Les caches de Python sont ignorés.
+    """
+    trouves = []
+    for dossier in ("skills", "agents"):
+        for chemin in sorted((plugin / dossier).rglob("*")):
+            if chemin.is_file() and "__pycache__" not in chemin.parts and chemin.suffix != ".pyc":
+                trouves.append(chemin.relative_to(plugin).as_posix())
+    return trouves
+
+
 def _regle_i(racine: Path, plugin: Path) -> list[Anomalie]:
     evals_plugin = racine / "evals" / plugin.name
     if not evals_plugin.is_dir():
@@ -451,6 +470,16 @@ def _regle_i(racine: Path, plugin: Path) -> list[Anomalie]:
                     f"la catégorie `{nom}` dit exercer `{chemin}`, qui n'existe pas sous "
                     f"`plugins/{plugin.name}/` : corriger le chemin (relatif au plugin), "
                     "ou retirer la ligne.")))
+
+    # Sens inverse : chaque fichier de skills/ et agents/ est exercé par une catégorie.
+    prefixes = [str(c) for cat in categories.values() for c in cat["exerce"]]
+    for relatif in _fichiers_a_exercer(plugin):
+        if not any(relatif.startswith(p) for p in prefixes):
+            anomalies.append(Anomalie("i", cible, (
+                f"le fichier `plugins/{plugin.name}/{relatif}` n'est exercé par aucune catégorie : "
+                "le déclarer dans la liste `exerce` d'une catégorie de `evals/categories.json` "
+                "(chemin relatif au plugin) — celle dont un cas le teste. Sans cela, une PR qui le "
+                "touche ne sait pas quoi jouer.")))
     return anomalies
 
 

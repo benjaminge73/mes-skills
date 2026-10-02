@@ -65,13 +65,18 @@ Les règles, dans l'ordre
    de frappe se dit tout de suite.
 2. Ligne absente, vide ou ``tout`` : ``tout``.
 3. Un fichier touché du socle commun : ``tout``, quelle que soit la ligne —
-   ``plugins/<p>/skills/_partage/``, ``plugins/<p>/hooks/``, ``evals/<p>/``,
-   ``evals/outillage/``, ``evals/categories.json``, ``scripts/evals_ab.py``,
+   ``plugins/<p>/hooks/``, ``evals/<p>/``, ``evals/outillage/``,
+   ``evals/categories.json``, ``scripts/evals_ab.py``,
    ``scripts/evals_selection.py`` et ``.github/workflows/ci.yml``. Ce qui touche
-   le banc lui-même ne peut pas être prouvé par une partie du banc.
-4. Un fichier touché sous ``plugins/<p>/skills/`` ou ``agents/`` qu'**aucune**
-   catégorie n'exerce : ``tout`` (défaut prudent : un fichier que le classement
-   ne connaît pas est un fichier dont on ne sait pas quoi jouer).
+   le banc lui-même ne peut pas être prouvé par une partie du banc. Depuis
+   l'étape D5 du plan « Évals sobres et machine partagée », ``skills/_partage/``
+   n'en fait **plus** partie : chaque fichier partagé déclare, dans ``exerce``,
+   les catégories qui le testent (la règle 4 s'applique, comme à un skill).
+4. Un fichier touché sous ``plugins/<p>/skills/`` (``_partage/`` compris) ou
+   ``agents/`` qu'**aucune** catégorie n'exerce : ``tout`` (défaut prudent : un
+   fichier que le classement ne connaît pas est un fichier dont on ne sait pas
+   quoi jouer). ``check_skills.py`` (règle i) refuse justement qu'un tel fichier
+   existe dans un plugin qui a un banc : ce défaut ne joue qu'en cas de filet.
 5. Sinon, chaque fichier touché sous ``skills/`` ou ``agents/`` doit être exercé
    par au moins une catégorie **choisie** ; sinon refus (code 1), avec le
    fichier non couvert et les catégories qui le couvriraient.
@@ -83,9 +88,9 @@ catégories le test de fumée joue pour une PR **sans** le label ``evals`` (avec
 l'A/B remplace la fumée : c'est ``ci.yml`` qui en décide, pas ce script). Elle ne
 lit ni le corps de la PR ni ``--labels`` : seuls les fichiers touchés comptent.
 Sous ``plugins/<p>/skills/``, ``agents/`` et ``hooks/`` : un fichier que des
-catégories exercent rend ces catégories ; ``skills/_partage/``, ``hooks/`` et un
-fichier qu'aucune catégorie n'exerce rendent **toutes** celles du plugin (le défaut
-prudent de la règle 4). Aucun de ces dossiers touché : sélection vide. Chaque
+catégories exercent rend ces catégories — un fichier de ``skills/_partage/`` compris,
+comme un skill ; ``hooks/`` et un fichier qu'aucune catégorie n'exerce rendent **toutes**
+celles du plugin (le défaut prudent de la règle 4). Aucun de ces dossiers touché : sélection vide. Chaque
 catégorie retenue garde **tous** ses cas (``cas``) : la fumée juge une catégorie
 sur les seuls cas joués. Un plugin sans catégorie déclarée est refusé (code 1) :
 il n'y aurait aucun plancher à tenir.
@@ -284,8 +289,7 @@ def selectionner(plugin: str, fichiers: list[str], corps: str,
         return rendre_tout("la ligne « Evals: tout » le demande")
 
     # 3. Le socle commun.
-    socle = (f"plugins/{plugin}/skills/_partage/", f"plugins/{plugin}/hooks/",
-             f"evals/{plugin}/", *SOCLE_GLOBAL)
+    socle = (f"plugins/{plugin}/hooks/", f"evals/{plugin}/", *SOCLE_GLOBAL)
     touche_le_socle = [f for f in fichiers if any(f.startswith(p) for p in socle)]
     if touche_le_socle:
         return rendre_tout(
@@ -318,8 +322,8 @@ def selectionner(plugin: str, fichiers: list[str], corps: str,
 
 
 # Ce qui, touché, fait jouer toute la fumée : le socle d'un plugin, que nulle catégorie
-# ne peut prétendre exercer à elle seule.
-SOCLE_DE_LA_FUMEE = ("skills/_partage/", "hooks/")
+# ne peut prétendre exercer à elle seule. ``skills/_partage/`` n'y est plus depuis D5.
+SOCLE_DE_LA_FUMEE = ("hooks/",)
 
 
 def fumee(plugin: str, fichiers: list[str], categories: dict[str, dict[str, dict]]) -> dict:

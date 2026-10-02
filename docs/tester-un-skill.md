@@ -294,12 +294,17 @@ cette ligne, la CI joue tout le banc.**
 **Le plancher** (`scripts/evals_selection.py`, job `evals-portee`) : chaque
 fichier touché sous `skills/` ou `agents/` d'un plugin doit être exercé par au
 moins une catégorie choisie, sinon le job est rouge et nomme le fichier. Le
-choix reste libre au-dessus du plancher. Et le banc entier est joué, quelle
-que soit la ligne, si la PR touche `skills/_partage/`, `hooks/`, le banc
-lui-même (`evals/<plugin>/`, `evals/outillage/`, `evals/categories.json`),
-`scripts/evals_ab.py`, `scripts/evals_selection.py`, `ci.yml`, ou un fichier
-qu'aucune catégorie n'exerce : dans tous ces cas, une sélection partielle ne
-prouverait rien.
+choix reste libre au-dessus du plancher. Un fichier de `skills/_partage/` suit
+la même règle qu'un skill : `evals/categories.json` dit, dans la liste `exerce`
+de chaque catégorie, quels fichiers partagés elle teste, et la PR choisit parmi
+elles. Et le banc entier est joué, quelle que soit la ligne, si la PR touche
+`hooks/`, le banc lui-même (`evals/<plugin>/`, `evals/outillage/`,
+`evals/categories.json`), `scripts/evals_ab.py`, `scripts/evals_selection.py`,
+`ci.yml`, ou un fichier qu'aucune catégorie n'exerce : dans tous ces cas, une
+sélection partielle ne prouverait rien. Ce dernier cas ne doit pas arriver :
+`scripts/check_skills.py` (règle i) refuse tout fichier de `skills/` ou
+`agents/` d'un plugin qui a un banc qu'aucune catégorie n'exerce, donc un
+nouveau fichier se déclare dans `evals/categories.json` dans sa propre PR.
 
 **Le job de verdict** s'appelle `Verdict des évals`, nom fixe : c'est lui que
 le verrou de `main` exigera, quelle que soit la sélection (les jobs joués
@@ -438,7 +443,7 @@ Quand une PR touche un skill, un agent, un hook ou `_partage/` sans porter le
 label `evals`, la CI joue une **fumée** : la tête seule, en **un passage**, sur
 Sonnet, sur les catégories que les fichiers touchés exercent. Ces catégories
 sont **calculées** par `scripts/evals_selection.py`, pas choisies ; tout le banc
-part pour `_partage/` et les hooks. Elle coûte 0,54 $ à 2,38 $ par catégorie,
+part pour les hooks et pour un fichier qu'aucune catégorie n'exerce. Elle coûte 0,54 $ à 2,38 $ par catégorie,
 environ 9,2 $ au plus. La fumée ne remplace pas l'A/B : c'est le label `evals`
 qui remplace la fumée par l'A/B.
 

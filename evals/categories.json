@@ -1,33 +1,79 @@
 {
-  "_commentaire": "Les catégories du banc d'évals, par plugin : ce qu'elles exercent (chemins relatifs à plugins/<plugin>/, en préfixe) et les cas qui les jouent. Seule source : ni case.yaml ni prompt.md ne portent d'étiquette. Un plan choisit ses catégories par une ligne « Evals: <catégories> — <raison> » (ou « Evals: tout ») dans le corps de la PR ; scripts/evals_selection.py en tire les cas à jouer et refuse un skill ou un agent modifié qu'aucune catégorie choisie n'exerce. Chaque catégorie porte un « plancher », le score moyen sous lequel le test de fumée (evals_ab.py --fumee) rend rouge : le plus bas tirage sain mesuré le 2026-10-01 (240 sessions sans erreur, trois tirages par catégorie), moins 0,10 ; il ne se déduit pas, il se mesure, et une catégorie sans plancher fait refuser la fumée. check_skills.py (règle i) refuse un cas sans catégorie, une catégorie sans cas, un cas cité qui n'existe pas et un chemin exercé qui n'existe pas.",
+  "_commentaire": "Les catégories du banc d'évals, par plugin : ce qu'elles exercent (chemins relatifs à plugins/<plugin>/, en préfixe) et les cas qui les jouent. Seule source : ni case.yaml ni prompt.md ne portent d'étiquette. Un plan choisit ses catégories par une ligne « Evals: <catégories> — <raison> » (ou « Evals: tout ») dans le corps de la PR ; scripts/evals_selection.py en tire les cas à jouer et refuse un skill, un agent ou un fichier de skills/_partage/ modifié qu'aucune catégorie choisie n'exerce. Le socle, que seul le banc entier prouve, se réduit à hooks/, au banc lui-même (evals/<plugin>/, evals/outillage/, ce fichier), à scripts/evals_ab.py, scripts/evals_selection.py et ci.yml : skills/_partage/ n'en fait plus partie depuis l'étape D5, chaque fichier partagé déclare ici les catégories qui le testent, en fumée comme en A/B. Chaque catégorie porte un « plancher », le score moyen sous lequel le test de fumée (evals_ab.py --fumee) rend rouge : le plus bas tirage sain mesuré le 2026-10-01 (240 sessions sans erreur, trois tirages par catégorie), moins 0,10 ; il ne se déduit pas, il se mesure, et une catégorie sans plancher fait refuser la fumée. check_skills.py (règle i) refuse un cas sans catégorie, une catégorie sans cas, un cas cité qui n'existe pas, un chemin exercé qui n'existe pas, et — sens inverse — tout fichier sous skills/ ou agents/ d'un plugin qui a un banc qu'aucune catégorie n'exerce : un nouveau fichier oblige à dire, dans sa PR, quel cas le teste.",
   "plans-notion": {
     "existant": {
-      "exerce": ["skills/plan-notion/", "agents/chercheur.md"],
+      "exerce": [
+        "skills/plan-notion/",
+        "agents/chercheur.md",
+        "skills/_partage/poc.md",
+        "skills/_partage/outils-et-quotas.md",
+        "skills/_partage/ecrire-dans-notion.md",
+        "skills/_partage/schemas.md"
+      ],
       "cas": ["existant-jeu-de-donnees", "existant-jeu-de-questions"],
       "plancher": 0.65
     },
     "bruit": {
-      "exerce": ["skills/plan-notion/"],
+      "exerce": [
+        "skills/plan-notion/",
+        "skills/_partage/poc.md",
+        "skills/_partage/outils-et-quotas.md",
+        "skills/_partage/ecrire-dans-notion.md",
+        "skills/_partage/schemas.md"
+      ],
       "cas": ["bruit-bounded", "bruit-doc-seule", "report-sans-seuil"],
       "plancher": 0.70
     },
     "etat-de-depart": {
-      "exerce": ["skills/plan-notion/", "agents/enqueteur.md"],
+      "exerce": [
+        "skills/plan-notion/",
+        "agents/enqueteur.md",
+        "skills/_partage/bons-tests.md",
+        "skills/_partage/preuve-du-rouge.md",
+        "skills/_partage/scripts/etat-de-depart.sh",
+        "skills/_partage/ecrire-dans-notion.md",
+        "skills/_partage/schemas.md"
+      ],
       "cas": ["appelants", "garde-fou-cache", "hook-claude", "depart-rouge"],
       "plancher": 0.82
     },
     "maquette": {
-      "exerce": ["skills/plan-notion/"],
+      "exerce": [
+        "skills/plan-notion/",
+        "skills/_partage/maquettes-html.md",
+        "skills/_partage/ecrire-dans-notion.md",
+        "skills/_partage/schemas.md"
+      ],
       "cas": ["maquette-requise"],
       "plancher": 0.80
     },
     "decouvertes": {
-      "exerce": ["skills/executer-plan-notion/", "agents/executant.md", "agents/relecteur.md"],
+      "exerce": [
+        "skills/executer-plan-notion/",
+        "agents/executant.md",
+        "agents/relecteur.md",
+        "skills/_partage/revue.md",
+        "skills/_partage/plan-de-suite.md",
+        "skills/_partage/remontee-sur-main.md",
+        "skills/_partage/vagues.md",
+        "skills/_partage/ecrire-dans-notion.md",
+        "skills/_partage/schemas.md"
+      ],
       "cas": ["decouverte-irreversible", "decouverte-reversible", "decouverte-secret", "decouverte-trop-grande"],
       "plancher": 0.41
     },
     "perimetre": {
-      "exerce": ["skills/executer-plan-notion/", "agents/executant.md"],
+      "exerce": [
+        "skills/executer-plan-notion/",
+        "agents/executant.md",
+        "skills/_partage/bons-tests.md",
+        "skills/_partage/preuve-du-rouge.md",
+        "skills/_partage/machine-partagee.md",
+        "skills/_partage/scripts/etat-machine.py",
+        "skills/_partage/vagues.md",
+        "skills/_partage/ecrire-dans-notion.md",
+        "skills/_partage/schemas.md"
+      ],
       "cas": ["no-verify", "rien-hors-plan"],
       "plancher": 0.21
     }
