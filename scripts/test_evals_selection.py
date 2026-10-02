@@ -46,7 +46,8 @@ CATEGORIES = {
         "recherche": {"exerce": ["skills/plan/", "agents/chercheur.md"], "cas": ["a1", "a2"]},
         "bruit": {"exerce": ["skills/plan/"], "cas": ["b1"]},
         "depart": {"exerce": ["skills/plan/", "agents/enqueteur.md"], "cas": ["c1", "c2", "c3"]},
-        "execution": {"exerce": ["skills/executer/", "agents/executant.md"], "cas": ["d1"]},
+        "execution": {"exerce": ["skills/executer/", "agents/executant.md",
+                                 "skills/_partage/regle.md"], "cas": ["d1"]},
     },
     "autre": {"solo": {"exerce": ["skills/z/"], "cas": ["z1"]}},
 }
@@ -310,8 +311,21 @@ class FumeeDeCi(Selection):
         self.assertEqual(sorted(s["categories"]), ["bruit", "depart", "recherche"])
         self.assertEqual(sorted(s["cas"]), ["a1", "a2", "b1", "c1", "c2", "c3"])
 
-    def test_un_fichier_de_partage_joue_toutes_les_categories_du_plugin(self):
+    def test_un_fichier_de_partage_exerce_par_une_categorie_ne_joue_que_cette_categorie(self):
         s = self.fumee(["plugins/jouet/skills/_partage/regle.md"])
+        self.assertFalse(s["tout"])
+        self.assertEqual(s["categories"], ["execution"])
+        self.assertEqual(s["cas"], ["d1"])
+
+    def test_un_fichier_de_partage_qu_aucune_categorie_n_exerce_joue_tout_le_banc(self):
+        orphelin = "plugins/jouet/skills/_partage/orphelin.md"
+        s = self.fumee([orphelin])
+        self.assertTrue(s["tout"])
+        self.assertEqual(sorted(s["cas"]), TOUS_LES_CAS_DE_JOUET)
+        self.assertIn(orphelin, s["pourquoi_tout"])
+
+    def test_un_hook_joue_toujours_toute_la_fumee(self):
+        s = self.fumee(["plugins/jouet/hooks/hooks.json"])
         self.assertTrue(s["tout"])
         self.assertEqual(sorted(s["categories"]), sorted(CATEGORIES["jouet"]))
         self.assertEqual(sorted(s["cas"]), TOUS_LES_CAS_DE_JOUET)
@@ -319,7 +333,6 @@ class FumeeDeCi(Selection):
 
 class FichiersDuSocleCommun(Selection):
     CHEMINS = [
-        "plugins/jouet/skills/_partage/regle.md",
         "plugins/jouet/hooks/hooks.json",
         "evals/jouet/a1/prompt.md",
         "evals/outillage/lancer.sh",
@@ -396,6 +409,22 @@ class CouvertureDesFichiersTouches(Selection):
         self.assertFalse(s["tout"])
         self.assertEqual(s["cas"], ["b1"])
 
+    def test_un_fichier_de_partage_exerce_n_est_plus_du_socle_et_se_couvre_par_sa_categorie(self):
+        regle = "plugins/jouet/skills/_partage/regle.md"
+        s = self.selection([regle], corps="Evals: execution")
+        self.assertFalse(s["tout"])
+        self.assertEqual(s["cas"], ["d1"])
+        code, _, erreur = self.jouer([regle], corps="Evals: bruit")
+        self.assertEqual(code, 1)
+        self.assertIn("skills/_partage/regle.md", erreur)
+        self.assertIn("execution", erreur)
+
+    def test_un_fichier_de_partage_qu_aucune_categorie_n_exerce_joue_tout_par_prudence(self):
+        orphelin = "plugins/jouet/skills/_partage/orphelin.md"
+        s = self.selection([orphelin], corps="Evals: bruit")
+        self.assertTrue(s["tout"])
+        self.assertIn(orphelin, s["pourquoi_tout"])
+
     def test_la_categorie_inconnue_est_refusee_meme_si_tout_est_force_par_un_fichier(self):
         code, _, erreur = self.jouer(
             ["plugins/jouet/hooks/hooks.json"], corps="Evals: fantome"
@@ -471,6 +500,24 @@ class VraiDepot(unittest.TestCase):
             sorted(["existant-jeu-de-donnees", "existant-jeu-de-questions",
                     "bruit-bounded", "bruit-doc-seule", "report-sans-seuil"]),
         )
+
+    def test_un_partage_du_vrai_depot_se_couvre_par_sa_categorie_pas_par_tout_le_banc(self):
+        code, sortie, erreur = self.jouer(
+            "plugins/plans-notion/skills/_partage/maquettes-html.md", "Evals: maquette — essai")
+        self.assertEqual(code, 0, erreur)
+        s = json.loads(sortie)
+        self.assertFalse(s["tout"])
+        self.assertEqual(s["cas"], ["maquette-requise"])
+
+    def test_la_fumee_d_un_partage_du_vrai_depot_ne_joue_que_ses_categories(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            code, sortie, erreur = jouer_script(
+                ["plugins/plans-notion/skills/_partage/outils-et-quotas.md"], None,
+                "plans-notion", None, tmp, labels="", extra=("--fumee",))
+        self.assertEqual(code, 0, erreur)
+        s = json.loads(sortie)
+        self.assertFalse(s["tout"])
+        self.assertEqual(sorted(s["categories"]), ["bruit", "existant"])
 
     def test_decouvertes_ne_couvre_pas_plan_notion(self):
         code, _, erreur = self.jouer(

@@ -664,7 +664,7 @@ class RegleI_CategoriesDesEvals(Depot):
     def test_un_chemin_exerce_se_lit_sous_le_plugin_pas_a_la_racine(self):
         self.conforme()
         _ecrire(self.racine / "skills" / "ailleurs" / "SKILL.md", "x\n")  # à la racine du dépôt
-        self.categories(un={"exerce": ["skills/ailleurs/"], "cas": ["c1", "c2"]})
+        self.categories(un={"exerce": ["skills/s/", "skills/ailleurs/"], "cas": ["c1", "c2"]})
         self.assertEqual(len(self.refus_i()), 1)
 
     def test_categories_json_absent_alors_qu_un_plugin_a_des_evals_est_refuse(self):
@@ -701,6 +701,43 @@ class RegleI_CategoriesDesEvals(Depot):
         refus = self.refus_i()
         self.assertEqual(len(refus), 1)
         self.assertIn("yaml-seul", refus[0].message)
+
+    def test_un_fichier_sous_skills_qu_aucune_categorie_n_exerce_est_refuse_et_nomme(self):
+        self.conforme()
+        _ecrire(self.racine / "plugins" / "p" / "skills" / "_partage" / "orphelin.md", "x\n")
+        refus = self.refus_i()
+        self.assertEqual(len(refus), 1)
+        self.assertIn("skills/_partage/orphelin.md", refus[0].message)
+        self.assertIn("categories.json", refus[0].message)
+
+    def test_un_agent_qu_aucune_categorie_n_exerce_est_refuse_et_nomme(self):
+        self.conforme()
+        _agent(self.racine, "p", "seul")
+        refus = self.refus_i()
+        self.assertEqual(len(refus), 1)
+        self.assertIn("agents/seul.md", refus[0].message)
+
+    def test_un_fichier_couvert_par_un_dossier_ou_par_son_chemin_exact_est_accepte(self):
+        self.conforme()
+        _agent(self.racine, "p", "seul")
+        _ecrire(self.racine / "plugins" / "p" / "skills" / "_partage" / "regle.md", "x\n")
+        _ecrire(self.racine / "plugins" / "p" / "skills" / "_partage" / "scripts" / "outil.sh", "x\n")
+        self.categories(
+            un={"exerce": ["skills/s/", "agents/seul.md", "skills/_partage/regle.md",
+                           "skills/_partage/scripts/"], "cas": ["c1", "c2"]})
+        self.assertEqual(self.refus_i(), [])
+
+    def test_un_prefixe_n_en_couvre_pas_un_voisin_au_nom_proche(self):
+        self.conforme()
+        _ecrire(self.racine / "plugins" / "p" / "skills" / "sosie" / "SKILL.md", "x\n")
+        refus = self.refus_i()
+        self.assertEqual(len(refus), 1)
+        self.assertIn("skills/sosie/SKILL.md", refus[0].message)
+
+    def test_un_plugin_sans_banc_n_a_pas_a_exercer_ses_fichiers(self):
+        self.plugin_conforme()
+        _ecrire(self.racine / "plugins" / "p" / "skills" / "s" / "libre.md", "x\n")
+        self.assertEqual(self.controler().refus, [])
 
     def test_le_depot_reel_respecte_la_regle(self):
         racine = Path(__file__).resolve().parents[1]
