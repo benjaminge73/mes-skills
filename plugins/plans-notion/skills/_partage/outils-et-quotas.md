@@ -277,3 +277,65 @@ commune pour comparer les postes.
 **Repli** : jouer une catégorie à la fois plutôt que le banc entier ; sur une
 limite de débit atteinte, attendre la remise à zéro plutôt que relancer (une
 relance paie les mêmes sessions deux fois).
+
+## Fiche — FileBrowser Quantum
+
+**Quota ou coût** : aucun quota, l'outil est auto-hébergé (image
+`gtstef/filebrowser`, version `1.5-stable-slim`, relevée le 2026-10-01).
+
+**Pièges datés** :
+
+- **2026-10-01** : avec l'authentification par proxy (`auth.methods.proxy`),
+  le compte nommé dans `auth.adminUsername` est créé à la **première
+  connexion**, avec `admin: true` mais **sans droit d'écriture** (`create`,
+  `modify`, `delete` à `false`). Un administrateur qui ne peut pas téléverser.
+- **2026-10-01** : changer les droits d'un compte ne change **pas** l'interface
+  déjà ouverte. Les droits sont figés dans la session : les boutons de
+  téléversement n'apparaissent qu'après une **nouvelle connexion**, même après
+  un rechargement forcé de la page.
+- **2026-10-01** : la doc de l'API (`/swagger/…`) répond `403` par défaut. Le
+  format des appels se lit dans le source de la version installée
+  (`backend/http/users.go` pour les comptes).
+- **2026-10-01** : la page d'accueil répond `200` sans authentification (une
+  coquille statique) ; seule l'API répond `401`. Une sonde sur `/` ne prouve
+  donc pas que l'accès est fermé : sonder `/api/resources`.
+
+**Bonne pratique** :
+
+- Donner les droits par l'API, juste après la première connexion :
+  `PUT /api/users?id=<n>` avec `{"which": ["Permissions"], "data": <le compte
+  relu, droits modifiés>}`, puis relire le compte.
+- Dans toute étape qui change des droits, prévoir « se déconnecter et se
+  reconnecter » dans la preuve de fin.
+- Laisser `share` à `false` derrière un portail d'identité : un lien de partage
+  ouvre un fichier sans passer par le portail.
+
+**Repli** : aucun connu au 2026-10-01.
+
+## Fiche — Cloudflare Zero Trust (tunnel et Access)
+
+**Quota ou coût** : aucun quota rencontré au 2026-10-01 pour un tunnel et
+quelques applications Access.
+
+**Pièges datés** :
+
+- **2026-10-01** : le réglage « Protect with Access » d'une route de tunnel
+  s'appelle désormais **« Enforce Access JSON Web Token (JWT) validation »**
+  (Tunnels › route › Access). L'application Access se **choisit dans une
+  liste** : l'équipe et l'AUD sont remplis seuls, il n'y a plus de champ à
+  saisir. Une procédure écrite avec les anciens libellés égare.
+- **2026-10-01** : sans ce réglage, `cloudflared` transmet tout à l'origine
+  sans vérifier le jeton : un service qui fait confiance à l'en-tête
+  d'identité d'Access dépend alors du seul portail.
+
+**Bonne pratique** :
+
+- Vérifier côté machine, pas seulement en console : `curl -s
+  http://127.0.0.1:<port-metrics>/config` montre, pour chaque route,
+  `originRequest.access` avec `required`, `teamName` et `audTag`.
+- Pour une origine qui fait confiance à l'en-tête d'identité, activer la
+  validation du jeton **et** faire écraser l'en-tête par le proxy (jamais
+  transmis tel que reçu du client).
+
+**Repli** : désactiver la validation du jeton sur la route rend le comportement
+précédent, sans redémarrage.
