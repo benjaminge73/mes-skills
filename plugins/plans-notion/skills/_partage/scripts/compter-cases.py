@@ -8,7 +8,8 @@ est une question ; on compte ses lignes ``- [x]`` (indentation libre, dans un
 ``<callout>``) jusqu'au H3 ou H2 suivant.
 
 Usage : compter-cases.py <page.md> [--releve <releve.json>]
-  sans --releve : imprime le relevé (JSON {"Q1": 1, …}) puis « total : n » ;
+  sans --releve : la sortie standard est le JSON seul ({"Q1": 1, …}), donc
+  redirigeable tel quel vers un fichier ; « total : n » part sur la sortie d'erreur ;
   avec --releve : compare ; 0 si identique, 1 sinon, une ligne par écart.
 Code 2 : fichier illisible ou section « Questions ouvertes » absente.
 Bibliothèque standard uniquement.
@@ -66,7 +67,7 @@ def main(argv=None) -> int:
         return 2
     if releve is None:
         print(json.dumps(dict(sorted(comptes.items(), key=lambda kv: _cle(kv[0])))))
-        print(f"total : {sum(comptes.values())}")
+        print(f"total : {sum(comptes.values())}", file=sys.stderr)
         return 0
     ecarts = []
     for q in sorted(set(comptes) | set(releve), key=_cle):

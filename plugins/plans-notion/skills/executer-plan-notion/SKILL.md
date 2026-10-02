@@ -97,9 +97,10 @@ disparaît au compactage du contexte.
    refonte de section efface silencieusement les décisions de Benjamin.
    Le relevé des cases se calcule par script, sur le miroir local de la page
    (sortie de `notion-fetch`) : `python3
-   "${CLAUDE_PLUGIN_ROOT}/skills/_partage/scripts/compter-cases.py" <page.md>`
-   imprime `{"Q1": 1, …}` puis `total : n` — à garder dans un fichier
-   (`<releve.json>`) pour le recompte du §5.
+   "${CLAUDE_PLUGIN_ROOT}/skills/_partage/scripts/compter-cases.py" <page.md>
+   > <releve.json>` écrit sur la sortie standard le JSON seul `{"Q1": 1, …}` —
+   le fichier `<releve.json>` sert au recompte du §5 ; le `total : n` part sur
+   la sortie d'erreur, à l'écran.
 
 ## 2. Ouvrir l'exécution
 
@@ -241,7 +242,9 @@ Le relevé du §1 est la liste de contrôle de tout ça : sans lui, pas de refon
 section. **Le recompte des cases cochées après une écriture se joue par script**,
 sur le miroir local relu après l'écriture :
 `python3 "${CLAUDE_PLUGIN_ROOT}/skills/_partage/scripts/compter-cases.py" <page.md> --releve <releve.json>`
-(0 : identique au relevé du §1 ; 1 : une ligne par écart ; 2 : fichier illisible).
+(`<releve.json>` : le fichier écrit par `… <page.md> > <releve.json>` au §1 ;
+0 : identique au relevé ; 1 : une ligne par écart ; 2 : fichier illisible ou
+section « Questions ouvertes » absente).
 
 **Ceinture — fichier introuvable.** Si la lecture échoue (plugin pas encore
 installé, version périmée, fichier supprimé localement) : **le dire en une
