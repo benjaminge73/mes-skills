@@ -107,7 +107,17 @@ class Vagues(unittest.TestCase):
     def test_dependances_qui_ne_sont_pas_des_etapes_sont_ignorees(self):
         page = self._page(tableau(("1", "`a.py`", "Q1, lot 1 mergé, toutes", "1"),
                                   ("2", "`b.py`", "—", "1")))
-        self.assertEqual(vagues_de(jouer(page)[1]), {"1": 1, "2": 1})
+        # Q1 et « lot 1 mergé » sont ignorées ; « toutes » ne l'est pas : 1 passe après 2.
+        self.assertEqual(vagues_de(jouer(page)[1]), {"1": 2, "2": 1})
+
+    def test_toutes_est_insensible_a_la_casse(self):
+        page = self._page(tableau(("1", "`a.py`", "Toutes", "1"), ("2", "`b.py`", "—", "1")))
+        self.assertEqual(vagues_de(jouer(page)[1]), {"1": 2, "2": 1})
+
+    def test_etape_dependant_de_toutes_vient_apres_toutes_les_autres_sur_le_tableau_du_plan(self):
+        v = vagues_de(jouer(FIXTURE)[1])
+        autres = [n for e, n in v.items() if e != "15"]
+        self.assertGreater(v["15"], max(autres))
 
     def test_la_page_entiere_est_acceptee_et_le_bon_tableau_choisi(self):
         autre = "<table header-row=\"true\">\n<tr>\n<td>Hypothèse</td>\n<td>Statut</td>\n</tr>\n</table>\n"
