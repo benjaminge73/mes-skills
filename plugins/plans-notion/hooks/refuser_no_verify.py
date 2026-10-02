@@ -19,10 +19,11 @@ SEPARATEURS = {"&&", "||", ";", "|", "&", "\n", "(", ")"}
 # Options de git qui prennent une valeur dans le mot suivant (git -C dir commit).
 OPTIONS_GIT_AVEC_VALEUR = {"-C", "-c", "--git-dir", "--work-tree", "--namespace", "--exec-path"}
 # Options de commit qui prennent une valeur : « -nm "x" » ou « -m -n » (message « -n »).
-COURTES_AVEC_VALEUR = set("mFCcS")
+# -S / --gpg-sign : valeur facultative, collée ou après « = », jamais dans le mot suivant.
+COURTES_AVEC_VALEUR = set("mFCc")
 LONGUES_AVEC_VALEUR = {"--message", "--file", "--author", "--date", "--reuse-message",
                        "--reedit-message", "--fixup", "--squash", "--template",
-                       "--cleanup", "--gpg-sign", "--trailer"}
+                       "--cleanup", "--trailer"}
 
 MOTIF = ("Refusé : `git commit` avec `--no-verify` (ou `-n`) contourne les hooks de "
          "pré-commit. Relance le commit sans cette option ; si un hook échoue, corrige "
@@ -67,6 +68,8 @@ def _commit_sans_verification(mots: list[str]) -> bool:
             for k, lettre in enumerate(mot[1:], start=1):
                 if lettre == "n":
                     return True
+                if lettre == "S":
+                    break  # la suite du mot est le keyid ; le mot suivant n'est pas sa valeur
                 if lettre in COURTES_AVEC_VALEUR:
                     saute = k == len(mot) - 1  # valeur dans le mot suivant
                     break
