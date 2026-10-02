@@ -96,15 +96,25 @@ ci-dessous) :
 - **`fieldMask` par défaut sans position ni contact.** Le découvrir après coup
   a failli coûter **98 appels**.
 - **`detail: true` bascule au palier Enterprise.**
+- **2026-09-30 : un 429 qui n'est pas le quota.** Sur un lot de contacts
+  (champs Enterprise), appelé en séquence par un proxy, Google répond 429
+  après **25 à 60 appels en rafale**. Un appel isolé quelques minutes plus
+  tard passe, et le lot repart après une pause d'**environ 65 s** : c'est une
+  **limite de débit**, pas le quota du mois. 900 appels passés ce jour-là en
+  18 tranches, sans jamais toucher le quota.
 
 **Bonne pratique** :
 
 - Toujours poser `--max-appels` dans le script d'un lot.
 - Écrire le `fieldMask` explicitement, et décider **avant** le lot si le
   palier Enterprise est voulu.
+- Lire un 429 avant de conclure au quota épuisé : relancer après une pause
+  d'une minute. S'il cède, jouer le lot par tranches, avec une pause après
+  chaque 429, et compter les tentatives refusées dans le plafond.
 
-**Repli** : passer par l'autre chemin d'accès, dont le quota est distinct, ou
-reporter le lot après la remise à zéro (09 h heure de Paris).
+**Repli** : sur un 429 de débit, faire une pause d'environ 65 s puis reprendre. Sur
+un quota épuisé, passer par l'autre chemin d'accès, dont le quota est distinct,
+ou reporter le lot après la remise à zéro (09 h heure de Paris).
 
 ## Fiche — Nominatim, Photon et Overpass
 
