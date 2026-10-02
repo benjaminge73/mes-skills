@@ -28,28 +28,22 @@ détaille.
 
 ## Suis-je la bonne version ?
 
-Le 2026-09-08, une session a chargé ce skill depuis une copie synchronisée
-périmée (`~/.claude/remote/plugins/<hash>/`, version 0.3.0 alors que 0.7.0
-était installée) et a travaillé tout un plan sur les mauvaises règles. Un
-skill ne choisit pas d'où il est chargé ; il peut seulement le constater.
-
-À vérifier au chargement, en une commande :
+Un skill ne choisit pas d'où il est chargé (copie synchronisée périmée) ; il peut
+seulement le constater. À vérifier au chargement, en une commande :
 
 ```bash
-python3 -c 'import json,os;d=json.load(open(os.path.expanduser("~/.claude/plugins/installed_plugins.json")))["plugins"]["plans-notion@atelier"][0];print(d["version"],d["installPath"])'
-cat "${CLAUDE_PLUGIN_ROOT}/.claude-plugin/plugin.json" | grep '"version"'
+bash "${CLAUDE_PLUGIN_ROOT}/skills/_partage/scripts/verifier-version.sh" "${CLAUDE_PLUGIN_ROOT}"
 ```
 
-Les deux versions doivent être identiques, et le chemin annoncé au chargement
-(« Base directory for this skill », soit `${CLAUDE_PLUGIN_ROOT}`) doit être
-l'`installPath` rendu ci-dessus. Écart → le dire à Benjamin en une ligne, puis
-lire ce `SKILL.md` et `_partage/` depuis cet `installPath`, pas depuis la
-copie chargée. Pour charger la plus récente : `claude plugin update
-plans-notion@atelier` (redémarrage requis) ; en session cloud, le setup
-script pose déjà la dernière version publiée — jamais plus loin que ce que
-`main` du dépôt porte. Ce que cette garde ne règle pas : une copie qui ne
-l'embarque pas ne préviendra jamais — elle protège à partir de la version qui
-la porte.
+Code 0 : à jour. Code 1 : la version chargée (`plugin.json`) ou le chemin chargé
+(« Base directory for this skill », soit `${CLAUDE_PLUGIN_ROOT}`) diffère de
+l'`installPath` installé → le dire à Benjamin en une ligne, puis lire ce `SKILL.md`
+et `_partage/` depuis cet `installPath`, pas depuis la copie chargée. Code 2 :
+lecture impossible, à dire aussi. Pour charger la plus récente : `claude plugin update
+plans-notion@atelier` (redémarrage requis) ; en session cloud, le setup script pose
+déjà la dernière version publiée — jamais plus loin que ce que `main` du dépôt
+porte. Ce que cette garde ne règle pas : une copie qui ne l'embarque pas ne
+préviendra jamais — elle protège à partir de la version qui la porte.
 
 ## Deux règles qui priment sur tout
 
@@ -78,7 +72,7 @@ Le seul `- [x]` que j'écris est celui que je **restitue** lors d'une refonte,
 relevé en main, à l'identique de ce qui était coché avant. Aucun autre.
 
 ⚠️ Cette règle est répétée au §3 avec le détail des encadrés. Elle est ici parce
-qu'elle a été enfouie et oubliée — Benjamin l'a signalé le 2026-08-26.
+qu'elle a été enfouie et oubliée.
 
 ### 2. Ne rien coder de livré avant `valide`
 
@@ -140,162 +134,33 @@ qu'une contrainte est visuelle — navigateur piloté par MCP, binaire de naviga
 ligne de commande, ou harnais de test du dépôt. Aucun n'est garanti présent ni
 fonctionnel : c'est une image non vide qui le prouve, pas la liste des outils. Son
 absence n'est pas bloquante — elle change qui prend la capture, et c'est alors
-Benjamin. Voir la sous-section « Les captures d'écran » du chapitre des contraintes.
+Benjamin. Voir la sous-section « Les captures d'écran » du chapitre des contraintes (`chapitres-cadrage.md`).
+
 
 ## L'enquête avant les options
 
 Un plan qui découvre à l'exécution ce que le code disait déjà n'a pas planifié : il
 a deviné. **Avant d'écrire une question, une option ou une étape, aller chercher ce
-qui est déjà su.** Six gisements, du moins cher au plus cher :
+qui est déjà su.** Six gisements, du moins cher au plus cher : la session en cours, les plans
+antérieurs du projet, le code (agent `enqueteur`), l'historique, la carte du dépôt,
+l'extérieur (agent `chercheur`).
 
-1. **La session en cours.** Une mesure faite il y a dix minutes reste vraie. C'est
-   la source la plus souvent oubliée, parce qu'on rédige le plan dans la posture de
-   celui qui ne sait pas encore — alors qu'on vient de regarder.
-2. **Les plans antérieurs du même projet.** La base `Plans Claude` filtrée sur le
-   projet, statuts `a merger` et `execute` : leur chapitre `Exécution` porte les
-   arbitrages déjà rendus, leur `Journal d'exécution` les mesures déjà prises et les
-   surprises déjà rencontrées. Une question qu'un plan précédent a tranchée ne se
-   repose pas — on cite la page et on avance. Dans ces journaux, les lignes
-   `découverte — trouvable au plan` sont à lire en premier : elles disent, noir sur
-   blanc, ce que l'enquête d'un plan précédent a manqué sur ce projet-là.
-3. **Le code.** Invoquer l'agent **`enqueteur`** (outil `Agent`,
-   `subagent_type: "plans-notion:enqueteur"` — le nom qualifié par le plugin,
-   le nom court ne résout pas) plutôt que fouiller soi-même : il porte déjà
-   les quatorze gestes qui évitent les angles morts de voisinage — couverture de
-   l'index, `codebase-memory` en priorité sur la lecture de fichiers entiers,
-   `grep` en défaut sur les zones que le graphe exclut, et surtout la
-   recherche des **appelants** et pas seulement de la définition, là où se
-   cachent la plupart des « découvertes » de l'exécution. Il rend une fiche
-   courte et sourcée (`fichier:ligne`, ou la commande jouée et sa réponse),
-   prête à recopier dans `Contraintes techniques vérifiées`.
+Le budget d'enquête est **proportionnel à l'enjeu**, pas à la longueur du plan. Une
+vérification nomme la décision qu'elle peut changer, ou le risque qu'elle couvre —
+sinon elle ne se fait pas. La recherche de l'existant est **obligatoire** dès qu'on
+crée quelque chose de non propre au projet, et pour la documentation de tout outil
+d'un POC, avec une ligne « Existant cherché : … / trouvé : … / fait maison parce que
+… » **par artefact**. La répétition à blanc est systématique, le POC de décision
+obligatoire dès qu'une option dépend d'une incertitude mesurable, et une option qui
+reporte une mesure faisable aujourd'hui n'est pas une option.
 
-   📄 `${CLAUDE_PLUGIN_ROOT}/agents/enqueteur.md`
-4. **L'historique.** `git log` sur les fichiers concernés, PR mergées, tests
-   existants. Un comportement qui a déjà été changé l'a été pour une raison, et
-   cette raison contraint le plan.
-5. **La carte du dépôt.** Engendrée quand un générateur existe — chercher
-   `docs/architecture.md`, un script `archi`, une commande `npm run archi` —
-   sinon dessinée à la main pendant l'enquête, selon les règles du fichier
-   partagé `_partage/schemas.md`. Une carte, même approximative, montre en un
-   coup d'œil les blocs et leurs liens là où une liste de fichiers ne montre
-   qu'un inventaire à plat.
-6. **L'extérieur.** Ce qui existe déjà hors du projet — bibliothèque, outil, skill,
-   benchmark, documentation d'un outil — et qu'on s'apprêterait à refaire. Il se
-   cherche **avant tout POC** : un POC qui mesure un outil maison alors qu'un outil
-   éprouvé existe mesure la mauvaise chose. Invoquer l'agent **`chercheur`** (outil
-   `Agent`, `subagent_type: "plans-notion:chercheur"` — le nom qualifié par le
-   plugin, comme pour `enqueteur`) : il parcourt le web à la place de la session
-   pilote et ne rend qu'une fiche, un candidat par bloc.
+Les six gisements, la vérification d'un candidat *use* (seuil de 1 000 étoiles), la
+répétition à blanc, le registre des outils et le cas du report de décision :
 
-   📄 `${CLAUDE_PLUGIN_ROOT}/agents/chercheur.md`
+📄 `${CLAUDE_PLUGIN_ROOT}/skills/plan-notion/enquete.md`
 
-   La recherche est **obligatoire** dès qu'on crée quelque chose de non propre au
-   projet — donc pas pour de la logique métier que seul ce dépôt connaît, mais pour
-   tout ce qui ressemble à un problème que d'autres ont eu — et **obligatoire aussi
-   pour la documentation de tout outil d'un POC**. Elle se fait **par artefact, pas
-   par plan** : avant de chercher, lister ce que les étapes vont **fabriquer** —
-   script, banc, **jeu de questions**, jeu de données, gabarit, schéma, outil — et
-   chercher l'existant de chacun de ceux qui ne sont pas propres au projet. Un plan
-   qui cherche « un banc » sans avoir listé ses artefacts oublie le jeu de questions
-   qu'il va écrire à la main, alors qu'un jeu éprouvé existe souvent. Le résultat
-   s'écrit dans `Contraintes techniques vérifiées`, sous une ligne qui n'est pas
-   facultative, **une par artefact** :
-   *« Existant cherché : … / trouvé : … / fait maison parce que … »*.
-
-Le budget d'enquête est **proportionnel à l'enjeu**, pas à la longueur du plan : une
-étape qui touche un fichier et se relit d'un coup d'œil ne mérite pas une fouille
-d'historique. Une étape qui change un réglage de production, oui.
-
-**Une vérification nomme la décision qu'elle peut changer, ou le risque qu'elle
-couvre — sinon elle ne se fait pas.** Une recherche, une mesure ou un POC dont le
-résultat, quel qu'il soit, laisserait le plan tel quel n'est que du bruit : elle
-coûte une étape de la passe et n'éclaire rien. Sur un plan `Bounded`, cela donne :
-ni `chercheur`, sauf si une étape fabrique un artefact non propre au projet, ni POC,
-sauf si une option dépend d'une incertitude mesurable.
-
-### Vérifier un candidat *use*
-
-Le `chercheur` n'a pas Bash : les chiffres qu'il rend sont **lus sur une page web**,
-et une page web peut être en cache ou fausse. Quand sa fiche propose un candidat au
-verdict *use* (on l'adopte tel quel), la session pilote le vérifie elle-même, dans
-cet ordre :
-
-1. **Rejouer `gh api repos/<owner>/<name>`** : étoiles, `pushed_at`, contributeurs,
-   licence. Jamais un chiffre lu sur une page web ; celui de la fiche n'est qu'une
-   proposition.
-2. **Lancer l'outil de vérification natif** du type de chose adoptée :
-   - un skill ou un plugin → `hermes skills inspect`, puis le verdict du scanner.
-     Seul *safe* passe ; *caution* → demander à Benjamin ; *dangerous* → écarté ;
-   - un paquet Python → `hermes doctor` ;
-   - ailleurs → l'outil de l'écosystème (celui du gestionnaire de paquets du
-     candidat), **en disant qu'Hermes n'a pas d'outil natif pour ce cas**.
-3. **Écrire le résultat sur la ligne « Existant »** de `Contraintes techniques
-   vérifiées` : les chiffres rejoués et le verdict de l'outil.
-
-**Le seuil : un candidat *use* exige au moins 1 000 étoiles ET un outil de
-vérification.** En dessous, il est **écarté**, ou **dérogé par écrit** — la
-dérogation et sa raison figurent sur la ligne « Existant », et c'est Benjamin qui
-la tranche. Un candidat *copy design* (on reprend l'idée, réécrite chez nous) sous
-le seuil porte la mention **« idée non éprouvée »**.
-
-### La répétition à blanc et le POC de décision
-
-Deux gestes, qui se font **avant** de passer le plan à `valide` et dont le gabarit
-vit dans le fichier partagé :
-
-📄 `${CLAUDE_PLUGIN_ROOT}/skills/_partage/poc.md`
-
-- **La répétition à blanc**, systématique : jouer à l'avance, dans un worktree
-  détaché sur `origin/main`, ce que le plan écrit — chaque commande de preuve, la
-  suite complète du dépôt, un appel d'essai par outil externe, les comptages avec
-  le chargeur réel du dépôt. Son résultat va dans `Contraintes techniques
-  vérifiées`, sous un intertitre « État de départ ». Un plan `Bounded` n'en joue
-  que les deux premiers gestes.
-- **Le POC de décision**, **obligatoire dès qu'une option dépend d'une incertitude
-  mesurable** — un taux de réussite, un volume réel, un coût d'appel. La mesure ne
-  se renvoie donc plus à l'exécution : elle se fait ici, et son résultat
-  s'écrit dans le plan. La seule exception est une donnée que **seul le temps
-  produit** (voir « Une option qui reporte la décision n'est pas une option »).
-
-### Le registre des outils
-
-**Avant tout appel d'un outil externe** — pour la répétition à blanc, pour un POC,
-ou pour écrire une étape qui lance un lot —, lire le registre : ce que l'outil coûte,
-ce qui l'a déjà fait échouer, et quoi faire à la place.
-
-📄 `${CLAUDE_PLUGIN_ROOT}/skills/_partage/outils-et-quotas.md`
-
-Un outil qui n'y a pas de fiche suit la règle du fichier : doc lue par le `chercheur`,
-un seul appel d'essai, puis la fiche créée avant tout lot. Les chiffres se lisent au
-registre, jamais de mémoire.
-
-### Une option qui reporte la décision n'est pas une option
-
-Le cas type, et la raison d'être de cette section :
-
-> *Option 1 — poser le réglage, laisser tourner une semaine, mesurer les
-> chevauchements, puis décider si un patch vaut le coup.*
-
-Ça ressemble à de la prudence. C'en est parfois. Le plus souvent c'est une
-**décision non prise**, habillée en méthode — et il arrive que la mesure invoquée
-ait déjà été faite, dans la session même, sans que la question ne le sache.
-
-Avant d'écrire une option de cette forme, deux vérifications, dans cet ordre :
-
-1. **La mesure existe-t-elle déjà ?** Session en cours, journal d'un plan antérieur,
-   sortie d'outil, tableau de bord. Si oui, la question est tranchée : elle naît
-   **verte**, avec la mesure et sa provenance.
-2. **La mesure est-elle faisable maintenant ?** S'il ne manque qu'une commande, une
-   requête ou une lecture — **la faire pendant la passe de plan**, et écrire la
-   réponse. Lire, mesurer, interroger : tout cela est permis avant `valide`, code
-   jetable de POC compris (règle 2, en tête). Ce qui reste interdit, c'est le code
-   **livré**.
-
-Le report ne reste recevable que dans un cas : **la donnée n'existe pas encore et le
-temps est le seul moyen de la produire** — un volume qu'il faut accumuler, un usage
-réel qu'il faut observer. Il s'écrit alors comme tel : ce qui sera mesuré, au bout
-de combien de temps, et **quel seuil déclenche quelle décision**. Un report sans
-seuil n'est pas un plan, c'est un abandon poli.
+À lire **avant d'écrire la première question, option ou étape** de la passe — le
+résumé ci-dessus ne suffit pas à les faire bien.
 
 ## 1. Trouver le bon projet
 
@@ -384,28 +249,6 @@ dit qu'il se remplira à l'implémentation. C'est `executer-plan-notion` qui l'�
 le laisser absent obligerait ce skill-là à improviser une place dans la page. Sa
 forme, elle, se décide ici (troisième sous-section ci-dessous).
 
-### Le chapitre `Cartes`
-
-Un H2 **en tête de page**, avant `Besoins` : c'est le premier chapitre qu'on lit,
-et une carte se lit avant une liste de besoins, pas après. Il porte deux schémas :
-
-- **La carte du dépôt** — une vue d'ensemble du code touché, engendrée par un
-  générateur du dépôt s'il en existe un, sinon dessinée à la main.
-- **Le plan en un schéma** — les étapes du chapitre `Exécution` regroupées en
-  vagues, avec ce qui dépend de quoi et ce qui attend un geste de Benjamin.
-
-Présent **dès la première version du plan**, comme `Exécution` et pour la même
-raison : si on ne sait pas encore le dessiner, c'est qu'on ne sait pas encore ce
-qu'on va faire. Les deux schémas se remettent à jour à **chaque passe qui touche
-le chapitre `Exécution`** — une étape ajoutée, fusionnée ou reformulée les rend
-faux sinon.
-
-Le contenu de chaque schéma, son code couleur et ses pièges Notion vivent dans un
-fichier partagé, pas ici — le répéter ferait diverger les deux skills qui le
-lisent :
-
-📄 `${CLAUDE_PLUGIN_ROOT}/skills/_partage/schemas.md`
-
 **Sur un plan `Bounded`** (c'est `brainstorming` qui route une demande vers
 `Spike`, `Bounded` ou `Architectural` avant que le plan ne s'écrive ; ce skill ne
 décide pas du chemin, il applique la structure une fois le routage connu), la
@@ -414,343 +257,23 @@ page s'écrit **allégée** : `Cartes` · `Besoins` · `Maquette` · `Exécution
 question à trancher. `Maquette` ne s'allège pas : un petit changement d'écran
 est justement celui qu'on croit pouvoir décrire en mots.
 
-### Le chapitre `Maquette`
+Le détail de chaque chapitre vit dans deux fichiers de référence, à lire **avant
+d'écrire ou de remettre à jour** le chapitre concerné, pas de mémoire :
 
-Un H2 juste après `Besoins` : les besoins disent ce qu'on veut, la maquette
-montre l'écran qui y répond, avant qu'on descende dans les contraintes et les
-étapes.
+- `Cartes`, `Maquette`, `Contraintes techniques vérifiées` (dont la ligne « Existant »,
+  l'intertitre « État de départ » et les captures d'écran) — `Cartes` et `Maquette`
+  sont présents dès la première version, sur tout plan ; la maquette ou une dispense
+  écrite `Pas de maquette — <raison>` ; une contrainte sans provenance est une
+  hypothèse et va dans `Questions ouvertes` :
 
-**Présent dès la première version, sur tout plan, allégé compris.** Il porte
-l'une de deux choses, jamais rien :
+  📄 `${CLAUDE_PLUGIN_ROOT}/skills/plan-notion/chapitres-cadrage.md`
 
-- **La maquette**, dès qu'une étape change ce qui s'affiche — c'est-à-dire dès
-  que sa ligne `Impact fonctionnel` (chapitre `Exécution`) dit autre chose que
-  « Rien » : un écran, un composant, un état (vide, erreur, chargement), un
-  libellé, un enchaînement d'écrans. La taille du changement ne dispense pas :
-  un libellé qui change se montre en une maquette de vingt lignes.
-- **Une dispense écrite**, en une ligne : `Pas de maquette — <raison>`. Deux
-  raisons seulement sont recevables : **aucune étape ne change ce qui
-  s'affiche** (serveur, refacto front sans effet visible, tests, outillage), ou
-  **Benjamin l'a demandé**, ses mots recopiés. « C'est petit », « c'est
-  évident », « le design system suffit » ne sont pas des raisons.
+- `Questions ouvertes` (un H3 et un encadré par question, cases toutes vides, couleur
+  = état), `Exécution` (tableau de tête, un H3 par étape, champs obligatoires de
+  chaque étape, modifications datées) et `Journal d'exécution` (un H3 par entrée,
+  repris du chapitre `Exécution`) :
 
-Pourquoi un chapitre toujours présent, même pour dire « rien » : jusqu'au
-2026-09-24, la maquette dépendait d'un « si le plan touche à du design » que
-rien ne faisait relire, et elle manquait sur des plans qui changeaient un
-écran. Un chapitre obligatoire pose la question à chaque plan, et une
-dispense devient une phrase que Benjamin lit et peut contester, au lieu d'un
-silence.
-
-**Ce que la maquette montre** : les écrans et les états que les étapes
-changent, dans leur **état cible** — pas l'application entière. L'état actuel,
-quand il compte, est déjà dans `Contraintes techniques vérifiées` sous forme de
-capture. Plusieurs écrans touchés : **un seul fichier**, avec des onglets ou
-des sections, pour qu'une passe n'ait qu'un bloc à remplacer.
-
-**La légende** porte `Maquette — passe N · AAAA-MM-JJ · file_upload_id <id>`,
-l'`id` étant celui que `create-attachment` a rendu. C'est **la seule prise**
-qu'aura une autre session pour relire le HTML — à l'exécution notamment :
-l'identifiant visible dans le `src` de la page ne sert pas à ça (mesuré le
-2026-09-24, `download-attachment` le refuse en 404).
-
-**Chaque étape qui change ce qui s'affiche dit, dans son `Impact fonctionnel`,
-quelle partie de la maquette elle réalise.** C'est ce qui permet, à
-l'exécution, de comparer une étape à sa cible au lieu de comparer le tout au
-tout.
-
-Le chapitre se remet à jour à **chaque passe qui change ce qu'une étape
-affiche** — une maquette qui montre l'écran d'avant la dernière réponse de
-Benjamin est pire qu'aucune. Le comment — design system, geste en deux
-appels, remplacement, poids — est au §7.
-
-### Le chapitre `Contraintes techniques vérifiées`
-
-Son nom est un contrat : **« vérifiées » veut dire qu'on est allé voir.** Une ligne
-par contrainte, chacune avec sa **provenance** entre parenthèses — `fichier:ligne`,
-la commande et ce qu'elle a répondu, une PR, une page de plan antérieure.
-
-Sans provenance, ce n'est pas une contrainte vérifiée : c'est une hypothèse, et sa
-place est dans `Questions ouvertes`. Mélanger les deux est exactement ce qui produit
-les mauvaises surprises d'exécution — le sous-agent qui lit la page ne peut pas
-deviner quelles lignes ont été confirmées et lesquelles ont été supposées, alors il
-les traite toutes pareil.
-
-**Deux blocs propres à ce chapitre**, issus de l'enquête (« L'enquête avant les
-options ») :
-
-- **La ligne « Existant »**, obligatoire, **une par artefact**, dès que le plan crée
-  quelque chose de non propre au projet : *« Existant cherché : … / trouvé : … /
-  fait maison parce que … »*. Elle reprend le verdict d'ensemble du `chercheur`, avec, pour un candidat
-  *use*, les chiffres rejoués par `gh api` et le verdict de l'outil de vérification
-  (« Vérifier un candidat *use* »). « Sans objet » est une réponse, à condition de
-  dire pourquoi.
-- **L'intertitre « État de départ »**, qui porte le résultat de la répétition à
-  blanc : commandes jouées, sorties, décompte de la suite, comptages. Un plan
-  `valide` sans cette section n'a pas eu sa répétition.
-
-#### Les captures d'écran
-
-Une contrainte peut être vraie et rester illisible : `fichier:ligne` dit **où** le
-code vit, jamais **quoi** on a sous les yeux. Sur un produit à plusieurs écrans, lire
-« la fiche étape porte déjà un bloc horaires » n'identifie pas l'écran concerné — il
-faut aller ouvrir la chose pour retrouver de quoi on parle, et ce détour se refait à
-chaque relecture de la page.
-
-**Une capture rend cette identification immédiate.** Elle ne remplace pas la
-provenance textuelle : elle s'ajoute à elle.
-
-**Quand une capture est justifiée** — et une seule question suffit à trancher :
-*est-ce que quelqu'un aurait à aller ouvrir la chose pour savoir de quoi cette ligne
-parle ?*
-
-- ✅ Un écran, un composant, un état visuel, un enchaînement d'écrans, une donnée
-  telle qu'elle s'affiche réellement, **une page d'un document source** dont la mise
-  en page porte du sens.
-- ❌ Une contrainte de code pur — signature de fonction, schéma de base, variable
-  d'environnement, contrat d'API. Une capture d'éditeur de texte n'apporte rien
-  qu'un `fichier:ligne` ne dise mieux, et alourdit la page pour rien.
-
-Le budget est le même que celui de l'enquête : **proportionnel à l'enjeu**. Une page
-qui devient un album photo a raté sa cible autant qu'une page sans aucune image.
-
-**Commencer par le `CLAUDE.md` du projet.** Avant de chercher comment produire une
-image, y lire ce que le dépôt dit déjà des captures : quelles surfaces existent, quel
-outil les rend, quels pièges ont déjà été payés. Sur un projet qui n'a pas que des
-écrans, cette section est le seul endroit où l'inventaire est juste — et l'outil de
-rendu existe souvent **déjà**, écrit pour un autre besoin. Le construire à nouveau,
-c'est produire un doublon en croyant découvrir. Rien sur le sujet dans le `CLAUDE.md` :
-enquêter comme ci-dessous, puis **y écrire ce qu'on a trouvé** — c'est là que ça
-servira la prochaine fois, pas ici.
-
-Ce fichier reste, lui, indépendant de tout dépôt de travail (§9) : il dit **quand** une
-capture se justifie et **comment la poser dans Notion**, jamais quelle commande la
-produit sur telle machine.
-
-**Ce qui est capturable ne se limite pas à l'app.** Trois familles, et les manquer
-fait conclure « pas de capture possible » sur un sujet qui s'en serait très bien
-accommodé :
-
-1. **Une app qui tourne** — serveur de développement local, ou déploiement existant.
-2. **Un document HTML local**, ouvert en `file://`, sans serveur : page de revue
-   engendrée par un outil du dépôt, rapport, maquette, export.
-3. **Un document source converti en HTML** — le cas le moins évident et le plus
-   fréquent sur un projet éditorial. Un epub, par exemple, est souvent un PDF
-   converti : chaque page imprimée y est un fichier XHTML positionné au pixel près,
-   donc **rendable dans un navigateur** comme n'importe quelle page. Le détour par
-   une visionneuse dédiée n'est pas nécessaire.
-
-**Qui prend la capture.** Moi, pendant l'enquête, dès que la chose est joignable par
-l'une de ces trois voies. Je vais jusqu'à l'écran ou la page et je prends la capture,
-sans rien demander. Les cas où ce n'est pas possible se disent **en une ligne** plutôt
-que de se contourner : pas d'outil de navigateur qui marche dans la session, rien de
-joignable, ou accès derrière une authentification que je n'ai pas. **Demander alors la
-capture à Benjamin**, en nommant précisément ce qu'on veut voir — et écrire quand même
-la contrainte, avec sa provenance textuelle : une contrainte vérifiée sans image reste
-une contrainte vérifiée.
-
-⚠️ **Vérifier que l'outil rend vraiment une image, ne pas le supposer.** Plusieurs
-chemins existent (navigateur piloté par MCP, binaire de navigateur en ligne de
-commande, harnais de test du dépôt) et **ils ne marchent pas tous sur toutes les
-machines** : un canal de navigateur absent, un binaire qui se bloque, un confinement
-qui interdit un répertoire de travail. La preuve qu'une capture est possible, c'est un
-fichier image non vide — pas la présence d'un outil dans la liste. Un chemin qui marche
-sur cette machine se **note dans le `CLAUDE.md` du dépôt concerné**, pas ici.
-
-⚠️ **La référence que porte la donnée n'est pas forcément l'adresse du document.** Sur
-un document paginé, le numéro que le code manipule est le **numéro imprimé**, alors que
-le fichier à ouvrir porte un **rang de fabrication** — les deux diffèrent dès qu'il y a
-des pages liminaires, et l'écart n'est jamais annoncé. Ouvrir le fichier qui porte le
-numéro cherché donne alors une page **voisine**, donc plausible, donc fausse sans que
-rien ne le signale : le pire cas possible pour une contrainte dite « vérifiée ».
-**Résoudre l'un vers l'autre en le mesurant** — lire le numéro imprimé sur la page
-rendue et le comparer à celui qu'on cherchait — plutôt qu'en supposant l'écart. Et
-vérifier l'écart sur **plusieurs** pages avant de s'y fier : rien ne garantit qu'il
-soit constant d'un bout à l'autre du document.
-
-⚠️ L'agent **`enqueteur`** ne prend aucune capture : ses outils sont en lecture de
-code seule, sans navigateur. Sa fiche revient donc en texte, et c'est ici que les
-captures s'ajoutent — ne pas les lui demander.
-
-**Où elle se place.** Sous la ligne de contrainte qu'elle illustre, jamais en galerie
-groupée en fin de chapitre : une image séparée de sa phrase oblige à faire
-l'appariement à l'œil, et c'est exactement le travail qu'on cherchait à supprimer.
-Chaque contrainte visuelle devient donc un petit bloc — la ligne, sa provenance, puis
-l'image juste en dessous.
-
-**La légende porte la provenance de l'image**, et pas celle du code : **de quoi elle
-est la capture** — l'URL exacte pour une app, le chemin du fichier pour un document
-local, le document et son **numéro de page imprimé** pour une page d'ouvrage — et la
-**date** de la capture. Une capture est un instantané, et il vieillit sans prévenir :
-sans sa date, une passe ultérieure ne peut pas savoir si elle montre encore l'état
-d'aujourd'hui. Et pour une page d'ouvrage, c'est le **numéro imprimé** qui se
-légende, jamais le rang du fichier ouvert pour la produire — c'est le premier que le
-lecteur retrouvera dans son exemplaire, et le second ne veut rien dire hors de la
-mécanique de rendu.
-
-**Comment la poser dans la page**, en trois appels :
-
-1. `create-file-upload` avec le nom du fichier → rend une `upload_url` et des
-   `upload_headers` ;
-2. un unique POST `multipart/form-data` vers cette URL, le fichier dans le champ
-   `file`, tous les `upload_headers` inclus → la réponse porte un `markdown_source` ;
-3. `update-page` en `update_content`, qui insère ce `markdown_source` sous la ligne
-   de contrainte.
-
-⚠️ **La pose d'une image reste une écriture dans la page**, donc le protocole du
-fichier partagé s'applique entièrement (§4) — relevé avant, édition ciblée, recomptage
-des cases après. Insérer une image par une **refonte** du chapitre est le geste à
-éviter : les contraintes voisinent avec les questions ouvertes, et une recréation de
-bloc rend les cases vierges.
-
-### Les questions ouvertes
-
-**Chaque question commence par un titre H3**, juste au-dessus de son encadré :
-`Q1 — Titre court de la question`. C'est ce titre qui la fait apparaître dans la
-table des matières ; l'encadré seul y est invisible. L'état se lit aussi depuis le
-sommaire grâce à l'emoji en tête du titre : `🧭 Q1 — …` tant qu'elle est ouverte,
-`✅ Q1 — …` une fois tranchée. Quand une question passe au vert, **mettre à jour
-le H3 en même temps que l'encadré** — un sommaire qui dit 🧭 pour une question
-tranchée ment.
-
-Sous ce titre, un encadré par question, et **la couleur du cadre dit l'état de la
-question** :
-
-- 🧭 **fond orange = ouverte.** Elle le reste tant que la réponse n'est pas
-  *écrite dans la page* — avoir une intuition sur la réponse ne suffit pas.
-- ✅ **fond vert = tranchée.** La réponse est recopiée en gras dans le titre de
-  l'encadré, pour se lire sans déplier.
-
-Une reco non contestée s'applique par défaut (voir plus bas), et c'est **au moment
-où on l'applique** que l'encadré passe au vert, avec la mention
-`(reco appliquée par défaut)`. Avant ce moment, la question n'a pas de réponse et
-le cadre reste orange : un vert posé d'avance ferait passer une supposition pour
-un accord.
-
-Contenu de l'encadré :
-
-- Des cases à cocher, **toutes laissées vides**, la reco marquée `(reco)` en
-  premier. **Ne jamais précocher, pas même la reco** : une case cochée par moi
-  est indistinguable d'une case cochée par Benjamin à la passe suivante, et fait
-  passer une proposition pour une décision.
-- Dernière case toujours libre : `Autre / complément →`.
-- **Sans réponse, la reco s'applique.** Benjamin ne répond qu'aux désaccords.
-- **À chaque passe, relire le texte EN FACE de chaque case cochée**, et pas
-  seulement quelles cases le sont — en particulier ce qui suit
-  `Autre / complément →`. Benjamin répond dans le corps de la page aussi souvent
-  qu'en commentaire ; `get-comments` ne le montre pas. Une reco cochée *et* un
-  `Autre` rempli veut dire « oui, mais » — les deux comptent.
-- **Une question ne s'écrit qu'après l'enquête**, et pas avant (section
-  « L'enquête avant les options »). Une contrainte mesurée vaut mieux qu'une option
-  plausible : la moitié des décisions de ce dispositif ont changé après
-  vérification. Et si l'enquête donne la réponse, la question naît **verte** — on
-  n'ouvre pas une question pour faire joli dans le sommaire.
-
-### Le chapitre `Exécution`
-
-Présent **dès la première version du plan**, jamais repoussé au moment de coder.
-C'est là que le plan cesse d'être une intention : si on ne sait pas encore
-l'écrire, c'est qu'on ne sait pas encore ce qu'on va faire, et c'est cette
-ignorance-là qu'il faut rendre visible.
-
-**En tête du chapitre, un tableau `Étape · Fichiers touchés · Dépend de ·
-Vague · Relecture`**, une ligne par étape — le pre-flight scan du chapitre : il donne
-d'un coup d'œil ce qui se recoupe, avant même d'entrer dans le détail de
-chaque étape. La colonne `Vague` est **proposée** ici : deux étapes vont
-dans la même vague si elles ne partagent aucun fichier, si aucune ne dépend
-de l'autre, et si aucun fichier partagé (config, README, `CLAUDE.md`, test de
-décompte) n'est touché par les deux. Mais c'est `executer-plan-notion` qui la
-**calcule** à l'ouverture de l'exécution : le plan **déclare**, il
-n'**ordonnance** pas — calculer les vagues ici ferait mentir un plan qui
-change d'ordre en route sans que le tableau ne le sache.
-
-La colonne `Relecture` dit, étape par étape, comment le relecteur la voit :
-`étape` (relue seule, dès qu'elle est commitée) pour ce qui mérite un regard
-à part — une migration, un contrat d'API, un schéma —, `lot` (relue d'un seul
-coup avec les étapes `lot` consécutives) pour ce qui est petit ou sans
-risque, comme dix lignes de doc. Un plan écrit sans la colonne se lit `étape`
-partout. Les deux régimes, la définition du lot et la décision de Benjamin du
-2026-09-30 (Q6, qui remplace celle du 2026-09-23) sont dans
-`${CLAUDE_PLUGIN_ROOT}/skills/_partage/revue.md`.
-
-**Si le plan modifie un plugin d'un dépôt qui a un banc d'évals par catégorie** (un
-`evals/categories.json`), le chapitre porte une ligne `Évals à jouer : <catégories> —
-pourquoi`, ou `aucun — <raison>`. Évals à la demande : des catégories, ou « tout », c'est
-demander le label `evals` ; « aucun » ne le demande pas. La CI refuse une sélection qui
-ne couvre pas un skill touché, et joue tout le banc pour `_partage/`, les hooks ou le
-banc lui-même. Coûts : fiche `claude plugin eval` de
-`${CLAUDE_PLUGIN_ROOT}/skills/_partage/outils-et-quotas.md`.
-
-**Une étape = un titre H3** : `Étape 1 — Titre court de l'étape`. Comme pour les
-questions, c'est le H3 qui met l'étape dans la table des matières et permet d'y
-sauter directement ; une simple liste numérotée n'y apparaît pas. La numérotation
-vit dans le titre. Si une passe fusionne ou supprime des étapes, renuméroter les
-H3 pour que le sommaire reste une suite sans trou.
-
-Sous chaque titre, le contenu de l'étape :
-
-- **Choix d'architecture** retenu — et celui qu'on écarte, avec la raison.
-- **Fichiers touchés**, chemin par chemin, en distinguant créé / modifié / supprimé.
-- **Dépend de** — les étapes et les questions dont l'étape a besoin, « — » si
-  aucune. C'est cette ligne, reprise dans le tableau de tête de chapitre, que
-  `executer-plan-notion` lit pour calculer les vagues d'exécution.
-- **Relecture** — `étape` ou `lot` (`_partage/revue.md`) ; reprise dans la
-  dernière colonne du tableau de tête de chapitre.
-- **Taille** — le nombre de fichiers touchés. Plus de cinq → découper l'étape :
-  l'enquête montre que tous les conflits d'exécution observés viennent d'un
-  fichier partagé non repéré, et une étape large le cache d'autant mieux
-  qu'elle est large.
-- **Blocs touchés** — les nœuds de la carte du dépôt (chapitre `Cartes`) que
-  l'étape modifie. « Aucun bloc de la carte » est une réponse valable, et il
-  faut l'écrire plutôt que laisser la ligne vide.
-- **Impact fonctionnel** : ce que l'utilisateur voit changer. « Rien » est une
-  réponse valable, et il faut l'écrire plutôt que laisser la ligne vide. Toute
-  autre réponse exige une maquette et dit **quelle partie** de la maquette
-  l'étape réalise (chapitre `Maquette`).
-- **Impact technique** : migrations, dépendances, variables d'environnement,
-  contrats d'API, effet sur les tests existants.
-- **Preuve de fin** : la commande ou l'observation qui dit que l'étape est faite.
-- **Test attendu** — pour une étape qui écrit du code : la panne que le test
-  attrapera, le comportement cassé qu'il doit voir rouge avant d'écrire le
-  code. Cette ligne est le budget de tests : un test par panne nommée.
-  « — » si l'étape n'écrit pas de test.
-
-  📄 `${CLAUDE_PLUGIN_ROOT}/skills/_partage/bons-tests.md`
-
-Ce chapitre **bouge à chaque passe**, pour deux raisons distinctes :
-
-- une question tranchée peut supprimer une étape, en fusionner deux, ou en
-  retourner une ;
-- une investigation peut découvrir ce que le plan ignorait — un appelant oublié,
-  une contrainte du framework, un fichier généré. **Ce qui est découvert
-  s'écrit**, avec sa conséquence sur les étapes, même si personne ne l'a demandé.
-  Une découverte gardée en tête disparaît au compactage du contexte.
-
-Toute modification d'une étape déjà écrite se **date** en fin d'entrée :
-`_maj 2026-08-17 — étapes 3 et 4 fusionnées, la réponse à Q2 supprime le cache._`
-Sans cette trace, on ne distingue plus ce qui a été décidé de ce qui a dérivé.
-
-### Le `Journal d'exécution`
-
-Il se remplit à l'exécution, mais **sa structure est celle-ci, et elle vaut aussi
-bien quand c'est `executer-plan-notion` qui écrit que quand une passe de plan
-vient relire** :
-
-**Une entrée = un titre H3**, repris mot pour mot du chapitre `Exécution` :
-`Étape 1 — Titre court de l'étape`. Sans ce titre, l'entrée n'existe pas dans la
-table des matières — Notion n'y met que les *headings* — et le journal d'un plan
-de dix étapes devient un mur qu'on fait défiler pour retrouver ce qui s'est passé
-à l'étape 3. Les entrées hors étape prennent le même traitement : `Ouverture` au
-démarrage de l'exécution, `État final` à la clôture.
-
-Les titres du journal **répondent** à ceux du chapitre `Exécution` : même
-numéro, même libellé. Le sommaire met alors le prévu et le réalisé côte à côte, et
-l'écart entre les deux se voit sans ouvrir la page.
-
-**Un journal déjà commencé sans titres se chapitre à la passe suivante**, avant
-d'y ajouter quoi que ce soit : découper le texte existant par étape, poser les H3
-au-dessus, **sans reformuler une seule ligne de ce qui est écrit** (§4). Un
-journal à moitié chapitré est pire qu'un journal plat — le sommaire annonce alors
-une complétude qu'il n'a pas.
+  📄 `${CLAUDE_PLUGIN_ROOT}/skills/plan-notion/chapitres-questions-execution.md`
 
 ## 4. Ce qu'une passe ne doit jamais effacer
 
@@ -900,15 +423,9 @@ Quand Benjamin valide le plan :
       **par artefact** non propre au projet que les étapes fabriquent, présente
       dans `Contraintes techniques vérifiées` (gisement 6, « L'extérieur »).
 
-   Les points 5 à 8 viennent de l'enquête sur les plans passés : la
-   page du plan elle-même est la source de **11 %** des découvertes manquées à
-   l'exécution — ordre des étapes faux, preuve de fin impossible à jouer,
-   renvois périmés — et des chiffres recopiés d'un plan antérieur s'y sont
-   trouvés faux avec des écarts allant jusqu'à **80 %**. Les points 9 et 10
-   viennent du relevé des 43 plans du 2026-09-08 au 2026-09-28 : près des trois
-   quarts de ce qui a surpris l'exécution (74,6 % des surprises libellées)
-   aurait pu être vu avant. Ce filtre coûte quelques minutes ici et évite la
-   découverte en pleine exécution, qui coûte une étape.
+   Ce filtre vient de l'enquête sur les plans passés ; il coûte quelques minutes ici
+   et évite la découverte en pleine exécution, qui coûte une étape. Les mesures
+   et l'historique sont dans `docs/retex/plan-notion.md`.
 3. Passer `Statut` à `valide`.
 4. Le dire en une ligne, et **invoquer `executer-plan-notion`** si l'implémentation
    enchaîne dans la foulée. Un skill n'en charge pas un autre tout seul : sans
@@ -948,7 +465,9 @@ comment de la séance de code.
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/outils-et-quotas.md`,
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/schemas.md`,
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/revue.md` et
-  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/bons-tests.md`, ainsi que les
+  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/bons-tests.md`, ses trois fichiers de
+  référence (`enquete.md`, `chapitres-cadrage.md`,
+  `chapitres-questions-execution.md`, dans ce dossier), ainsi que les
   agents `${CLAUDE_PLUGIN_ROOT}/agents/enqueteur.md` et
   `${CLAUDE_PLUGIN_ROOT}/agents/chercheur.md`, livrés par le plugin
   `plans-notion` — pas par le dépôt de travail, quel qu'il soit.
