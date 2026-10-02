@@ -27,20 +27,5 @@
     "plugins/plans-notion/skills/executer-plan-notion/SKILL.md"
   ],
   "veille_jours_max": 30,
-  "exceptions": [
-    {
-      "regle": "b",
-      "cible": "plugins/plans-notion/skills/plan-notion/SKILL.md",
-      "date": "2026-09-30",
-      "raison": "le lot B ajoute des règles avant que le lot C n'allège le fichier (plafond 897 lignes / 53 665 octets) ; relever le plafond est interdit par le cliquet, une exception datée le dit",
-      "levee_par": "étape C6"
-    },
-    {
-      "regle": "b",
-      "cible": "plugins/plans-notion/skills/executer-plan-notion/SKILL.md",
-      "date": "2026-09-30",
-      "raison": "le lot B ajoute des règles avant que le lot C n'allège le fichier (plafond 923 lignes / 57 302 octets) ; relever le plafond est interdit par le cliquet, une exception datée le dit",
-      "levee_par": "étape C6"
-    }
-  ]
+  "exceptions": []
 }
