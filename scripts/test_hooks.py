@@ -56,6 +56,16 @@ class RefuserNoVerify(unittest.TestCase):
     def test_no_verify_apres_une_chaine_est_refuse(self):
         self.refuse('git add -A && git commit --no-verify -m "x"')
 
+    def test_S_sans_keyid_ne_masque_pas_le_n_suivant(self):
+        # -S a une valeur facultative, collée : le mot suivant n'est pas sa valeur.
+        self.refuse('git commit -S -n -m "x"')
+
+    def test_gpg_sign_sans_valeur_ne_masque_pas_no_verify(self):
+        self.refuse('git commit --gpg-sign --no-verify -m "x"')
+
+    def test_S_colle_a_un_keyid_contenant_n_est_permis(self):
+        self.permis('git commit -Sabcn -m "x"')
+
     def test_un_commit_ordinaire_est_permis(self):
         self.permis('git commit -m "x"')
 
