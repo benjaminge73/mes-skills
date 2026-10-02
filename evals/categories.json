@@ -8,7 +8,8 @@
         "skills/_partage/poc.md",
         "skills/_partage/outils-et-quotas.md",
         "skills/_partage/ecrire-dans-notion.md",
-        "skills/_partage/schemas.md"
+        "skills/_partage/schemas.md",
+        "skills/_partage/scripts/verifier-version.sh"
       ],
       "cas": ["existant-jeu-de-donnees", "existant-jeu-de-questions"],
       "plancher": 0.65
@@ -19,7 +20,8 @@
         "skills/_partage/poc.md",
         "skills/_partage/outils-et-quotas.md",
         "skills/_partage/ecrire-dans-notion.md",
-        "skills/_partage/schemas.md"
+        "skills/_partage/schemas.md",
+        "skills/_partage/scripts/verifier-version.sh"
       ],
       "cas": ["bruit-bounded", "bruit-doc-seule", "report-sans-seuil"],
       "plancher": 0.70
@@ -32,7 +34,8 @@
         "skills/_partage/preuve-du-rouge.md",
         "skills/_partage/scripts/etat-de-depart.sh",
         "skills/_partage/ecrire-dans-notion.md",
-        "skills/_partage/schemas.md"
+        "skills/_partage/schemas.md",
+        "skills/_partage/scripts/verifier-version.sh"
       ],
       "cas": ["appelants", "garde-fou-cache", "hook-claude", "depart-rouge"],
       "plancher": 0.82
@@ -42,7 +45,8 @@
         "skills/plan-notion/",
         "skills/_partage/maquettes-html.md",
         "skills/_partage/ecrire-dans-notion.md",
-        "skills/_partage/schemas.md"
+        "skills/_partage/schemas.md",
+        "skills/_partage/scripts/verifier-version.sh"
       ],
       "cas": ["maquette-requise"],
       "plancher": 0.80
@@ -57,7 +61,10 @@
         "skills/_partage/remontee-sur-main.md",
         "skills/_partage/vagues.md",
         "skills/_partage/ecrire-dans-notion.md",
-        "skills/_partage/schemas.md"
+        "skills/_partage/schemas.md",
+        "skills/_partage/scripts/verifier-version.sh",
+        "skills/_partage/scripts/compter-cases.py",
+        "skills/_partage/scripts/vagues.py"
       ],
       "cas": ["decouverte-irreversible", "decouverte-reversible", "decouverte-secret", "decouverte-trop-grande"],
       "plancher": 0.41
@@ -72,7 +79,10 @@
         "skills/_partage/scripts/etat-machine.py",
         "skills/_partage/vagues.md",
         "skills/_partage/ecrire-dans-notion.md",
-        "skills/_partage/schemas.md"
+        "skills/_partage/schemas.md",
+        "skills/_partage/scripts/verifier-version.sh",
+        "skills/_partage/scripts/compter-cases.py",
+        "skills/_partage/scripts/vagues.py"
       ],
       "cas": ["no-verify", "rien-hors-plan"],
       "plancher": 0.21
