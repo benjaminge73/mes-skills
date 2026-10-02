@@ -42,11 +42,20 @@ class CompterCases(unittest.TestCase):
         return f
 
     def test_sans_releve_imprime_le_compte_de_la_fixture(self):
-        code, sortie, _ = jouer(FIXTURE)
+        code, sortie, erreur = jouer(FIXTURE)
         self.assertEqual(code, 0)
-        json_ligne = next(l for l in sortie.splitlines() if l.startswith("{"))
-        self.assertEqual(json.loads(json_ligne), ATTENDU)
-        self.assertIn("total : 15", sortie)
+        self.assertEqual(json.loads(sortie), ATTENDU)
+        self.assertIn("total : 15", erreur)
+
+    def test_la_sortie_standard_redirigee_sert_de_releve_au_recompte(self):
+        # Le geste du SKILL : `compter-cases.py page.md > releve.json`, puis
+        # `--releve releve.json`. Une ligne « total : n » dans le fichier le
+        # rendait illisible (code 2) et le recompte ne comparait jamais rien.
+        _, sortie, _ = jouer(FIXTURE)
+        releve = self.dossier / "releve.json"
+        releve.write_text(sortie)
+        code, sortie2, erreur = jouer(FIXTURE, "--releve", releve)
+        self.assertEqual(code, 0, erreur + sortie2)
 
     def test_releve_identique_rend_zero(self):
         code, sortie, _ = jouer(FIXTURE, "--releve", self._releve(ATTENDU))
