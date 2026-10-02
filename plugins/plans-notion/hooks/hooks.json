@@ -1,0 +1,25 @@
+{
+  "description": "Garde-fous du plugin plans-notion : pas de --no-verify sur un commit, pas de Statut Notion accentué.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/refuser_no_verify.py\""
+          }
+        ]
+      },
+      {
+        "matcher": "mcp__.*__notion-update-page|mcp__.*__notion-create-pages",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/refuser_statut_accentue.py\""
+          }
+        ]
+      }
+    ]
+  }
+}
