@@ -186,8 +186,10 @@ et c'est ce qui donne ensuite l'envie de « faire soi-même ». Le brief porte d
    Un fichier touché « en passant », hors liste, est exactement ce qui rend une
    vague dangereuse (`vagues.md`, les fichiers partagés non repérés) : le
    signaler dans le rapport plutôt que le corriger soi-même.
-4. **La commande qui prouve que c'est fini**, à lancer, avec sa sortie à recopier
-   telle quelle dans le rapport. Elle ne porte que sur **les tests des fichiers
+4. **La commande qui prouve que c'est fini**, à lancer, avec, pour le rapport, sa
+   sortie **bornée** recopiée sans paraphrase : les dernières lignes du log (le
+   résumé du runner), le compte des échecs, et pour chaque échec son nom et
+   l'extrait qui dit pourquoi — jamais le log entier. Elle ne porte que sur **les tests des fichiers
    impactés** (§3, « précisément ») : ceux que l'étape écrit ou modifie, et ceux
    qui couvrent les sources qu'elle touche — jamais la suite complète.
    **Le délai attendu quand elle est longue** : « `pytest` prend 4 minutes,
@@ -212,7 +214,10 @@ et c'est ce qui donne ensuite l'envie de « faire soi-même ». Le brief porte d
      `DONE_WITH_CONCERNS` par défaut, jamais comme `DONE`.
    - **Fichiers réellement touchés** et le SHA du commit s'il y en a un
      (regroupement, `vagues.md`).
-   - **La sortie de la commande de preuve**, telle quelle.
+   - **La sortie bornée de la commande de preuve**, recopiée sans paraphrase :
+     dernières lignes du log (résumé du runner), compte des échecs, nom de
+     chaque échec et extrait qui dit pourquoi — jamais le log entier. (Le pilote,
+     lui, lit la sortie complète de sa propre relance.)
    - **Les écarts par rapport au brief**, et **chaque décision prise en
      route** au format : « quoi — pourquoi — ce que ça coûte si c'est faux. »
      Un sous-agent tranche parfois un détail que le brief ne couvrait pas
