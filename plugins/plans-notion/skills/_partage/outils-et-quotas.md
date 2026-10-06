@@ -373,7 +373,8 @@ d'entrée cumulés, cache à environ 98 %, en 46 s.
 **Bonne pratique** :
 
 - Poser `--failure-deliver` systématiquement avec `--deliver local`.
-- Recalculer, ou retirer (`--repeat forever`), la limite à chaque changement
+- Recalculer, ou retirer (`--repeat 0` : 0 vaut « sans limite » ; `forever`
+  est refusé, l'option n'accepte qu'un entier), la limite à chaque changement
   de planification ; pour borner un job dans le temps, préférer un pré-script
   qui se tait à une limite.
 - Sauvegarder l'entrée du job (`cron/jobs.json` du profil) avant un
