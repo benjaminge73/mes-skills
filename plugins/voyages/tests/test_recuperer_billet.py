@@ -22,7 +22,7 @@ import threading
 import unittest
 from pathlib import Path
 
-import fitz
+import pymupdf
 import zxingcpp
 from PIL import Image
 
@@ -52,15 +52,15 @@ def png(image: Image.Image) -> bytes:
 
 def fabriquer_pdf(chemin: Path, pages: list[dict]) -> None:
     """Une page par élément : {"qr": [contenus], "code128": contenu | None}."""
-    doc = fitz.open()
+    doc = pymupdf.open()
     for page in pages:
         p = doc.new_page(width=595, height=842)
         p.insert_text((50, 60), "Billet fictif", fontsize=18)
         for i, contenu in enumerate(page.get("qr", [])):
-            rect = fitz.Rect(50 + i * 250, 100, 200 + i * 250, 250)
+            rect = pymupdf.Rect(50 + i * 250, 100, 200 + i * 250, 250)
             p.insert_image(rect, stream=png(image_code(contenu, zxingcpp.QRCode)))
         if page.get("code128"):
-            p.insert_image(fitz.Rect(50, 400, 350, 470),
+            p.insert_image(pymupdf.Rect(50, 400, 350, 470),
                            stream=png(image_code(page["code128"], zxingcpp.Code128, 3)))
     doc.save(chemin)
     doc.close()
@@ -144,7 +144,7 @@ class PdfJoint(Dossier):
         self.assertEqual([b["page"] for b in res["billets"]], [1, 2])
         for b, attendu in zip(res["billets"], ["BILLET-TEST-1", "BILLET-TEST-2"]):
             self.assertEqual(decoder(b["qr_png"]), [attendu])
-            with fitz.open(b["pdf"]) as d:
+            with pymupdf.open(b["pdf"]) as d:
                 self.assertEqual(d.page_count, 1)
         self.assertNotIn("BILLET-TEST", r.stdout + r.stderr)
         self.assertNotIn("LINEAIRE", r.stdout + r.stderr)
