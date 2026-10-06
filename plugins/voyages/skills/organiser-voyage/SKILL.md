@@ -45,6 +45,10 @@ voyage : le libellé Gmail, le dossier OneDrive racine des voyages, les voyageur
 (nom, clé symbolique, le principal), les dates et le fuseau, le chemin de la file
 de rappels. Sans cette configuration, ou si un de ces éléments manque, ne rien
 faire et le dire.
+Les données réelles (noms, libellés Gmail, chemins OneDrive, identifiants
+Telegram, codes de billet) ne vivent que dans cette configuration et les
+dossiers de travail, jamais dans le skill ni le dépôt qui le publie ; un exemple
+ajouté aux références est anonymisé (voyageur A / B, destinations génériques).
 
 ## Où sont les scripts
 
