@@ -103,6 +103,9 @@ jobs:
         # Même liste que `garde` : scripts/ci_locale.sh, section `validation`.
         env:
           PYTHON_PLUGINS: python
+          # Les tests du plugin voyages lancent Chromium sur des fixtures
+          # locales ; sur le runner jetable, il démarre sans bac à sable.
+          VOYAGES_CHROMIUM_SANS_BAC_A_SABLE: "1"
         run: scripts/ci_locale.sh validation
 
   evals-portee:
