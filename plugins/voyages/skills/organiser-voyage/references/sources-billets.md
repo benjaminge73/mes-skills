@@ -24,9 +24,12 @@ gardé qu'une fois (`empreinte`).
 
 ## Appeler le script
 
+`$DOSSIER_SKILL` est le dossier de ce skill ; `SKILL.md` dit comment le connaître
+(Hermes ou Claude Code).
+
 ```bash
 PY=<interpréteur avec PyMuPDF, zxing-cpp et Pillow>
-S="${CLAUDE_PLUGIN_ROOT}/skills/organiser-voyage/scripts/recuperer_billet.py"
+S="$DOSSIER_SKILL/scripts/recuperer_billet.py"
 SORTIE="$HOME/brouillons/voyages/<commande>"
 
 "$PY" "$S" --sortie "$SORTIE" --pdf billet.pdf

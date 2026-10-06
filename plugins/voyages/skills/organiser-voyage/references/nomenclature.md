@@ -49,8 +49,11 @@ Le prénom l'emporte sur `1 sur 2`. Sans aucun des trois : refus.
 
 ## Appeler le script
 
+`$DOSSIER_SKILL` est le dossier de ce skill ; `SKILL.md` dit comment le connaître
+(Hermes ou Claude Code).
+
 ```bash
-SCRIPT="${CLAUDE_PLUGIN_ROOT}/skills/organiser-voyage/scripts/nommer_billet.py"
+SCRIPT="$DOSSIER_SKILL/scripts/nommer_billet.py"
 
 # nom d'un billet (collision : --existants = un nom par ligne)
 python3 "$SCRIPT" --json '{"type":"train","date":"2027-04-13","heure":"08h15","origine":"Ville B","destination":"Ville C","voyageur":"Voyageur A"}' [--existants noms.txt]
