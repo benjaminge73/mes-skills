@@ -45,7 +45,7 @@ import sys
 import urllib.request
 from pathlib import Path
 
-import fitz
+import pymupdf
 import zxingcpp
 from PIL import Image
 
@@ -109,7 +109,7 @@ def ajouter(billets, vus, sortie: Path, image, code, pdf_source, page):
     chemin_pdf = None
     if pdf_source is not None:
         chemin_pdf = sortie / f"billet-{n}.pdf"
-        with fitz.open(pdf_source) as src, fitz.open() as une_page:
+        with pymupdf.open(pdf_source) as src, pymupdf.open() as une_page:
             une_page.insert_pdf(src, from_page=page - 1, to_page=page - 1)
             une_page.save(chemin_pdf)
     billets.append({"qr_png": str(qr_png),
@@ -119,7 +119,7 @@ def ajouter(billets, vus, sortie: Path, image, code, pdf_source, page):
 
 
 def billets_d_un_pdf(chemin: Path, sortie: Path, billets, vus) -> None:
-    with fitz.open(chemin) as doc:
+    with pymupdf.open(chemin) as doc:
         for numero, page in enumerate(doc, start=1):
             pix = page.get_pixmap(dpi=DPI, alpha=False)
             image = Image.frombytes("RGB", (pix.width, pix.height), pix.samples)
