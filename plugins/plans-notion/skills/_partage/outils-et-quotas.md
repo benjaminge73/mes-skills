@@ -255,6 +255,10 @@ commune pour comparer les postes.
   d'un facteur 25 : il ne comptait que la taille finale du contexte, pas les
   relectures à chaque tour. Mesuré dans les transcriptions : un rejeu coûte
   environ 3,30 $ (10 M de jetons relus), un juge environ 0,75 $.
+- **2026-10-06** : le lanceur laisse des dossiers `tmp.*` sous `/tmp` (avec
+  `--keep-temp`), dont des sous-dossiers en mode `000` qu'un `rm -r` simple ne
+  retire pas. Les relever et les retirer à la clôture, après accord : ils
+  peuvent contenir des sorties de cas.
 
 **Bonne pratique** :
 
@@ -339,3 +343,88 @@ quelques applications Access.
 
 **Repli** : désactiver la validation du jeton sur la route rend le comportement
 précédent, sans redémarrage.
+
+## Fiche — Hermes Agent (cron et hub de skills)
+
+**Quota ou coût** (mesuré le 2026-10-06) : aucun quota propre. Un passage de
+job qui réveille l'agent coûte les tokens du modèle du job : un passage de
+veille silencieux (6 appels modèle, 5 outils) a coûté environ 350 k tokens
+d'entrée cumulés, cache à environ 98 %, en 46 s.
+
+**Pièges datés** :
+
+- **2026-10-06** : avec `cron create … --deliver local`, la livraison `local`
+  n'archive que la sortie, **l'alerte d'échec comprise**. Sans
+  `--failure-deliver <cible>`, un job qui finit en code 1 ou 2 ne prévient
+  personne.
+- **2026-10-06** : la limite `repeat` compte **chaque passage**, y compris ceux
+  où le pré-script rend `{"wakeAgent": false}` (aucun appel modèle). Une limite
+  calculée pour une cadence (un passage par jour) devient fausse quand la
+  planification change : passée à toutes les 2 h, elle aurait éteint le job
+  environ 12 fois plus tôt.
+- **2026-10-06** : `hermes cron run <job>` joue d'abord le pré-script. Hors de
+  sa fenêtre, le passage manuel n'est qu'une porte fermée
+  (`wakeAgent=false`) et ne prouve rien du chemin agent.
+- **2026-10-06** : `hermes skills inspect|install <owner>/<repo>/<skill>`
+  résout d'abord par l'index public skills.sh quand le dépôt y est indexé,
+  avant le tap GitHub du profil. Seul l'identifiant au chemin complet
+  `<owner>/<repo>/<chemin>/<skill>` installe depuis le tap.
+
+**Bonne pratique** :
+
+- Poser `--failure-deliver` systématiquement avec `--deliver local`.
+- Recalculer, ou retirer (`--repeat forever`), la limite à chaque changement
+  de planification ; pour borner un job dans le temps, préférer un pré-script
+  qui se tait à une limite.
+- Sauvegarder l'entrée du job (`cron/jobs.json` du profil) avant un
+  `cron edit`.
+- Après un `--prompt "$(sed …)"`, comparer le prompt stocké au fichier source.
+- Pour tester le chemin agent d'un job à pré-script : pointer le job, le temps
+  d'un passage, vers un script d'enrobage qui appelle le pré-script avec un
+  instant forcé, et rétablir le script d'origine par un `trap` dans le même
+  appel de shell.
+
+**Repli** : pour le hub de skills, l'identifiant au chemin complet ; sinon
+aucun connu au 2026-10-06.
+
+## Fiche — Chromium (snap) et Chrome headless
+
+**Quota ou coût** : aucun, l'outil est local.
+
+**Pièges datés** :
+
+- **2026-10-06** : le Chromium d'Ubuntu est un snap confiné (AppArmor). Il ne
+  lit ni n'écrit que sous les dossiers du répertoire personnel dont le nom ne
+  commence ni par `.` ni par `s`. `/tmp`, `~/.cache` et un dossier caché sont
+  refusés, et `--screenshot` vers un tel dossier **ne produit aucun fichier,
+  sans erreur**.
+- **2026-10-06** : sur les runners GitHub `ubuntu-latest` (24.04), Chrome
+  headless refuse en général de démarrer avec son bac à sable (restriction
+  AppArmor des espaces de noms utilisateur).
+
+**Bonne pratique** :
+
+- Écrire la sortie et les captures dans un dossier de travail sous le
+  répertoire personnel, non caché.
+- Désactiver le bac à sable **seulement en CI**, par une variable
+  d'environnement explicite du job, jamais en dur dans le script.
+
+**Repli** : aucun connu au 2026-10-06.
+
+## Fiche — PyMuPDF
+
+**Quota ou coût** : aucun.
+
+**Pièges datés** :
+
+- **2026-10-06** : en 1.28, `import fitz` imprime un avertissement de
+  dépréciation **sur la sortie standard**. Un script qui rend du JSON sur
+  stdout devient illisible (`JSONDecodeError` chez l'appelant). Constaté
+  seulement dans un venv neuf : un venv plus ancien ne le montrait pas.
+
+**Bonne pratique** :
+
+- Écrire `import pymupdf`.
+- Prouver un script sur un venv neuf, installé depuis ses `requirements`.
+
+**Repli** : aucun connu au 2026-10-06.
