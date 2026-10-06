@@ -5,7 +5,7 @@ description: >-
   récupérer le ou les billets (PDF joint, lien de téléchargement, QR dessiné
   dans le corps), les nommer avec la nomenclature, les ranger dans le dossier
   OneDrive du voyage sans rien écraser, créer l'événement d'agenda, puis déposer
-  le rappel dans la file (30 min avant, 3 h avant un vol). À charger dès qu'il s'agit
+  le rappel « 30 minutes avant » dans la file. À charger dès qu'il s'agit
   d'organiser un voyage, de traiter un mail de réservation ou un billet, de
   ranger ou nommer un billet, de préparer les rappels d'un voyage, ou quand un
   nouveau message arrive dans le libellé Gmail d'un voyage. Règle première : un
@@ -92,12 +92,10 @@ Les cinq fichiers du skill, à ouvrir au moment dit :
    lien de partage anonyme.
 5. **Planifier.** Créer l'événement d'agenda du voyageur principal (heure locale
    du lieu, lien privé dans la description) et inviter l'autre voyageur.
-6. **Rappeler.** Déposer une entrée dans la file de rappels (`rappels.py` l'envoie
-   30 minutes avant, l'appelant fournit le jeton) :
+6. **Rappeler.** Entrée dans la file (`rappels.py`, 30 min avant ; **vol** :
+   décollage et `avance_min: 180`, soit 3 h avant) :
    - `debut_local` et `fuseau` du **lieu** ; `titre`, `ville` ; `etat` à
      `a_envoyer` ;
-   - **vol** : `debut_local` = heure de **décollage** (fuseau de l'aéroport de
-     départ) et `avance_min` à `180` : la carte d'embarquement part 3 h avant ;
    - `lien` : le `webUrl` privé ;
    - `piece_jointe` : **pour un billet QR, l'image du QR seule** (`qr_png`) ; à
      défaut le PDF ;
