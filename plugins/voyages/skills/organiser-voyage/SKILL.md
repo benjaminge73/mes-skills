@@ -5,7 +5,7 @@ description: >-
   récupérer le ou les billets (PDF joint, lien de téléchargement, QR dessiné
   dans le corps), les nommer avec la nomenclature, les ranger dans le dossier
   OneDrive du voyage sans rien écraser, créer l'événement d'agenda, puis déposer
-  le rappel « 30 minutes avant » dans la file. À charger dès qu'il s'agit
+  le rappel dans la file (30 min avant, 3 h avant un vol). À charger dès qu'il s'agit
   d'organiser un voyage, de traiter un mail de réservation ou un billet, de
   ranger ou nommer un billet, de préparer les rappels d'un voyage, ou quand un
   nouveau message arrive dans le libellé Gmail d'un voyage. Règle première : un
@@ -96,6 +96,8 @@ Les cinq fichiers du skill, à ouvrir au moment dit :
    30 minutes avant, l'appelant fournit le jeton) :
    - `debut_local` et `fuseau` du **lieu** ; `titre`, `ville` ; `etat` à
      `a_envoyer` ;
+   - **vol** : `debut_local` = heure de **décollage** (fuseau de l'aéroport de
+     départ) et `avance_min` à `180` : la carte d'embarquement part 3 h avant ;
    - `lien` : le `webUrl` privé ;
    - `piece_jointe` : **pour un billet QR, l'image du QR seule** (`qr_png`) ; à
      défaut le PDF ;

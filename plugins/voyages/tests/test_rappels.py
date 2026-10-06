@@ -154,7 +154,7 @@ class Fenetre(AvecFile):
         self.ecrire([rappel()])
         faux = FauxEnvoyeur()
         self.traiter("2027-04-10T12:30", faux, avance=2880)
-        self.assertEqual(faux.appels[0][1].splitlines()[0], "Rappel - dans 2880 min")
+        self.assertEqual(faux.appels[0][1].splitlines()[0], "Rappel - dans 48 h")
         self.assertEqual(faux.appels[0][1].splitlines()[2], "12 avril 14 h 30 (heure locale)")
 
     def test_un_rappel_deja_envoye_n_est_pas_renvoye(self):
@@ -175,6 +175,31 @@ class Fenetre(AvecFile):
         self.assertEqual(faux.appels, [])
         self.assertEqual(resume["manques"], ["r1"])
         self.assertEqual(self.relire()[0]["etat"], "manque")
+
+
+class AvanceParEntree(AvecFile):
+    def test_un_vol_porte_son_avance_de_3_h_et_part_3_h_avant_le_decollage(self):
+        """Panne : le vol suit l'avance par défaut (30 min) et le billet arrive
+        trop tard pour l'enregistrement. Début 12:30 UTC, échéance 09:30 UTC."""
+        self.ecrire([rappel(avance_min=180, titre="Vol Exempleville-Autreville")])
+        faux = FauxEnvoyeur()
+        self.assertEqual(self.traiter("2027-04-12T09:29", faux)["a_venir"], ["r1"])
+        self.assertEqual(faux.appels, [])
+        self.assertEqual(self.traiter("2027-04-12T09:30", faux)["envoyes"], ["r1"])
+        self.assertIn("Rappel - dans 3 h", faux.appels[0][1])
+
+    def test_une_entree_sans_avance_propre_garde_l_avance_de_l_appel(self):
+        self.ecrire([rappel()])
+        faux = FauxEnvoyeur()
+        self.assertEqual(self.traiter("2027-04-12T11:59", faux)["a_venir"], ["r1"])
+        self.assertEqual(self.traiter("2027-04-12T12:00", faux)["envoyes"], ["r1"])
+        self.assertIn("Rappel - dans 30 min", faux.appels[0][1])
+
+    def test_une_avance_invalide_est_signalee_sans_envoi(self):
+        self.ecrire([rappel(avance_min="3h")])
+        faux = FauxEnvoyeur()
+        self.assertEqual(self.traiter("2027-04-12T12:00", faux)["en_echec"], ["r1"])
+        self.assertEqual(faux.appels, [])
 
 
 class Reprise(AvecFile):

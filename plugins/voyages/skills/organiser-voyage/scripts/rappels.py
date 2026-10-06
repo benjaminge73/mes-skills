@@ -13,6 +13,8 @@ réécrite, les autres clés de l'objet sont conservées). Une entrée :
 - ``fuseau`` : nom IANA (``Europe/Rome``) ;
 - ``lien`` : lien privé OneDrive (``webUrl``), facultatif ;
 - ``piece_jointe`` : chemin du billet (image du QR, ou PDF), facultatif ;
+- ``avance_min`` : minutes d'avance propres à l'entrée (facultatif ; un vol
+  porte 180, soit 3 h avant le décollage), sinon l'avance de l'appel ;
 - ``destinataires`` : clés symboliques (``["voyageur_a"]``, ou les deux) ;
 - ``etat`` : ``a_envoyer``, ``envoye``, ``echec`` ou ``manque``.
 
@@ -176,13 +178,31 @@ def _jour(jour: date, aujourdhui: date) -> str:
     return texte if jour.year == aujourdhui.year else f"{texte} {jour.year}"
 
 
+def _delai(avance: int) -> str:
+    if avance >= 60 and avance % 60 == 0:
+        return f"{avance // 60} h"
+    if avance > 60:
+        return f"{avance // 60} h {avance % 60:02d}"
+    return f"{avance} min"
+
+
+def avance_de(entree: dict, avance: int) -> int:
+    """Avance propre à l'entrée (``avance_min``, entier > 0), sinon celle de l'appel."""
+    propre = entree.get("avance_min")
+    if propre is None:
+        return avance
+    if isinstance(propre, bool) or not isinstance(propre, int) or propre <= 0:
+        raise ValueError("avance_min doit être un entier positif")
+    return propre
+
+
 def composer_message(entree: dict, maintenant: datetime, avance: int) -> str:
     local = datetime.fromisoformat(entree["debut_local"])
     aujourdhui = maintenant.astimezone(ZoneInfo(entree["fuseau"])).date()
     ville = entree.get("ville")
     lieu = f"{ville} - {entree['titre']}" if ville else entree["titre"]
     lignes = [
-        f"Rappel - dans {avance} min",
+        f"Rappel - dans {_delai(avance)}",
         lieu,
         f"{_jour(local.date(), aujourdhui)} {local.hour} h {local.minute:02d} (heure locale)",
     ]
@@ -260,6 +280,7 @@ def traiter(chemin_file, jeton: str, destinataires: dict[str, str],
             if not cles or not all(isinstance(c, str) for c in cles):
                 raise ValueError("destinataires vide ou mal formé")
             debut = debut_utc(entree)
+            avance_entree = avance_de(entree, avance)
             entree["titre"]  # noqa: B018 - exigé par le message
         except (KeyError, ValueError, TypeError) as e:
             erreur = nettoyer(f"entrée invalide : {type(e).__name__} {e}", jeton)
@@ -274,11 +295,11 @@ def traiter(chemin_file, jeton: str, destinataires: dict[str, str],
             _ecrire(chemin, racine)
             resume["manques"].append(ident)
             continue
-        if maintenant < debut - timedelta(minutes=avance):
+        if maintenant < debut - timedelta(minutes=avance_entree):
             resume["a_venir"].append(ident)
             continue
 
-        message = composer_message(entree, maintenant, avance)
+        message = composer_message(entree, maintenant, avance_entree)
         servis = list(entree.get("envoyes_a", []))
         texte_parti = list(entree.get("texte_envoye_a", []))
         erreurs = []
