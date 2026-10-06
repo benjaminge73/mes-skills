@@ -3,7 +3,7 @@
 
 Ce dépôt est public, et le plugin ``voyages`` manipule des billets, des mails de
 réservation et des noms de voyageurs : la configuration de chaque voyage vit chez
-l'appelant, jamais ici. Ce garde parcourt les fichiers texte de ``plugins/voyages/``
+l'appelant, jamais ici. Ce garde parcourt les fichiers de ``plugins/voyages/``
 et ``evals/voyages/`` (constante ``RACINES_A_PARCOURIR``, à étendre quand un autre
 plugin manipule des données de personnes) et refuse ce qui ressemble à une donnée
 personnelle.
@@ -46,8 +46,11 @@ Sortie : une ligne ``fichier:ligne : <type de motif>`` par trouvaille, **sans ja
 recopier la valeur trouvée** — ce log est public. Code de sortie : ``0`` propre,
 ``1`` au moins une trouvaille, ``2`` usage (racine absente, liste introuvable).
 
-Les fichiers binaires (un octet nul dans les 8 premiers Ko), ``__pycache__`` et
-``.git`` sont ignorés.
+Le **chemin relatif** de chaque fichier parcouru (binaires compris : un billet PDF
+nommé d'après son voyageur) passe par les mêmes motifs ; une trouvaille sort en
+``fichier:0 : <type> (dans le chemin)``. Le **contenu** d'un fichier binaire (un octet
+nul dans les 8 premiers Ko) n'est pas lu ; ``__pycache__`` et ``.git`` sont ignorés
+en entier.
 """
 from __future__ import annotations
 
@@ -133,7 +136,9 @@ def lire_motifs_connus() -> tuple[list[str], str]:
     return motifs, f"liste de motifs connus lue ({len(motifs)} motif(s))"
 
 
-def fichiers_texte(dossier: Path):
+def fichiers(dossier: Path):
+    """``(chemin, est_texte)`` pour chaque fichier parcouru, binaires compris :
+    le chemin de tous est contrôlé, le contenu des seuls fichiers texte est lu."""
     for chemin in sorted(dossier.rglob("*")):
         if not chemin.is_file():
             continue
@@ -144,17 +149,20 @@ def fichiers_texte(dossier: Path):
                 debut = f.read(8192)
         except OSError:
             continue
-        if b"\x00" in debut:
-            continue
-        yield chemin
+        yield chemin, b"\x00" not in debut
 
 
 def analyser(racine: Path, dossiers, connus: list[str]) -> list[tuple[str, int, str]]:
     trouvailles = []
     for dossier in dossiers:
-        for chemin in fichiers_texte(racine / dossier):
-            texte = chemin.read_text(encoding="utf-8", errors="replace")
+        for chemin, est_texte in fichiers(racine / dossier):
             nom = chemin.relative_to(racine).as_posix()
+            # Le chemin dit déjà « billet-<nom>.pdf » : numéro de ligne 0.
+            for type_ in types_de_motifs(nom, connus):
+                trouvailles.append((nom, 0, f"{type_} (dans le chemin)"))
+            if not est_texte:
+                continue
+            texte = chemin.read_text(encoding="utf-8", errors="replace")
             for numero, ligne in enumerate(texte.splitlines(), 1):
                 for type_ in types_de_motifs(ligne, connus):
                     trouvailles.append((nom, numero, type_))
