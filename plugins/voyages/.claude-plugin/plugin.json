@@ -1,0 +1,9 @@
+{
+  "$schema": "https://anthropic.com/claude-code/plugin.schema.json",
+  "name": "voyages",
+  "version": "0.1.0",
+  "description": "Une seule méthode pour organiser un voyage : qualifier les mails de réservation, récupérer et nommer les billets, les ranger, et rappeler chaque visite avant l'heure.",
+  "author": {
+    "name": "benjaminge73"
+  }
+}

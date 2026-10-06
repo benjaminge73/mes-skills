@@ -16,6 +16,11 @@
 #                        limites.json). Défaut : origin/main.
 #   CI_LOCALE_SANS_BASE  non vide : sauter ces contrôles (poussée sur main, où il
 #                        n'y a pas de PR à comparer).
+#   PYTHON_PLUGINS      l'interpréteur des tests sous plugins/<p>/tests/ (défaut :
+#                        python3). En local, un interpréteur qui a PyMuPDF et
+#                        zxing-cpp (dépendances de plugins/<p>/tests/
+#                        requirements.txt) ; la CI les installe puis passe
+#                        « python ».
 #   CLAUDE_BIN           la CLI Claude Code pour `claude plugin validate`
 #                        (défaut : claude). Ce script ne l'installe pas : la CI
 #                        le fait dans son job `validation`, en local elle est
@@ -30,6 +35,7 @@ cd "$(dirname "${BASH_SOURCE[0]}")/.."
 section="${1:-tout}"
 BASE_REF="${BASE_REF:-origin/main}"
 CLAUDE_BIN="${CLAUDE_BIN:-claude}"
+PYTHON_PLUGINS="${PYTHON_PLUGINS:-python3}"
 SANS_BASE="${CI_LOCALE_SANS_BASE:-}"
 
 case "$section" in
@@ -99,6 +105,7 @@ garde_de_version() {
 
 if [ "$faire_garde" = 1 ]; then
   etape "Cohérence de la marketplace" python3 scripts/check_marketplace.py
+  etape "Données personnelles du dépôt public" python3 scripts/check_donnees_personnelles.py
   if [ -z "$SANS_BASE" ]; then
     etape "Garde de version des plugins" garde_de_version
     etape "Une leçon a son cas" python3 scripts/check_lecon_a_son_cas.py --base "$BASE_REF"
@@ -122,6 +129,16 @@ if [ "$faire_validation" = 1 ]; then
   }
   etape "Validation des plugins par la CLI" valider_plugins
   etape "Tests des scripts de garde" python3 -m unittest discover -s scripts -p 'test_*.py'
+  tester_plugins() {
+    local d rc=0
+    for d in plugins/*/tests; do
+      [ -d "$d" ] || continue
+      echo "-- $d"
+      "$PYTHON_PLUGINS" -m unittest discover -s "$d" -p 'test_*.py' || rc=1
+    done
+    return $rc
+  }
+  etape "Tests des plugins" tester_plugins
   etape "Renvois entre fichiers" python3 scripts/check_references.py
 fi
 

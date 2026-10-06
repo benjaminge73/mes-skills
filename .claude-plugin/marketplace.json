@@ -15,6 +15,11 @@
       "name": "methode-de-travail",
       "source": "./plugins/methode-de-travail",
       "description": "Dialoguer avant de créer, chercher la cause racine avant de corriger, prouver avant d'annoncer."
+    },
+    {
+      "name": "voyages",
+      "source": "./plugins/voyages",
+      "description": "Une seule méthode pour organiser un voyage : qualifier les mails de réservation, nommer et ranger les billets, rappeler chaque visite."
     }
   ]
 }

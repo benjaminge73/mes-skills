@@ -87,5 +87,14 @@
       "cas": ["no-verify", "rien-hors-plan"],
       "plancher": 0.21
     }
+  },
+  "voyages": {
+    "billet": {
+      "exerce": [
+        "skills/organiser-voyage/"
+      ],
+      "cas": ["billet-voyageur-incertain"],
+      "plancher": 0.90
+    }
   }
 }

@@ -20,6 +20,10 @@
     "plugins/plans-notion/skills/plan-notion/SKILL.md": {
       "lignes": 500,
       "octets": 53665
+    },
+    "plugins/voyages/skills/organiser-voyage/SKILL.md": {
+      "lignes": 116,
+      "octets": 5986
     }
   },
   "invariants_en_tete": [

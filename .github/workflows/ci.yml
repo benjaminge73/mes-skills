@@ -86,8 +86,26 @@ jobs:
         # schéma qu'on aurait figé et qui serait devenu périmé.
         run: npm install -g @anthropic-ai/claude-code
 
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Dépendances des tests de plugins
+        # Un plugins/<p>/tests/requirements.txt par plugin qui en a besoin ;
+        # la boucle ne fait rien quand il n'y en a aucun.
+        run: |
+          for f in plugins/*/tests/requirements.txt; do
+            [ -f "$f" ] || continue
+            python -m pip install -r "$f"
+          done
+
       - name: Validation, tests et renvois (scripts/ci_locale.sh)
         # Même liste que `garde` : scripts/ci_locale.sh, section `validation`.
+        env:
+          PYTHON_PLUGINS: python
+          # Les tests du plugin voyages lancent Chromium sur des fixtures
+          # locales ; sur le runner jetable, il démarre sans bac à sable.
+          VOYAGES_CHROMIUM_SANS_BAC_A_SABLE: "1"
         run: scripts/ci_locale.sh validation
 
   evals-portee:
