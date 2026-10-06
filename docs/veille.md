@@ -131,3 +131,40 @@ Une entrée par passe, la plus récente en dernier. Le titre est
   amélioration visée, et ne pas laisser une panne d'infrastructure passer pour une
   variance du modèle. **À lire à la prochaine passe** : « What a task costs on
   Opus 5.5 », pour recaler nos estimations de coût.
+
+### 2026-10-06 — passe avant la création du plugin voyages (plan « Création d'un cron Voyage »)
+
+- **Sources lues** : la doc Claude Code (skills, sous-agents, référence des plugins,
+  chargement des plugins, tests de plugin par évals, bac à sable, changelog de la
+  2.1.284 à la 2.1.291, résumé hebdomadaire) ; claude.dev (accueil, « Claude Code in
+  the cloud: a field guide to cloud sessions » du 2026-10-01 et « What a task costs
+  on Opus 5.5 » du 2026-09-23, ce dernier lu **par résumé**) ;
+  anthropic.com/engineering (rien de nouveau depuis le 2026-04-23) ;
+  `anthropics/skills` (toujours pas de `shared/evals/`) ; `sandbox-runtime#74`
+  (toujours ouverte). Les pages hooks, mémoire, réglages et plugins n'ont **pas** été
+  relues en entier.
+- **Ce qui a changé** : aucun fait porteur du tableau de la partie 2 n'est touché en
+  substance. Changelog : la 2.1.287 (« Claude Mods », hooks de plugin plus profonds) et
+  un correctif du nom d'un skill dont le dossier diffère ; la 2.1.288, des agents de
+  plugin lancés par nom avec leur propre prompt et leurs outils ; la 2.1.289, la copie
+  périmée d'un plugin installé depuis une marketplace en dossier local. `skills.md`
+  porte un tableau « Available string substitutions » : `${CLAUDE_SKILL_DIR}` (« The
+  directory containing the skill's `SKILL.md` file… ») et `${CLAUDE_PLUGIN_ROOT}`
+  (« Substituted only in plugin skills »), substitués dans le corps Markdown
+  (`plugins-reference.md`, « Where each variable resolves »). `sandboxing.md` porte un
+  encadré « Ubuntu 24.04 and later: allow bubblewrap to create user namespaces »
+  (profil AppArmor `bwrap`). Opus 5.5 « costs 40% less to run than Opus 5 » mais peut
+  dépenser plus de jetons de réflexion : à mesurer avant d'en tirer une estimation.
+- **Ce qu'on en fait** : le skill `organiser-voyage` est aussi installé par Hermes, qui
+  ne connaît ni `${CLAUDE_SKILL_DIR}` ni `${CLAUDE_PLUGIN_ROOT}` (Hermes substitue
+  `${HERMES_SKILL_DIR}`, dans `SKILL.md` seulement, et n'installe que les fichiers que
+  `SKILL.md` cite) : `$DOSSIER_SKILL` est donc défini dans `SKILL.md` pour les deux
+  hôtes. L'encadré AppArmor est à relire pour `evals/outillage/preparer-runner.sh` (plan
+  à venir, pas celui-ci). Aucune autre règle à changer.
+- **Verdict de `scripts/veille_faits.py`** (2026-10-06) : 14 faits vérifiés, 13 citations
+  trouvées, 1 introuvable — « La mise à jour compare la version, pas le contenu »
+  (`plugins/loading.md`) : la page dit désormais « don't replace the cached copy when it
+  matches what `installed_plugins.json` records » au lieu de « skip the plugin when it
+  matches… ». Sens inchangé ; la citation du tableau est à reporter à la prochaine
+  édition de ce fichier (le workflow hebdomadaire ouvrira une issue d'ici là), 0 page
+  injoignable.

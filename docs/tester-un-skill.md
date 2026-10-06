@@ -468,6 +468,11 @@ moins 0,10 (15 tirages sains sur Sonnet et Opus, 2026-10-01) :
 | `maquette` | 0,90 – 1,00 | 0,80 |
 | `decouvertes` | 0,51 – 0,57 | 0,41 |
 | `perimetre` | 0,31 – 0,45 | 0,21 |
+| `billet` (plugin `voyages`) | 1,00 – 1,00 | 0,90 |
+
+Les six premières lignes sont celles de `plans-notion` ; `billet` est la catégorie du
+plugin `voyages`, mesurée le 2026-10-06 sur 6 tirages sains (Sonnet, effort `high`,
+mode `aa`, 3 + 3), tous à 1,00 : le plancher y est donc 0,90.
 
 Ces valeurs sont l'origine des planchers ; ceux que la CI applique sont dans son
 code. Sur le seul bras cassé mesuré (trois bancs simultanés), les tirages
