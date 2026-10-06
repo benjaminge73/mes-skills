@@ -1,0 +1,1 @@
+Le billet de la commande EX-48213 n'est pas traité : le voyageur n'est pas nommé sur le billet (« 1 × entrée plein tarif », billet non nominatif) et la commande n'est pas commune, donc je ne peux pas dire à qui il est. Rien n'est rangé dans OneDrive, aucun événement ni rappel n'est créé. Le billet est signalé dans `signalements.md` avec le champ qui manque.

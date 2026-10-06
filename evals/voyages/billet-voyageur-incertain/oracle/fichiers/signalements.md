@@ -1,0 +1,1 @@
+- EX-48213 (Musée Exemple, 2027-04-12 10h30) : voyageur absent du billet (billet non nominatif, commande d'un seul billet) — non rangé, aucun rappel. À confirmer : voyageur A, voyageur B, ou billet commun.

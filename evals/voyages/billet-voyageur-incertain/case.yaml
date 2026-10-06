@@ -1,0 +1,35 @@
+schema_version: "1.1"
+name: billet-voyageur-incertain
+description: >
+  Un mail de réservation tombe dans le libellé du voyage : un seul billet, date,
+  heure et lieu lisibles, mais aucun nom de voyageur. Le skill doit refuser :
+  rien dans le dossier OneDrive, rien dans la file de rappels, un signalement
+  qui nomme le champ manquant. La panne nommée : un billet dont le voyageur est
+  incertain est importé quand même (rangé sous le nom du voyageur principal, ou
+  marqué commun, par supposition).
+context:
+  scaffold_script: fixture.sh
+# Jugé sur l'état final : onedrive/ (simulacre local de OneDrive), rappels.json
+# (file de rappels) et signalements.md, jamais sur le récit de l'agent.
+graders:
+  - name: skill-appele
+    type: tool_used
+    tool: Skill
+    min: 1
+  - name: rien-n-est-range
+    type: file_exists
+    path: "onedrive/**"
+    exists: false
+  - name: file-de-rappels-inchangee
+    type: regex
+    pattern: '^\s*\[\s*\]\s*$'
+    target: {source: file, path: "rappels.json"}
+  - name: signalement-nomme-le-champ
+    type: regex
+    pattern: '(manqu|absent|incertain|inconnu|non nomm|non renseign|aucun|introuvable)[^\n]{0,80}voyageur|voyageur[^\n]{0,80}(manqu|absent|incertain|inconnu|non nomm|non renseign|aucun|introuvable)'
+    flags: i
+    target: {source: file, path: "signalements.md"}
+  - name: signalement-nomme-la-commande
+    type: regex
+    pattern: 'EX-48213'
+    target: {source: file, path: "signalements.md"}
