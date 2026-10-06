@@ -87,7 +87,7 @@ pas au fond). Un fait qu'on ne retrouve pas sur la page n'entre pas au tableau.
 | `memory` active Read, Write et Edit | « Read, Write, and Edit tools are automatically enabled so the subagent can manage its memory files. » | https://code.claude.com/docs/en/sub-agents.md | 2026-09-30 | `scripts/check_skills.py` règle g |
 | La mémoire de portée projet est faite pour être versionnée | « the subagent's knowledge is project-specific and shareable via version control » | https://code.claude.com/docs/en/sub-agents.md | 2026-09-30 | `scripts/check_skills.py` règle h |
 | La mémoire d'agent locale vit sous `.claude/agent-memory-local/` | « `.claude/agent-memory-local/<name-of-agent>/` » | https://code.claude.com/docs/en/sub-agents.md | 2026-09-30 | `scripts/check_skills.py` règle h |
-| La mise à jour compare la version, pas le contenu | « compute the version again and skip the plugin when it matches what `installed_plugins.json` records » | https://code.claude.com/docs/en/plugins/loading.md | 2026-09-30 | `scripts/plugin_version_guard.py` |
+| La mise à jour compare la version, pas le contenu | « compute the version again and don't replace the cached copy when it matches what `installed_plugins.json` records » | https://code.claude.com/docs/en/plugins/loading.md | 2026-10-06 | `scripts/plugin_version_guard.py` |
 | Le champ `version` du manifeste prime | « The `version` field in the plugin's manifest comes first » | https://code.claude.com/docs/en/plugins/loading.md | 2026-09-30 | `scripts/plugin_version_guard.py` |
 | Sans `--no-publish`, le rapport d'éval sort de la machine | « Keep the HTML report local. » | https://code.claude.com/docs/en/plugin-evals.md | 2026-09-30 | `scripts/evals_ab.py` |
 | `--ablation none` joue un seul bras | « `none` runs one arm; `with-without` adds the no-plugin baseline » | https://code.claude.com/docs/en/plugin-evals.md | 2026-09-30 | `scripts/evals_ab.py` |
@@ -166,5 +166,5 @@ Une entrée par passe, la plus récente en dernier. Le titre est
   (`plugins/loading.md`) : la page dit désormais « don't replace the cached copy when it
   matches what `installed_plugins.json` records » au lieu de « skip the plugin when it
   matches… ». Sens inchangé ; la citation du tableau est à reporter à la prochaine
-  édition de ce fichier (le workflow hebdomadaire ouvrira une issue d'ici là), 0 page
+  édition de ce fichier (remplacée le jour même, étape D2) (le workflow hebdomadaire ouvrira une issue d'ici là), 0 page
   injoignable.
