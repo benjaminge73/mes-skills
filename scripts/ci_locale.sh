@@ -105,6 +105,7 @@ garde_de_version() {
 
 if [ "$faire_garde" = 1 ]; then
   etape "Cohérence de la marketplace" python3 scripts/check_marketplace.py
+  etape "Données personnelles du dépôt public" python3 scripts/check_donnees_personnelles.py
   if [ -z "$SANS_BASE" ]; then
     etape "Garde de version des plugins" garde_de_version
     etape "Une leçon a son cas" python3 scripts/check_lecon_a_son_cas.py --base "$BASE_REF"
