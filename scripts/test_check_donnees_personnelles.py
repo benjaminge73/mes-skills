@@ -90,6 +90,22 @@ class DonneesPubliees(Garde):
         self.assertEqual(code, 1, sortie)
         self.assertIn("evals/voyages/cas/prompt.md:1 : motif connu", sortie)
 
+    def test_panne_un_nom_present_seulement_dans_le_chemin_d_un_fichier_passe_le_garde(self):
+        # Le garde ne lisait que le contenu : un fichier au contenu neutre, nommé
+        # d'après un voyageur (billet.pdf binaire compris), était publié sans alerte.
+        # Le contenu d'un binaire reste non lu ; seul son chemin est contrôlé.
+        liste = self.maison / "motifs.txt"
+        liste.write_text("zorglub\n", encoding="utf-8")
+        self.poser("evals/voyages/billet-Zorglub-Dupontel/prompt.md", "rien de personnel\n")
+        self.poser("plugins/voyages/billet-zorglub.pdf", b"%PDF\x00\x00 neutre \xff", binaire=True)
+        self.poser("plugins/voyages/neutre.md", "rien\n")
+        code, sortie = self.jouer(MOTIFS_PERSONNELS=str(liste))
+        self.assertEqual(code, 1, sortie)
+        self.assertIn("evals/voyages/billet-Zorglub-Dupontel/prompt.md:0 : "
+                      "motif connu (dans le chemin)", sortie)
+        self.assertIn("plugins/voyages/billet-zorglub.pdf:0 : motif connu (dans le chemin)", sortie)
+        self.assertNotIn("neutre.md", sortie)   # un chemin sans motif ne rougit pas
+
     def test_panne_la_liste_par_defaut_du_poste_n_est_pas_lue(self):
         defaut = self.maison / ".config" / "mes-skills" / "motifs-personnels.txt"
         defaut.parent.mkdir(parents=True)
