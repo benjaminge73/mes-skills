@@ -90,6 +90,7 @@ class Gabarits(unittest.TestCase):
             "2027-04-12 14h30 - Musee des Exemples - Billet - Voyageur A.pdf")
 
     def test_billet_commun_omet_le_dernier_champ(self):
+        # Panne : un billet commun reçoit le nom d'un seul voyageur, et le rappel ne part qu'à lui.
         sans_voyageur = {k: v for k, v in BILLET.items() if k != "voyageur"}
         self.assertEqual(
             nb.construire_nom(avec(sans_voyageur, commun=True)),
@@ -132,6 +133,7 @@ class DossierDuVoyage(unittest.TestCase):
                 self.assertEqual(nb.nom_dossier_voyage("Destination Exemple", debut, fin), attendu)
 
     def test_un_dossier_sur_des_dates_incoherentes_est_refuse(self):
+        # Panne : un dossier daté sur des dates inversées (fin avant début) part dans OneDrive.
         with self.assertRaises(nb.ChampIncertain):
             nb.nom_dossier_voyage("Destination Exemple", "2026-03-10", "2026-03-01")
 
