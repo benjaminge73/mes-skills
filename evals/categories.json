@@ -93,7 +93,8 @@
       "exerce": [
         "skills/organiser-voyage/"
       ],
-      "cas": ["billet-voyageur-incertain"]
+      "cas": ["billet-voyageur-incertain"],
+      "plancher": 0.90
     }
   }
 }
