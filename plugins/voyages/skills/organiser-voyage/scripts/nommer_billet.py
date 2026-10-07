@@ -10,7 +10,7 @@ Nomenclature (extension = celle du fichier, ``.pdf`` par défaut) :
 - billet (musée, visite, activité) :
   ``AAAA-MM-JJ HHhMM - Lieu - Billet - Voyageur A.pdf``
 - vol : ``AAAA-MM-JJ - Vol Origine-Destination - Type - Voyageur A.pdf``
-  (Type = ``document``, par défaut « Billet » ; ex. « Carte d'embarquement »)
+  (Type = ``document``, par défaut « Billet » ; ex. « Carte embarquement »)
 - train : ``AAAA-MM-JJ HHhMM - Train Origine-Destination - Billet - Voyageur A.pdf``
 - hébergement : ``AAAA-MM-JJ - Hebergement Nom - Reservation.pdf`` (jamais de
   voyageur : la réservation est commune)

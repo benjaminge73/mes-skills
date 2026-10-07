@@ -18,7 +18,7 @@ description: >-
 
 Pour chaque nouveau message du libellé Gmail du voyage : **qualifier, récupérer,
 nommer, ranger, planifier, rappeler**. Ce fichier dit quoi faire et dans quel
-ordre ; le travail mécanique est dans trois scripts, le détail dans deux
+ordre ; le travail mécanique est dans trois scripts, le détail dans trois
 références.
 
 ## Le refus est la règle sur l'incertain
@@ -61,12 +61,13 @@ DOSSIER_SKILL="${HERMES_SKILL_DIR}"
 DOSSIER_SKILL="$(dirname "${CLAUDE_PLUGIN_ROOT}/skills/organiser-voyage/SKILL.md")"
 ```
 
-Les cinq fichiers du skill, à ouvrir au moment dit :
+Les fichiers du skill, à ouvrir au moment dit :
 
 | Fichier | Quand |
 |---|---|
 | `references/sources-billets.md` | avant d'extraire un billet d'un mail |
 | `references/nomenclature.md` | avant de nommer ou ranger |
+| `references/rappels.md` | étape 6, et quand une carte d'embarquement arrive |
 | `scripts/recuperer_billet.py` | étape 2, extraire les QR |
 | `scripts/nommer_billet.py` | étape 3, nommer, jamais à la main |
 | `scripts/rappels.py` | étape 6, envoyer les rappels échus |
@@ -92,15 +93,11 @@ Les cinq fichiers du skill, à ouvrir au moment dit :
    lien de partage anonyme.
 5. **Planifier.** Créer l'événement d'agenda du voyageur principal (heure locale
    du lieu, lien privé dans la description) et inviter l'autre voyageur.
-6. **Rappeler.** Entrée dans la file (`rappels.py`, 30 min avant ; **vol** :
-   décollage et `avance_min: 180`, soit 3 h avant) :
-   - `debut_local` et `fuseau` du **lieu** ; `titre`, `ville` ; `etat` à
-     `a_envoyer` ;
-   - `lien` : le `webUrl` privé ;
-   - `piece_jointe` : **pour un billet QR, l'image du QR seule** (`qr_png`) ; à
-     défaut le PDF ;
-   - `destinataires` : le voyageur nommé sur le billet, les deux pour un billet
-     commun.
+6. **Rappeler.** Une entrée par billet et par voyageur dans la file
+   (`references/rappels.md`) : 30 min avant ; un **vol** (`genre: vol`) 3 h
+   avant, plus son rappel d'enregistrement 48 h avant
+   (`--completer-enregistrements`). Une **carte d'embarquement** se range
+   comme un billet, puis se pose sur le rappel du vol (`--poser-carte`).
 
 ## Le compte rendu
 
