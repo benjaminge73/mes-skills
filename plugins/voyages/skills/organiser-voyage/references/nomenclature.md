@@ -16,7 +16,7 @@ L'extension est celle du fichier (`.pdf` par défaut). Exemples anonymisés.
 | Hébergement | `AAAA-MM-JJ - Hebergement Nom - Reservation` | `2027-04-10 - Hebergement Hôtel Exemple - Reservation.pdf` |
 
 - Vol : `Type` vaut `Billet` par défaut ; pour un autre document, champ
-  `document` (ex. `Carte d'embarquement`).
+  `document` (carte d'embarquement : `Carte embarquement`).
 - Hébergement : jamais de voyageur, la réservation est commune.
 - Heure : celle du billet, heure locale du lieu, au format `HHhMM`.
 

@@ -115,7 +115,7 @@ class Fenetre(AvecFile):
         faux = FauxEnvoyeur()
         resume = self.traiter("2027-04-12T11:59", faux)
         self.assertEqual(faux.appels, [])
-        self.assertEqual(resume, {"envoyes": [], "en_echec": [], "manques": [], "a_venir": ["r1"]})
+        self.assertEqual(resume, {"envoyes": [], "cartes": [], "en_echec": [], "manques": [], "a_venir": ["r1"]})
         self.assertEqual(self.relire()[0]["etat"], "a_envoyer")
 
     def test_un_rappel_dans_la_fenetre_part_une_fois_avec_le_message_de_la_maquette(self):
@@ -154,7 +154,7 @@ class Fenetre(AvecFile):
         self.ecrire([rappel()])
         faux = FauxEnvoyeur()
         self.traiter("2027-04-10T12:30", faux, avance=2880)
-        self.assertEqual(faux.appels[0][1].splitlines()[0], "Rappel - dans 2880 min")
+        self.assertEqual(faux.appels[0][1].splitlines()[0], "Rappel - dans 48 h")
         self.assertEqual(faux.appels[0][1].splitlines()[2], "12 avril 14 h 30 (heure locale)")
 
     def test_un_rappel_deja_envoye_n_est_pas_renvoye(self):
@@ -163,7 +163,7 @@ class Fenetre(AvecFile):
         faux = FauxEnvoyeur()
         resume = self.traiter("2027-04-12T12:10", faux)
         self.assertEqual(faux.appels, [])
-        self.assertEqual(resume, {"envoyes": [], "en_echec": [], "manques": [], "a_venir": []})
+        self.assertEqual(resume, {"envoyes": [], "cartes": [], "en_echec": [], "manques": [], "a_venir": []})
         self.assertEqual(self.relire()[0]["etat"], "envoye")
 
     def test_un_rappel_dont_le_debut_est_passe_est_marque_manque_jamais_envoye_en_retard(self):
@@ -175,6 +175,168 @@ class Fenetre(AvecFile):
         self.assertEqual(faux.appels, [])
         self.assertEqual(resume["manques"], ["r1"])
         self.assertEqual(self.relire()[0]["etat"], "manque")
+
+
+class AvanceParEntree(AvecFile):
+    def test_un_vol_porte_son_avance_de_3_h_et_part_3_h_avant_le_decollage(self):
+        """Panne : le vol suit l'avance par défaut (30 min) et le billet arrive
+        trop tard pour l'enregistrement. Début 12:30 UTC, échéance 09:30 UTC."""
+        self.ecrire([rappel(avance_min=180, titre="Vol Exempleville-Autreville")])
+        faux = FauxEnvoyeur()
+        self.assertEqual(self.traiter("2027-04-12T09:29", faux)["a_venir"], ["r1"])
+        self.assertEqual(faux.appels, [])
+        self.assertEqual(self.traiter("2027-04-12T09:30", faux)["envoyes"], ["r1"])
+        self.assertIn("Rappel - dans 3 h", faux.appels[0][1])
+
+    def test_une_entree_sans_avance_propre_garde_l_avance_de_l_appel(self):
+        self.ecrire([rappel()])
+        faux = FauxEnvoyeur()
+        self.assertEqual(self.traiter("2027-04-12T11:59", faux)["a_venir"], ["r1"])
+        self.assertEqual(self.traiter("2027-04-12T12:00", faux)["envoyes"], ["r1"])
+        self.assertIn("Rappel - dans 30 min", faux.appels[0][1])
+
+    def test_une_avance_invalide_est_signalee_sans_envoi(self):
+        self.ecrire([rappel(avance_min="3h")])
+        faux = FauxEnvoyeur()
+        self.assertEqual(self.traiter("2027-04-12T12:00", faux)["en_echec"], ["r1"])
+        self.assertEqual(faux.appels, [])
+
+
+def vol(**modifs) -> dict:
+    # Vol fictif : décollage 14 h 30 à Rome le 12 avril 2027 (UTC+2) = 12:30 UTC ;
+    # rappel de 3 h à 09:30 UTC, enregistrement 48 h avant, le 10 à 12:30 UTC.
+    base = rappel(id="v1", genre="vol", titre="Vol Exempleville-Autreville",
+                  piece_jointe="/chemin/recu.pdf")
+    base.update(modifs)
+    return base
+
+
+CARTE = {"carte_piece_jointe": "/chemin/carte-qr.png",
+         "carte_lien": "https://exemple.invalid/Voyages/Billets/carte.pdf"}
+
+
+class RappelEnregistrement(AvecFile):
+    def test_le_rappel_d_enregistrement_part_48_h_avant_avec_sa_consigne(self):
+        """Panne : pas d'enregistrement fait, donc pas de carte d'embarquement
+        par mail. L'entrée « enregistrement » porte par défaut 48 h d'avance
+        (2880 min) : 12:30 UTC le 12 -> échéance 12:30 UTC le 10."""
+        self.ecrire([vol(id="v1-enregistrement", genre="enregistrement", piece_jointe=None)])
+        faux = FauxEnvoyeur()
+        self.assertEqual(self.traiter("2027-04-10T12:29", faux)["a_venir"], ["v1-enregistrement"])
+        self.assertEqual(self.traiter("2027-04-10T12:30", faux)["envoyes"], ["v1-enregistrement"])
+        self.assertEqual(faux.appels, [("1001", (
+            "Rappel - dans 48 h\n"
+            "Florence - Vol Exempleville-Autreville\n"
+            "12 avril 14 h 30 (heure locale)\n"
+            "\n"
+            "Enregistrement ouvert ? Fais-le, la carte arrivera par mail.\n"
+            "\n"
+            "Billet OneDrive : https://exemple.invalid/Voyages/Billets/exemples.pdf"), None)])
+
+    def test_completer_ajoute_un_rappel_d_enregistrement_par_vol_une_seule_fois(self):
+        """Panne : le rappel d'enregistrement oublié pour un vol, ou ajouté deux
+        fois quand la commande est rejouée (deux messages identiques)."""
+        self.ecrire([vol(), rappel(id="musee"), vol(id="v2", destinataires=["voyageur_b"])],
+                    forme="objet")
+        self.assertEqual(rappels.completer_enregistrements(self.chemin),
+                         ["v1-enregistrement", "v2-enregistrement"])
+        self.assertEqual(rappels.completer_enregistrements(self.chemin), [])
+        entrees = {e["id"]: e for e in self.relire()}
+        self.assertEqual(len(entrees), 5)
+        e = entrees["v2-enregistrement"]
+        self.assertEqual((e["genre"], e["avance_min"], e["etat"], e["destinataires"]),
+                         ("enregistrement", 2880, "a_envoyer", ["voyageur_b"]))
+        self.assertEqual((e["debut_local"], e["fuseau"], e["titre"]),
+                         ("2027-04-12T14:30", "Europe/Rome", "Vol Exempleville-Autreville"))
+        self.assertIsNone(e.get("piece_jointe"))
+
+
+class CarteEmbarquement(AvecFile):
+    def test_le_rappel_de_3_h_envoie_la_carte_quand_elle_est_la(self):
+        """Panne : le reçu part au lieu de la carte, alors que la carte est rangée."""
+        self.ecrire([vol(**CARTE)])
+        faux = FauxEnvoyeur()
+        self.assertEqual(self.traiter("2027-04-12T09:30", faux)["envoyes"], ["v1"])
+        self.assertEqual(faux.appels, [("1001", (
+            "Rappel - dans 3 h\n"
+            "Florence - Vol Exempleville-Autreville\n"
+            "Aujourd'hui 14 h 30 (heure locale)\n"
+            "\n"
+            "Carte d'embarquement OneDrive : https://exemple.invalid/Voyages/Billets/carte.pdf"),
+            "/chemin/carte-qr.png")])
+        self.assertEqual(self.relire()[0]["carte_envoyee_a"], ["voyageur_a"])
+
+    def test_sans_carte_le_rappel_envoie_le_recu_et_le_dit(self):
+        """Panne : le voyageur croit avoir sa carte, ou ne reçoit rien du tout."""
+        self.ecrire([vol()])
+        faux = FauxEnvoyeur()
+        self.traiter("2027-04-12T09:30", faux)
+        self.assertEqual(faux.appels, [("1001", (
+            "Rappel - dans 3 h\n"
+            "Florence - Vol Exempleville-Autreville\n"
+            "Aujourd'hui 14 h 30 (heure locale)\n"
+            "\n"
+            "Carte d'embarquement pas encore reçue.\n"
+            "\n"
+            "Billet OneDrive : https://exemple.invalid/Voyages/Billets/exemples.pdf"),
+            "/chemin/recu.pdf")])
+        self.assertEqual(self.relire()[0].get("carte_envoyee_a", []), [])
+
+    def test_une_carte_arrivee_apres_le_rappel_part_aussitot_une_seule_fois(self):
+        """Panne : carte reçue après le rappel de 3 h et jamais transmise, ou
+        transmise à chaque passage du cron."""
+        self.ecrire([vol(destinataires=["voyageur_a", "voyageur_b"])])
+        self.traiter("2027-04-12T09:30", FauxEnvoyeur())
+        rappels.poser_carte(self.chemin, "v1", "/chemin/carte-qr.png",
+                            "https://exemple.invalid/Voyages/Billets/carte.pdf")
+        faux = FauxEnvoyeur()
+        resume = self.traiter("2027-04-12T10:00", faux)
+        self.assertEqual(resume["cartes"], ["v1"])
+        attendu = ("Carte d'embarquement reçue\n"
+                   "Florence - Vol Exempleville-Autreville\n"
+                   "Aujourd'hui 14 h 30 (heure locale)\n"
+                   "\n"
+                   "Carte d'embarquement OneDrive : https://exemple.invalid/Voyages/Billets/carte.pdf")
+        self.assertEqual(faux.appels, [("1001", attendu, "/chemin/carte-qr.png"),
+                                       ("1002", attendu, "/chemin/carte-qr.png")])
+        faux = FauxEnvoyeur()
+        resume = self.traiter("2027-04-12T10:05", faux)
+        self.assertEqual(faux.appels, [])
+        self.assertEqual(resume["cartes"], [])
+        self.assertEqual(self.relire()[0]["etat"], "envoye")
+
+    def test_la_carte_tardive_ne_va_qu_a_qui_ne_l_a_pas_et_jamais_apres_le_decollage(self):
+        """Panne : doublon chez le voyageur déjà servi, ou carte envoyée une
+        fois l'avion parti. A a reçu sa carte au rappel ; B n'avait que le reçu."""
+        self.ecrire([vol(destinataires=["voyageur_a", "voyageur_b"], etat="envoye",
+                         envoyes_a=["voyageur_a", "voyageur_b"],
+                         carte_envoyee_a=["voyageur_a"], **CARTE)])
+        faux = FauxEnvoyeur()
+        self.assertEqual(self.traiter("2027-04-12T12:30", faux)["cartes"], [])
+        self.assertEqual(faux.appels, [])
+        self.traiter("2027-04-12T12:00", faux)
+        self.assertEqual([a[0] for a in faux.appels], ["1002"])
+
+    def test_une_carte_tardive_en_echec_est_reprise_sans_renvoyer_le_texte(self):
+        """Panne : le texte « carte reçue » envoyé deux fois parce que seule
+        l'image avait échoué, ou l'échec perdu en silence."""
+        self.ecrire([vol(etat="envoye", envoyes_a=["voyageur_a"], **CARTE)])
+        panne = rappels.ErreurEnvoi("photo refusée", texte_parti=True)
+        resume = self.traiter("2027-04-12T10:00", FauxEnvoyeur({"1001": panne}))
+        self.assertEqual(resume["en_echec"], ["v1"])
+        self.assertIn("photo refusée", self.relire()[0]["derniere_erreur"])
+        faux = FauxEnvoyeur()
+        self.assertEqual(self.traiter("2027-04-12T10:05", faux)["cartes"], ["v1"])
+        self.assertEqual(faux.appels, [("1001", None, "/chemin/carte-qr.png")])
+
+    def test_poser_carte_refuse_un_identifiant_inconnu_ou_une_entree_qui_n_est_pas_un_vol(self):
+        """Panne : la carte posée sur le mauvais rappel (un musée, un id mal
+        recopié) et jamais envoyée, sans que personne le sache."""
+        self.ecrire([vol(), rappel(id="musee")])
+        for ident in ("inconnu", "musee"):
+            with self.subTest(ident=ident), self.assertRaises(ValueError):
+                rappels.poser_carte(self.chemin, ident, "/chemin/carte-qr.png", None)
+        self.assertNotIn("carte_piece_jointe", self.relire()[0])
 
 
 class Reprise(AvecFile):
@@ -320,6 +482,21 @@ class LigneDeCommande(AvecFile):
         self.assertEqual(p.returncode, 1)
         self.assertEqual(json.loads(p.stdout)["en_echec"], ["casse"])
         self.assertNotIn(JETON, p.stdout + p.stderr)
+
+
+    def test_les_commandes_d_edition_de_la_file_ne_lisent_aucun_jeton(self):
+        """Panne : l'agent de veille, qui n'a pas le jeton, ne peut pas poser la
+        carte ni compléter les enregistrements, et réécrit la file à la main."""
+        self.ecrire([vol()])
+        p = self.lancer("", "--completer-enregistrements")
+        self.assertEqual(p.returncode, 0, p.stderr)
+        self.assertEqual(json.loads(p.stdout), {"ajoutes": ["v1-enregistrement"]})
+        p = self.lancer("", "--poser-carte", "v1", "--carte-jointe", "/chemin/carte-qr.png",
+                        "--carte-lien", "https://exemple.invalid/carte.pdf")
+        self.assertEqual(p.returncode, 0, p.stderr)
+        self.assertEqual(self.relire()[0]["carte_piece_jointe"], "/chemin/carte-qr.png")
+        p = self.lancer("", "--poser-carte", "inconnu", "--carte-jointe", "/x.png")
+        self.assertEqual(p.returncode, 2)
 
 
 if __name__ == "__main__":
