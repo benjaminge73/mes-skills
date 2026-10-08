@@ -231,6 +231,12 @@ commune pour comparer les postes.
 | **tout le banc** | 16 | 27,53 $ | ≈ 9,2 $ |
 
 - **Une A/A sur Opus** a coûté 53,14 $ : un bras de Sonnet coûte la moitié.
+- **Une fumée reprise du cache ne coûte rien** (depuis le 2026-10-08). Le job
+  `fumee` garde le vert de chaque catégorie sous une clé (fichiers exercés, cas,
+  plancher, modèle, effort, version de Claude Code, lanceur) : tant que la clé ne
+  change pas, la catégorie n'est pas rejouée, soit 0 $ au lieu de 0,54 à 2,38 $ pour
+  elle. Seul un vert est gardé : un rouge se rejoue à chaque push. Le résumé du job
+  dit « fumée reprise du cache ».
 - **Le plafond par appel** (`EVALS_MAX_COUT_USD`) vaut 35 $ par bras, soit un
   bras complet plus une marge. Il valait 120 $ avant le 2026-10-01 et n'a jamais
   été atteint : il ne protégeait de rien.

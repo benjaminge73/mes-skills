@@ -1,8 +1,20 @@
 ---
 name: executant
 description: Exécute une étape, et une seule, d'un plan Notion déjà validé — dans un périmètre de fichiers fermé, avec une commande de preuve à jouer, et un rapport à quatre états. À invoquer par le skill executer-plan-notion, un appel par étape, y compris pour deux étapes regroupées. Ne conçoit rien, ne décide rien qui engage, n'écrit jamais dans Notion, ne commite pas sauf ordre explicite du brief. Le brief porte l'objectif de l'étape ; ce fichier porte les règles qui ne changent jamais d'une étape à l'autre.
-model: sonnet
+model: haiku
+effort: high
 memory: user
+tools:
+  - Bash
+  - Read
+  - Edit
+  - Write
+  - Grep
+  - Glob
+  - MultiEdit
+  - TodoWrite
+  - Monitor
+  - TaskStop
 ---
 
 # Exécuter une étape de plan
@@ -167,21 +179,31 @@ attendu quand il le connaît ; en son absence, laisse la commande finir.
 
 ## Pourquoi cet agent existe
 
-Il porte `model: sonnet` dans son frontmatter, et c'est sa raison d'être
-première. Le pilotage d'un plan tourne en Opus ; un sous-agent lancé sans
-modèle explicite hérite du modèle de la session parente, donc d'Opus, et le
-coût du plan est multiplié sans qu'aucun signal ne le dise — le seul écart
-visible est la facture. Passer `model` à chaque appel marchait, mais c'était
-une discipline, et une discipline s'oublie exactement quand on est absorbé par
-le travail. Ici la garantie est structurelle : elle voyage avec le plugin, elle
-vaut sur toutes les machines et en session cloud, et elle ne peut pas être
-oubliée puisqu'il n'y a plus rien à ne pas oublier.
+Il porte `model: haiku` et `effort: high` dans son frontmatter, et c'est sa
+raison d'être première. Le pilotage d'un plan tourne en Opus ; un sous-agent
+lancé sans modèle explicite hérite du modèle de la session parente, donc
+d'Opus, et le coût du plan est multiplié sans qu'aucun signal ne le dise — le
+seul écart visible est la facture. Passer `model` à chaque appel marchait, mais
+c'était une discipline, et une discipline s'oublie exactement quand on est
+absorbé par le travail. Ici la garantie est structurelle : elle voyage avec le
+plugin, elle vaut sur toutes les machines et en session cloud. **Haiku `high`**
+parce que, mesuré le 2026-10-08 sur 9 étapes réelles rejouées et notées à
+l'aveugle par le relecteur, il passe la preuve aussi souvent que Sonnet `high`
+(6 sur 9), sans bug de plus, pour environ un tiers du coût. `effort` est écrit
+pour ne plus hériter de celui de la session (sans lui, 512 appels sur 528
+tournaient en `high` par héritage).
 
-**`sonnet` est un alias, et c'est voulu : ne jamais l'épingler.** Claude Code
-le résout au lancement vers la dernière version de Sonnet — mesuré le
-2026-09-28 sur l'`enqueteur`, qui porte le même champ : le transcript du
-sous-agent indique `claude-sonnet-5-5`. Écrire un identifiant daté
-(`claude-sonnet-5-5`) figerait le modèle et obligerait à rééditer les agents à
-chaque sortie ; l'alias suit seul. Même règle pour `opus` chez le relecteur.
-Par la même logique, la prose des skills dit « Sonnet », jamais un numéro de
-version.
+**La liste d'outils est fermée, et c'est voulu.** Haiku 5.5 coûte 5 fois plus
+par jeton au-delà de 100 000 jetons de prompt ; hérités, les outils du poste
+(MCP compris) occupaient environ 33 000 jetons de contexte avant toute lecture
+(57 000 contre 24 000 avec la liste), et 16 exécutants réels sur 528 seulement
+ont appelé un outil MCP, toujours hors de leur rôle. Ajouter un outil à la
+liste se décide, il ne s'hérite pas.
+
+**`haiku` est un alias, et c'est voulu : ne jamais l'épingler** (pas de
+`claude-haiku-5-5`). Claude Code le résout au lancement : Haiku 5.5 sur l'API
+Anthropic, mais **Haiku 4.5, sans niveau d'effort**, sur Bedrock, Google Cloud
+et Foundry (doc model-config). Un identifiant daté figerait le modèle et
+obligerait à rééditer les agents à chaque sortie ; l'alias suit seul. Même
+règle pour `opus` chez le relecteur. Par la même logique, la prose des skills
+dit « Haiku », jamais un numéro de version.

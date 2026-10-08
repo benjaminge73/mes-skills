@@ -74,7 +74,7 @@ Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard » :
     reportées dans les `subgraph` si elles diffèrent de ce qui était prévu.
 
     📄 `${CLAUDE_PLUGIN_ROOT}/skills/_partage/schemas.md`
-- Le compte rendu dit **quelles étapes sont parties en sous-agent Sonnet** et,
+- Le compte rendu dit **quelles étapes sont parties en sous-agent `executant` (Haiku)** et,
   pour celles faites en direct, pourquoi (§3). Il dit aussi, en une ligne, que
   **la PR n'est pas ouverte et qu'elle le sera sur demande** — avec ou sans le
   label `review-required` selon ce que ce dépôt-là en fait (relevé du §2, les
@@ -140,8 +140,10 @@ distinctes, et il faut entendre laquelle est faite :
   la remontée, et Benjamin le sait.
   Si le chapitre `Exécution` porte une ligne `Évals à jouer : …`, la recopier dans le
   corps de la PR : `Evals: <catégories> — <raison>`, `Evals: tout` ou `Evals: aucun —
-  <raison>`. Poser le label `evals` pour des catégories ou `tout`, jamais pour `aucun` ;
-  sans ligne, la CI est rouge. Coûts : `${CLAUDE_PLUGIN_ROOT}/skills/_partage/outils-et-quotas.md`.
+  <raison>`. Le défaut du plan est `aucun — la fumée suffit` : recopier tel quel, sans
+  label. Poser le label `evals` pour des catégories ou `tout` (changement de règle de
+  comportement, de modèle ou d'effort d'un agent), jamais pour `aucun` ; sans ligne, la
+  CI est rouge. Coûts : `${CLAUDE_PLUGIN_ROOT}/skills/_partage/outils-et-quotas.md`.
 - **« merge sur main »** → la PR (ouverte à cette occasion si elle ne l'est
   pas), CI verte, merge, vérification sur pièce, `execute`.
 

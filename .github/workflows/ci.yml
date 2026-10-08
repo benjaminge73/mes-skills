@@ -794,10 +794,66 @@ jobs:
         # Refuse de tourner hors GITHUB_ACTIONS=true (garde-fou du script).
         run: bash evals/outillage/preparer-runner.sh
 
+      - name: Clé du cache de la fumée
+        id: cle
+        env:
+          PLUGIN: ${{ matrix.plugin }}
+          SELECTION: ${{ needs.evals-portee.outputs.fumee_selection }}
+        run: |
+          set -euo pipefail
+          # Un résultat par catégorie, sous une clé qui porte tout ce qui le ferait
+          # changer et rien de plus : les fichiers que la catégorie exerce (le contenu
+          # de `git ls-tree -r HEAD`, d'après `evals/categories.json`) et `hooks/`, que
+          # tout skill subit ; ses cas ; son plancher ; le modèle, l'effort, la version
+          # de Claude Code du runner et le lanceur. Un push qui ne change qu'un fichier
+          # ne rejoue donc que les catégories qui l'exercent, et un commit de doc ne
+          # rejoue rien (une clé sur le SHA de la PR rejouerait tout).
+          version=$(sed -n 's/^CLAUDE_CODE_VERSION=//p' evals/outillage/preparer-runner.sh)
+          lanceur=$(sha256sum evals/outillage/lancer.sh | cut -c1-12)
+          commun="$EVALS_MODELE-e$EVALS_EFFORT-cc$version-$lanceur"
+          # Les catégories de la sélection ; sans liste, toutes celles du plugin.
+          if [ "$(jq -r --arg p "$PLUGIN" '.[$p].categories | type' <<<"$SELECTION")" = "array" ]; then
+            mapfile -t noms < <(jq -r --arg p "$PLUGIN" '.[$p].categories[]' <<<"$SELECTION")
+          else
+            mapfile -t noms < <(jq -r --arg p "$PLUGIN" '.[$p] // {} | keys_unsorted[]' evals/categories.json)
+          fi
+          if [ "${#noms[@]}" -eq 0 ]; then
+            echo "::error title=Fumée sans catégorie::Aucune catégorie pour « $PLUGIN » dans evals/categories.json : rien à juger."
+            exit 1
+          fi
+          # Huit places de cache par plugin (un pas de restauration et un de sauvegarde
+          # par place, dans ce fichier) : au-delà, la catégorie est jouée à chaque fois.
+          places=8
+          if [ "${#noms[@]}" -gt "$places" ]; then
+            echo "::warning title=Cache de la fumée::${#noms[@]} catégories pour $places places de cache : les suivantes sont toujours jouées."
+          fi
+          liste='[]'
+          i=0
+          for nom in "${noms[@]}"; do
+            mapfile -t exerce < <(jq -r --arg p "$PLUGIN" --arg c "$nom" '.[$p][$c].exerce[]' evals/categories.json)
+            chemins=("plugins/$PLUGIN/hooks/")
+            for e in "${exerce[@]}"; do chemins+=("plugins/$PLUGIN/$e"); done
+            fichiers=$(git ls-tree -r HEAD -- "${chemins[@]}" | sha256sum | cut -c1-16)
+            cas_json=$(jq -c --arg p "$PLUGIN" --arg c "$nom" '.[$p][$c].cas' evals/categories.json)
+            cas=$(jq -r '.[]' <<<"$cas_json" | sort | while read -r c; do git ls-files -z "evals/$PLUGIN/$c"; done | sort -z | xargs -0 -r sha256sum | sha256sum | cut -c1-16)
+            plancher=$(jq -r --arg p "$PLUGIN" --arg c "$nom" '.[$p][$c].plancher // "aucun"' evals/categories.json)
+            cle="fumee-$PLUGIN-$nom-$fichiers-$cas-p$plancher-$commun"
+            slot=-1
+            if [ "$i" -lt "$places" ]; then
+              slot=$i
+              echo "cle_$i=$cle" >> "$GITHUB_OUTPUT"
+            fi
+            liste=$(jq -c --arg c "$nom" --arg k "$cle" --argjson s "$slot" --argjson cas "$cas_json" \
+              '. + [{categorie: $c, cle: $k, slot: $s, cas: $cas}]' <<<"$liste")
+            i=$((i + 1))
+          done
+          echo "categories=$liste" >> "$GITHUB_OUTPUT"
+
       - name: Reprendre un rapport pour estimer le coût
         id: cache
         # Aucune clé exacte n'existe (la clé ne correspond à rien, et on ne sauve
-        # rien) : seul le préfixe sert. GitHub rend alors la base en cache la plus
+        # rien sous elle ; les rapports de fumée ont leurs propres clés, plus haut) :
+        # seul le préfixe sert. GitHub rend alors la base en cache la plus
         # récente de ce plugin, sans en exiger le contenu, le modèle ni la sélection.
         # C'est un ordre de grandeur pour annoncer un coût, pas une mesure.
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -806,47 +862,137 @@ jobs:
           key: fumee-sans-cle-exacte-${{ github.run_id }}
           restore-keys: evals-base-${{ matrix.plugin }}-
 
+      # Une restauration par place : GitHub Actions ne boucle pas sur ses pas. Une
+      # place vide (`cle_<n>` absente) saute le pas ; une clé inconnue laisse le
+      # fichier absent, et le pas « Jouer » joue alors la catégorie.
+      - name: Reprendre la fumée de la place 0
+        if: steps.cle.outputs.cle_0 != ''
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/fumee-cache/0/rapport.json
+          key: ${{ steps.cle.outputs.cle_0 }}
+
+      - name: Reprendre la fumée de la place 1
+        if: steps.cle.outputs.cle_1 != ''
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/fumee-cache/1/rapport.json
+          key: ${{ steps.cle.outputs.cle_1 }}
+
+      - name: Reprendre la fumée de la place 2
+        if: steps.cle.outputs.cle_2 != ''
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/fumee-cache/2/rapport.json
+          key: ${{ steps.cle.outputs.cle_2 }}
+
+      - name: Reprendre la fumée de la place 3
+        if: steps.cle.outputs.cle_3 != ''
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/fumee-cache/3/rapport.json
+          key: ${{ steps.cle.outputs.cle_3 }}
+
+      - name: Reprendre la fumée de la place 4
+        if: steps.cle.outputs.cle_4 != ''
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/fumee-cache/4/rapport.json
+          key: ${{ steps.cle.outputs.cle_4 }}
+
+      - name: Reprendre la fumée de la place 5
+        if: steps.cle.outputs.cle_5 != ''
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/fumee-cache/5/rapport.json
+          key: ${{ steps.cle.outputs.cle_5 }}
+
+      - name: Reprendre la fumée de la place 6
+        if: steps.cle.outputs.cle_6 != ''
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/fumee-cache/6/rapport.json
+          key: ${{ steps.cle.outputs.cle_6 }}
+
+      - name: Reprendre la fumée de la place 7
+        if: steps.cle.outputs.cle_7 != ''
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/fumee-cache/7/rapport.json
+          key: ${{ steps.cle.outputs.cle_7 }}
+
       - name: Jouer la fumée, juger les catégories
         id: jeu
         env:
           PLUGIN: ${{ matrix.plugin }}
           SELECTION: ${{ needs.evals-portee.outputs.fumee_selection }}
+          CATEGORIES: ${{ steps.cle.outputs.categories }}
           CACHE_TROUVE: ${{ steps.cache.outputs.cache-matched-key }}
           CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
         run: |
           set -euo pipefail
           sortie="$RUNNER_TEMP/fumee-sortie"
           cache="$RUNNER_TEMP/evals-cache"
+          reprise="$RUNNER_TEMP/fumee-cache"
+          joue="$RUNNER_TEMP/fumee-joue"
           journal_log="$RUNNER_TEMP/fumee.log"
-          mkdir -p "$sortie" "$cache"
+          mkdir -p "$sortie" "$cache" "$reprise" "$joue"
           # Traces hors de tout dossier téléversé : rien n'est téléversé ici.
           export TMPDIR="$RUNNER_TEMP/evals-traces"
           mkdir -p "$TMPDIR"
 
-          # Tous les cas de chaque catégorie retenue : `--fumee` juge une catégorie
+          # Qui est repris du cache, qui est joué : une catégorie dont la place de
+          # cache a rendu un fichier est reprise, les autres sont jouées.
+          noms_repris=(); fichiers_repris=()
+          noms_joues=(); slots_joues=(); cas_joues=(); cas_json_joues=()
+          while IFS= read -r entree; do
+            nom=$(jq -r '.categorie' <<<"$entree")
+            slot=$(jq -r '.slot' <<<"$entree")
+            if [ "$slot" -ge 0 ] && [ -s "$reprise/$slot/rapport.json" ]; then
+              noms_repris+=("$nom")
+              fichiers_repris+=("$reprise/$slot/rapport.json")
+            else
+              noms_joues+=("$nom")
+              slots_joues+=("$slot")
+              cas_json_joues+=("$(jq -c '.cas' <<<"$entree")")
+              mapfile -t c < <(jq -r '.cas[]' <<<"$entree")
+              cas_joues+=("${c[@]}")
+            fi
+          done < <(jq -c '.[]' <<<"$CATEGORIES")
+          rejouer=true
+          if [ "${#noms_repris[@]}" -gt 0 ] && [ "${#noms_joues[@]}" -eq 0 ]; then rejouer=false; fi
+
+          # Tous les cas de chaque catégorie jouée : `--fumee` juge une catégorie
           # sur ses seuls cas joués, un cas laissé de côté fausserait sa moyenne. Quand
-          # la sélection dit « tout » (ou manque), aucun `--cas` : le banc entier.
+          # la sélection dit « tout » (ou manque) et que rien n'est repris du cache,
+          # aucun `--cas` : le banc entier.
           args=(--plugin "$PLUGIN" --tete HEAD)
-          if [ "$(jq -r --arg p "$PLUGIN" '(.[$p] // {"tout": true}) | .tout' <<<"$SELECTION")" = "true" ]; then
-            echo "Toutes les catégories sont jouées."
-          else
-            mapfile -t cas < <(jq -r --arg p "$PLUGIN" '.[$p].cas[]' <<<"$SELECTION")
-            for c in "${cas[@]}"; do args+=(--cas "$c"); done
-            echo "Cas joués (${#cas[@]}) : ${cas[*]}"
+          if [ "$rejouer" = true ]; then
+            if [ "${#noms_repris[@]}" -eq 0 ] && [ "$(jq -r --arg p "$PLUGIN" '(.[$p] // {"tout": true}) | .tout' <<<"$SELECTION")" = "true" ]; then
+              echo "Toutes les catégories sont jouées."
+            else
+              for c in "${cas_joues[@]}"; do args+=(--cas "$c"); done
+              echo "Cas joués (${#cas_joues[@]}) : ${cas_joues[*]}"
+            fi
           fi
 
           # Le coût annoncé avant de payer, en tête du résumé. Un seul bras est
           # payé (la tête, un passage) : `--estimer` le lit dans le rapport en cache.
           # Sans rapport qui couvre ces cas, le pire cas : le plafond par appel.
           estime=""
-          if [ -n "$CACHE_TROUVE" ]; then
+          if [ "$rejouer" = true ] && [ -n "$CACHE_TROUVE" ]; then
             estime=$(python3 scripts/evals_ab.py "${args[@]}" --estimer \
               --base-rapport "$cache/base.json" -- --runs 1 2>/dev/null) || estime=""
           fi
           {
             echo "## Fumée — $PLUGIN"
             echo
-            if [ -n "$estime" ]; then
+            for n in "${noms_repris[@]}"; do echo "- **$n** : fumée reprise du cache"; done
+            for n in "${noms_joues[@]}"; do echo "- **$n** : jouée"; done
+            echo
+            if [ "$rejouer" = false ]; then
+              echo "Coût : aucun, toutes les catégories sont reprises du cache."
+            elif [ -n "$estime" ]; then
               echo "$estime"
             else
               echo "Coût estimé : aucun rapport en cache pour l'estimer, au plus $EVALS_MAX_COUT_USD \$ (plafond par appel)."
@@ -856,12 +1002,29 @@ jobs:
 
           # stdout = le tableau Markdown ; stderr = la trace, qui reste dans le
           # journal du job. Aucun `set -x`, aucun `env`.
-          set +e
-          python3 scripts/evals_ab.py "${args[@]}" --fumee -- \
-            --concurrency "$EVALS_CONCURRENCE" \
-            2>&1 >"$sortie/tableau.md" | tee "$journal_log" >&2
-          code=${PIPESTATUS[0]}
-          set -e
+          code=0
+          if [ "$rejouer" = true ]; then
+            set +e
+            python3 scripts/evals_ab.py "${args[@]}" --fumee --garder-tete "$joue/rapport.json" -- \
+              --concurrency "$EVALS_CONCURRENCE" \
+              2>&1 >"$sortie/tableau.md" | tee "$journal_log" >&2
+            code=${PIPESTATUS[0]}
+            set -e
+          fi
+
+          # Le verdict d'ensemble : le rapport joué et ceux repris du cache, recollés
+          # puis jugés comme un seul (rien n'est joué). Une panne (3, 4) reste telle
+          # quelle : le tableau de la partie jouée dit déjà pourquoi.
+          if [ "${#fichiers_repris[@]}" -gt 0 ] && [ "$code" -le 1 ]; then
+            recolle=()
+            if [ "$rejouer" = true ]; then recolle+=(--tete-rapport "$joue/rapport.json"); fi
+            for f in "${fichiers_repris[@]}"; do recolle+=(--tete-rapport "$f"); done
+            set +e
+            python3 scripts/evals_ab.py --plugin "$PLUGIN" --fumee "${recolle[@]}" \
+              2>&1 >"$sortie/tableau.md" | tee -a "$journal_log" >&2
+            code=${PIPESTATUS[0]}
+            set -e
+          fi
 
           {
             if [ -s "$sortie/tableau.md" ]; then
@@ -871,6 +1034,26 @@ jobs:
             fi
           } >> "$GITHUB_STEP_SUMMARY"
 
+          # Seul un vert se sauve : un rouge, un non concluant ou un refus ne
+          # laissent aucune sortie `sauver_<n>`, donc les pas de sauvegarde sautent
+          # et la fumée se rejouera au prochain essai. On ne sauve que les catégories
+          # jouées (les autres sont déjà en cache), chacune avec ses seuls cas.
+          if [ "$code" -eq 0 ] && [ "$rejouer" = true ] && [ -s "$joue/rapport.json" ]; then
+            for k in "${!noms_joues[@]}"; do
+              slot=${slots_joues[$k]}
+              [ "$slot" -ge 0 ] || continue
+              mkdir -p "$reprise/$slot"
+              jq --argjson cas "${cas_json_joues[$k]}" \
+                '.cases |= map(select(.name | IN($cas[])))' "$joue/rapport.json" > "$reprise/$slot/part.json"
+              if [ "$(jq '.cases | length' "$reprise/$slot/part.json")" -eq "$(jq 'length' <<<"${cas_json_joues[$k]}")" ]; then
+                mv "$reprise/$slot/part.json" "$reprise/$slot/rapport.json"
+                echo "sauver_$slot=true" >> "$GITHUB_OUTPUT"
+              else
+                echo "::warning title=Cache de la fumée::« ${noms_joues[$k]} » : un cas manque au rapport joué, rien n'est sauvé pour elle."
+              fi
+            done
+          fi
+
           case "$code" in
             0) ;;
             1) echo "::error title=Fumée rouge::Une catégorie de « $PLUGIN » est sous son plancher (voir le résumé du job)." ;;
@@ -878,6 +1061,64 @@ jobs:
             *) echo "::error title=Fumée refusée::evals_ab.py a rendu le code $code pour « $PLUGIN » : pré-vol, planchers manquants, rapport partiel (plafond de coût) ou lanceur en échec. Voir le journal du job." ;;
           esac
           exit "$code"
+
+      # Une sauvegarde par place, sur la seule sortie du pas « Jouer » : sans vert, pas
+      # de `sauver_<n>`, donc pas de sauvegarde. Aucun `always()` ici, à dessein.
+      - name: Ranger la fumée de la place 0
+        if: steps.jeu.outputs.sauver_0 == 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/fumee-cache/0/rapport.json
+          key: ${{ steps.cle.outputs.cle_0 }}
+
+      - name: Ranger la fumée de la place 1
+        if: steps.jeu.outputs.sauver_1 == 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/fumee-cache/1/rapport.json
+          key: ${{ steps.cle.outputs.cle_1 }}
+
+      - name: Ranger la fumée de la place 2
+        if: steps.jeu.outputs.sauver_2 == 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/fumee-cache/2/rapport.json
+          key: ${{ steps.cle.outputs.cle_2 }}
+
+      - name: Ranger la fumée de la place 3
+        if: steps.jeu.outputs.sauver_3 == 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/fumee-cache/3/rapport.json
+          key: ${{ steps.cle.outputs.cle_3 }}
+
+      - name: Ranger la fumée de la place 4
+        if: steps.jeu.outputs.sauver_4 == 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/fumee-cache/4/rapport.json
+          key: ${{ steps.cle.outputs.cle_4 }}
+
+      - name: Ranger la fumée de la place 5
+        if: steps.jeu.outputs.sauver_5 == 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/fumee-cache/5/rapport.json
+          key: ${{ steps.cle.outputs.cle_5 }}
+
+      - name: Ranger la fumée de la place 6
+        if: steps.jeu.outputs.sauver_6 == 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/fumee-cache/6/rapport.json
+          key: ${{ steps.cle.outputs.cle_6 }}
+
+      - name: Ranger la fumée de la place 7
+        if: steps.jeu.outputs.sauver_7 == 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/fumee-cache/7/rapport.json
+          key: ${{ steps.cle.outputs.cle_7 }}
 
       - name: Téléverser le tableau
         if: always()

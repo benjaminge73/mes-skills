@@ -116,8 +116,8 @@ plan au statut `valide`. Il n'y a pas à la redemander à Benjamin étape par é
 
 Le pilote reste en **Opus effort high** : il lit le plan, découpe,
 brief, vérifie, écrit dans Notion. **Il n'écrit pas lui-même le code des
-étapes déléguables.** Chaque étape part dans un sous-agent **Sonnet** — la
-dernière version, par l'alias (voir `executant.md`) : **en séquence par défaut** — les étapes d'un plan sont couplées, et deux sous-agents
+étapes déléguables.** Chaque étape part dans un sous-agent **Haiku**, par
+l'alias (voir `executant.md`) : **en séquence par défaut** — les étapes d'un plan sont couplées, et deux sous-agents
 concurrents peuvent éditer les mêmes fichiers sans le savoir —, **en parallèle
 par vagues** quand le calcul du §2 le permet, et **regroupées** dans un seul
 sous-agent quand il le prescrit. Le détail — calculer une vague, isoler chaque
@@ -143,16 +143,18 @@ Agent({
 })
 ```
 
-**Aucun paramètre `model` ici, et c'est voulu.** L'agent `executant` porte
-`model: sonnet` dans son propre fichier de définition :
+**Aucun paramètre `model` ni `effort` ici, et c'est voulu.** L'agent
+`executant` porte `model: haiku` et `effort: high` dans son propre fichier de
+définition :
 
 📄 `${CLAUDE_PLUGIN_ROOT}/agents/executant.md`
 
-Le modèle est donc garanti par construction, sur toutes les machines et en
+Le modèle et l'effort sont donc garantis par construction, sur toutes les machines et en
 session cloud, au lieu de dépendre d'un champ à ne pas oublier à chaque appel.
 C'est le remplacement d'une discipline par un mécanisme : le champ `model` était
 le premier à sauter quand on est absorbé par le travail, et sans lui l'étape
-partait quand même — en Opus, avec la facture pour seul signal.
+partait quand même — en Opus, avec la facture pour seul signal. L'`effort`
+suit la même logique : le frontmatter le fixe, l'appel ne le répète pas.
 
 ⚠️ **Le nom court `"executant"` ne résout pas.** Un agent fourni par un plugin
 s'invoque avec son nom qualifié, `plugin:agent` — `"plans-notion:executant"` ici.

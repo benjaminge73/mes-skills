@@ -131,7 +131,7 @@ d'un plan : le pilote rejouait la commande de preuve de chaque étape, jamais
 son diff. `model: opus` parce que le discernement — distinguer un vrai bug
 d'une impression, juger si un test teste réellement quelque chose — compte
 plus que le volume ici, et parce que c'est délibérément un modèle différent
-de celui qui a écrit le code (l'exécutant tourne en Sonnet) : un relecteur
+de celui qui a écrit le code (l'exécutant tourne en Haiku, Opus relit Haiku) : un relecteur
 qui pense comme l'auteur rate ce que l'auteur a raté. `effort: low` est une
 décision de Benjamin du 2026-09-23, pour tenir le coût d'un appel Opus par
 étape sur un plan qui peut en compter beaucoup. La lecture seule est garantie

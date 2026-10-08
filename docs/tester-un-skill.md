@@ -269,11 +269,28 @@ cas qu'elle regroupe et les fichiers qu'elle exerce. Pour `plans-notion` :
 | `decouvertes` | `skills/executer-plan-notion/`, `agents/executant.md`, `agents/relecteur.md` | les quatre `decouverte-*` |
 | `perimetre` | `skills/executer-plan-notion/`, `agents/executant.md` | `no-verify`, `rien-hors-plan` |
 
-**Les évals se jouent à la demande.** La CI ne joue l'A/B que si la PR porte le
-label `evals`. Une PR qui touche un skill, un agent, un hook ou `_partage/` sans
-ce label doit dire pourquoi : `Evals: aucun — <raison>` dans son corps, sinon
-la CI est rouge, le refus n'étant jamais silencieux. Choisir des catégories
-implique donc le label ; `aucun` ne le pose pas.
+**Les évals se jouent à la demande, et l'A/B est l'exception.** La CI ne joue
+l'A/B que si la PR porte le label `evals`. Une PR qui touche un skill, un agent,
+un hook ou `_partage/` sans ce label doit dire pourquoi : `Evals: aucun — <raison>`
+dans son corps, sinon la CI est rouge, le refus n'étant jamais silencieux.
+Choisir des catégories implique donc le label ; `aucun` ne le pose pas.
+
+**Le défaut est `Evals: aucun — la fumée suffit`.** La [fumée](#la-fumée--ce-quelle-voit-ce-quelle-ne-voit-pas)
+tourne de toute façon sur les catégories touchées, pour quelques dollars, et voit
+un recul franc. Des catégories (donc le label `evals`) se choisissent seulement
+pour deux cas :
+
+- **un changement de règle de comportement** dans un skill, un agent ou un
+  `_partage/` : une consigne ajoutée, retirée ou inversée, dont l'effet se mesure
+  en points et non en panne ;
+- **un changement de modèle ou d'effort d'un agent** (le champ `model` ou
+  `effort` de son frontmatter) : c'est exactement ce qu'un recul fin cache.
+
+Une reformulation, une doc, un renvoi corrigé ou un exemple ne méritent pas
+l'A/B. **Le coût est annoncé avant de poser le label** : environ 55 $ pour tout
+le banc, 3 à 14 $ par catégorie (base et tête), contre 0,54 à 2,38 $ par
+catégorie pour la fumée. L'A/B reste le seul juge d'un recul fin ; on ne le
+supprime pas, on le garde pour ce qui le justifie.
 
 **Le label est lu par l'API, et le poser lance la CI.** `evals-portee` relit les
 labels par `gh api`, comme le corps de la PR, et non dans l'événement : un
@@ -487,6 +504,14 @@ erreur sur 48 : un seul tirage l'aurait vu.
 - le **taux de faux rouges** : 15 tirages ne le mesurent pas, seul l'usage le
   dira ;
 - **Haiku** : aucun tirage mesuré, donc aucun plancher connu.
+
+**Une fumée verte est gardée par catégorie, dans un cache.** Rejouer une fumée
+pour un résultat qui ne peut pas avoir changé coûte pour rien. Chaque catégorie
+a donc sa clé, faite de l'empreinte des fichiers qu'elle exerce, de ses cas,
+de son plancher, du modèle, de l'effort, de la version de Claude Code et du
+lanceur. Un push qui ne change aucun fichier exercé reprend le résultat sans
+rejouer ; le résumé du job dit « fumée reprise du cache ». **Seul un vert se sauve** : un rouge n'entre
+jamais dans le cache, pour qu'il puisse se relancer une fois.
 
 **Un rouge à tort se relance une fois** ; au second rouge, on pose `evals`
 pour trancher par l'A/B. Attention à la file : le groupe `evals-<plugin>` ne

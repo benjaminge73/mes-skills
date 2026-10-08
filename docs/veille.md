@@ -93,6 +93,9 @@ pas au fond). Un fait qu'on ne retrouve pas sur la page n'entre pas au tableau.
 | `--ablation none` joue un seul bras | « `none` runs one arm; `with-without` adds the no-plugin baseline » | https://code.claude.com/docs/en/plugin-evals.md | 2026-09-30 | `scripts/evals_ab.py` |
 | Bash dans une éval exige un bac à sable | « If you grant Bash or PowerShell on a machine with no sandbox backend, Claude Code refuses each run rather than running it unconfined » | https://code.claude.com/docs/en/plugin-evals.md | 2026-09-30 | `evals/outillage/preparer-runner.sh` |
 | Le bac à sable échoue sur Ubuntu 24.04+ (AppArmor) | « bwrap fails on Ubuntu 24.04+ due to AppArmor userns restrictions » | https://github.com/anthropics/sandbox-runtime/issues/74 | 2026-09-30 | `evals/outillage/preparer-runner.sh` |
+| L'effort d'un frontmatter (skill ou sous-agent) l'emporte sur l'effort de session, pas sur `CLAUDE_CODE_EFFORT_LEVEL` | « Frontmatter effort applies when that skill or subagent is active, overriding the session level but not the environment variable. » | https://code.claude.com/docs/en/model-config.md | 2026-10-08 | `evals/outillage/lancer.sh` |
+| L'alias `haiku` désigne Haiku 5.5 depuis la 2.1.293 (API Anthropic seulement) | « `haiku` resolves to Haiku 5.5 on the Anthropic API » | https://code.claude.com/docs/en/model-config.md | 2026-10-08 | `evals/outillage/lancer.sh` |
+| Le `model` du frontmatter l'emporte sur `CLAUDE_CODE_SUBAGENT_MODEL` | « `CLAUDE_CODE_SUBAGENT_MODEL` is a default, so a subagent's definition or a model Claude passes still takes precedence over it. » | https://code.claude.com/docs/en/sub-agents.md | 2026-10-08 | `evals/outillage/lancer.sh` |
 
 ## 3. Le journal des passes
 
@@ -168,3 +171,55 @@ Une entrée par passe, la plus récente en dernier. Le titre est
   matches… ». Sens inchangé ; la citation du tableau est à reporter à la prochaine
   édition de ce fichier (remplacée le jour même, étape D2) (le workflow hebdomadaire ouvrira une issue d'ici là), 0 page
   injoignable.
+
+### 2026-10-08 — passe avant le plan « Haiku et effort pour les sous-agents, banc d'évals plus sobre »
+
+- **Sources lues** : la doc Claude Code, lue sur ses 100 000 premiers caractères pour
+  les pages longues (sous-agents, configuration des modèles, changelog de la 2.1.291 à
+  la 2.1.294, skills, hooks) et en entier pour le chargement des plugins, la référence
+  des plugins, le conseiller (`advisor.md`) et les tests de plugin par évals ; claude.dev
+  (« Getting started with Claude Code mods » du 2026-10-01, « Using Claude Code: Spending
+  your effort » du 2026-09-25 ; « Building with Claude Sonnet 5.5 » du 2026-09-28 **non
+  lu**) ; anthropic.com/engineering (rien de nouveau depuis le 2026-04-23) ;
+  `anthropics/skills` (toujours pas de `shared/evals/`) ; `sandbox-runtime#74` (toujours
+  ouverte). Les pages plugins, mémoire et réglages n'ont **pas** été relues.
+- **Ce qui a changé** : aucun des quatorze faits porteurs n'est cassé, leurs citations
+  sont encore sur leurs pages. Trois changements touchent ce plan sans en casser un.
+  (1) La 2.1.293 ajoute Claude Haiku 5.5 (`claude-haiku-5-5`), désormais le Haiku par
+  défaut de l'API Anthropic : 1 M de contexte, 0,10 $ / 0,50 $ le million de jetons, et
+  0,50 $ / 2,50 $ au-delà de 100 000 jetons de prompt. L'alias `haiku` désigne Haiku 5.5
+  sur l'API Anthropic, mais **Haiku 4.5** sur Claude Platform on AWS, Bedrock, Google
+  Cloud's Agent Platform et Microsoft Foundry ; Haiku 4.5 ne figure pas dans la table des
+  niveaux d'effort, donc ne prend aucun effort. Haiku 5.5 démarre à l'effort `medium`,
+  comme Opus 5.5 et Sonnet 5.5. (2) La 2.1.292 ajoute un paramètre `effort` à l'outil
+  Agent : il n'est écrit que dans le changelog, ni `sub-agents.md` ni la référence des
+  outils n'en parlent, et rien n'y dit s'il l'emporte sur le champ `effort` du
+  frontmatter. (3) `claude plugin eval` n'a aucune option d'effort, seulement `--model`.
+  Résolution déjà écrite : pour le modèle d'un sous-agent, le paramètre de l'appel, puis
+  le frontmatter, puis `CLAUDE_CODE_SUBAGENT_MODEL`, puis la conversation ; pour l'effort,
+  le frontmatter l'emporte sur la session mais pas sur `CLAUDE_CODE_EFFORT_LEVEL`, et un
+  plafond `maxEffortLevel` ou d'organisation borne encore le niveau joué.
+- **Ce qu'on en fait** : cinq faits entrent au tableau de la partie 2 (effort de
+  frontmatter face à l'effort de session, alias `haiku`, effort par défaut de Haiku 5.5,
+  priorité du `model` du frontmatter sur `CLAUDE_CODE_SUBAGENT_MODEL`, paramètre `effort`
+  de l'outil Agent), chacun avec sa citation relevée sur la page du jour. Dans ce plan :
+  la fumée gagne un cache par catégorie, qui ne rejoue pas une fumée verte tant que sa clé
+  ne change pas (étape 1), et l'A/B complet devient l'exception, réservé à un changement
+  de règle de comportement ou de modèle d'un agent (étape 2) ; le registre des garde-fous
+  et la fiche de `claude plugin eval` le disent. À garder en tête pour une éventuelle
+  bascule d'agents sur Haiku : hors API Anthropic l'alias `haiku` vaut Haiku 4.5, qui ne
+  prend pas d'effort ; un `effort:` écrit dans le frontmatter d'un tel agent n'aurait
+  alors aucun effet. Le paramètre `effort` de l'outil Agent (2.1.292) n'est documenté que
+  dans le changelog, et sa priorité face au `effort:` d'un frontmatter n'est écrite
+  nulle part : ne pas la supposer, la mesurer avant de s'en servir.
+- **Verdict de `scripts/veille_faits.py`** (2026-10-08) : 19 faits vérifiés, 19 citations
+  trouvées, 0 introuvable, 0 page injoignable. Aucune ligne candidate n'a été retirée
+  (« non inscrite : citation introuvable » : aucune).
+- **Correctif de clôture** (2026-10-08) : seuls trois des cinq faits cités plus haut restent
+  au tableau de la partie 2 (effort de frontmatter, alias `haiku`, priorité du `model` du
+  frontmatter), chacun relié à `evals/outillage/lancer.sh`, le script dont il dépend. Les
+  deux autres (Haiku 5.5 démarre à l'effort `medium`, paramètre `effort` de l'outil Agent
+  de la 2.1.292) n'y sont pas : aucun script n'en dépend, et le tableau ne porte que des
+  faits qu'un contrôle utilise. Ils restent dits dans cette entrée. Nouveau compte rejoué
+  par `scripts/veille_faits.py` : 17 faits vérifiés, 0 citation à signaler, 0 page
+  injoignable ; le verdict à 19 faits ci-dessus reste celui de la passe.

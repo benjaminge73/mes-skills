@@ -1642,6 +1642,207 @@ class FumeeEtPlanchers(DepotEtLanceur):
         self.assertEqual([l for l in self.appels() if l.startswith("APPEL")], ["APPEL tete"])
         self.assertEqual([l for l in self.appels() if l.startswith("OPTIONS")], ["OPTIONS --runs 1"])
 
+    def test_un_rapport_recolle_de_categories_reprises_et_jouees_est_juge_comme_un_rapport_joue_d_un_bloc(self):
+        # Le cache de la fumée rend des catégories déjà jouées (un fichier chacune) ;
+        # les autres sont jouées. Le verdict final recolle les deux et doit être celui
+        # qu'aurait rendu un rapport joué d'un bloc : même code, même tableau.
+        for maquette, attendu in ((0.60, 1), (0.90, 0)):
+            with self.subTest(maquette=maquette):
+                bloc = self.rapport_sain(
+                    {"appelants": 1.0, "existant-jeu-de-questions": 0.9, "maquette-requise": maquette}
+                )
+                complet = json.loads(bloc.read_text("utf-8"))
+                morceaux = []
+                for nom, noms_cas in (
+                    ("reprises", {"appelants", "existant-jeu-de-questions"}),
+                    ("jouees", {"maquette-requise"}),
+                ):
+                    morceau = dict(complet, cases=[c for c in complet["cases"] if c["name"] in noms_cas])
+                    chemin = self.racine / f"{nom}-{maquette}.json"
+                    ecrire(chemin, json.dumps(morceau))
+                    morceaux.append(chemin)
+                code_bloc, sortie_bloc, erreur_bloc = self.fumee(bloc)
+                code, sortie, erreur = jouer(
+                    self.argv("--fumee", "--tete-rapport", str(morceaux[0]), "--tete-rapport", str(morceaux[1])),
+                    self.env,
+                )
+                self.assertEqual(code_bloc, attendu, sortie_bloc + erreur_bloc)  # le témoin est bien celui qu'on croit
+                self.assertEqual(code, code_bloc, sortie + erreur)
+                # Le titre nomme le rapport lu, il diffère ; le tableau et les verdicts, non.
+                depuis = lambda s: s[s.index("| catégorie"):]
+                self.assertEqual(depuis(sortie), depuis(sortie_bloc))
+                self.assertEqual(self.appels(), [])  # rien n'est joué
+
+
+def corps_du_pas(nom: str) -> str:
+    """Le corps ``run:`` du pas ``nom`` de ci.yml, tel que bash l'exécutera."""
+    import textwrap
+    ci = (Path(__file__).resolve().parent.parent / ".github" / "workflows" / "ci.yml").read_text("utf-8")
+    marque = f"- name: {nom}\n"
+    assert marque in ci, f"ci.yml n'a pas de pas « {nom} »"
+    pas = ci.split(marque, 1)[1].split("\n      - name:", 1)[0]
+    return textwrap.dedent(pas.split("        run: |\n", 1)[1])
+
+
+def jouer_le_pas(corps: str, depot: Path, env: dict) -> subprocess.CompletedProcess:
+    e = {k: v for k, v in os.environ.items() if not k.startswith(("EVALS_", "GITHUB_", "RUNNER_"))}
+    e.update(env)
+    return subprocess.run(["bash", "-c", corps], cwd=depot, env=e, capture_output=True, text=True)
+
+
+def lire_sorties(chemin: Path) -> dict:
+    return dict(l.split("=", 1) for l in chemin.read_text("utf-8").splitlines() if "=" in l)
+
+
+BANC_DE_LA_FUMEE = {
+    "un": {"exerce": ["skills/s/"], "cas": ["alpha"], "plancher": 0.8},
+    "deux": {"exerce": ["skills/t/"], "cas": ["beta"], "plancher": 0.8},
+}
+
+
+class CleDuCacheDeLaFumee(unittest.TestCase):
+    """Le pas « Clé du cache de la fumée » de ci.yml, joué pour de bon.
+
+    Un plugin-jouet à trois skills, un banc de deux cas, deux catégories (``un``
+    exerce ``skills/s/``, ``deux`` exerce ``skills/t/``) ; ``skills/u/`` n'est
+    exercé par aucune. Le pas rend, par catégorie sélectionnée, sa clé.
+    """
+
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self._tmp.cleanup)
+        self.depot = Path(self._tmp.name) / "depot"
+        d = self.depot
+        d.mkdir()
+        git(d, "init", "-q", "-b", "main")
+        for skill in "stu":
+            ecrire(d / "plugins" / "jouet" / "skills" / skill / "SKILL.md", f"{skill} v1\n")
+        ecrire(d / "evals" / "jouet" / "alpha" / "prompt.md", "Réponds OK.\n")
+        ecrire(d / "evals" / "jouet" / "beta" / "prompt.md", "Réponds NON.\n")
+        ecrire(d / "evals" / "categories.json", json.dumps({"jouet": BANC_DE_LA_FUMEE}))
+        ecrire(d / "evals" / "outillage" / "preparer-runner.sh", "CLAUDE_CODE_VERSION=2.1.285\n")
+        ecrire(d / "evals" / "outillage" / "lancer.sh", "#!/bin/sh\n")
+        ecrire(d / "README.md", "doc\n")
+        self.valider("base")
+
+    def valider(self, message: str) -> None:
+        git(self.depot, "add", ".")
+        git(self.depot, "commit", "-q", "-m", message)
+
+    def cles(self, selection: str = '{"jouet": {"tout": true}}', **env) -> dict[str, str]:
+        sortie = self.depot / "github_output.txt"
+        sortie.write_text("", "utf-8")
+        e = dict(PLUGIN="jouet", SELECTION=selection, GITHUB_OUTPUT=str(sortie),
+                 EVALS_MODELE=MODELE, EVALS_EFFORT="high")
+        e.update(env)
+        r = jouer_le_pas(corps_du_pas("Clé du cache de la fumée"), self.depot, e)
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        return {c["categorie"]: c["cle"] for c in json.loads(lire_sorties(sortie)["categories"])}
+
+    def test_seule_la_categorie_dont_un_fichier_exerce_change_change_de_cle(self):
+        avant = self.cles()
+        self.assertEqual(sorted(avant), ["deux", "un"])
+        self.assertEqual(len(set(avant.values())), 2)
+        # Hors des fichiers exercés : un README, un skill que nulle catégorie ne teste.
+        ecrire(self.depot / "README.md", "doc modifiée\n")
+        ecrire(self.depot / "plugins" / "jouet" / "skills" / "u" / "SKILL.md", "u v2\n")
+        self.valider("hors périmètre")
+        self.assertEqual(self.cles(), avant)
+        # Un fichier exercé par « un » seulement.
+        ecrire(self.depot / "plugins" / "jouet" / "skills" / "s" / "SKILL.md", "s v2\n")
+        self.valider("skill exercé")
+        apres = self.cles()
+        self.assertNotEqual(apres["un"], avant["un"])
+        self.assertEqual(apres["deux"], avant["deux"])
+
+
+class FumeeSauveeSeulementSiVerte(DepotEtLanceur):
+    """Le pas « Jouer la fumée, juger les catégories » de ci.yml, joué pour de bon.
+
+    Le vrai ``evals_ab.py`` et le faux lanceur de ``DepotEtLanceur`` (qui rend
+    ``FAUX_RAPPORT_TETE``) dans un dépôt jetable ; la clé vient du vrai pas de clé.
+    Ce que le pas écrit dans ``GITHUB_OUTPUT`` (``sauver_<n>``) est ce que lisent
+    les pas ``cache/save`` : un rouge n'en écrit aucun.
+    """
+
+    def setUp(self):
+        super().setUp()
+        d = self.depot
+        ecrire(d / "plugins" / "jouet" / "skills" / "t" / "SKILL.md", "t v1\n")
+        beta = d / "evals" / "jouet" / "beta"
+        ecrire(beta / "prompt.md", "---\nmax_turns: 3\n---\n\nRéponds NON.\n")
+        ecrire(beta / "graders" / "reponse.md", "---\ntype: regex\npattern: \"^NON$\"\n---\n")
+        ecrire(beta / "oracle" / "reponse.md", "NON\n")
+        ecrire(d / "evals" / "categories.json", json.dumps({"jouet": BANC_DE_LA_FUMEE}))
+        ecrire(d / "evals" / "outillage" / "preparer-runner.sh", "CLAUDE_CODE_VERSION=2.1.285\n")
+        ecrire(d / "evals" / "outillage" / "lancer.sh", FAUX_LANCEUR)
+        (d / "evals" / "outillage" / "lancer.sh").chmod(0o755)
+        ecrire(d / "scripts" / "evals_ab.py", (Path(evals_ab.__file__)).read_text("utf-8"))
+        git(d, "add", ".")
+        git(d, "commit", "-q", "-m", "banc de la fumée")
+        self.temp = self.racine / "runner-temp"
+        self.temp.mkdir()
+
+    def pas_jeu(self, scores: dict[str, int], reprises: dict[int, str] | None = None
+                ) -> tuple[subprocess.CompletedProcess, dict]:
+        rapport_joue = self.racine / "joue.json"
+        ecrire(rapport_joue, json.dumps(rapport_synthetique({n: [s] for n, s in scores.items()})))
+        sortie_cle = self.racine / "sortie-cle.txt"
+        sortie_cle.write_text("", "utf-8")
+        selection = '{"jouet": {"tout": true}}'
+        cle = jouer_le_pas(corps_du_pas("Clé du cache de la fumée"), self.depot, dict(
+            PLUGIN="jouet", SELECTION=selection, GITHUB_OUTPUT=str(sortie_cle),
+            EVALS_MODELE=MODELE, EVALS_EFFORT="high"))
+        self.assertEqual(cle.returncode, 0, cle.stdout + cle.stderr)
+        # Les places que la restauration du cache aurait remplies : { place: cas repris }.
+        for place, nom_du_cas in (reprises or {}).items():
+            ecrire(self.temp / "fumee-cache" / str(place) / "rapport.json",
+                   json.dumps(rapport_synthetique({nom_du_cas: [1]})))
+        sortie = self.racine / "sortie-jeu.txt"
+        sortie.write_text("", "utf-8")
+        r = jouer_le_pas(corps_du_pas("Jouer la fumée, juger les catégories"), self.depot, dict(
+            PLUGIN="jouet", SELECTION=selection, CATEGORIES=lire_sorties(sortie_cle)["categories"],
+            CACHE_TROUVE="", CLAUDE_CODE_OAUTH_TOKEN="", EVALS_CONCURRENCE="5",
+            EVALS_MAX_COUT_USD="35", RUNNER_TEMP=str(self.temp),
+            GITHUB_OUTPUT=str(sortie), GITHUB_STEP_SUMMARY=str(self.racine / "resume.md"),
+            FAUX_JOURNAL=str(self.journal_appels), FAUX_RAPPORT_TETE=str(rapport_joue)))
+        return r, lire_sorties(sortie)
+
+    def test_une_fumee_rouge_n_ecrit_aucune_sortie_de_sauvegarde_et_une_verte_en_ecrit_une_par_categorie(self):
+        # Témoin : la même fumée, verte, prépare bien la sauvegarde de chaque catégorie,
+        # sans quoi « rouge ne sauve rien » serait vrai de toute façon.
+        r, sorties = self.pas_jeu({"alpha": 1, "beta": 1})
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        self.assertEqual(sorties.get("sauver_0"), "true", r.stdout + r.stderr)
+        self.assertEqual(sorties.get("sauver_1"), "true")
+        rapport_beta = json.loads((self.temp / "fumee-cache" / "1" / "rapport.json").read_text("utf-8"))
+        self.assertEqual([c["name"] for c in rapport_beta["cases"]], ["beta"])  # la catégorie, rien d'autre
+        shutil.rmtree(self.temp / "fumee-cache")
+        # Rouge : « deux » (cas beta) sous son plancher de 0,8.
+        r, sorties = self.pas_jeu({"alpha": 1, "beta": 0})
+        self.assertEqual(r.returncode, 1, r.stdout + r.stderr)
+        self.assertEqual([k for k in sorties if k.startswith("sauver")], [])
+        self.assertEqual(list((self.temp / "fumee-cache").rglob("rapport.json")), [])
+
+    def test_une_categorie_reprise_du_cache_n_est_ni_rejouee_ni_resauvee_et_reste_jugee(self):
+        # Test en plus des trois attendus : la panne est silencieuse et coûteuse. Un pas
+        # qui rejoue (donc repaie) une catégorie dont la fumée est en cache, ou qui la
+        # laisse hors du verdict, ne casse rien de visible.
+        r, sorties = self.pas_jeu({"alpha": 1, "beta": 1}, reprises={0: "alpha"})
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        copies = [l for l in self.appels() if l.startswith("FICHIER")]
+        self.assertTrue(copies and all("beta" in l for l in copies), copies)  # seule « deux » est jouée
+        tableau = (self.temp / "fumee-sortie" / "tableau.md").read_text("utf-8")
+        self.assertIn("| un |", tableau)  # la reprise est jugée avec le reste
+        self.assertIn("| deux |", tableau)
+        self.assertEqual({k for k in sorties if k.startswith("sauver")}, {"sauver_1"})
+        # Tout est en cache : rien n'est joué, le verdict est rendu quand même.
+        self.journal_appels.unlink()
+        r, sorties = self.pas_jeu({"alpha": 1, "beta": 1}, reprises={0: "alpha", 1: "beta"})
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        self.assertEqual(self.appels(), [])
+        self.assertEqual([k for k in sorties if k.startswith("sauver")], [])
+
 
 if __name__ == "__main__":
     unittest.main()
