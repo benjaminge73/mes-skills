@@ -8,12 +8,14 @@ l'autre, (3) aucune ne touche un même fichier partagé (config, README,
 Une étape va dans la première vague qui suit ses dépendances et où elle ne gêne
 personne. Les dépendances qui ne sont pas des étapes du tableau (``Q1``, ``—``,
 « lot 1 mergé ») sont ignorées ; « toutes » veut dire toutes les autres étapes.
+Une étape est identifiée par le numéro en tête de sa cellule : « 3 · écran » et
+« D1 · sonder l'API » sont les étapes ``3`` et ``D1``, que « Dépend de » cite seuls.
 
 Usage : vagues.py <page.md|tableau> [--comparer]
   imprime une ligne par vague : « Vague 1 : 1, 5, 6 » ;
   --comparer : signale (code 1) les étapes dont la colonne « Vague » diffère du
   calcul ; une colonne qui n'est pas un numéro (« L2·1 ») est signalée aussi.
-Code 2 : fichier illisible ou tableau absent. Bibliothèque standard uniquement.
+Code 2 : fichier illisible, tableau absent, deux lignes au même numéro ou cycle. Bibliothèque standard uniquement.
 """
 from __future__ import annotations
 
@@ -41,6 +43,12 @@ def fichiers_de(cellule: str) -> list[str]:
     return re.findall(r"`([^`]+)`", cellule)
 
 
+def numero(cellule: str) -> str:
+    """« 3 · écran » → ``3``, « D1 · sonder » → ``D1`` ; sinon la tête avant « · »."""
+    m = re.match(r"\s*(D?\d+)\b", cellule)
+    return m.group(1) if m else cellule.split("·")[0].strip()
+
+
 def se_recouvrent(a: str, b: str) -> bool:
     return a == b or fnmatch.fnmatch(a, b) or fnmatch.fnmatch(b, a)
 
@@ -60,12 +68,15 @@ def en_conflit(fa: list[str], fb: list[str]) -> bool:
 
 
 def calculer(lignes) -> dict[str, int]:
-    ids = [l["Étape"] for l in lignes]
-    fichiers = {l["Étape"]: fichiers_de(l["Fichiers touchés"]) for l in lignes}
+    ids = [numero(l["Étape"]) for l in lignes]
+    doublons = sorted({e for e in ids if ids.count(e) > 1})
+    if doublons:
+        raise ValueError("plusieurs lignes portent l'étape " + ", ".join(doublons))
+    fichiers = {numero(l["Étape"]): fichiers_de(l["Fichiers touchés"]) for l in lignes}
     deps = {}
     for l in lignes:
-        e = l["Étape"]
-        bruts = [x.strip() for x in l["Dépend de"].split(",")]
+        e = numero(l["Étape"])
+        bruts = [numero(x) for x in l["Dépend de"].split(",")]
         d = [x for x in bruts if x in ids and x != e]
         if any(x.lower() == "toutes" for x in bruts):  # « toutes » : toutes les autres étapes
             d += [o for o in ids if o != e and o not in d]
@@ -108,14 +119,14 @@ def main(argv=None) -> int:
         print(f"impossible : {e}", file=sys.stderr)
         return 2
     for n in sorted(set(vague.values())):
-        print(f"Vague {n} : " + ", ".join(e for e in (l["Étape"] for l in lignes) if vague[e] == n))
+        print(f"Vague {n} : " + ", ".join(e for e in (numero(l["Étape"]) for l in lignes) if vague[e] == n))
     if not a.comparer:
         return 0
     ecarts = []
     for l in lignes:
-        col = l.get("Vague", "")
-        if col != str(vague[l["Étape"]]):
-            ecarts.append(f"étape {l['Étape']} : vague calculée {vague[l['Étape']]}, colonne « {col} »")
+        e, col = numero(l["Étape"]), l.get("Vague", "")
+        if col != str(vague[e]):
+            ecarts.append(f"étape {e} : vague calculée {vague[e]}, colonne « {col} »")
     print("\n".join(ecarts))
     return 1 if ecarts else 0
 
