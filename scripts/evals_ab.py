@@ -145,7 +145,12 @@ fixe déjà ``--ablation none``), sur les cas choisis, et juge chaque catégorie
 ``evals/categories.json`` par son score moyen contre son ``plancher`` (le plus
 bas tirage sain mesuré, moins 0,10). ``--fumee --tete-rapport <json>`` juge un
 rapport déjà joué sans rien jouer, **tirage par tirage** : le tirage ``k`` d'une
-catégorie est la moyenne de ses cas sur leur passage ``k``. Une catégorie sans
+catégorie est la moyenne de ses cas sur leur passage ``k``. ``--tete-rapport`` se
+répète : les rapports sont **recollés** (leurs cas mis bout à bout, un cas déjà vu
+est gardé une fois, le premier rapport l'emporte) puis jugés comme un seul — c'est
+ainsi que la CI juge ensemble les catégories reprises de son cache et celles qu'elle
+vient de jouer. ``--garder-tete <json>`` garde, avec ``--fumee`` joué, le rapport de
+la tête (pour que la CI en sauve une part par catégorie). Une catégorie sans
 plancher fait refuser le mode (code 3) : jamais un plancher implicite à 0, qui
 ne verrait aucun effondrement.
 
@@ -904,6 +909,25 @@ def lire_rapport(chemin: Path, etiquette: str) -> dict:
     return rapport
 
 
+def recoller_rapports(rapports: list[dict]) -> dict:
+    """Un seul rapport de plusieurs : leurs cas mis bout à bout.
+
+    Un cas déjà vu n'est gardé qu'une fois (le premier rapport l'emporte) : une
+    catégorie reprise du cache et une catégorie jouée peuvent partager un cas.
+    Le coût global du premier rapport n'est plus celui du tout : il est retiré.
+    """
+    recolle = {k: v for k, v in rapports[0].items() if k != "costUsd"}
+    vus: set[str] = set()
+    cas = []
+    for r in rapports:
+        for c in r.get("cases", []):
+            if c.get("name") not in vus:
+                vus.add(c.get("name"))
+                cas.append(c)
+    recolle["cases"] = cas
+    return recolle
+
+
 def extraire_cas_du_rapport(rapport: dict, cas: list[str], etiquette: str) -> dict:
     """Le rapport réduit aux cas nommés. Un cas absent du rapport est un refus.
 
@@ -1418,9 +1442,12 @@ def construire_parseur() -> argparse.ArgumentParser:
                    help="test de fumée : joue la tête seule, un passage, sur les cas choisis, et "
                         "juge chaque catégorie de evals/categories.json contre son plancher "
                         "(code 1 sous un plancher, 4 si des sessions sont en erreur)")
-    p.add_argument("--tete-rapport", metavar="FICHIER",
+    p.add_argument("--tete-rapport", metavar="FICHIER", action="append",
                    help="avec --fumee : juge ce rapport déjà joué, tirage par tirage, sans "
-                        "rien jouer ni lancer le pré-vol")
+                        "rien jouer ni lancer le pré-vol ; répétable, les rapports sont "
+                        "recollés puis jugés comme un seul")
+    p.add_argument("--garder-tete", metavar="FICHIER",
+                   help="avec --fumee joué : copie ici le rapport de la tête (jugé ou non)")
     p.add_argument("--previol-seul", action="store_true",
                    help="ne fait que le pré-vol (gratuit) et s'arrête")
     return p
@@ -1496,10 +1523,11 @@ def _fumee(args, options_lanceur: list[str], depot: Path, plugin: str,
     """
     categories = lire_planchers(depot, plugin)
     if args.tete_rapport:
-        rapport = lire_rapport(Path(args.tete_rapport), "de tête")
+        rapport = recoller_rapports([lire_rapport(Path(c), "de tête") for c in args.tete_rapport])
         if args.cas:
             rapport = extraire_cas_du_rapport(rapport, args.cas, "de tête")
-        etiq = f"rapport {Path(args.tete_rapport).name}"
+        noms = ", ".join(Path(c).name for c in args.tete_rapport)
+        etiq = f"{'rapports' if len(args.tete_rapport) > 1 else 'rapport'} {noms}"
     else:
         racine = Path(tempfile.mkdtemp(prefix="evals-ab-"))
         try:
@@ -1513,6 +1541,8 @@ def _fumee(args, options_lanceur: list[str], depot: Path, plugin: str,
             else:
                 shutil.rmtree(racine, ignore_errors=True)
         etiq = etiquette(depot, args.tete, plugin)
+        if args.garder_tete:
+            Path(args.garder_tete).write_text(json.dumps(rapport), "utf-8")
     f = juger_fumee(rapport, categories)
     panne = motif_panne({"tête": rapport})
     print(tableau_fumee(f, etiq, panne))
@@ -1546,6 +1576,8 @@ def _executer(args, options_lanceur: list[str], commande: str) -> int:
 
     if args.tete_rapport and not args.fumee:
         raise ErreurRefus("--tete-rapport ne sert qu'avec --fumee")
+    if args.garder_tete and not (args.fumee and not args.tete_rapport):
+        raise ErreurRefus("--garder-tete ne sert qu'avec --fumee joué (sans --tete-rapport)")
     if args.fumee and args.tete_rapport:
         return _fumee(args, options_lanceur, depot, plugin, sources, lanceur)
 
