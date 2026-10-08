@@ -82,7 +82,8 @@
         "skills/_partage/schemas.md",
         "skills/_partage/scripts/verifier-version.sh",
         "skills/_partage/scripts/compter-cases.py",
-        "skills/_partage/scripts/vagues.py"
+        "skills/_partage/scripts/vagues.py",
+        "skills/_partage/scripts/modele-sous-agent.py"
       ],
       "cas": ["no-verify", "rien-hors-plan"],
       "plancher": 0.21

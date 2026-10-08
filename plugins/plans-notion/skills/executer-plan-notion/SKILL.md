@@ -165,7 +165,8 @@ pas pour raconter l'avancement, qui va dans `Journal d'exécution` (§4).
 - **Le brief** porte, à chaque fois : l'objectif recopié, le contexte, la
   liste fermée des fichiers, la commande de preuve (et son délai), ce que le
   sous-agent ne fait pas, le format du rapport en cinq pièces.
-- **Après chaque étape** : rejouer la preuve, commiter, faire relire par
+- **Après chaque étape** : rejouer la preuve, vérifier au premier `executant`
+  le modèle réellement servi (`modele-sous-agent.py`), commiter, faire relire par
   `relecteur` (`revue.md`), relire le diff de la mémoire de l'`executant` à
   chaque clôture de lot, écrire l'entrée de journal, afficher un récap, puis
   **enchaîner sans demander la main** : l'autonomie est le défaut, on ne
