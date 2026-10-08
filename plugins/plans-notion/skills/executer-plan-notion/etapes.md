@@ -257,6 +257,24 @@ en disant quelles étapes ont été faites en direct et pourquoi.
   (`git diff --name-only`), pas sur celle du brief (§3). Un sous-agent qui
   annonce « les tests passent » a parfois lancé autre chose que ce qu'on croit,
   ou touché un fichier de plus que ce que la commande couvrait.
+- **Au premier `executant` de la session, vérifier le modèle sur lequel il a
+  réellement tourné** — et de nouveau après tout `claude plugin update` ou
+  `/reload-plugins` en cours de session. Le frontmatter garantit le modèle à
+  condition que la session ait chargé le bon frontmatter : le 2026-10-08, une
+  session mise à jour en 0.20.0 sans rechargement a fait tourner ses executants
+  en Sonnet, sur la définition 0.19.1 gardée en mémoire, sans que rien ne le
+  dise. L'`agentId` est dans le résultat de l'appel `Agent` :
+  ```bash
+  python3 "${CLAUDE_PLUGIN_ROOT}/skills/_partage/scripts/modele-sous-agent.py" <agentId> --agent plans-notion:executant
+  ```
+  La définition est lue dans la version **installée**, pas dans la copie
+  chargée — celle-ci, périmée, se donnerait raison. Code 1 (écart) : s'arrêter,
+  le dire à Benjamin, et reprendre dans une **session neuve** ; ne pas
+  contourner en passant `model` à l'appel, qui masquerait la cause. Code 2
+  (transcription ou plugin introuvable) : le noter au journal, ligne `Modèle :`,
+  et continuer. Le verdict va dans l'entrée de journal de l'étape, ligne
+  `Modèle :`. L'effort, lui, n'apparaît dans aucune transcription : il ne se
+  vérifie pas ainsi.
 - **Commiter l'étape sur la branche du plan**, et la pousser si le relevé du §2
   l'autorise (sous-section précédente). Pas de PR.
 - **Faire relire par l'agent `relecteur` selon la colonne `Relecture`** :
