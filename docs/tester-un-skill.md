@@ -507,10 +507,10 @@ erreur sur 48 : un seul tirage l'aurait vu.
 
 **Une fumée verte est gardée par catégorie, dans un cache.** Rejouer une fumée
 pour un résultat qui ne peut pas avoir changé coûte pour rien. Chaque catégorie
-a donc sa clé, faite de l'empreinte des fichiers qu'elle exerce, de ses cas, du
-modèle, de l'effort, de la version de Claude Code et du lanceur. Un push qui ne
-change aucun fichier exercé reprend le résultat sans rejouer ; le résumé du job
-dit « fumée reprise du cache ». **Seul un vert se sauve** : un rouge n'entre
+a donc sa clé, faite de l'empreinte des fichiers qu'elle exerce, de ses cas,
+de son plancher, du modèle, de l'effort, de la version de Claude Code et du
+lanceur. Un push qui ne change aucun fichier exercé reprend le résultat sans
+rejouer ; le résumé du job dit « fumée reprise du cache ». **Seul un vert se sauve** : un rouge n'entre
 jamais dans le cache, pour qu'il puisse se relancer une fois.
 
 **Un rouge à tort se relance une fois** ; au second rouge, on pose `evals`
