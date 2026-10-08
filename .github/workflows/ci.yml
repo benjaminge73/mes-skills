@@ -425,7 +425,7 @@ jobs:
       # contre ≈ 350 à 550 en `low`) est lu par `claude plugin eval` dans
       # CLAUDE_CODE_EFFORT_LEVEL, que evals/outillage/lancer.sh pose depuis
       # EVALS_EFFORT. Changer l'un des deux, c'est remesurer le bruit (mode `aa`).
-      EVALS_MODELE: claude-sonnet-5-5
+      EVALS_MODELE: claude-haiku-5-5
       EVALS_EFFORT: high
       # Plafond par appel de `claude plugin eval` (une fois pour la base, une fois
       # pour la tête), donc par bras. Mesuré avec Sonnet, le modèle joué ici (run
