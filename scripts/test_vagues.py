@@ -119,6 +119,42 @@ class Vagues(unittest.TestCase):
         autres = [n for e, n in v.items() if e != "15"]
         self.assertGreater(v["15"], max(autres))
 
+    def test_etape_ecrite_numero_et_titre_garde_ses_dependances(self):
+        # Constaté le 2026-10-08 sur un plan Vahiny : la cellule « Étape » portait
+        # « 1 · titre » et « Dépend de » portait « 1 » — toutes les dépendances
+        # tombaient, l'étape 21 (dépend de 2, 10, 15, 16, 20) se retrouvait en vague 1.
+        nus = (("1", "`a.py`", "—", "1"), ("2", "`b.py`", "1", "2"),
+               ("3", "`c.py`", "1, 2", "3"), ("4", "`d.py`", "—", "1"))
+        titres = (("1 · garde de lecture", "`a.py`", "—", "1"),
+                  ("2 · migration, puis index", "`b.py`", "1", "2"),
+                  ("3 · écran", "`c.py`", "1, 2", "3"),
+                  ("4 · doc", "`d.py`", "—", "1"))
+        attendu = {"1": 1, "2": 2, "3": 3, "4": 1}
+        self.assertEqual(vagues_de(jouer(self._page(tableau(*nus)))[1]), attendu)
+        code, sortie, _ = jouer(self._page(tableau(*titres)), "--comparer")
+        self.assertEqual(code, 0, sortie)
+        self.assertEqual(vagues_de(sortie), attendu)
+
+    def test_etape_de_decouverte_ecrite_numero_et_titre_garde_ses_dependances(self):
+        titres = (("D1 · sonder l'API", "`notes.md`", "—", "1"),
+                  ("1 · client", "`a.py`", "D1", "2"),
+                  ("2 · toutes les autres", "`b.py`", "toutes", "3"))
+        code, sortie, _ = jouer(self._page(tableau(*titres)), "--comparer")
+        self.assertEqual(code, 0, sortie)
+        self.assertEqual(vagues_de(sortie), {"D1": 1, "1": 2, "2": 3})
+
+    def test_comparer_nomme_l_etape_par_son_numero(self):
+        page = self._page(tableau(("1 · a", "`a.py`", "—", "1"), ("2 · b", "`b.py`", "1", "1")))
+        code, sortie, _ = jouer(page, "--comparer")
+        self.assertEqual(code, 1, sortie)
+        self.assertRegex(sortie, r"(?m)^étape 2 : vague calculée 2, colonne « 1 »$")
+
+    def test_deux_lignes_au_meme_numero_sont_un_echec_net(self):
+        page = self._page(tableau(("1 · a", "`a.py`", "—", "1"), ("1 · b", "`b.py`", "—", "1")))
+        code, _, erreur = jouer(page)
+        self.assertEqual(code, 2)
+        self.assertIn("1", erreur)
+
     def test_la_page_entiere_est_acceptee_et_le_bon_tableau_choisi(self):
         autre = "<table header-row=\"true\">\n<tr>\n<td>Hypothèse</td>\n<td>Statut</td>\n</tr>\n</table>\n"
         page = self._page("## Contraintes\n" + autre + "## Exécution\n"
