@@ -74,7 +74,7 @@ Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard » :
     reportées dans les `subgraph` si elles diffèrent de ce qui était prévu.
 
     📄 `${CLAUDE_PLUGIN_ROOT}/skills/_partage/schemas.md`
-- Le compte rendu dit **quelles étapes sont parties en sous-agent Sonnet** et,
+- Le compte rendu dit **quelles étapes sont parties en sous-agent `executant` (Haiku)** et,
   pour celles faites en direct, pourquoi (§3). Il dit aussi, en une ligne, que
   **la PR n'est pas ouverte et qu'elle le sera sur demande** — avec ou sans le
   label `review-required` selon ce que ce dépôt-là en fait (relevé du §2, les

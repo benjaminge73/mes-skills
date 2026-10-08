@@ -158,7 +158,8 @@ pas pour raconter l'avancement, qui va dans `Journal d'exécution` (§4).
 - **La délégation est la règle** : charger ce skill vaut demande de déléguer.
   Pilote en Opus effort high, **un appel `Agent` par étape**
   (`subagent_type: "plans-notion:executant"`, nom qualifié, aucun paramètre
-  `model` : l'agent porte `sonnet`), en séquence par défaut, en parallèle par
+  `model` ni `effort` : l'agent porte `haiku` et `effort: high`), en séquence
+  par défaut, en parallèle par
   vagues ou regroupées quand `vagues.md` le prescrit. Une exécution sans
   aucun appel `Agent` est un défaut.
 - **Le brief** porte, à chaque fois : l'objectif recopié, le contexte, la
@@ -276,7 +277,7 @@ Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard » :
   `unverifiable`, jamais un troisième mot)**, une rétrospective en cinq
   questions, les schémas relus
   (`${CLAUDE_PLUGIN_ROOT}/skills/_partage/schemas.md`).
-- Le compte rendu dit **quelles étapes sont parties en sous-agent Sonnet** et,
+- Le compte rendu dit **quelles étapes sont parties en sous-agent `executant` (Haiku)** et,
   pour celles faites en direct, pourquoi ; il dit aussi que **la PR n'est pas
   ouverte et qu'elle le sera sur demande**.
 - **Livrer la branche, et s'arrêter là** : (1) jouer la suite complète en
@@ -375,8 +376,8 @@ Elle s'écrit avec les mêmes précautions que le reste (§5).
   du lancement (« Plusieurs plans »).
 - Il ne code pas si le statut n'est pas `valide`.
 - Il n'écrit pas lui-même le code des étapes déléguables : ça part en sous-agent
-  `plans-notion:executant`, **Sonnet par définition**, dans sa dernière
-  version — un par étape en séquence par défaut, mais
+  `plans-notion:executant`, **Haiku par définition** (son frontmatter,
+  sans numéro de version) — un par étape en séquence par défaut, mais
   pas absolument : en parallèle par vagues, ou regroupées, quand `vagues.md`
   le permet ou le prescrit (§3). Piloter, ce n'est pas coder.
 - Il ne relit pas lui-même le diff d'une étape à la place de l'agent
