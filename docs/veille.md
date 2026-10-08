@@ -93,11 +93,9 @@ pas au fond). Un fait qu'on ne retrouve pas sur la page n'entre pas au tableau.
 | `--ablation none` joue un seul bras | « `none` runs one arm; `with-without` adds the no-plugin baseline » | https://code.claude.com/docs/en/plugin-evals.md | 2026-09-30 | `scripts/evals_ab.py` |
 | Bash dans une éval exige un bac à sable | « If you grant Bash or PowerShell on a machine with no sandbox backend, Claude Code refuses each run rather than running it unconfined » | https://code.claude.com/docs/en/plugin-evals.md | 2026-09-30 | `evals/outillage/preparer-runner.sh` |
 | Le bac à sable échoue sur Ubuntu 24.04+ (AppArmor) | « bwrap fails on Ubuntu 24.04+ due to AppArmor userns restrictions » | https://github.com/anthropics/sandbox-runtime/issues/74 | 2026-09-30 | `evals/outillage/preparer-runner.sh` |
-| L'effort d'un frontmatter (skill ou sous-agent) l'emporte sur l'effort de session, pas sur `CLAUDE_CODE_EFFORT_LEVEL` | « Frontmatter effort applies when that skill or subagent is active, overriding the session level but not the environment variable. » | https://code.claude.com/docs/en/model-config.md | 2026-10-08 | — |
-| L'alias `haiku` désigne Haiku 5.5 depuis la 2.1.293 (API Anthropic seulement) | « `haiku` resolves to Haiku 5.5 on the Anthropic API » | https://code.claude.com/docs/en/model-config.md | 2026-10-08 | — |
-| Haiku 5.5 démarre à l'effort `medium` | « Opus 5.5, Sonnet 5.5, and Haiku 5.5 default to `medium` » | https://code.claude.com/docs/en/model-config.md | 2026-10-08 | — |
-| Le `model` du frontmatter l'emporte sur `CLAUDE_CODE_SUBAGENT_MODEL` | « `CLAUDE_CODE_SUBAGENT_MODEL` is a default, so a subagent's definition or a model Claude passes still takes precedence over it. » | https://code.claude.com/docs/en/sub-agents.md | 2026-10-08 | — |
-| L'outil Agent accepte un `effort` par appel (2.1.292) | « Added an `effort` parameter to the Agent tool, so Claude runs a sub-agent at the effort level you ask for » | https://code.claude.com/docs/en/changelog.md | 2026-10-08 | — |
+| L'effort d'un frontmatter (skill ou sous-agent) l'emporte sur l'effort de session, pas sur `CLAUDE_CODE_EFFORT_LEVEL` | « Frontmatter effort applies when that skill or subagent is active, overriding the session level but not the environment variable. » | https://code.claude.com/docs/en/model-config.md | 2026-10-08 | `evals/outillage/lancer.sh` |
+| L'alias `haiku` désigne Haiku 5.5 depuis la 2.1.293 (API Anthropic seulement) | « `haiku` resolves to Haiku 5.5 on the Anthropic API » | https://code.claude.com/docs/en/model-config.md | 2026-10-08 | `evals/outillage/lancer.sh` |
+| Le `model` du frontmatter l'emporte sur `CLAUDE_CODE_SUBAGENT_MODEL` | « `CLAUDE_CODE_SUBAGENT_MODEL` is a default, so a subagent's definition or a model Claude passes still takes precedence over it. » | https://code.claude.com/docs/en/sub-agents.md | 2026-10-08 | `evals/outillage/lancer.sh` |
 
 ## 3. Le journal des passes
 
@@ -217,3 +215,11 @@ Une entrée par passe, la plus récente en dernier. Le titre est
 - **Verdict de `scripts/veille_faits.py`** (2026-10-08) : 19 faits vérifiés, 19 citations
   trouvées, 0 introuvable, 0 page injoignable. Aucune ligne candidate n'a été retirée
   (« non inscrite : citation introuvable » : aucune).
+- **Correctif de clôture** (2026-10-08) : seuls trois des cinq faits cités plus haut restent
+  au tableau de la partie 2 (effort de frontmatter, alias `haiku`, priorité du `model` du
+  frontmatter), chacun relié à `evals/outillage/lancer.sh`, le script dont il dépend. Les
+  deux autres (Haiku 5.5 démarre à l'effort `medium`, paramètre `effort` de l'outil Agent
+  de la 2.1.292) n'y sont pas : aucun script n'en dépend, et le tableau ne porte que des
+  faits qu'un contrôle utilise. Ils restent dits dans cette entrée. Nouveau compte rejoué
+  par `scripts/veille_faits.py` : 17 faits vérifiés, 0 citation à signaler, 0 page
+  injoignable ; le verdict à 19 faits ci-dessus reste celui de la passe.
