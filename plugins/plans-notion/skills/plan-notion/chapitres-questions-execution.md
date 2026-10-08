@@ -80,8 +80,13 @@ partout. Les deux régimes, la définition du lot et la décision de Benjamin du
 
 **Si le plan modifie un plugin d'un dépôt qui a un banc d'évals par catégorie** (un
 `evals/categories.json`), le chapitre porte une ligne `Évals à jouer : <catégories> —
-pourquoi`, ou `aucun — <raison>`. Évals à la demande : des catégories, ou « tout », c'est
-demander le label `evals` ; « aucun » ne le demande pas. La CI refuse une sélection qui
+pourquoi`, ou `aucun — <raison>`. **Le défaut est `aucun — la fumée suffit`** : la
+fumée (la tête seule, un passage, quelques dollars) se joue sans label. Des catégories,
+donc le label `evals`, se demandent seulement pour **un changement de règle de
+comportement** dans un skill, un agent ou un `_partage/`, ou pour **un changement de
+modèle ou d'effort d'un agent** : là, l'A/B est le seul juge d'un recul fin. Son coût
+est annoncé dans la ligne avant de poser le label. « Tout » est demander le label
+`evals` pour tout le banc ; « aucun » ne le demande pas. La CI refuse une sélection qui
 ne couvre pas un skill touché, et joue tout le banc pour `_partage/`, les hooks ou le
 banc lui-même. Coûts : fiche `claude plugin eval` de
 `${CLAUDE_PLUGIN_ROOT}/skills/_partage/outils-et-quotas.md`.
