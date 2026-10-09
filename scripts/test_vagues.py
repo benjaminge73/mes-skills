@@ -161,6 +161,21 @@ class Vagues(unittest.TestCase):
                           + tableau(("1", "`a.py`", "—", "1")))
         self.assertEqual(vagues_de(jouer(page)[1]), {"1": 1})
 
+    def test_cellules_colorees_par_notion_sont_lues_comme_du_texte(self):
+        # Le bleu des retouches enveloppe chaque morceau de cellule dans un
+        # <span color="blue"> — en-tête compris — et coupe une liste de fichiers en
+        # plusieurs spans. Constaté le 2026-10-09 (plan Vahiny #3) : le tableau n'était
+        # plus reconnu, il fallait lancer vagues.py sur une copie nettoyée.
+        bleu = lambda t: f'<span color="blue">{t}</span>'
+        page = self._page(tableau(
+            (bleu("1 · garde"), bleu("`a.py`") + bleu(", ") + bleu("`x.py`"), bleu("—"), bleu("1")),
+            (bleu("2 · fusion"), bleu("`a.py`"), bleu("1"), bleu("2")),
+            (bleu("3 · doc"), bleu("`b.md`"), bleu("—"), bleu("1")),
+        ).replace("<td>Étape</td>", "<td>" + bleu("Étape") + "</td>"))
+        code, sortie, erreur = jouer(page, "--comparer")
+        self.assertEqual(code, 0, sortie + erreur)
+        self.assertEqual(vagues_de(sortie), {"1": 1, "2": 2, "3": 1})
+
     def test_page_sans_tableau_de_chevauchement_est_un_echec_net(self):
         code, _, erreur = jouer(self._page("rien ici\n"))
         self.assertEqual(code, 2)
