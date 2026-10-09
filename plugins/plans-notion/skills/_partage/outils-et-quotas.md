@@ -502,3 +502,46 @@ aucun connu au 2026-10-06.
 - Prouver un script sur un venv neuf, installé depuis ses `requirements`.
 
 **Repli** : aucun connu au 2026-10-06.
+
+## Fiche — Claude Code (CLI `claude`) sur un serveur à plusieurs comptes
+
+**Quota ou coût** : celui de l'abonnement du compte connecté, voir la fiche
+« Sessions Claude ». Rien de propre à l'installation (relevé au 2026-10-09).
+
+**Pièges datés** :
+
+- **2026-10-09 : `claude` invisible pour les comptes de service.** Installé par
+  npm sous nvm, le binaire vit dans le dossier personnel de l'utilisateur qui
+  l'a installé. Un autre compte Unix (service, unité systemd) ne le trouve pas :
+  « command not found » au premier `/login`, alors que le plan supposait
+  seulement une connexion à faire.
+- **2026-10-09 : le paquet apt ne se met pas à jour seul.** Anthropic publie un
+  dépôt apt signé (canaux `stable` et `latest`, page officielle d'installation).
+  Mais `unattended-upgrades` n'autorise par défaut que les origines de la
+  distribution : un paquet venu de ce dépôt reste figé tant que personne ne lance
+  `apt upgrade`.
+- **2026-10-09 : un e2e qui appelle `claude` échoue sous `sudo`.** `sudo`
+  remplace `PATH` par son `secure_path` (le binaire n'y est plus), puis, une fois
+  le chemin donné, `HOME` pointe sur `/root`, où aucune connexion n'existe :
+  l'appel rend une sortie vide ou « Not logged in ». Le code n'y est pour rien.
+- **2026-10-09 : `claude setup-token` n'enregistre rien.** Il affiche un jeton
+  longue durée, à ranger soi-même (variable d'environnement). Sur un compte qui
+  doit lancer `claude -p` sans surveillance, `/login` dans une session interactive
+  enregistre les identifiants du compte et les renouvelle seul.
+
+**Bonne pratique** :
+
+- Sur un serveur, installer par le dépôt apt officiel (`/usr/bin/claude`, visible
+  de tous les comptes), après avoir comparé l'empreinte de la clé à celle publiée
+  par la page d'installation.
+- Prouver, dès l'ouverture d'un plan, que chaque compte qui lancera `claude` le
+  trouve : `sudo -u <compte> -i claude --version`.
+- Connecter chaque compte par `/login`. Vérifier par un appel minimal
+  (`claude -p … --model haiku`) sous ce compte, sans jamais lire son fichier
+  d'identifiants.
+- Jouer un e2e qui appelle `claude` sous le compte qui porte la connexion, pas
+  sous `sudo`. Ne charger par `sudo` que les tests qui ont besoin d'un fichier
+  de secrets réservé à root.
+
+**Repli** : mise à jour à la main, `sudo apt update && sudo apt upgrade
+claude-code`, en attendant qu'une origine autorisée ou un veilleur s'en charge.
