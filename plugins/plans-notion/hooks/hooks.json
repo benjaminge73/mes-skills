@@ -1,5 +1,5 @@
 {
-  "description": "Garde-fous du plugin plans-notion : pas de --no-verify sur un commit, pas de Statut Notion accentué.",
+  "description": "Garde-fous du plugin plans-notion : pas de --no-verify sur un commit, pas de Statut de plan Notion accentué.",
   "hooks": {
     "PreToolUse": [
       {

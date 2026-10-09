@@ -263,3 +263,15 @@ Une entrée par passe, la plus récente en dernier. Le titre est
   `importlib`. Cette passe ne l'a pas revérifié dans hermes-custom. Ce n'est pas un fait de
   la doc Claude Code : il ne vaut que pour le poste. Aucun fait porteur cassé à la date de
   cette passe.
+
+### 2026-10-09 — passe avant la PR « le hook Statut ne refuse que les valeurs de plan »
+
+- **Sources lues** : la doc Claude Code, page `hooks.md`, relue par le pilote le
+  2026-10-09 (pas de `chercheur` : une seule page porte le fait dont dépend ce hook).
+- **Ce qui a changé** : rien. Pour `PreToolUse`, un code de sortie 2 bloque toujours
+  l'appel d'outil, et le message est toujours la sortie d'erreur (« `PreToolUse` blocks
+  the tool call ») ; `tool_input` arrive toujours sur l'entrée standard.
+- **Ce qu'on en fait** : rien à changer au contrat du hook ; la PR ne touche que sa
+  règle de refus.
+- **Verdict de `scripts/veille_faits.py`** (2026-10-09) : 17 faits vérifiés,
+  0 citation à signaler, 0 page injoignable.
