@@ -223,3 +223,18 @@ Une entrée par passe, la plus récente en dernier. Le titre est
   faits qu'un contrôle utilise. Ils restent dits dans cette entrée. Nouveau compte rejoué
   par `scripts/veille_faits.py` : 17 faits vérifiés, 0 citation à signaler, 0 page
   injoignable ; le verdict à 19 faits ci-dessus reste celui de la passe.
+
+### 2026-10-09 — passe avant la fiche « Claude Code sur un serveur à plusieurs comptes » du registre des outils
+
+- **Sources lues** : la page d'installation de Claude Code (`setup`), en entier.
+  Les autres sources n'ont **pas** été relues depuis la passe du 2026-10-08.
+- **Ce qui a changé** : rien de cassé. La page documente un dépôt apt, dnf et apk
+  signé, avec deux canaux (`stable`, environ une semaine de retard, sans les
+  versions à régression majeure ; `latest`), et l'empreinte de la clé de
+  signature. Elle précise que ces installations ne se mettent pas à jour par
+  Claude Code, mais par le circuit de mise à jour du système.
+- **Ce qu'on en fait** : une fiche entre au registre des outils
+  (`outils-et-quotas.md`). Elle ne change aucune consigne de skill ni d'agent :
+  aucun fait n'entre au tableau de la partie 2, aucun script n'en dépend.
+- **Verdict de `scripts/veille_faits.py`** (2026-10-09) : 17 faits vérifiés,
+  0 citation à signaler, 0 page injoignable.
