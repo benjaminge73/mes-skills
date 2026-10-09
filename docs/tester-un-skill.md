@@ -262,7 +262,7 @@ cas qu'elle regroupe et les fichiers qu'elle exerce. Pour `plans-notion` :
 
 | Catégorie | Exerce | Cas |
 |---|---|---|
-| `existant` | `skills/plan-notion/`, `agents/chercheur.md` | `existant-jeu-de-donnees`, `existant-jeu-de-questions` |
+| `existant` | `skills/plan-notion/`, `agents/chercheur.md`, `agents/sondeur.md` | `existant-jeu-de-donnees`, `existant-jeu-de-questions`, `poc-mecanique` |
 | `bruit` | `skills/plan-notion/` | `bruit-bounded`, `bruit-doc-seule`, `report-sans-seuil` |
 | `etat-de-depart` | `skills/plan-notion/`, `agents/enqueteur.md` | `appelants`, `garde-fou-cache`, `hook-claude`, `depart-rouge` |
 | `maquette` | `skills/plan-notion/` | `maquette-requise` |

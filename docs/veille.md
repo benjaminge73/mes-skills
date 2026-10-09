@@ -223,3 +223,28 @@ Une entrée par passe, la plus récente en dernier. Le titre est
   faits qu'un contrôle utilise. Ils restent dits dans cette entrée. Nouveau compte rejoué
   par `scripts/veille_faits.py` : 17 faits vérifiés, 0 citation à signaler, 0 page
   injoignable ; le verdict à 19 faits ci-dessus reste celui de la passe.
+
+### 2026-10-09 — passe avant le plan « POC en Haiku et carte de voisinage par le graphe avant l'enquête »
+
+- **Sources lues** : la doc Claude Code, page `sub-agents.md`, relevée par le `chercheur`
+  le 2026-10-09 ; le reste (faits du pilote, dépôt hermes-custom) n'est pas une source
+  de la doc. Aucune autre page n'a été relue pour cette passe.
+- **Ce qui a changé** : rien de cassé. L'ordre de résolution du modèle d'un sous-agent
+  (paramètre `model` de l'appel, puis `model` du frontmatter, puis
+  `CLAUDE_CODE_SUBAGENT_MODEL`, puis le modèle principal) est inchangé ; il est déjà écrit
+  à la ligne 98. Le paramètre `effort` de l'outil Agent (2.1.292, noté le 2026-10-08) a été
+  **utilisé** le 2026-10-09 par le pilote, dans le POC P1 : `model` et `effort: "high"` à
+  l'appel, sans erreur. Ce n'est qu'un essai, pas une documentation : la priorité de cet
+  effort face au `effort:` d'un frontmatter reste à mesurer, comme l'entrée précédente
+  le dit.
+- **Ce qu'on en fait** : le choix d'un sondeur en Haiku `high`, sans `model` ni `effort` à
+  l'appel, s'appuie sur le POC P1 (`poc.md`, « Qui joue le POC »). L'appel à
+  `effort: "high"` reste une option du pilote ; aucune page lue ici n'en fixe la priorité.
+- **Ce que la passe d'avant porte encore** : l'alias `haiku` (Haiku 4.5 hors API
+  Anthropic, sans effort), la 2.1.293 et le modèle Haiku 5.5 par défaut de l'API. Rien
+  n'a changé sur ces points.
+- **Hors doc, transmis par le pilote** : codebase-memory est épinglé en 0.10.8 jusqu'au
+  2026-11-09 (hermes-custom PR #564), la 0.11.0 ne résolvant plus les appels via
+  `importlib`. Cette passe ne l'a pas revérifié dans hermes-custom. Ce n'est pas un fait de
+  la doc Claude Code : il ne vaut que pour le poste. Aucun fait porteur cassé à la date de
+  cette passe.
