@@ -143,7 +143,7 @@ Un plan qui découvre à l'exécution ce que le code disait déjà n'a pas plani
 a deviné. **Avant d'écrire une question, une option ou une étape, aller chercher ce
 qui est déjà su.** Six gisements, du moins cher au plus cher : la session en cours, les plans
 antérieurs du projet, le code (agent `enqueteur`), l'historique, la carte du dépôt,
-l'extérieur (agent `chercheur`).
+l'extérieur (agent `chercheur`). Pour le code, le pilote dresse d'abord une carte de voisinage légère par le graphe, que l'enquêteur vérifie (détail dans `enquete.md`).
 
 Le budget d'enquête est **proportionnel à l'enjeu**, pas à la longueur du plan. Une
 vérification nomme la décision qu'elle peut changer, ou le risque qu'elle couvre —
