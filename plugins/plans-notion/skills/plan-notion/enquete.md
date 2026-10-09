@@ -83,7 +83,35 @@ qui est déjà su.** Six gisements, du moins cher au plus cher :
 6. **L'extérieur.** Ce qui existe déjà hors du projet — bibliothèque, outil, skill,
    benchmark, documentation d'un outil — et qu'on s'apprêterait à refaire. Il se
    cherche **avant tout POC** : un POC qui mesure un outil maison alors qu'un outil
-   éprouvé existe mesure la mauvaise chose. Invoquer l'agent **`chercheur`** (outil
+   éprouvé existe mesure la mauvaise chose.
+
+   **D'abord, les dépôts étoilés.** Avant l'invocation, le pilote liste les dépôts
+   que le compte `gh` authentifié a étoilés, et les passe dans le brief du
+   `chercheur` : c'est là que se trouvent les collections de skills et d'agents déjà
+   jugées dignes d'intérêt. Commande :
+
+   ```bash
+   gh api user/starred --paginate --jq '.[] | [.full_name, .description, (.topics|join(",")), .stargazers_count, .pushed_at] | @tsv'
+   ```
+
+   Une ligne par dépôt : nom, description, sujets, étoiles, dernier push. Aucun nom
+   de compte n'est écrit dans le plugin, qui est public : `gh` lit le compte connecté.
+
+   L'étoile met un dépôt en tête de fiche, elle ne tranche rien. La recherche web se
+   fait **toujours, en entier**, même quand un étoilé semble répondre au besoin : elle
+   ne s'arrête jamais à l'étoile. Le `chercheur` compare chaque étoilé aux meilleurs
+   candidats trouvés sur le web, sur les mêmes signaux (maturité, activité, adéquation),
+   et la fiche dit si un candidat non étoilé fait mieux, et pourquoi. La raison : l'étoile
+   dit que le compte a repéré le dépôt, pas qu'il est le meilleur de sa catégorie.
+   Un candidat étoilé qui devient *use* passe par « Vérifier un candidat *use* »
+   ci-dessous, comme les autres ; sous 1 000 étoiles, il reste *copy*, avec la mention
+   « idée non éprouvée ». L'installation éventuelle suit la cascade du poste (apt, puis
+   npm ou uv, puis mise, jamais à la main), et seulement à l'exécution d'un plan validé.
+
+   Sans `gh` authentifié (session cloud, banc d'évals), le pilote le dit en une ligne
+   et le `chercheur` part sur le web comme aujourd'hui.
+
+   Puis invoquer l'agent **`chercheur`** (outil
    `Agent`, `subagent_type: "plans-notion:chercheur"` — le nom qualifié par le
    plugin, comme pour `enqueteur`) : il parcourt le web à la place du
    pilote et ne rend qu'une fiche, un candidat par bloc.

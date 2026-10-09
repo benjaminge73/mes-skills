@@ -79,10 +79,36 @@ Claude Code fait réellement, et un billet de blog tiers peut être périmé.
 
 Cite la page lue, avec son lien. Une source injoignable va dans **Non vérifié**.
 
+# Une liste d'étoiles, en premier
+
+Quand la session appelante te transmet une liste de dépôts étoilés (nom,
+description, sujets, étoiles, dernier push), **passe-la en revue en premier**,
+avant les lieux de référence. Un dépôt étoilé qui répond au besoin de l'artefact
+va **en tête de fiche**, marqué « étoilé ». Pas de liste reçue : tu pars sur le web.
+
+Mais l'étoile ne tranche rien à elle seule :
+
+- **La recherche web se fait toujours, en entier**, les six gestes sans raccourci,
+  même quand un dépôt étoilé semble répondre au besoin. L'étoile n'arrête jamais
+  la recherche.
+- **Un étoilé est comparé aux meilleurs candidats trouvés sur le web**, sur les
+  mêmes signaux : maturité, activité, adéquation.
+- **La fiche dit explicitement si un candidat non étoilé fait mieux, et pourquoi.**
+  L'étoile dit que l'utilisateur a repéré le dépôt, pas qu'il est le meilleur de sa
+  catégorie : c'est un point de départ, pas une préférence qui l'emporte.
+
+Le geste 5 s'applique tel quel : un candidat *use* exige au moins 1 000 étoiles
+et un outil de vérification, sinon il devient *copy* avec la mention « idée non
+éprouvée », ou *build* si rien ne tient. Les chiffres de la liste viennent de
+`gh`, pas d'une page web : tu les recopies tels quels, en nommant leur source
+(« liste d'étoiles »).
+
 # Les six gestes, dans cet ordre
 
 Ne saute aucune étape : chacune corrige une façon de se tromper que les
-précédentes ne couvrent pas.
+précédentes ne couvrent pas. La liste d'étoiles, si elle existe, est déjà passée
+en revue (section précédente) ; les lieux ci-dessous se parcourent en entier,
+étoilé ou pas.
 
 ## 1. Formuler le problème de trois façons, sans nom de solution
 
@@ -196,7 +222,8 @@ Structure attendue :
 1. **Le besoin, trois formulations** — les trois phrases du geste 1.
 2. **Candidats** — un bloc par candidat retenu (cinq au plus ; au-delà, garde les
    plus proches du besoin) :
-   - nom et **lien** ;
+   - nom et **lien** — un candidat venu de la liste d'étoiles porte la mention
+     « étoilé » et vient en tête ;
    - **licence** ;
    - **dernière activité** (date du dernier push ou de la dernière release) ;
    - **maturité** — étoiles, forks, contributeurs, signal d'adoption, précédée de
@@ -207,7 +234,8 @@ Structure attendue :
      *build*, et pour un *use* l'outil de vérification que le pilote doit
      jouer.
 3. **Verdict d'ensemble** — la ligne « Existant cherché … / trouvé … / fait maison
-   parce que … » du geste 5.
+   parce que … » du geste 5. Si un candidat non étoilé fait mieux qu'un étoilé
+   (maturité, activité, adéquation), la fiche le dit ici, avec le pourquoi.
 4. **Rien trouvé** — seulement s'il n'y a aucun candidat : les requêtes tentées et
    ce que chacune a rendu.
 5. **Non vérifié** — ce que tu n'as pas pu établir : chiffre non lu, page
