@@ -152,10 +152,20 @@ aucun repli connu au 2026-09-29.
 
 - **Un lot de 35 descriptions dans un seul appel rend des notes
   constantes** : mesuré, **AUC de 0,49**, soit le hasard (0,5).
+- **2026-10-08 : la clé d'API n'est pas dans l'environnement d'une session
+  Claude Code.** Elle vit dans le `.env` du dépôt applicatif, qu'une session ne
+  lit pas sans l'accord de Benjamin. Une passe Jev prévue dans un plan exécuté
+  en autonomie s'arrête donc net, au milieu de l'étape.
 
-**Bonne pratique** : **une description par appel.**
+**Bonne pratique** :
 
-**Repli** : aucun connu au 2026-09-29.
+- **Une description par appel.**
+- **Trancher avant l'exécution comment la clé arrive au processus** dès qu'une
+  étape appelle Jev : `.env` chargé dans le seul processus Jev (sans jamais
+  afficher la valeur), ou commandes lancées par Benjamin.
+
+**Repli** : pour la clé absente, faire lancer les commandes Jev par Benjamin.
+Pour le reste, aucun connu au 2026-10-08.
 
 ## Fiche — Sessions Claude
 
@@ -171,11 +181,68 @@ aucun repli connu au 2026-09-29.
 - **2026-09-25** : saturation du classifieur de permissions vers une vingtaine
   d'appels `Agent` simultanés.
 - **2026-09-26** : limite hebdomadaire **Sonnet** atteinte.
+- **2026-10-08 : la prose d'un guide imprimé, refusée ou résumée au hasard.**
+  Des sous-agents Haiku 5.5 chargés de recopier mot à mot des pages de guide
+  (lues sur image) ont refusé ou résumé la prose au nom du droit d'auteur, au
+  hasard d'un lot à l'autre. Sur 12 lots de 3 pages : 3 complets, 8 résumés,
+  1 refus. Les champs pratiques (adresses, horaires) étaient recopiés partout.
+  Le rapport entre les mots rendus et les mots de la page ne sépare pas un lot
+  complet d'un lot résumé (0,29 à 0,61 contre 0,11 à 0,63). Le même
+  comportement est consigné pour Sonnet, sans mesure chiffrée.
 
-**Bonne pratique** : rester en deçà d'une vingtaine d'appels `Agent`
-simultanés (`vagues.md`, section « Le plafond de concurrence »).
+**Bonne pratique** :
+
+- Rester en deçà d'une vingtaine d'appels `Agent` simultanés (`vagues.md`,
+  section « Le plafond de concurrence »).
+- Ne pas bâtir une étape sur la recopie intégrale de prose publiée par un
+  modèle : lui faire rendre la structure, et recopier le texte par le code
+  depuis une source numérique (epub). À défaut, contrôler chaque mot rendu par
+  un garde déterministe, jamais par un ratio de longueur.
 
 **Repli** : attendre la remise à zéro (00 h 30 UTC après le 429 de 23 h UTC).
+
+## Fiche — Connecteurs MCP d'une session Claude Code (Notion, Composio)
+
+**Quota ou coût** : aucun quota rencontré au 2026-10-08. Le repli par Hermes
+coûte, lui, les tokens du modèle d'Hermes : une session Hermes par écriture.
+
+**Pièges datés** :
+
+- **2026-10-08, en soirée : tous les appels MCP de la session échouent avant
+  de partir.** Notion, Composio et le suivi de PR de l'app répondaient
+  « host client may be unreachable » et « The tool call was not executed » :
+  un hook `PreToolUse` de l'hôte ne répondait plus. L'outil n'était pas en
+  cause et relancer ne changeait rien. Les commandes `Bash` passaient
+  toujours, ce qui a ouvert le repli ci-dessous.
+- **2026-10-08** : par `COMPOSIO_MULTI_EXECUTE_TOOL`, la sortie d'une lecture
+  de blocs Notion volumineuse (`…FETCH_BLOCK_CONTENTS`) revient élidée : une
+  page longue ne se relève pas par ce chemin. Le workbench, lui, la rend.
+- **2026-10-08** : un `hermes chat` borné à 300 s a expiré sur une écriture
+  Notion ; 900 s ont suffi.
+
+**Bonne pratique** :
+
+- **Lire le message d'erreur avant de conclure.** S'il nomme le hook et dit
+  que l'appel n'est pas parti, la panne est entre la session et l'hôte :
+  passer au repli plutôt qu'attendre.
+- **Le pilote écrit lui-même le code** que le workbench exécutera, contenu à
+  écrire compris. Hermes ne fait que le transmettre : jamais lui demander de
+  rédiger ou de reformuler.
+- **Verrouiller le contenu par une empreinte sha256**, calculée en local et
+  vérifiée par le code distant avant toute écriture, qui s'arrête si elle
+  diffère. Un modèle intermédiaire peut retoucher un texte ; l'empreinte
+  prouve qu'il ne l'a pas fait.
+- **Relire le code réellement envoyé** dans la base d'état d'Hermes
+  (`state.db`, table `messages`, arguments des appels d'outils), pas le récit
+  qu'Hermes en fait. Ses grosses sorties sont dans son dossier de débordement
+  (`cache/spillover/`).
+- Recompter après l'écriture, en relisant la page, comme avec le connecteur
+  direct (`ecrire-dans-notion.md`).
+
+**Repli** : `hermes chat --query-file <consigne>`, avec un délai d'au moins
+900 s ; Hermes appelle son propre Composio, `COMPOSIO_REMOTE_WORKBENCH`, dont le
+code joue `proxy_execute(method, endpoint="/v1/…", toolkit="notion", body=…)`
+vers l'API Notion.
 
 ## Fiche — DeepSeek vision
 
