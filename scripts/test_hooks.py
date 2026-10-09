@@ -122,6 +122,20 @@ class RefuserStatutAccentue(unittest.TestCase):
             self.assertEqual(r.stdout + r.stderr, "")
         self.assertEqual(jouer(self.SCRIPT, self.create("brouillon")).returncode, 0)
 
+    def test_toute_valeur_de_plan_accentuee_est_refusee(self):
+        for valeur in ("à merger", "archivé", "Exécuté", "  validé "):
+            r = jouer(self.SCRIPT, self.update(valeur))
+            self.assertEqual(r.returncode, 2, valeur)
+
+    def test_un_statut_accentue_d_une_autre_base_est_permis(self):
+        # Une base qui n'est pas Plans Claude (fiches de cours : « prête », « à rejouer »)
+        # a le droit d'avoir ses propres valeurs accentuées dans un champ « Statut ».
+        for valeur in ("prête", "à rejouer", "à préparer"):
+            r = jouer(self.SCRIPT, self.update(valeur))
+            self.assertEqual(r.returncode, 0, f"{valeur!r} : {r.stderr}")
+            self.assertEqual(r.stdout + r.stderr, "")
+        self.assertEqual(jouer(self.SCRIPT, self.create("prête")).returncode, 0)
+
     def test_un_accent_dans_une_autre_propriete_est_permis(self):
         r = jouer(self.SCRIPT, self.update("é accentué", nom="Résumé"))
         self.assertEqual(r.returncode, 0)
