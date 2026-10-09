@@ -70,6 +70,11 @@ qui est déjà su.** Six gisements, du moins cher au plus cher :
    facultative, **une par artefact** :
    *« Existant cherché : … / trouvé : … / fait maison parce que … »*.
 
+   Le POC, s'il y en a un, se joue **après** cette recherche, selon « Qui joue le
+   POC » du fichier partagé `${CLAUDE_PLUGIN_ROOT}/skills/_partage/poc.md` : le
+   mécanique au `sondeur`, le jugement au `general-purpose` en Sonnet, `effort`
+   high, passés à l'appel.
+
 Le budget d'enquête est **proportionnel à l'enjeu**, pas à la longueur du plan : une
 étape qui touche un fichier et se relit d'un coup d'œil ne mérite pas une fouille
 d'historique. Une étape qui change un réglage de production, oui.
@@ -124,6 +129,11 @@ vit dans le fichier partagé :
   se renvoie donc plus à l'exécution : elle se fait ici, et son résultat
   s'écrit dans le plan. La seule exception est une donnée que **seul le temps
   produit** (voir « Une option qui reporte la décision n'est pas une option »).
+
+Le POC de décision se joue selon « Qui joue le POC » du même fichier partagé :
+le mécanique au `sondeur` (`plans-notion:sondeur`), le jugement au
+`general-purpose` avec `model: "sonnet"` et `effort: "high"` passés à l'appel. Le
+pilote conclut dans le plan, jamais l'agent.
 
 ### Le registre des outils
 

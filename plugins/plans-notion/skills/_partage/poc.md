@@ -136,6 +136,7 @@ que… » :
    dans `${CLAUDE_PLUGIN_ROOT}/skills/_partage/outils-et-quotas.md`, jamais de mémoire. Un appel d'essai
    précède tout lot, et le lot porte un plafond écrit (`--max-appels` ou
    l'équivalent) qui coupe la mesure au lieu de la laisser courir.
+   Qui joue l'appel d'essai et le lot : voir « Qui joue le POC » plus bas.
 8. **Chiffres fondateurs vérifiés par commande.** Chaque chiffre sur lequel
    repose la question (volume, coût unitaire, taux de départ) est recalculé
    par une commande dont la sortie est recopiée. Un chiffre non vérifié ne
@@ -212,6 +213,46 @@ sans qu'un cas rejouable l'attrape reste une opinion : la leçon s'écrit avec l
 vérification ci-dessus **et** son cas d'éval, celui qui échoue quand la leçon
 est oubliée. La façon de l'écrire vit dans `docs/tester-un-skill.md`, hors
 plugin — un renvoi en texte, pas un chemin que le skill chargerait.
+
+## Qui joue le POC
+
+Le pilote conçoit le POC, écrit le brief, lit le résultat et conclut. Il
+délègue le geste de mesure seulement, et à l'un de deux agents selon la nature
+de la question.
+
+- **POC mécanique → agent `sondeur`** (`subagent_type: "plans-notion:sondeur"`).
+  La réponse sort d'une commande : compter des entrées, voir la forme d'une
+  réponse d'outil, lire le coût ou le droit d'un compte. Aucun paramètre
+  `model` ni `effort` à l'appel : l'agent les porte dans son frontmatter.
+  Définition : `${CLAUDE_PLUGIN_ROOT}/agents/sondeur.md`.
+- **POC de jugement → `general-purpose`, avec `model: "sonnet"` et
+  `effort: "high"` passés à l'appel.** Le jugement, c'est rejouer un skill ou
+  une tâche, noter, transcrire, comparer des variantes. Les deux paramètres
+  s'écrivent à chaque appel. Le modèle d'un `general-purpose` dépend du réglage
+  du poste, et ce réglage n'existe pas partout (session cloud, autre machine) :
+  sans `model` explicite, l'appel tourne sur le modèle de la session, plus cher,
+  sans que personne le voie.
+
+Règle de tri : la question est **mécanique** si le brief demande de jouer des
+commandes, de compter ou de mesurer une grandeur vérifiable ; elle est de
+**jugement** si le brief demande de rejouer un skill ou une tâche, de noter, de
+transcrire ou de comparer des variantes. Une question qui mêle les deux se
+découpe : la partie mesurable part au `sondeur`, le reste au `general-purpose`.
+
+Pourquoi ce partage. Le `sondeur` a une liste d'outils fermée, donc un contexte
+de départ bas, et c'est ce qui le rend moins cher qu'un agent hérité. Sur six
+tâches mécaniques à vérité connue (POC P1 du 2026-10-09), Haiku `high` a
+répondu juste six fois sur six, comme Sonnet `high`. Cette mesure ne porte que
+sur du mécanique : elle ne dit rien du jugement, d'où Sonnet pour le second cas.
+
+La conclusion ne se délègue jamais. Ni le `sondeur` ni le `general-purpose` ne
+disent quelle option retenir : ils rendent les commandes jouées, leurs sorties
+et les chiffres demandés. Le pilote lit, conclut, et écrit la ligne de décision
+dans le plan. Un `sondeur` qui reçoit une question de jugement rend `BLOCKED` :
+c'est voulu, la question repart vers le second cas.
+
+Un plan sans incertitude mesurable ne lance aucun de ces deux agents. Sans POC,
+il n'y a rien à déléguer.
 
 ## La frontière : ce qui est un POC, ce qui est une étape
 
