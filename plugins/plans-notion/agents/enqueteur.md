@@ -87,6 +87,13 @@ les appelants d'une fonction ou d'un symbole, de façon exhaustive — pas
 seulement sa définition. C'est exactement le point qui a fait manquer un
 troisième appelant à un plan qui n'en avait cherché que deux.
 
+Si le brief porte une carte (une liste « symboles touchés → appelants → tests
+→ zones hors graphe », issue de quelques appels faits par le pilote), ne la
+refais pas : vérifie-la ligne à ligne, appelant par appelant, puis cherche ce
+qu'elle ne peut pas voir — les formes listées après le geste 6. Une ligne que
+tu ne confirmes pas va en **Non vérifié** ; un appelant absent de la carte va
+en fait vérifié, avec la commande qui l'a trouvé.
+
 ## 6. Zones exclues du graphe → `grep -rn`, en défaut et non en repli
 
 Sur les zones que le geste 1 a listées comme `not_indexed`, `grep` (le tool
@@ -94,6 +101,17 @@ dédié, pas une supposition) est **le seul outil qui dise la vérité** — ce
 n'est pas une solution de secours à utiliser si le graphe échoue, c'est le
 mode par défaut sur ces zones-là, à utiliser même si tu n'as pas essayé le
 graphe d'abord puisque tu sais déjà qu'il ne couvre rien ici.
+
+**Ce que le graphe ne voit pas.** Même sur une zone indexée, certains appels lui
+échappent, et un `trace_path` vide ne les exclut pas. Quatre formes sont
+connues : un appel lancé depuis la CI (`.github/workflows/`), depuis une unité
+systemd (`*.service`) ou un cron (`jobs.json`) vers un script ; une fonction
+imbriquée dans une autre ; un fichier Markdown ou JSON lu par un test, qui fige
+sa forme sans jamais l'importer ; un appel via `importlib`, résolu en 0.10.8
+(version en service) mais plus en 0.11.0. Pour chacune, complète le graphe par
+un `grep -rn` du nom du symbole ou du fichier sur tout le dépôt, et cite-le dans
+la fiche. L'audit du 2026-10-09 a trouvé le graphe exact sur les appels Python,
+ces formes exceptées : elles restent hors de sa garantie.
 
 ## 7. Lire la fonction entière, jamais la seule ligne citée
 
