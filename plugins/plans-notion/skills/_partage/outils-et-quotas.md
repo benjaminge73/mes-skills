@@ -332,6 +332,16 @@ commune pour comparer les postes.
   `--keep-temp`), dont des sous-dossiers en mode `000` qu'un `rm -r` simple ne
   retire pas. Les relever et les retirer à la clôture, après accord : ils
   peuvent contenir des sorties de cas.
+- **2026-10-09** : la limite de session de l'abonnement, atteinte en cours de
+  banc, fait sortir chaque passage suivant en erreur (`exit 1: You've hit your
+  session limit · resets …`), à 0 $ et en une ou deux secondes. Le rapport, lui,
+  n'est **pas** marqué `partial` : il a l'air complet. Un cas rejoué dans ces
+  conditions a rendu trois passages à 0,17 sur trois, à remplacer après la
+  remise à zéro (trois passages verts).
+- **2026-10-09** : un appel arrêté par un signal (`kill -TERM`) écrit quand même
+  son rapport, marqué `partial: true` et `partialReason: interrupted`, avec tous
+  les passages finis. `evals_ab.py` refuse ce rapport tel quel (code 3), mais il
+  se récupère : 26 passages sur 27 d'une base arrêtée à une heure de jeu.
 
 **Bonne pratique** :
 
@@ -350,10 +360,18 @@ commune pour comparer les postes.
 - **Cibler.** Choisir les catégories d'après les fichiers touchés ; ne jouer
   « tout » que pour `_partage/`, un hook ou le banc lui-même.
 - **Garder 3 passages par cas** : le bruit mesuré ne vaut que pour 3.
+- **Lire les erreurs, pas seulement `partial`.** Avant de se fier à un rapport,
+  compter les passages dont `error` n'est pas nul : une limite de session ne se
+  voit que là (piège du 2026-10-09).
 
 **Repli** : jouer une catégorie à la fois plutôt que le banc entier ; sur une
 limite de débit atteinte, attendre la remise à zéro plutôt que relancer (une
-relance paie les mêmes sessions deux fois).
+relance paie les mêmes sessions deux fois). **Un bras interrompu se complète
+au lieu de se rejouer** : rejouer seulement les cas manquants ou en erreur sur
+la même copie du plugin (`evals/outillage/lancer.sh <copie> <sortie.json>
+--case <cas> --runs 3`, même lanceur, même version de Claude Code), remplacer
+ces cas dans le rapport partiel, retirer `partial`, puis le passer à
+`evals_ab.py --base-rapport` ; `--estimer` vérifie qu'il est accepté.
 
 ## Fiche — FileBrowser Quantum
 
@@ -545,3 +563,41 @@ aucun connu au 2026-10-06.
 
 **Repli** : mise à jour à la main, `sudo apt update && sudo apt upgrade
 claude-code`, en attendant qu'une origine autorisée ou un veilleur s'en charge.
+
+## Fiche — codebase-memory (graphe de code, serveur MCP)
+
+**Quota ou coût** : aucun quota, l'outil tourne en local (relevé au 2026-10-09).
+Le coût est en appels et en contexte. Mesure du 2026-10-09 : une carte de
+voisinage rejouée sur un plan de 24 étapes a pris **57 appels**, contre 3 à 6
+annoncés pour un plan court. Le coût grandit avec le nombre d'étapes cartées.
+
+**Pièges datés** :
+
+- **2026-10-09 : le mode `moderate` n'indexe pas `scripts/` ni `docs/`.** Un
+  `search_graph` ou un `trace_path` qui ne trouve rien dans ces dossiers ne
+  prouve rien. Seul `check_index_coverage` sur le chemin le dit.
+- **2026-10-09 : un appel par `importlib` est invisible.** La 0.10.8 le résout,
+  la 0.11.0 ne le résout plus : un appelant chargé par `importlib` sort de
+  `trace_path`. La version en service se relit avant de conclure « aucun
+  appelant ».
+- **2026-10-09 : une seule version à la fois sur la machine.** Une autre version
+  refuse de démarrer (« conflicting CBM process is active »), même avec un
+  `HOME` et un dossier de cache isolés. Pour en tester une, il faut un
+  conteneur.
+- **2026-10-09 (relevé) : le paramètre `project` n'est pas le nom court du dépôt.** C'est le chemin
+  racine, `/` remplacé par `-`. Le copier depuis `list_projects`, jamais le
+  deviner.
+
+**Bonne pratique** :
+
+- Les outils sont différés dans une session Claude Code : un `ToolSearch`
+  d'abord, puis `list_projects`.
+- Avant toute affirmation négative (« aucun appelant », « aucun test »),
+  `check_index_coverage` sur chaque chemin cité.
+- Pour les appelants : `trace_path` avec `direction: "inbound"` et
+  `include_tests`, ce qui sort aussi les tests qui exercent le symbole.
+- Borner la carte aux étapes à risque (contrat, signature, fichier partagé),
+  pas à tout le plan (mesure de 57 appels ci-dessus).
+
+**Repli** : `grep` ou l'agent `enqueteur`, qui lit les fichiers. Une ligne de
+la carte que le graphe ne tranche pas devient une question, pas un fait.
