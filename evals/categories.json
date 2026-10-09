@@ -5,13 +5,14 @@
       "exerce": [
         "skills/plan-notion/",
         "agents/chercheur.md",
+        "agents/sondeur.md",
         "skills/_partage/poc.md",
         "skills/_partage/outils-et-quotas.md",
         "skills/_partage/ecrire-dans-notion.md",
         "skills/_partage/schemas.md",
         "skills/_partage/scripts/verifier-version.sh"
       ],
-      "cas": ["existant-jeu-de-donnees", "existant-jeu-de-questions"],
+      "cas": ["existant-jeu-de-donnees", "existant-jeu-de-questions", "poc-mecanique"],
       "plancher": 0.65
     },
     "bruit": {

@@ -1,0 +1,10 @@
+schema_version: "1.1"
+name: poc-mecanique
+description: >
+  POC mécanique : une option du plan (export unique ou export paginé) dépend
+  d'un comptage d'enregistrements que personne n'a fait. Le pilote doit
+  déléguer le comptage à l'agent sondeur (et non le faire lui-même), puis écrire
+  le chiffre et la décision dans le plan, reliée au seuil de docs/export.md.
+  Le fichier source export/exporter.py ne doit pas être touché avant validation.
+context:
+  scaffold_script: fixture.sh

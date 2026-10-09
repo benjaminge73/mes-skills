@@ -487,7 +487,7 @@ class VraiDepot(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             return jouer_script([fichier], corps, "plans-notion", None, tmp, labels="evals")
 
-    def test_existant_et_bruit_couvrent_plan_notion_avec_cinq_cas(self):
+    def test_existant_et_bruit_couvrent_plan_notion_avec_six_cas(self):
         code, sortie, erreur = self.jouer(
             "plugins/plans-notion/skills/plan-notion/SKILL.md",
             "Evals: existant, bruit — essai",
@@ -497,7 +497,7 @@ class VraiDepot(unittest.TestCase):
         self.assertFalse(s["tout"])
         self.assertEqual(
             sorted(s["cas"]),
-            sorted(["existant-jeu-de-donnees", "existant-jeu-de-questions",
+            sorted(["existant-jeu-de-donnees", "existant-jeu-de-questions", "poc-mecanique",
                     "bruit-bounded", "bruit-doc-seule", "report-sans-seuil"]),
         )
 

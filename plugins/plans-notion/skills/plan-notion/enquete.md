@@ -26,7 +26,9 @@ qui est déjà su.** Six gisements, du moins cher au plus cher :
    repose pas — on cite la page et on avance. Dans ces journaux, les lignes
    `découverte — trouvable au plan` sont à lire en premier : elles disent, noir sur
    blanc, ce que l'enquête d'un plan précédent a manqué sur ce projet-là.
-3. **Le code.** Invoquer l'agent **`enqueteur`** (outil `Agent`,
+3. **Le code.** Deux gestes, dans cet ordre : d'abord la **carte de voisinage**,
+   dressée par le pilote lui-même (détail ci-dessous) ; puis invoquer l'agent
+   **`enqueteur`** (outil `Agent`,
    `subagent_type: "plans-notion:enqueteur"` — le nom qualifié par le plugin,
    le nom court ne résout pas) plutôt que fouiller soi-même : il porte déjà
    les quatorze gestes qui évitent les angles morts de voisinage — couverture de
@@ -38,6 +40,37 @@ qui est déjà su.** Six gisements, du moins cher au plus cher :
    prête à recopier dans `Contraintes techniques vérifiées`.
 
    📄 `${CLAUDE_PLUGIN_ROOT}/agents/enqueteur.md`
+
+   **La carte de voisinage (geste du pilote, avant l'enquêteur).** Quelques appels
+   au graphe de code (`codebase-memory`, serveur MCP — « Model Context Protocol », le
+   canal par lequel un outil extérieur se branche sur Claude) donnent à l'enquêteur un
+   point de départ. Elle se dresse sur `main` : un plan s'écrit avant toute branche.
+   - **Outils différés.** Les outils `codebase-memory` ne sont pas chargés au départ :
+     un `ToolSearch` est nécessaire avant le premier appel.
+   - **Nom de projet exact.** `list_projects`, puis copier le `name` rendu dans le
+     paramètre `project` : ce n'est pas le nom court du dépôt, on ne le devine pas.
+   - **Couverture.** `check_index_coverage` sur chaque dossier que le plan touche. En
+     mode `moderate`, `scripts/` et `docs/` ne sont pas indexés : un dossier non couvert
+     va en zone hors graphe, nommée dans la carte, et c'est le pilote qui le dit.
+   - **Appels.** `search_graph` pour trouver les symboles ; `trace_path` en
+     `direction: inbound` avec `include_tests` pour les appelants et les tests. Trois à
+     six appels pour un plan court. Le nombre d'appels grandit avec le nombre
+     d'étapes : P2 (2026-10-09) en a pris 57 pour un plan de 24 étapes. La carte se
+     borne donc aux symboles des étapes **à risque**, pas à toutes les étapes.
+   - **`detect_changes`** seulement si une branche de travail existe déjà.
+   - **Dégradation sans bruit.** Serveur MCP absent (banc d'évals, session sans le
+     serveur), dépôt non indexé ou worktree : le pilote le dit en une ligne, et le brief
+     part **sans carte**.
+
+   **Forme.** Une liste courte, par étape à risque : symbole touché → appelants
+   (`fichier:ligne`) → tests qui l'exercent → zones hors graphe à faire vérifier. Une
+   ligne que le graphe ne tranche pas (symbole vu, conséquence non vue) s'écrit comme
+   **question** pour l'enquêteur, jamais comme fait.
+
+   **Ce qu'on en fait.** La carte part dans le brief de l'enquêteur. Il la vérifie ligne
+   à ligne, appelant par appelant (geste 5 de `agents/enqueteur.md`), et cherche ce que le
+   graphe ne voit pas (« Ce que le graphe ne voit pas », sous le geste 6). Une fois
+   vérifiée, elle entre dans `Contraintes techniques vérifiées`.
 4. **L'historique.** `git log` sur les fichiers concernés, PR mergées, tests
    existants. Un comportement qui a déjà été changé l'a été pour une raison, et
    cette raison contraint le plan.
@@ -50,7 +83,35 @@ qui est déjà su.** Six gisements, du moins cher au plus cher :
 6. **L'extérieur.** Ce qui existe déjà hors du projet — bibliothèque, outil, skill,
    benchmark, documentation d'un outil — et qu'on s'apprêterait à refaire. Il se
    cherche **avant tout POC** : un POC qui mesure un outil maison alors qu'un outil
-   éprouvé existe mesure la mauvaise chose. Invoquer l'agent **`chercheur`** (outil
+   éprouvé existe mesure la mauvaise chose.
+
+   **D'abord, les dépôts étoilés.** Avant l'invocation, le pilote liste les dépôts
+   que le compte `gh` authentifié a étoilés, et les passe dans le brief du
+   `chercheur` : c'est là que se trouvent les collections de skills et d'agents déjà
+   jugées dignes d'intérêt. Commande :
+
+   ```bash
+   gh api user/starred --paginate --jq '.[] | [.full_name, .description, (.topics|join(",")), .stargazers_count, .pushed_at] | @tsv'
+   ```
+
+   Une ligne par dépôt : nom, description, sujets, étoiles, dernier push. Aucun nom
+   de compte n'est écrit dans le plugin, qui est public : `gh` lit le compte connecté.
+
+   L'étoile met un dépôt en tête de fiche, elle ne tranche rien. La recherche web se
+   fait **toujours, en entier**, même quand un étoilé semble répondre au besoin : elle
+   ne s'arrête jamais à l'étoile. Le `chercheur` compare chaque étoilé aux meilleurs
+   candidats trouvés sur le web, sur les mêmes signaux (maturité, activité, adéquation),
+   et la fiche dit si un candidat non étoilé fait mieux, et pourquoi. La raison : l'étoile
+   dit que le compte a repéré le dépôt, pas qu'il est le meilleur de sa catégorie.
+   Un candidat étoilé qui devient *use* passe par « Vérifier un candidat *use* »
+   ci-dessous, comme les autres ; sous 1 000 étoiles, il reste *copy*, avec la mention
+   « idée non éprouvée ». L'installation éventuelle suit la cascade du poste (apt, puis
+   npm ou uv, puis mise, jamais à la main), et seulement à l'exécution d'un plan validé.
+
+   Sans `gh` authentifié (session cloud, banc d'évals), le pilote le dit en une ligne
+   et le `chercheur` part sur le web comme aujourd'hui.
+
+   Puis invoquer l'agent **`chercheur`** (outil
    `Agent`, `subagent_type: "plans-notion:chercheur"` — le nom qualifié par le
    plugin, comme pour `enqueteur`) : il parcourt le web à la place du
    pilote et ne rend qu'une fiche, un candidat par bloc.
@@ -69,6 +130,11 @@ qui est déjà su.** Six gisements, du moins cher au plus cher :
    s'écrit dans `Contraintes techniques vérifiées`, sous une ligne qui n'est pas
    facultative, **une par artefact** :
    *« Existant cherché : … / trouvé : … / fait maison parce que … »*.
+
+   Le POC, s'il y en a un, se joue **après** cette recherche, selon « Qui joue le
+   POC » du fichier partagé `${CLAUDE_PLUGIN_ROOT}/skills/_partage/poc.md` : le
+   mécanique au `sondeur`, le jugement au `general-purpose` en Sonnet, `effort`
+   high, passés à l'appel.
 
 Le budget d'enquête est **proportionnel à l'enjeu**, pas à la longueur du plan : une
 étape qui touche un fichier et se relit d'un coup d'œil ne mérite pas une fouille
@@ -124,6 +190,11 @@ vit dans le fichier partagé :
   se renvoie donc plus à l'exécution : elle se fait ici, et son résultat
   s'écrit dans le plan. La seule exception est une donnée que **seul le temps
   produit** (voir « Une option qui reporte la décision n'est pas une option »).
+
+Le POC de décision se joue selon « Qui joue le POC » du même fichier partagé :
+le mécanique au `sondeur` (`plans-notion:sondeur`), le jugement au
+`general-purpose` avec `model: "sonnet"` et `effort: "high"` passés à l'appel. Le
+pilote conclut dans le plan, jamais l'agent.
 
 ### Le registre des outils
 
