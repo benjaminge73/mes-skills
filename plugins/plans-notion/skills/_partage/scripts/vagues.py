@@ -26,12 +26,14 @@ import re
 import sys
 
 FICHIERS_PARTAGES = {"readme.md", "claude.md", "plugin.json", "ci.yml", "config.json"}
+# Le bleu des retouches enveloppe le texte des cellules dans des <span color="…"> : on les retire.
+SPAN = re.compile(r"</?span\b[^>]*>")
 
 
 def lire_tableau(texte: str):
     """Rend la liste de lignes ``{colonne: cellule}`` du tableau de chevauchement."""
     for t in re.findall(r"<table[^>]*>(.*?)</table>", texte, re.S):
-        lignes = [[html.unescape(c).strip() for c in re.findall(r"<td[^>]*>(.*?)</td>", r, re.S)]
+        lignes = [[html.unescape(SPAN.sub("", c)).strip() for c in re.findall(r"<td[^>]*>(.*?)</td>", r, re.S)]
                   for r in re.findall(r"<tr[^>]*>(.*?)</tr>", t, re.S)]
         if lignes and {"Étape", "Fichiers touchés", "Dépend de"} <= set(lignes[0]):
             tete = lignes[0]
