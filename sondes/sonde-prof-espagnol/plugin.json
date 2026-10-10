@@ -1,0 +1,6 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "sonde-prof-espagnol",
+  "version": "0.0.2",
+  "description": "Sonde jetable : vérifie qu'un skill est chargé par ChatGPT, y compris en mode vocal Live."
+}
