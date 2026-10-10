@@ -30,11 +30,17 @@ Dans les trois cas, même séquence — et **elle ne s'arrête pas au merge** :
      grep -rn 'review-required' .github/workflows/   # un job le lit, et pour quoi faire ?
      ```
 
-     Les trois cas relevés à ce jour :
+     Les quatre cas relevés à ce jour (2026-10-10) :
      - **`vahiny` — le poser.** `gh pr create --base main --label review-required …`.
        Il y commande `tools` et `e2e`, que la CI ne joue pas sur une PR ordinaire,
        puis, tout vert, le merge sur `main` par le job `auto-merge`. Une PR de plan
        ouverte sans ce label y serait mergée sur la seule foi des tests unitaires.
+     - **`micro-trading` — le poser.** Même logique que `vahiny`, depuis le
+       2026-10-09 (PR `#4`). Une PR ordinaire n'y joue que `test` et `audit` ; le
+       label lance `e2e` **sur le runner du VPS** (appels réels à Jev, aux sources
+       et à Haiku, avec les secrets du dépôt), puis `auto-merge` ne merge qu'une
+       fois ce job vert, et `deploy` met en production. Le label n'y retient le
+       merge que pour les PR Dependabot.
      - **`mes-skills` — ne pas le poser.** Le job `merge-auto` en est **exclu** :
        le label y *empêcherait* le merge au lieu de renforcer la preuve. C'est
        l'inverse exact de `vahiny`, et le dépôt n'a pas d'e2e de toute façon.
@@ -56,9 +62,10 @@ Dans les trois cas, même séquence — et **elle ne s'arrête pas au merge** :
    et rouge, journal, plan de suite (§7), page à `a merger`.
 3. **Merger — si c'est ce qui a été demandé.** « Ouvre la PR » n'est pas
    « merge » : sur un dépôt sans auto-merge, la PR verte reste ouverte et la
-   page à `a merger`, jusqu'à ce que Benjamin dise merge. Sur `vahiny` avec
-   `review-required`, la CI merge seule une fois tout vert : y demander la PR,
-   c'est demander la remontée. Sur `hermes-custom`, merger déploie `origin/main`
+   page à `a merger`, jusqu'à ce que Benjamin dise merge. Sur `vahiny` et
+   `micro-trading` avec `review-required`, la CI merge seule une fois tout vert :
+   y demander la PR, c'est demander la remontée (et, sur `micro-trading`, le
+   déploiement). Sur `hermes-custom`, merger déploie `origin/main`
    sur le VPS dans la foulée.
 4. **Vérifier que le merge a bien eu lieu**, sur pièce :
    `gh pr view <n> --json state,mergeCommit`, ou le commit de merge dans
