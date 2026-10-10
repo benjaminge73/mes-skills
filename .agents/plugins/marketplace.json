@@ -1,0 +1,20 @@
+{
+  "name": "atelier-sondes",
+  "interface": {
+    "displayName": "Atelier — sondes ChatGPT"
+  },
+  "plugins": [
+    {
+      "name": "sonde-prof-espagnol",
+      "source": {
+        "source": "local",
+        "path": "./sondes/sonde-prof-espagnol"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

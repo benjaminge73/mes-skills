@@ -1,0 +1,6 @@
+{
+  "name": "sonde-prof-espagnol",
+  "version": "0.0.1",
+  "description": "Sonde jetable : vérifie qu'un skill est chargé par ChatGPT, y compris en mode vocal Live.",
+  "skills": "./skills/"
+}
