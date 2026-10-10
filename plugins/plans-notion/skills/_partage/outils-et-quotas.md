@@ -147,6 +147,8 @@ aucun repli connu au 2026-09-29.
   trois campagnes. Chacune franchit le seuil de 100 appels de la règle
   « outil absent » — celle-ci ne s'applique plus, puisque l'outil a une
   fiche.
+- **2026-10-09** : une notation ciblée de **40 appels**, une description par
+  appel, Jev seul sans repli, ne rencontre aucun refus de quota.
 
 **Pièges datés** :
 
@@ -189,6 +191,11 @@ Pour le reste, aucun connu au 2026-10-08.
   Le rapport entre les mots rendus et les mots de la page ne sépare pas un lot
   complet d'un lot résumé (0,29 à 0,61 contre 0,11 à 0,63). Le même
   comportement est consigné pour Sonnet, sans mesure chiffrée.
+- **2026-10-09 : la PR qu'une CI merge seule, refusée par le classifieur de
+  permissions.** Un `gh pr create --label <label d'auto-merge>` en fin
+  d'exécution autonome est refusé (« Merge Without Review »), alors que la
+  demande avait été écrite d'avance par l'utilisateur. La même commande passe
+  quand la demande figure dans son message du tour.
 
 **Bonne pratique** :
 
@@ -200,6 +207,9 @@ Pour le reste, aucun connu au 2026-10-08.
   un garde déterministe, jamais par un ratio de longueur.
 
 **Repli** : attendre la remise à zéro (00 h 30 UTC après le 429 de 23 h UTC).
+Pour une PR refusée par le classifieur : ne pas contourner (un merge local
+aurait le même effet), livrer la branche poussée avec la commande prête, et
+attendre la demande dans le tour.
 
 ## Fiche — Connecteurs MCP d'une session Claude Code (Notion, Composio)
 
@@ -219,6 +229,16 @@ coûte, lui, les tokens du modèle d'Hermes : une session Hermes par écriture.
   page longue ne se relève pas par ce chemin. Le workbench, lui, la rend.
 - **2026-10-08** : un `hermes chat` borné à 300 s a expiré sur une écriture
   Notion ; 900 s ont suffi.
+- **2026-10-09 : la même panne du hook, mais passagère.** Trois appels Notion de
+  suite refusés (« did not respond before its timeout »), puis le connecteur
+  repart seul après une dizaine de minutes. Pendant ce temps, l'outil Composio
+  de la session elle-même répondait.
+- **2026-10-09 : `notion-fetch` d'une grosse page dépasse le plafond de
+  sortie** à partir d'environ 200 000 caractères. Rien n'est perdu : la réponse
+  est enregistrée dans un fichier dont le message donne le chemin. C'est un JSON
+  dont le champ `text` porte la page en Markdown.
+- **2026-10-09** : une capture d'écran se joint à une page en deux temps,
+  `notion-create-file-upload` puis un POST du fichier vers l'adresse rendue.
 
 **Bonne pratique** :
 
@@ -239,7 +259,10 @@ coûte, lui, les tokens du modèle d'Hermes : une session Hermes par écriture.
 - Recompter après l'écriture, en relisant la page, comme avec le connecteur
   direct (`ecrire-dans-notion.md`).
 
-**Repli** : `hermes chat --query-file <consigne>`, avec un délai d'au moins
+**Repli** : d'abord attendre une à deux minutes et réessayer, jusqu'à trois
+fois (rien n'est parti, donc pas de doublon) ; pendant ce temps, l'outil
+Composio de la session lit et écrit Notion si elle l'a. Si la panne dure,
+`hermes chat --query-file <consigne>`, avec un délai d'au moins
 900 s ; Hermes appelle son propre Composio, `COMPOSIO_REMOTE_WORKBENCH`, dont le
 code joue `proxy_execute(method, endpoint="/v1/…", toolkit="notion", body=…)`
 vers l'API Notion.
@@ -601,3 +624,26 @@ annoncés pour un plan court. Le coût grandit avec le nombre d'étapes cartées
 
 **Repli** : `grep` ou l'agent `enqueteur`, qui lit les fichiers. Une ligne de
 la carte que le graphe ne tranche pas devient une question, pas un fait.
+
+## Fiche — Wikimedia Commons (photos téléchargées pour un usage hors ligne)
+
+**Quota ou coût** : gratuit. Aucun quota chiffré relevé au 2026-10-09 ; les
+refus arrivent en 429 (limite de débit) ou 503.
+
+**Pièges datés** :
+
+- **2026-10-09 : des photos manquent au téléchargement hors ligne, même après
+  reprises.** À 4 requêtes simultanées, avec jusqu'à 5 reprises par URL sur
+  429/503 (attente doublée à chaque fois, plafonnée à 30 s) : **8 photos sur 55**
+  en échec final. Sur le même lot, les tuiles de carte (CARTO) ne perdent que
+  2 URL sur 5 358.
+
+**Bonne pratique** :
+
+- Compter les échecs et les rapporter, plutôt que de les masquer : un poids
+  hors ligne mesuré avec des trous se nomme comme tel.
+- Ne pas monter la concurrence pour gagner du temps : c'est elle qui déclenche
+  les refus.
+
+**Repli** : relancer la mesure plus tard, le cache garde ce qui est déjà
+téléchargé (reprise gratuite). Aucun autre connu au 2026-10-09.
