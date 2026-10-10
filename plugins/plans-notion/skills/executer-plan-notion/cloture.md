@@ -78,7 +78,7 @@ Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard » :
   pour celles faites en direct, pourquoi (§3). Il dit aussi, en une ligne, que
   **la PR n'est pas ouverte et qu'elle le sera sur demande** — avec ou sans le
   label `review-required` selon ce que ce dépôt-là en fait (relevé du §2, les
-  trois cas connus au §6).
+  quatre cas connus au §6).
 - **Livrer la branche, et s'arrêter là.** Pas de PR : la remontée vers `main`
   est un geste vers l'extérieur, et il n'a lieu que sur demande explicite de
   Benjamin. La séquence de clôture est courte :
@@ -134,7 +134,7 @@ distinctes, et il faut entendre laquelle est faite :
 - **« ouvre la PR »** → une seule PR, de la branche du plan vers `main`. **Le
   label `review-required` se décide en regardant ce dépôt-là**, jamais depuis la
   règle générale : il n'existe pas partout, et là où il existe son effet change
-  de signe (§6, trois cas relevés). La ceinture reste la suite complète jouée en
+  de signe (§6, quatre cas relevés). La ceinture reste la suite complète jouée en
   local à la clôture ; le label n'est que la bretelle. Sur `vahiny`, il commande
   aussi le merge par la CI une fois tout vert : y demander la PR, c'est demander
   la remontée, et Benjamin le sait.
