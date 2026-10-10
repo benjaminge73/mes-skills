@@ -704,8 +704,20 @@ class CiYml(unittest.TestCase):
         if types is not None:  # sans `types:`, c'est le défaut : opened, synchronize, reopened
             liste = {t.strip() for t in types.group(1).split(",")}
             self.assertNotIn("edited", liste)
-            self.assertLessEqual(liste, {"opened", "synchronize", "reopened", "labeled"})
+            self.assertLessEqual(
+                liste, {"opened", "synchronize", "reopened", "ready_for_review", "labeled"})
         self.assertNotRegex(bloc, r"(?m)^    types:\s*\n")  # pas non plus la forme en liste
+
+    def test_sortir_du_brouillon_relance_la_ci_ready_for_review_dans_les_types(self):
+        # `merge-auto` saute une PR en brouillon ; sans `ready_for_review`, la sortie
+        # du brouillon ne relance aucun run et la PR verte n'est jamais mergée
+        # (PR #37, 2026-10-10). Le défaut de GitHub ne contient pas ce type.
+        bloc = self.ci.split("\n  pull_request:\n", 1)[1].split("\n  push:", 1)[0]
+        types = re.search(r"(?m)^    types: \[([^\]]*)\]\s*$", bloc)
+        self.assertIsNotNone(types, "sans `types:`, le défaut exclut ready_for_review")
+        self.assertIn("ready_for_review", {t.strip() for t in types.group(1).split(",")})
+        merge = _job(self.ci, "merge-auto").split("runs-on:", 1)[0]
+        self.assertIn("github.event.pull_request.draft == false", merge)
 
     def test_le_commentaire_de_on_dit_pourquoi_pas_edited_et_pourquoi_l_api(self):
         entete = self.ci.split("\njobs:", 1)[0]

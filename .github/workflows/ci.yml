@@ -29,8 +29,15 @@ on:
   # rouge et le verdict avec lui. Elle passe alors par le job `fumee` : la tête
   # seule, un passage, sur les catégories que les fichiers touchés exercent. Le
   # label `evals` la remplace par l'A/B complet.
+  #
+  # `ready_for_review` est indispensable : `merge-auto` saute une PR en brouillon,
+  # et sans ce type, sortir la PR du brouillon ne relance aucun run — elle reste
+  # verte et ouverte, et `merge-auto` ne la voit jamais. Payé le 2026-10-10 sur
+  # la PR #37 (merge fait à la main). Le run qui part alors est un run complet,
+  # comme un push : évals comprises si le label `evals` est posé, ce qui garde un
+  # « Verdict des évals » honnête sur le SHA que `merge-auto` merge.
   pull_request:
-    types: [opened, synchronize, reopened, labeled]
+    types: [opened, synchronize, reopened, ready_for_review, labeled]
   push:
     branches: [main]
   workflow_dispatch:
