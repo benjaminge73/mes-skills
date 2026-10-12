@@ -321,9 +321,12 @@ jobs:
               for t in "${touches[@]}"; do
                 [ "$t" = "$nom" ] || continue
                 if sel=$(python3 scripts/evals_selection.py --fumee --plugin "$nom" --fichiers "$liste" 2>"$RUNNER_TEMP/fumee.err"); then
-                  # La sélection entre dans le résumé même sans rien à jouer : c'est là
-                  # que la `raison` d'une catégorie sans plancher écartée se dit.
-                  fumee_selection=$(jq -c --arg p "$nom" --argjson s "$sel" '. + {($p): $s}' <<<"$fumee_selection")
+                  # Une sélection sans cas entre dans le résumé seulement si elle porte une
+                  # `raison` (catégorie sans plancher écartée) : c'est là qu'elle se dit.
+                  # Un plugin sans rien à dire n'est pas nommé.
+                  if [ "$(jq '.cas | length' <<<"$sel")" -gt 0 ] || [ -n "$(jq -r '.raison // ""' <<<"$sel")" ]; then
+                    fumee_selection=$(jq -c --arg p "$nom" --argjson s "$sel" '. + {($p): $s}' <<<"$fumee_selection")
+                  fi
                   if [ "$(jq '.cas | length' <<<"$sel")" -gt 0 ]; then
                     en_fumee+=("$nom")
                   fi
