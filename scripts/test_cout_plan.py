@@ -58,8 +58,9 @@ GRILLE = {
 }
 
 
-def journal(projets: Path, sid: str, cibles: list[str]) -> None:
-    """Écrit ``<projets>/-depot/<sid>.jsonl`` : un appel d'outil par identifiant cité."""
+def journal(projets: Path, sid: str, cibles: list[str], messages: list[dict] = ()) -> None:
+    """Écrit ``<projets>/-depot/<sid>.jsonl`` : un appel d'outil par identifiant cité,
+    puis un message assistant par entrée de ``messages`` (``id``, ``model``, ``usage``)."""
     dossier = projets / "-depot"
     dossier.mkdir(parents=True, exist_ok=True)
     lignes = []
@@ -68,10 +69,28 @@ def journal(projets: Path, sid: str, cibles: list[str]) -> None:
             "role": "assistant",
             "content": [{"type": "tool_use", "id": f"toolu_{i}",
                          "name": "mcp__notion__notion-fetch", "input": {"id": cible}}]}}))
-    if not cibles:
+    for m in messages:
+        lignes.append(json.dumps({"type": "assistant", "sessionId": sid, "message": {
+            "id": m["id"], "role": "assistant", "model": m["model"],
+            "content": [{"type": "text", "text": "ok"}], "usage": m["usage"]}}))
+    if not lignes:
         lignes.append(json.dumps({"type": "user", "sessionId": sid,
                                   "message": {"role": "user", "content": "bonjour"}}))
     (dossier / f"{sid}.jsonl").write_text("\n".join(lignes) + "\n", encoding="utf-8")
+
+
+def usage(cinq_min: int | None = None, une_heure: int | None = None) -> dict:
+    """Le ``usage`` d'un message assistant, avec la ventilation ``cache_creation`` si elle est donnée."""
+    u = {"input_tokens": 0, "output_tokens": 0, "cache_read_input_tokens": 0}
+    if cinq_min is None and une_heure is None:
+        u["cache_creation_input_tokens"] = 0
+        return u
+    cinq_min = cinq_min or 0
+    une_heure = une_heure or 0
+    u["cache_creation_input_tokens"] = cinq_min + une_heure
+    u["cache_creation"] = {"ephemeral_5m_input_tokens": cinq_min,
+                           "ephemeral_1h_input_tokens": une_heure}
+    return u
 
 
 def bloc(modele: str, entree: int = 0, sortie: int = 0, lecture: int = 0, creation: int = 0) -> dict:
@@ -205,6 +224,53 @@ class CoutPlan(unittest.TestCase):
         total = [l for l in r.stdout.splitlines() if l.lower().startswith("total")]
         self.assertTrue(total, f"pas de ligne de total :\n{r.stdout}")
         self.assertAlmostEqual(montant(total[0]), 16.10, places=4)
+
+    def test_une_ecriture_de_cache_en_une_heure_est_chiffree_au_prix_1h(self):
+        # Attrape : une écriture de cache chiffrée au tarif 5 min (7 $ le million
+        # pour Opus dans la grille de test) alors que le journal la range toute en 1 h.
+        # Attendu : 1 M d'écritures en 1 h, à 9 $ le million = 9 $.
+        journal(self.projets, SID_CITE, [PAGE], messages=[
+            {"id": "msg_opus_1", "model": OPUS, "usage": usage(une_heure=1_000_000)}])
+        bin_dir = faux_ccusage(self.racine, [
+            session(SID_CITE, [bloc(OPUS, creation=1_000_000)]),
+        ])
+        r = lancer(self.projets, self.grille, f"{bin_dir}{os.pathsep}{os.environ['PATH']}")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertAlmostEqual(montant(ligne_du_modele(r.stdout, OPUS)), 9.0, places=4)
+
+    def test_une_ecriture_moitie_5_min_moitie_1_h_est_chiffree_au_milieu_sans_compter_deux_fois_un_message(self):
+        # Attrape : une écriture chiffrée d'un seul tarif (la part 1 h ignorée) ;
+        # et, en plus, un message écrit plusieurs fois dans le journal (une ligne
+        # par bloc de contenu, comme le barème le dédoublonne par message.id)
+        # compté autant de fois. Sans dédoublonnage, la part 1 h tombe à 1/3 et
+        # le coût à 7,6667 $. Le message msg_a est donc écrit deux fois exprès.
+        # Attendu : 500 000 en 5 min et 500 000 en 1 h, donc la moitié à 7 $ et
+        # la moitié à 9 $ le million, soit 8 $ pour 1 M d'écritures.
+        msg_a = {"id": "msg_a", "model": OPUS, "usage": usage(cinq_min=500_000)}
+        msg_b = {"id": "msg_b", "model": OPUS, "usage": usage(une_heure=500_000)}
+        journal(self.projets, SID_CITE, [PAGE], messages=[msg_a, msg_b, msg_a])
+        bin_dir = faux_ccusage(self.racine, [
+            session(SID_CITE, [bloc(OPUS, creation=1_000_000)]),
+        ])
+        r = lancer(self.projets, self.grille, f"{bin_dir}{os.pathsep}{os.environ['PATH']}")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertAlmostEqual(montant(ligne_du_modele(r.stdout, OPUS)), 8.0, places=4)
+
+    def test_un_modele_sans_ventilation_reste_au_tarif_5_min_et_la_sortie_le_dit(self):
+        # Attrape : une écriture sans ventilation chiffrée au tarif 1 h sans que
+        # rien ne le signale, ou chiffrée à zéro. Le journal ne porte pas le
+        # champ cache_creation : attendu 1 M à 7 $ (tarif 5 min), et la ligne
+        # du modèle dit « ventilation absente ».
+        journal(self.projets, SID_CITE, [PAGE], messages=[
+            {"id": "msg_opus_0", "model": OPUS, "usage": usage()}])
+        bin_dir = faux_ccusage(self.racine, [
+            session(SID_CITE, [bloc(OPUS, creation=1_000_000)]),
+        ])
+        r = lancer(self.projets, self.grille, f"{bin_dir}{os.pathsep}{os.environ['PATH']}")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        ligne = ligne_du_modele(r.stdout, OPUS)
+        self.assertAlmostEqual(montant(ligne), 7.0, places=4)
+        self.assertIn("ventilation absente", ligne, f"la sortie ne dit pas le tarif de repli : {ligne!r}")
 
 
 GRILLE_REELLE = RACINE / "plugins" / "plans-notion" / "skills" / "_partage" / "scripts" / "grille-tarifs.json"
