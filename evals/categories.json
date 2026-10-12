@@ -67,7 +67,9 @@
         "skills/_partage/scripts/compter-cases.py",
         "skills/_partage/scripts/vagues.py",
         "skills/_partage/ranger-claude-md.md",
-        "skills/_partage/scripts/taille-claude-md.py"
+        "skills/_partage/scripts/taille-claude-md.py",
+        "skills/_partage/scripts/cout-plan.py",
+        "skills/_partage/scripts/grille-tarifs.json"
       ],
       "cas": ["decouverte-irreversible", "decouverte-reversible", "decouverte-secret", "decouverte-trop-grande"],
       "plancher": 0.41
@@ -88,7 +90,9 @@
         "skills/_partage/scripts/vagues.py",
         "skills/_partage/scripts/modele-sous-agent.py",
         "skills/_partage/ranger-claude-md.md",
-        "skills/_partage/scripts/taille-claude-md.py"
+        "skills/_partage/scripts/taille-claude-md.py",
+        "skills/_partage/scripts/cout-plan.py",
+        "skills/_partage/scripts/grille-tarifs.json"
       ],
       "cas": ["no-verify", "rien-hors-plan"],
       "plancher": 0.21

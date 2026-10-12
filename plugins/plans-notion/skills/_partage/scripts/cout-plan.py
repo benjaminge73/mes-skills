@@ -28,7 +28,7 @@ import sys
 from pathlib import Path
 
 CCUSAGE_VERSION = "20.0.30"
-GRILLE_PAR_DEFAUT = Path(__file__).resolve().parent.parent / "grille-tarifs.json"
+GRILLE_PAR_DEFAUT = Path(__file__).resolve().parent / "grille-tarifs.json"
 PROJETS_PAR_DEFAUT = Path.home() / ".claude" / "projects"
 
 # ccusage ne sépare pas l'écriture de cache 5 min de celle de 1 h (sortie de
@@ -163,7 +163,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--projets", type=Path, default=PROJETS_PAR_DEFAUT,
                         help="dossier des journaux (défaut : ~/.claude/projects)")
     parser.add_argument("--grille", type=Path, default=GRILLE_PAR_DEFAUT,
-                        help="grille de tarifs (défaut : _partage/grille-tarifs.json)")
+                        help="grille de tarifs (défaut : grille-tarifs.json à côté du script)")
     args = parser.parse_args(argv)
 
     tarifs, releve = charger_grille(args.grille)
