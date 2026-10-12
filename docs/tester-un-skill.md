@@ -523,8 +523,8 @@ lanceur. Un push qui ne change aucun fichier exercé reprend le résultat sans
 rejouer ; le résumé du job dit « fumée reprise du cache ». **Seul un vert se sauve** : un rouge n'entre
 jamais dans le cache, pour qu'il puisse se relancer une fois.
 
-**Un rouge à tort se relance une fois** ; au second rouge, on pose `evals`
-pour trancher par l'A/B. Attention à la file : le groupe `evals-<plugin>` ne
+**Un rouge à tort se relance une fois** ; au second rouge, on le signale à
+Benjamin, qui décide de poser `evals` pour trancher par l'A/B. Attention à la file : le groupe `evals-<plugin>` ne
 garde qu'un run en attente, et **une fumée en attente peut annuler un A/B en
 attente**. Un run annulé se relance, il ne vaut pas verdict.
 
