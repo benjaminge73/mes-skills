@@ -58,9 +58,15 @@ qui est déjà su.** Six gisements, du moins cher au plus cher :
      d'étapes : P2 (2026-10-09) en a pris 57 pour un plan de 24 étapes. La carte se
      borne donc aux symboles des étapes **à risque**, pas à toutes les étapes.
    - **`detect_changes`** seulement si une branche de travail existe déjà.
-   - **Dégradation sans bruit.** Serveur MCP absent (banc d'évals, session sans le
-     serveur), dépôt non indexé ou worktree : le pilote le dit en une ligne, et le brief
-     part **sans carte**.
+   - **Dispense, jamais en silence.** Une carte ne s'omet que pour une de **trois**
+     raisons recevables, et pour aucune autre : **dépôt de contenu** sans code touché
+     (rien à cartographier), **serveur MCP absent** (banc d'évals, session sans le
+     serveur), **dépôt non indexé**. Le pilote l'écrit en une ligne, `Pas de carte —
+     <raison>`, dans `Contraintes techniques vérifiées` ; le brief part alors **sans
+     carte**. Le filtre de passage à `valide` (`SKILL.md` §8, point 11) vérifie cette
+     ligne. Un worktree n'est pas une raison : la carte se dresse sur `main`, et
+     l'enquêteur indexe le chemin courant s'il ne l'est pas (geste 2 de
+     `agents/enqueteur.md`).
 
    **Forme.** Une liste courte, par étape à risque : symbole touché → appelants
    (`fichier:ligne`) → tests qui l'exercent → zones hors graphe à faire vérifier. Une
