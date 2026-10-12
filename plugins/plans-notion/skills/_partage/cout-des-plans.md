@@ -14,6 +14,24 @@ quota** n'est écrit, ni estimé, ni recopié (décision Q4 du plan).
 Les tarifs sont dans `scripts/grille-tarifs.json`, à côté de `cout-plan.py`
 (`plugins/plans-notion/skills/_partage/scripts/`).
 
+## Conception et exécution : deux coûts, deux pilotes
+
+Un plan coûte en deux temps, et les deux ne se lisent pas de la même façon :
+
+- **Le coût de conception** : le pilote est en Opus (`plan-notion`), qui écrit le
+  plan dans la page. C'est la ligne « Coût estimé » du chapitre `Exécution`.
+- **Le coût d'exécution** : le pilote est en Sonnet effort `high`
+  (`executer-plan-notion`, décision Q9 du plan), les sous-agents `executant` sont
+  en Haiku, et le `relecteur` en Opus. C'est la ligne « Coût réel » de l'entrée
+  `État final`, mesurée par `cout-plan.py`.
+
+Les tarifs sont dans `scripts/grille-tarifs.json` : Sonnet 5.5 à 2 $ l'entrée et
+10 $ la sortie par million de tokens, la moitié d'Opus 5.5 (4 $ et 20 $). Une
+exécution pilotée en Sonnet se lit donc à environ la moitié du poste « pilote »
+du barème ci-dessous. Ce chiffre n'est pas remesuré ici : la remesure le
+confirmera, et les médianes ci-dessous restent celles mesurées avant ce
+changement, quand le pilote d'exécution était encore en Opus.
+
 ## Le barème mesuré le 2026-10-12
 
 **Méthode** : les journaux de session (`.jsonl`) de Claude Code, messages
