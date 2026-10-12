@@ -321,8 +321,10 @@ jobs:
               for t in "${touches[@]}"; do
                 [ "$t" = "$nom" ] || continue
                 if sel=$(python3 scripts/evals_selection.py --fumee --plugin "$nom" --fichiers "$liste" 2>"$RUNNER_TEMP/fumee.err"); then
+                  # La sélection entre dans le résumé même sans rien à jouer : c'est là
+                  # que la `raison` d'une catégorie sans plancher écartée se dit.
+                  fumee_selection=$(jq -c --arg p "$nom" --argjson s "$sel" '. + {($p): $s}' <<<"$fumee_selection")
                   if [ "$(jq '.cas | length' <<<"$sel")" -gt 0 ]; then
-                    fumee_selection=$(jq -c --arg p "$nom" --argjson s "$sel" '. + {($p): $s}' <<<"$fumee_selection")
                     en_fumee+=("$nom")
                   fi
                 else
@@ -374,11 +376,13 @@ jobs:
             else
               jq -r 'to_entries[] | "- **\(.key)** : " + (if .value.tout then "tout le banc (\(.value.cas | length) cas) — \(.value.pourquoi_tout | .[0:200])" else "\(.value.categories | join(", ")) (\(.value.cas | length) cas)" end)' <<<"$selection"
             fi
-            if [ -n "$fumee_plugins" ]; then
+            if [ "$fumee_selection" != '{}' ]; then
               echo
               echo "### Fumée"
               echo
-              jq -r 'to_entries[] | "- **\(.key)** : " + (if .value.tout then "toutes les catégories (\(.value.cas | length) cas) — \(.value.pourquoi_tout | .[0:200])" else "\(.value.categories | join(", ")) (\(.value.cas | length) cas)" end)' <<<"$fumee_selection"
+              # La `raison` (catégorie sans plancher écartée) se dit même quand rien n'est joué
+              # ou que « tout » vaut vrai : c'est le seul signe qu'une catégorie n'a pas été jugée.
+              jq -r 'to_entries[] | "- **\(.key)** : " + (if .value.tout then "toutes les catégories (\(.value.cas | length) cas) — \(.value.pourquoi_tout | .[0:200])" elif (.value.cas | length) == 0 then "rien à jouer" else "\(.value.categories | join(", ")) (\(.value.cas | length) cas)" end) + (if (.value.raison // "") == "" then "" else " ; \(.value.raison)" end)' <<<"$fumee_selection"
             fi
           } >> "$GITHUB_STEP_SUMMARY"
           exit "$refus"
@@ -971,11 +975,15 @@ jobs:
 
           # Tous les cas de chaque catégorie jouée : `--fumee` juge une catégorie
           # sur ses seuls cas joués, un cas laissé de côté fausserait sa moyenne. Quand
-          # la sélection dit « tout » (ou manque) et que rien n'est repris du cache,
-          # aucun `--cas` : le banc entier.
+          # la sélection dit « tout » (ou manque), que rien n'est repris du cache, et que
+          # le plugin n'a aucune catégorie sans plancher : aucun `--cas`, le banc entier.
+          # Une catégorie sans plancher n'est jamais jouée par la fumée (evals_selection.py
+          # l'écarte de « tout ») ; le banc entier la jouerait quand même, payée puis jamais
+          # jugée. Avec une telle catégorie, la liste des seuls cas joués reste la règle.
+          sans_plancher=$(jq -r --arg p "$PLUGIN" '[(.[$p] // {}) | to_entries[] | select(.value.plancher == null)] | length' evals/categories.json)
           args=(--plugin "$PLUGIN" --tete HEAD)
           if [ "$rejouer" = true ]; then
-            if [ "${#noms_repris[@]}" -eq 0 ] && [ "$(jq -r --arg p "$PLUGIN" '(.[$p] // {"tout": true}) | .tout' <<<"$SELECTION")" = "true" ]; then
+            if [ "${#noms_repris[@]}" -eq 0 ] && [ "$sans_plancher" -eq 0 ] && [ "$(jq -r --arg p "$PLUGIN" '(.[$p] // {"tout": true}) | .tout' <<<"$SELECTION")" = "true" ]; then
               echo "Toutes les catégories sont jouées."
             else
               for c in "${cas_joues[@]}"; do args+=(--cas "$c"); done
