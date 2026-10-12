@@ -34,6 +34,7 @@
         "skills/plan-notion/",
         "skills/_partage/cout-des-plans.md",
         "agents/enqueteur.md",
+        "skills/_partage/lecture-deleguee.md",
         "skills/_partage/bons-tests.md",
         "skills/_partage/preuve-du-rouge.md",
         "skills/_partage/scripts/etat-de-depart.sh",
@@ -74,7 +75,8 @@
         "skills/_partage/ranger-claude-md.md",
         "skills/_partage/scripts/taille-claude-md.py",
         "skills/_partage/scripts/cout-plan.py",
-        "skills/_partage/scripts/grille-tarifs.json"
+        "skills/_partage/scripts/grille-tarifs.json",
+        "skills/_partage/lecture-deleguee.md"
       ],
       "cas": ["decouverte-irreversible", "decouverte-reversible", "decouverte-secret", "decouverte-trop-grande"],
       "plancher": 0.41
@@ -98,7 +100,8 @@
         "skills/_partage/ranger-claude-md.md",
         "skills/_partage/scripts/taille-claude-md.py",
         "skills/_partage/scripts/cout-plan.py",
-        "skills/_partage/scripts/grille-tarifs.json"
+        "skills/_partage/scripts/grille-tarifs.json",
+        "skills/_partage/lecture-deleguee.md"
       ],
       "cas": ["no-verify", "rien-hors-plan"],
       "plancher": 0.21
@@ -106,7 +109,8 @@
     "delegation": {
       "exerce": [
         "skills/deleguer-a-haiku/",
-        "agents/executant.md"
+        "agents/executant.md",
+        "skills/_partage/lecture-deleguee.md"
       ],
       "cas": ["deleguer-sans-notion"]
     }

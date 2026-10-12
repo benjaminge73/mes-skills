@@ -41,6 +41,9 @@ qui est déjà su.** Six gisements, du moins cher au plus cher :
 
    📄 `${CLAUDE_PLUGIN_ROOT}/agents/enqueteur.md`
 
+   Le pilote ne lit pas le code lui-même, ni un fichier de plus de 200 lignes :
+   📄 `${CLAUDE_PLUGIN_ROOT}/skills/_partage/lecture-deleguee.md`
+
    **La carte de voisinage (geste du pilote, avant l'enquêteur).** Quelques appels
    au graphe de code (`codebase-memory`, serveur MCP — « Model Context Protocol », le
    canal par lequel un outil extérieur se branche sur Claude) donnent à l'enquêteur un

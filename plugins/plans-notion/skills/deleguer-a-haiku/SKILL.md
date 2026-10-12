@@ -43,11 +43,10 @@ Une étape qui dépasse cinq fichiers se découpe avant l'envoi.
 ## 2. Envoyer les étapes
 
 - Le brief de chaque étape suit la forme de `${CLAUDE_PLUGIN_ROOT}/skills/executer-plan-notion/etapes.md`,
-  section « Le brief du sous-agent ». Ne pas recopier la définition de l'`executant` :
-  elle arrive avec l'agent.
-- **En parallèle** quand les fichiers sont disjoints, en séquence sinon. Le calcul des
-  vagues, l'isolement de chaque étape parallèle dans son worktree et le plafond de
-  concurrence sont dans `${CLAUDE_PLUGIN_ROOT}/skills/_partage/vagues.md`.
+  section « Le brief du sous-agent ». Sans recopier la définition de l'`executant`,
+  qui arrive avec lui.
+- **En parallèle** quand les fichiers sont disjoints, en séquence sinon. Le calcul des vagues,
+  l'isolement en worktree et le plafond de concurrence : `${CLAUDE_PLUGIN_ROOT}/skills/_partage/vagues.md`.
 
 ## 3. Relire et rejouer
 
@@ -61,7 +60,7 @@ Une étape qui dépasse cinq fichiers se découpe avant l'envoi.
 Si le plan touche **plus de cinq fichiers en tout**, un appel à
 `plans-notion:relecteur` en fin de plan, selon `${CLAUDE_PLUGIN_ROOT}/skills/_partage/revue.md`
 (« Comment l'appeler »). Sans commit, le brief du relecteur désigne la liste des
-fichiers touchés à la place de la plage de commits : c'est un écart à écrire dans le
+fichiers touchés, pas la plage de commits : c'est un écart à écrire dans le
 compte rendu.
 
 ## 5. Compte rendu
@@ -72,5 +71,6 @@ les questions ouvertes. Une consigne d'Hermes lit ce texte tel quel. Rien n'est 
 dans Notion ni ailleurs.
 
 Ses compagnons sont les fichiers partagés
-`${CLAUDE_PLUGIN_ROOT}/skills/_partage/vagues.md` et
-`${CLAUDE_PLUGIN_ROOT}/skills/_partage/revue.md`.
+`${CLAUDE_PLUGIN_ROOT}/skills/_partage/vagues.md`,
+`${CLAUDE_PLUGIN_ROOT}/skills/_partage/revue.md` et
+`${CLAUDE_PLUGIN_ROOT}/skills/_partage/lecture-deleguee.md`.

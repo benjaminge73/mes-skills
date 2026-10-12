@@ -249,6 +249,11 @@ La liste est courte, et c'est voulu :
 - **Le debug** après l'échec d'un sous-agent.
 - **Toutes les écritures Notion** (§4, §5) et les opérations git.
 
+La lecture d'un fichier de plus de 200 lignes, d'une sortie de commande ou d'une page
+se confie à un agent, pas au pilote :
+
+📄 `${CLAUDE_PLUGIN_ROOT}/skills/_partage/lecture-deleguee.md`
+
 Une étape dont on ne sait pas énoncer les trois lignes — le test qui doit passer,
 les fichiers autorisés, la commande de preuve — **n'est pas une étape à garder
 pour soi : c'est une étape mal spécifiée.** On la précise d'abord (au besoin en
