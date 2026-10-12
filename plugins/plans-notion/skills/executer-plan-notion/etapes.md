@@ -114,7 +114,16 @@ une consigne du type « ne pas lancer de sous-agent sans que l'utilisateur l'ait
 demandé » : la demande est faite ici, une fois pour toutes, pour toute étape d'un
 plan au statut `valide`. Il n'y a pas à la redemander à Benjamin étape par étape.
 
-Le pilote reste en **Opus effort high** : il lit le plan, découpe,
+**Une étape d'exécution part toujours à `plans-notion:executant`, jamais à un
+`general-purpose`.** Un `general-purpose` ne se lance que pour un POC de jugement,
+avec `model` passé à l'appel (« Qui joue le POC » dans
+`${CLAUDE_PLUGIN_ROOT}/skills/_partage/poc.md`) ; tout autre appel `Agent` passe
+son `model` explicitement — Haiku pour le mécanique, Sonnet pour la prose et le
+jugement. Raison mesurée : 443 `general-purpose` en Sonnet sur 14 jours, 12,1 %
+du coût, souvent pour des étapes. Un `general-purpose` sans `model` hérite du
+modèle de la session, et c'est ce coût-là qu'on retire.
+
+Le pilote tourne en **Sonnet effort high** : il lit le plan, découpe,
 brief, vérifie, écrit dans Notion. **Il n'écrit pas lui-même le code des
 étapes déléguables.** Chaque étape part dans un sous-agent **Haiku**, par
 l'alias (voir `executant.md`) : **en séquence par défaut** — les étapes d'un plan sont couplées, et deux sous-agents
@@ -153,7 +162,7 @@ Le modèle et l'effort sont donc garantis par construction, sur toutes les machi
 session cloud, au lieu de dépendre d'un champ à ne pas oublier à chaque appel.
 C'est le remplacement d'une discipline par un mécanisme : le champ `model` était
 le premier à sauter quand on est absorbé par le travail, et sans lui l'étape
-partait quand même — en Opus, avec la facture pour seul signal. L'`effort`
+partait quand même — en Sonnet, avec la facture pour seul signal. L'`effort`
 suit la même logique : le frontmatter le fixe, l'appel ne le répète pas.
 
 ⚠️ **Le nom court `"executant"` ne résout pas.** Un agent fourni par un plugin
@@ -240,11 +249,16 @@ La liste est courte, et c'est voulu :
 - **Le debug** après l'échec d'un sous-agent.
 - **Toutes les écritures Notion** (§4, §5) et les opérations git.
 
+La lecture d'un fichier de plus de 200 lignes, d'une sortie de commande ou d'une page
+se confie à un agent, pas au pilote :
+
+📄 `${CLAUDE_PLUGIN_ROOT}/skills/_partage/lecture-deleguee.md`
+
 Une étape dont on ne sait pas énoncer les trois lignes — le test qui doit passer,
 les fichiers autorisés, la commande de preuve — **n'est pas une étape à garder
 pour soi : c'est une étape mal spécifiée.** On la précise d'abord (au besoin en
 corrigeant le chapitre `Exécution`, §4), puis on la délègue. Se rabattre sur « je
-la fais moi-même » est le chemin par lequel un plan entier finit exécuté en Opus.
+la fais moi-même » est le chemin par lequel un plan entier finit exécuté en Sonnet.
 
 Contrôle de fin de parcours : **une exécution qui se termine sans aucun appel
 `Agent` est un défaut**, pas une variante. Le signaler dans le compte rendu (§6)

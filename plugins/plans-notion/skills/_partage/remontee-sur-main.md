@@ -35,6 +35,7 @@ Dans les trois cas, même séquence — et **elle ne s'arrête pas au merge** :
        Il y commande `tools` et `e2e`, que la CI ne joue pas sur une PR ordinaire,
        puis, tout vert, le merge sur `main` par le job `auto-merge`. Une PR de plan
        ouverte sans ce label y serait mergée sur la seule foi des tests unitaires.
+       Le label n'y retient le merge que pour les PR Dependabot.
      - **`micro-trading` — le poser.** Même logique que `vahiny`, depuis le
        2026-10-09 (PR `#4`). Une PR ordinaire n'y joue que `test` et `audit` ; le
        label lance `e2e` **sur le runner du VPS** (appels réels à Jev, aux sources
@@ -71,6 +72,26 @@ Dans les trois cas, même séquence — et **elle ne s'arrête pas au merge** :
    `gh pr view <n> --json state,mergeCommit`, ou le commit de merge dans
    `git log origin/main`. Une PR « mergeable » n'est pas une PR mergée, et un
    automerge peut encore tomber sur une CI rouge après qu'on a quitté la page.
+
+4 bis. **Mettre le poste à jour, si le dépôt en est la source.** Joué juste après
+   le point 4, merge vérifié. Le dépôt est-il la source d'une marketplace
+   installée sur le poste ? Oui si `claude plugin marketplace list` le cite
+   (`Source: GitHub (benjaminge73/mes-skills)`) : le nom de la marketplace est
+   alors la ligne qui précède cette source (ici `atelier`). Sinon, le point est
+   sauté, sans bruit.
+   - `claude plugin marketplace update <nom>` ;
+   - pour chaque plugin dont `version` a changé dans le merge, lue dans
+     `plugins/<plugin>/.claude-plugin/plugin.json` entre le commit de merge et
+     son premier parent (`git diff <sha>^1 <sha> -- 'plugins/*/.claude-plugin/plugin.json'`),
+     `claude plugin update <plugin>@<nom>` ;
+   - une ligne au journal : « nouvelle version au prochain démarrage de session,
+     ou après `/reload-plugins` ».
+
+   Un échec de ces commandes se note au journal et ne bloque ni le point 5 ni la
+   suite : le merge a eu lieu, et c'est lui que le point 5 constate. Le geste
+   joue aussi quand c'est `merge-auto` qui a mergé, puisque le point 4 a vérifié
+   le merge sur pièce, quel qu'en soit l'auteur.
+
 5. **`Statut` = `execute`** — seulement si le point 4 a rendu un merge.
 6. Une entrée de journal **`Remontée sur main`** (H3, comme les autres, §4) : la
    PR, le commit de merge, la date, et ce qui reste à faire après le merge s'il

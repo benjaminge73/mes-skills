@@ -30,6 +30,28 @@ dépôt pour relire aussi les appelants qu'il ne touche pas. Constaté le
 2026-09-25 : deux bugs vivaient chez des appelants que le diff ne montrait
 pas, invisibles à qui ne relit que les lignes changées.
 
+Le graphe de code (`mcp__codebase-memory__*`) t'est ouvert pour cette relecture,
+et il prend le pas sur `grep` pour trouver les appelants :
+
+- pour chaque symbole dont le diff change la signature, le comportement ou le
+  format, cherche ses appelants par `mcp__codebase-memory__trace_path` avant de
+  les chercher par `grep` ou par lecture de fichiers entiers : `function_name` =
+  le nom du symbole, `project` = celui de `list_projects`, `direction:
+  "inbound"` (les appelants, pas ce qu'il appelle) ;
+- `mcp__codebase-memory__detect_changes` donne les symboles touchés et ce qui en
+  dépend sur la plage : `project` comme ci-dessus, `since: "<base>"` (la base de
+  la plage `<base>..<tête>`, diff contre `HEAD`). C'est une aide pour ne rien
+  oublier, pas la preuve que rien d'autre ne casse ;
+- le paramètre `project` se copie depuis `mcp__codebase-memory__list_projects`,
+  jamais deviné ;
+- un `trace_path` vide ne prouve pas l'absence d'appelant (appel par `importlib`
+  invisible, dossiers non indexés) : avant d'écrire « aucun appelant », `grep`
+  le nom ;
+- serveur absent ou dépôt non indexé : `grep`, et une ligne le dit avant le
+  verdict, sans compter comme remarque ;
+- tu n'appelles jamais `mcp__codebase-memory__index_repository` : réindexer n'est
+  pas ton rôle.
+
 ## Les trois catégories, et rien d'autre
 
 1. **Écart au plan** — l'étape ne fait pas ce que son objectif dit, ou fait

@@ -236,7 +236,7 @@ class SortieTexte(EtatMachineTestCase):
 
 
 class Jeton(EtatMachineTestCase):
-    """Le jeton des actions lourdes : une place, un détenteur, un PID qui fait foi."""
+    """Le jeton des actions lourdes : deux places, des détenteurs, des PID qui font foi."""
 
     def setUp(self):
         super().setUp()
@@ -251,44 +251,50 @@ class Jeton(EtatMachineTestCase):
         self.assertEqual(r.returncode, 0, msg=r.stderr)
         return json.loads(r.stdout)["detenteurs"]
 
-    # -- exclusion mutuelle ---------------------------------------------------
-    def test_la_seconde_prise_attend_puis_echoue_apres_attendre_1(self):
-        premiere = self.prendre("e2e", 900, "Plan A")
-        self.assertEqual(premiere.returncode, 0, msg=premiere.stderr)
+    # -- exclusion mutuelle : deux places, la troisième attend ou échoue ---------
+    def test_la_troisieme_prise_attend_puis_echoue_apres_attendre_1(self):
+        self.assertEqual(self.prendre("e2e", 900, "Plan A").returncode, 0)
+        self.assertEqual(self.prendre("suite", 901, "Plan B").returncode, 0)
         debut = time.monotonic()
-        seconde = self.prendre("suite", 901, "Plan B", "--attendre", "1")
+        troisieme = self.prendre("lint", 902, "Plan C", "--attendre", "1")
         duree = time.monotonic() - debut
-        self.assertEqual(seconde.returncode, 3, msg=seconde.stderr)
+        self.assertEqual(troisieme.returncode, 3, msg=troisieme.stderr)
         self.assertGreaterEqual(duree, 0.9, "elle doit avoir attendu la seconde demandée")
-        self.assertEqual([d["pid"] for d in self.qui()], [900], "le détenteur n'a pas changé")
+        self.assertEqual([d["pid"] for d in self.qui()], [900, 901],
+                         "les détenteurs n'ont pas changé")
+        # Le refus cite tous les détenteurs, pas seulement le premier.
+        self.assertIn("Plan A", troisieme.stderr)
+        self.assertIn("Plan B", troisieme.stderr)
 
-    def test_sans_attendre_une_prise_sur_un_jeton_tenu_est_refusee_sur_le_champ(self):
+    def test_sans_attendre_la_troisieme_prise_est_refusee_sur_le_champ(self):
         self.assertEqual(self.prendre("e2e", 900).returncode, 0)
-        self.assertEqual(self.prendre("suite", 901).returncode, 3)
+        self.assertEqual(self.prendre("suite", 901).returncode, 0)
+        self.assertEqual(self.prendre("lint", 902).returncode, 3)
 
-    def test_une_prise_qui_attend_obtient_le_jeton_des_qu_il_est_rendu(self):
+    def test_une_prise_qui_attend_obtient_une_place_des_qu_une_est_rendue(self):
         self.assertEqual(self.prendre("e2e", 900).returncode, 0)
-        seconde = subprocess.Popen(
-            [sys.executable, str(SCRIPT), "prendre", "suite", "--plan", "Plan B", "--pid", "901",
+        self.assertEqual(self.prendre("suite", 901).returncode, 0)
+        troisieme = subprocess.Popen(
+            [sys.executable, str(SCRIPT), "prendre", "lint", "--plan", "Plan C", "--pid", "902",
              "--attendre", "20", "--proc", str(self.proc.racine)],
             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, env=self.env)
-        self.addCleanup(seconde.kill)
+        self.addCleanup(troisieme.kill)
         time.sleep(0.5)
-        self.assertIsNone(seconde.poll(), "elle attend tant que le jeton est tenu")
+        self.assertIsNone(troisieme.poll(), "elle attend tant que les deux places sont tenues")
         self.assertEqual(self.lancer("rendre", "--pid", "900").returncode, 0)
-        self.assertEqual(seconde.wait(timeout=15), 0)
-        self.assertEqual([d["pid"] for d in self.qui()], [901])
+        self.assertEqual(troisieme.wait(timeout=15), 0)
+        self.assertEqual([d["pid"] for d in self.qui()], [901, 902])
 
-    def test_des_prises_simultanees_ne_donnent_le_jeton_qu_a_un_seul(self):
+    def test_des_prises_simultanees_ne_donnent_que_deux_places(self):
         racine = str(self.proc.racine)
         procs = [subprocess.Popen(
             [sys.executable, str(SCRIPT), "prendre", "e2e", "--plan", f"Plan {pid}",
              "--pid", str(pid), "--proc", racine],
             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, env=self.env)
-            for pid in (900, 901, 902, 903)]
+            for pid in (900, 901, 902)]
         codes = sorted(p.wait(timeout=30) for p in procs)
-        self.assertEqual(codes, [0, 3, 3, 3])
-        self.assertEqual(len(self.qui()), 1)
+        self.assertEqual(codes, [0, 0, 3])
+        self.assertEqual(len(self.qui()), 2)
 
     def test_rendre_libere_le_jeton_pour_la_prise_suivante(self):
         self.assertEqual(self.prendre("e2e", 900).returncode, 0)
@@ -296,16 +302,20 @@ class Jeton(EtatMachineTestCase):
         self.assertEqual(self.qui(), [])
         self.assertEqual(self.prendre("suite", 901).returncode, 0)
 
-    def test_rendre_par_un_autre_pid_ne_libere_pas_le_jeton_du_detenteur(self):
+    def test_rendre_par_un_pid_sans_place_ne_libere_pas_les_places_des_detenteurs(self):
         self.assertEqual(self.prendre("e2e", 900).returncode, 0)
-        self.lancer("rendre", "--pid", "901")
-        self.assertEqual([d["pid"] for d in self.qui()], [900])
-        self.assertEqual(self.prendre("suite", 901).returncode, 3)
+        self.assertEqual(self.prendre("suite", 901).returncode, 0)
+        self.lancer("rendre", "--pid", "902")
+        self.assertEqual([d["pid"] for d in self.qui()], [900, 901])
+        self.assertEqual(self.prendre("lint", 902).returncode, 3)
 
     def test_reprendre_avec_le_meme_pid_ne_se_bloque_pas_soi_meme(self):
         self.assertEqual(self.prendre("e2e", 900).returncode, 0)
         self.assertEqual(self.prendre("e2e", 900).returncode, 0)
         self.assertEqual(len(self.qui()), 1)
+        # Reprendre ne consomme pas une seconde place : la deuxième reste libre.
+        self.assertEqual(self.prendre("suite", 901).returncode, 0)
+        self.assertEqual([d["pid"] for d in self.qui()], [900, 901])
 
     # -- détenteur mort ---------------------------------------------------------
     def test_un_jeton_tenu_par_un_pid_mort_est_repris(self):

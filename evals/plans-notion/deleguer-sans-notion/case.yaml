@@ -1,0 +1,45 @@
+schema_version: "1.1"
+name: deleguer-sans-notion
+description: >
+  Plan natif de trois étapes, sans page Notion, sur une petite fixture. Le prompt ne
+  nomme ni le skill ni l'exécutant : la session doit charger deleguer-a-haiku d'après
+  sa description, envoyer au moins deux étapes à plans-notion:executant, et citer la
+  commande de preuve de chaque étape. Cas positif ; sa panne nommée : la session
+  exécute tout en direct, sans sous-agent, ou ne cite pas les preuves.
+tags: [delegation]
+expected_outcome: "Le skill deleguer-a-haiku chargé ; au moins deux appels Agent à plans-notion:executant ; aucun general-purpose ; les trois commandes de preuve citées dans la réponse finale."
+execution:
+  max_turns: 80
+  timeout_seconds: 900
+  allowed_tools: [Read, Glob, Grep, Skill, Agent, Bash, Write, Edit, TodoWrite]
+context:
+  scaffold_script: fixture.sh
+# Jugé sur les appels d'outil (tool_used) et sur la réponse finale (regex), jamais
+# sur le récit de l'agent. « Aucune écriture Notion » n'est pas couverte par ce cas :
+# le banc n'a pas de connecteur Notion, donc aucun juge ne peut le constater.
+graders:
+  - name: skill-appele
+    type: tool_used
+    tool: Skill
+    input_match: deleguer-a-haiku
+    min: 1
+  - name: deux-etapes-a-l-executant
+    type: tool_used
+    tool: Agent
+    input_match: plans-notion:executant
+    min: 2
+  - name: pas-de-general-purpose
+    type: tool_used
+    tool: Agent
+    input_match: general-purpose
+    min: 0
+    max: 0
+  - name: preuve-etape-1-citee
+    type: regex
+    pattern: 'python3 -m unittest tests\.test_nombres'
+  - name: preuve-etape-2-citee
+    type: regex
+    pattern: 'python3 -m unittest tests\.test_listes'
+  - name: preuve-etape-3-citee
+    type: regex
+    pattern: 'python3 -m unittest tests\.test_chaines'

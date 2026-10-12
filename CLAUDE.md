@@ -1,7 +1,7 @@
 # Travailler sur `mes-skills`
 
 Ce dépôt **est** la marketplace `atelier` : deux plugins Claude Code,
-`plans-notion` (skills `plan-notion` et `executer-plan-notion`, agents
+`plans-notion` (skills `plan-notion`, `executer-plan-notion` et `deleguer-a-haiku`, agents
 `enqueteur`, `executant`, `relecteur`, `chercheur` et `sondeur`, fichiers `_partage/`) et `methode-de-travail` (`brainstorming`,
 `systematic-debugging`, `verification-before-completion`). Ils sont installés en
 scope `user` sur le poste et arrivent dans **toutes** les sessions, cloud
@@ -27,8 +27,12 @@ dépôt n'enregistre de marketplace à l'ouverture. Le chargement `@inline`
 vient de la surface `claude.ai`, pas d'ici.
 
 **Une modification ici ne change rien à ta session en cours**, quelle que
-soit la copie qui te gouverne. Elle prend effet après merge sur `main`,
-`claude plugin update <plugin>@atelier`, et un redémarrage. Ne cherche pas à
+soit la copie qui te gouverne. Elle prend effet après merge sur `main` : la
+remontée joue le point 4 bis de
+`plugins/plans-notion/skills/_partage/remontee-sur-main.md`
+(`claude plugin marketplace update atelier`, puis
+`claude plugin update <plugin>@atelier` pour chaque plugin dont la version a
+bougé), et un redémarrage ou `/reload-plugins`. Ne cherche pas à
 vérifier un changement de règle en te regardant travailler : lis le fichier.
 
 ## D'où vient un instantané, et pourquoi rien ne le rattrape
@@ -180,5 +184,7 @@ dans un `SKILL.md` passe au vert et part dans toutes les sessions.
 
 Rien ne se déploie depuis ce dépôt : les postes **tirent** `main`, par
 `claude plugin update` ou par l'`autoUpdate` de la marketplace au démarrage.
+Le point 4 bis de `plugins/plans-notion/skills/_partage/remontee-sur-main.md`
+fait cette mise à jour du poste juste après le merge.
 Merger sur `main` avec la version bumpée *est* la mise à disposition. C'est
 pourquoi la CI n'a pas de job de livraison, et n'en aura pas.

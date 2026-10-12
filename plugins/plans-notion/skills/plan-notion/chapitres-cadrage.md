@@ -89,7 +89,7 @@ les mauvaises surprises d'exécution — le sous-agent qui lit la page ne peut p
 deviner quelles lignes ont été confirmées et lesquelles ont été supposées, alors il
 les traite toutes pareil.
 
-**Deux blocs propres à ce chapitre**, issus de l'enquête (« L'enquête avant les
+**Trois blocs propres à ce chapitre**, issus de l'enquête (« L'enquête avant les
 options », dans `enquete.md`) :
 
 - **La ligne « Existant »**, obligatoire, **une par artefact**, dès que le plan crée
@@ -101,6 +101,9 @@ options », dans `enquete.md`) :
 - **L'intertitre « État de départ »**, qui porte le résultat de la répétition à
   blanc : commandes jouées, sorties, décompte de la suite, comptages. Un plan
   `valide` sans cette section n'a pas eu sa répétition.
+- **La carte de voisinage**, dressée par le pilote selon `enquete.md`. À défaut, une
+  dispense `Pas de carte — <raison>`, avec l'une des trois raisons recevables :
+  dépôt de contenu sans code touché, serveur MCP absent, dépôt non indexé.
 
 #### Les captures d'écran
 

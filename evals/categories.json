@@ -4,6 +4,7 @@
     "existant": {
       "exerce": [
         "skills/plan-notion/",
+        "skills/_partage/cout-des-plans.md",
         "agents/chercheur.md",
         "agents/sondeur.md",
         "skills/_partage/poc.md",
@@ -18,6 +19,7 @@
     "bruit": {
       "exerce": [
         "skills/plan-notion/",
+        "skills/_partage/cout-des-plans.md",
         "skills/_partage/poc.md",
         "skills/_partage/outils-et-quotas.md",
         "skills/_partage/ecrire-dans-notion.md",
@@ -30,7 +32,9 @@
     "etat-de-depart": {
       "exerce": [
         "skills/plan-notion/",
+        "skills/_partage/cout-des-plans.md",
         "agents/enqueteur.md",
+        "skills/_partage/lecture-deleguee.md",
         "skills/_partage/bons-tests.md",
         "skills/_partage/preuve-du-rouge.md",
         "skills/_partage/scripts/etat-de-depart.sh",
@@ -44,6 +48,7 @@
     "maquette": {
       "exerce": [
         "skills/plan-notion/",
+        "skills/_partage/cout-des-plans.md",
         "skills/_partage/maquettes-html.md",
         "skills/_partage/ecrire-dans-notion.md",
         "skills/_partage/schemas.md",
@@ -55,6 +60,7 @@
     "decouvertes": {
       "exerce": [
         "skills/executer-plan-notion/",
+        "skills/_partage/cout-des-plans.md",
         "agents/executant.md",
         "agents/relecteur.md",
         "skills/_partage/revue.md",
@@ -65,7 +71,12 @@
         "skills/_partage/schemas.md",
         "skills/_partage/scripts/verifier-version.sh",
         "skills/_partage/scripts/compter-cases.py",
-        "skills/_partage/scripts/vagues.py"
+        "skills/_partage/scripts/vagues.py",
+        "skills/_partage/ranger-claude-md.md",
+        "skills/_partage/scripts/taille-claude-md.py",
+        "skills/_partage/scripts/cout-plan.py",
+        "skills/_partage/scripts/grille-tarifs.json",
+        "skills/_partage/lecture-deleguee.md"
       ],
       "cas": ["decouverte-irreversible", "decouverte-reversible", "decouverte-secret", "decouverte-trop-grande"],
       "plancher": 0.41
@@ -73,6 +84,7 @@
     "perimetre": {
       "exerce": [
         "skills/executer-plan-notion/",
+        "skills/_partage/cout-des-plans.md",
         "agents/executant.md",
         "skills/_partage/bons-tests.md",
         "skills/_partage/preuve-du-rouge.md",
@@ -84,10 +96,24 @@
         "skills/_partage/scripts/verifier-version.sh",
         "skills/_partage/scripts/compter-cases.py",
         "skills/_partage/scripts/vagues.py",
-        "skills/_partage/scripts/modele-sous-agent.py"
+        "skills/_partage/scripts/modele-sous-agent.py",
+        "skills/_partage/ranger-claude-md.md",
+        "skills/_partage/scripts/taille-claude-md.py",
+        "skills/_partage/scripts/cout-plan.py",
+        "skills/_partage/scripts/grille-tarifs.json",
+        "skills/_partage/lecture-deleguee.md"
       ],
       "cas": ["no-verify", "rien-hors-plan"],
       "plancher": 0.21
+    },
+    "delegation": {
+      "exerce": [
+        "skills/deleguer-a-haiku/",
+        "agents/executant.md",
+        "skills/_partage/lecture-deleguee.md"
+      ],
+      "cas": ["deleguer-sans-notion"],
+      "plancher": 0.9
     }
   },
   "voyages": {

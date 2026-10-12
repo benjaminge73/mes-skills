@@ -10,6 +10,7 @@ from __future__ import annotations
 import json
 import subprocess
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -26,6 +27,14 @@ def jouer(script: str, entree) -> subprocess.CompletedProcess:
 
 def bash(commande: str) -> dict:
     return {"tool_name": "Bash", "tool_input": {"command": commande}}
+
+
+def exit_plan_mode(plan: str) -> dict:
+    return {"tool_name": "ExitPlanMode", "tool_input": {"plan": plan}}
+
+
+def entree_fichier_de_plan(chemin: str) -> dict:
+    return {"tool_name": "ExitPlanMode", "tool_input": {"planFilePath": chemin}}
 
 
 class RefuserNoVerify(unittest.TestCase):
@@ -149,6 +158,156 @@ class RefuserStatutAccentue(unittest.TestCase):
         r = jouer(self.SCRIPT, "")
         self.assertEqual(r.returncode, 0)
         self.assertNotEqual(r.stderr.strip(), "")
+
+
+PLAN_SANS_NOTION = "## Plan\n1. Étape un\n2. Étape deux"
+
+
+class RappelDelegationApresExitPlanMode(unittest.TestCase):
+    """Hook PostToolUse sur ExitPlanMode : rappel de déléguer, jamais bloquant.
+
+    Le texte du plan vient de ``tool_input.plan``, sinon du fichier
+    ``planFilePath`` (dans ``tool_input`` ou ``tool_response``). Les témoins des
+    tests (b) et (d) — le même plan sans URL rend le rappel — sont là pour que le
+    silence du cas Notion ne soit pas gagné par un script muet.
+    """
+    SCRIPT = "rappel_delegation.py"
+
+    def test_un_plan_sans_url_notion_rend_le_rappel_de_delegation(self):
+        r = jouer(self.SCRIPT, exit_plan_mode(PLAN_SANS_NOTION))
+        self.assertEqual(r.returncode, 0, r.stderr)
+        rappel = json.loads(r.stdout)["hookSpecificOutput"]
+        self.assertEqual(rappel["hookEventName"], "PostToolUse")
+        self.assertIn("plans-notion:deleguer-a-haiku", rappel["additionalContext"])
+        self.assertIn("executant", rappel["additionalContext"])
+
+    def test_un_plan_qui_cite_une_page_notion_ne_rend_rien(self):
+        # Témoin : sans lui, un script qui ne rend jamais rien passerait le test.
+        self.assertIn("additionalContext", jouer(self.SCRIPT, exit_plan_mode(PLAN_SANS_NOTION)).stdout)
+        for url in ("https://www.notion.so/Plan-abc123", "https://app.notion.com/p/abc123"):
+            with self.subTest(url=url):
+                r = jouer(self.SCRIPT, exit_plan_mode(f"Suivi : {url}\n1. Étape un"))
+                self.assertEqual(r.returncode, 0, r.stderr)
+                self.assertEqual(r.stdout, "")
+
+    def test_une_entree_illisible_sort_en_zero_sans_rien_rendre(self):
+        for entree in ("pas du json {", ""):
+            with self.subTest(entree=entree):
+                r = jouer(self.SCRIPT, entree)
+                self.assertEqual(r.returncode, 0, r.stderr)
+                self.assertEqual(r.stdout, "")
+
+    def test_un_plan_lu_dans_un_fichier_qui_cite_notion_ne_rend_rien(self):
+        # Témoin : le même plan sans URL, lu dans le même fichier, rend le rappel.
+        with tempfile.TemporaryDirectory() as dossier:
+            chemin = Path(dossier) / "plan.md"
+            chemin.write_text(PLAN_SANS_NOTION, encoding="utf-8")
+            self.assertIn("additionalContext",
+                          jouer(self.SCRIPT, entree_fichier_de_plan(str(chemin))).stdout)
+            for url in ("https://www.notion.so/Plan-abc123", "https://app.notion.com/p/abc123"):
+                with self.subTest(url=url):
+                    chemin.write_text(f"Suivi : {url}\n1. Étape un", encoding="utf-8")
+                    r = jouer(self.SCRIPT, entree_fichier_de_plan(str(chemin)))
+                    self.assertEqual(r.returncode, 0, r.stderr)
+                    self.assertEqual(r.stdout, "")
+
+    def test_un_plan_lu_dans_un_fichier_sans_url_rend_le_rappel(self):
+        # Le plan n'est pas dans tool_input.plan : le chemin est dans tool_input, ou dans tool_response.
+        with tempfile.TemporaryDirectory() as dossier:
+            chemin = Path(dossier) / "plan.md"
+            chemin.write_text(PLAN_SANS_NOTION, encoding="utf-8")
+            entrees = {
+                "chemin dans tool_input": entree_fichier_de_plan(str(chemin)),
+                "chemin dans tool_response": {"tool_name": "ExitPlanMode", "tool_input": {},
+                                              "tool_response": {"planFilePath": str(chemin)}},
+            }
+            for nom, entree in entrees.items():
+                with self.subTest(nom=nom):
+                    r = jouer(self.SCRIPT, entree)
+                    self.assertEqual(r.returncode, 0, r.stderr)
+                    self.assertIn("plans-notion:deleguer-a-haiku",
+                                  json.loads(r.stdout)["hookSpecificOutput"]["additionalContext"])
+
+    def test_un_json_valide_sans_plan_ni_chemin_rend_le_rappel_par_defaut(self):
+        # PostToolUse ne part que si ExitPlanMode a réussi : un plan a été approuvé.
+        entrees = (
+            {"tool_name": "ExitPlanMode", "tool_input": {}},
+            {"tool_input": "pas un objet"},
+            {"tool_name": "ExitPlanMode", "tool_input": {"planFilePath": "/chemin/qui/n/existe/pas.md"}},
+            [],
+        )
+        for entree in entrees:
+            with self.subTest(entree=entree):
+                r = jouer(self.SCRIPT, entree)
+                self.assertEqual(r.returncode, 0, r.stderr)
+                self.assertIn("additionalContext", r.stdout)
+
+
+def lecture(reponse, agent=None) -> dict:
+    """Sortie d'un outil lu par le pilote ; ``agent`` présent = un sous-agent la porte."""
+    entree = {"tool_name": "Read", "tool_input": {"file_path": "/notes.md"}, "tool_response": reponse}
+    if agent is not None:
+        entree["agent_id"] = agent
+    return entree
+
+
+class SignalerLecturePilote(unittest.TestCase):
+    """Hook PostToolUse sur Read|Bash|Grep|notion-fetch : rappel si la sortie dépasse 20 000 caractères.
+
+    Le pilote se reconnaît à l'absence de ``agent_id`` ; un sous-agent le porte.
+    Les témoins (b) et (c) rendent le rappel sur la même entrée sans ``agent_id``
+    ou à 25 000 caractères, pour qu'un script muet ne passe pas le silence.
+    """
+    SCRIPT = "signaler_lecture_pilote.py"
+
+    def test_une_lecture_de_25000_caracteres_sans_agent_id_rend_le_rappel(self):
+        r = jouer(self.SCRIPT, lecture("a" * 25000))
+        self.assertEqual(r.returncode, 0, r.stderr)
+        rappel = json.loads(r.stdout)["hookSpecificOutput"]
+        self.assertEqual(rappel["hookEventName"], "PostToolUse")
+        self.assertIn("Lecture de 25000 caractères dans le contexte du pilote", rappel["additionalContext"])
+        self.assertIn("_partage/lecture-deleguee.md", rappel["additionalContext"])
+
+    def test_la_meme_lecture_portee_par_un_sous_agent_ne_rend_rien(self):
+        # Témoin : sans agent_id, la même entrée rend le rappel.
+        self.assertIn("additionalContext", jouer(self.SCRIPT, lecture("a" * 25000)).stdout)
+        for agent in ("agent-123", ""):
+            with self.subTest(agent_id=agent):
+                r = jouer(self.SCRIPT, lecture("a" * 25000, agent=agent))
+                self.assertEqual(r.returncode, 0, r.stderr)
+                self.assertEqual(r.stdout, "")
+
+    def test_une_lecture_de_5000_caracteres_ne_rend_rien(self):
+        # Témoin : la même entrée à 25 000 caractères rend le rappel.
+        self.assertIn("additionalContext", jouer(self.SCRIPT, lecture("a" * 25000)).stdout)
+        r = jouer(self.SCRIPT, lecture("a" * 5000))
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(r.stdout, "")
+
+    def test_une_entree_illisible_sort_en_zero_sans_rien_rendre(self):
+        # Témoin : une entrée valide de 25 000 caractères rend le rappel.
+        self.assertIn("additionalContext", jouer(self.SCRIPT, lecture("a" * 25000)).stdout)
+        for entree in ("pas du json {", "", [], {"tool_name": "Read"}):
+            with self.subTest(entree=entree):
+                r = jouer(self.SCRIPT, entree)
+                self.assertEqual(r.returncode, 0, r.stderr)
+                self.assertEqual(r.stdout, "")
+
+    # Extra (hors budget de l'étape, justifié) : la panne « seuil mal placé à la frontière »
+    # (``>=`` pour ``>``, ou seuil recopié à 20 001 ou 24 999) n'est pas vue par 5 000 et 25 000.
+    def test_le_seuil_de_20000_caracteres_est_strict(self):
+        self.assertEqual(jouer(self.SCRIPT, lecture("a" * 20000)).stdout, "")
+        r = jouer(self.SCRIPT, lecture("a" * 20001))
+        self.assertNotEqual(r.stdout, "", r.stderr)
+        self.assertIn("Lecture de 20001 caractères", json.loads(r.stdout)["hookSpecificOutput"]["additionalContext"])
+
+    # Extra (justifié) : la panne « objet ignoré, ou compté en octets encodés » n'est pas vue par
+    # les tests de chaîne. Un objet se mesure à sa sérialisation JSON sans échappement :
+    # '{"a": "' (7) + 20000 é + '"}' (2) = 20009 caractères, et 120009 si ensure_ascii était vrai.
+    def test_une_sortie_objet_se_mesure_a_sa_serialisation_sans_echappement(self):
+        r = jouer(self.SCRIPT, lecture({"a": "é" * 20000}))
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("Lecture de 20009 caractères", json.loads(r.stdout)["hookSpecificOutput"]["additionalContext"])
 
 
 if __name__ == "__main__":

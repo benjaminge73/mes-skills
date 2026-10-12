@@ -58,6 +58,13 @@ C'est là que le plan cesse d'être une intention : si on ne sait pas encore
 l'écrire, c'est qu'on ne sait pas encore ce qu'on va faire, et c'est cette
 ignorance-là qu'il faut rendre visible.
 
+**En tête du chapitre, avant le tableau, une ligne `Coût estimé : …`.** Elle
+recopie les médianes du barème de `${CLAUDE_PLUGIN_ROOT}/skills/_partage/cout-des-plans.md`
+pour les types de session que ce plan annonce — plan seul, exécution seule, ou
+les deux dans une même session —, avec la date du barème. Les dollars sont
+d'équivalent API ; **aucun pourcentage de quota**. Une étape sans médiane mesurée
+n'a pas de coût estimé : la ligne le dit, elle n'invente pas de chiffre.
+
 **En tête du chapitre, un tableau `Étape · Fichiers touchés · Dépend de ·
 Vague · Relecture`**, une ligne par étape — le pre-flight scan du chapitre : il donne
 d'un coup d'œil ce qui se recoupe, avant même d'entrer dans le détail de

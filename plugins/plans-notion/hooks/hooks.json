@@ -1,6 +1,26 @@
 {
-  "description": "Garde-fous du plugin plans-notion : pas de --no-verify sur un commit, pas de Statut de plan Notion accentué.",
+  "description": "Garde-fous du plugin plans-notion : pas de --no-verify sur un commit, pas de Statut de plan Notion accentué. Rappel après ExitPlanMode : déléguer chaque étape à l'executant (silencieux si le plan cite une page Notion). Rappel après Read, Bash, Grep ou une lecture notion-fetch de plus de 20 000 caractères, dans le contexte du pilote seulement (jamais dans un sous-agent) : déléguer la suivante.",
   "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "ExitPlanMode",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/rappel_delegation.py\""
+          }
+        ]
+      },
+      {
+        "matcher": "Read|Bash|Grep|mcp__.*__notion-fetch",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/signaler_lecture_pilote.py\""
+          }
+        ]
+      }
+    ],
     "PreToolUse": [
       {
         "matcher": "Bash",

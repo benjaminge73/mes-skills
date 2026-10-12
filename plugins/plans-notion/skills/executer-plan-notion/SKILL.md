@@ -127,6 +127,17 @@ Puis, dans le même tour, avant la première étape :
   que fait le label `review-required` ? un job merge-t-il seul ?) et
   **calculer les vagues** (`vagues.py`) ; les deux relevés s'écrivent dans
   l'entrée `Ouverture` du journal (§4).
+- **Modèle du pilote** : noter dans l'entrée `Ouverture` la ligne
+  `Pilote : <modèle>, <effort>` (p.ex. `Pilote : Sonnet 5.5, high`), d'après ce
+  que la session sait de son propre modèle et de son effort. Si ce n'est pas
+  Sonnet effort `high`, proposer à Benjamin une ligne : « l'exécution se pilote
+  en Sonnet effort `high` : relancer avec `claude --model sonnet --effort high`,
+  ou `/model sonnet` puis `/effort high` avant de continuer ». Le skill ne change pas le modèle
+  lui-même : il se choisit au lancement de la session. Pourquoi Sonnet : le banc
+  d'évals joue déjà tous ses cas en Sonnet 5.5 (`evals/outillage/lancer.sh`
+  l.132, `.github/workflows/ci.yml` l.435), c'est donc la configuration testée, et
+  Sonnet coûte la moitié d'Opus sur chaque poste. La conception (`plan-notion`)
+  reste en Opus.
 
 **Par défaut, un plan = une seule branche, et aucune PR tant que Benjamin ne la
 demande pas** : les étapes sont des commits sur la branche du plan, et
@@ -156,7 +167,7 @@ pas pour raconter l'avancement, qui va dans `Journal d'exécution` (§4).
   part à l'arbitrage de Benjamin, sur une branche de côté `-etape-N-en-echec`.
   Étape qui écrit du code testé : deux commits, rouge puis vert.
 - **La délégation est la règle** : charger ce skill vaut demande de déléguer.
-  Pilote en Opus effort high, **un appel `Agent` par étape**
+  Pilote en Sonnet effort `high`, **un appel `Agent` par étape**
   (`subagent_type: "plans-notion:executant"`, nom qualifié, aucun paramètre
   `model` ni `effort` : l'agent porte `haiku` et `effort: high`), en séquence
   par défaut, en parallèle par
@@ -342,8 +353,8 @@ l'exécution fait attendre :
 
 - **le port des tests e2e** — deux plans ne le prennent pas en même temps ;
 - **la base locale** — même raison ;
-- **les actions lourdes** (suites, e2e, évals) — une seule à la fois sur la
-  machine : le plan maître porte leur file, le pilote les prend une par une
+- **les actions lourdes** (suites, e2e, évals) — deux à la fois au plus sur la
+  machine (deux places) : le plan maître porte leur file, le pilote les prend dans l'ordre
   (`${CLAUDE_PLUGIN_ROOT}/skills/_partage/machine-partagee.md`) ;
 - **le quota d'un outil**, lu au registre :
 
@@ -422,6 +433,8 @@ Elle s'écrit avec les mêmes précautions que le reste (§5).
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/revue.md`,
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/bons-tests.md`,
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/poc.md`,
-  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/machine-partagee.md` et
+  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/machine-partagee.md`,
+  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/cout-des-plans.md`,
+  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/ranger-claude-md.md` et
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/outils-et-quotas.md`, livrés par le
   plugin `plans-notion` — pas par le dépôt de travail, quel qu'il soit.

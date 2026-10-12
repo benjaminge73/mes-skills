@@ -395,7 +395,7 @@ Quand Benjamin valide le plan :
    `Exécution` juste, ou il n'y passe pas : c'est ce chapitre-là, et pas les
    réponses éparpillées dans la page, qui part dans les briefs des sous-agents
    d'exécution.
-2. **Passer le plan au filtre de l'enquête.** Dix vérifications, et elles se
+2. **Passer le plan au filtre de l'enquête.** Onze vérifications, et elles se
    font page ouverte, pas de mémoire :
    1. plus aucune question ouverte dont la réponse était vérifiable et n'a pas
       été vérifiée ;
@@ -422,6 +422,10 @@ Quand Benjamin valide le plan :
    10. une ligne « Existant cherché : … / trouvé : … / fait maison parce que … »
       **par artefact** non propre au projet que les étapes fabriquent, présente
       dans `Contraintes techniques vérifiées` (gisement 6, « L'extérieur »).
+   11. une **carte de voisinage** présente dans `Contraintes techniques
+       vérifiées` (geste du pilote, `enquete.md`), ou une dispense écrite
+       `Pas de carte — <raison>` dont la raison est l'une des trois recevables :
+       dépôt de contenu sans code touché, serveur MCP absent, dépôt non indexé.
 
    Ce filtre vient de l'enquête sur les plans passés ; il coûte quelques minutes ici
    et évite la découverte en pleine exécution, qui coûte une étape. Les mesures

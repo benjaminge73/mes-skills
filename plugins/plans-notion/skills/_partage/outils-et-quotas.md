@@ -211,6 +211,60 @@ Pour une PR refusée par le classifieur : ne pas contourner (un merge local
 aurait le même effet), livrer la branche poussée avec la commande prête, et
 attendre la demande dans le tour.
 
+## Fiche — Abonnement Claude Max
+
+**Quota ou coût** (relevé le 2026-10-12, sur la doc Claude Code et la page des
+tarifs) : aucun chiffre officiel en tokens ni en heures n'est publié pour
+l'abonnement. Le pourcentage d'utilisation affiché dans la ligne de statut n'est
+pas un chiffre documenté : il n'est pas retenu comme mesure. Les chiffres
+qu'on trouve chez des tiers sont écartés. L'abonnement ne facture pas en
+dollars : les dollars des fiches sont l'équivalent au tarif de l'API, qui sert
+à comparer les postes entre eux (même convention que « claude plugin eval »).
+Les plafonds observés (429, limite hebdomadaire) sont dans la fiche « Sessions
+Claude ».
+
+**Pièges datés** : aucun connu au 2026-10-12 propre à l'abonnement.
+
+**Bonne pratique** : ne pas estimer la consommation d'un plan en heures ni en
+pourcentage de quota. On mesure en jetons (fiche « ccusage ») et on chiffre sur
+la grille de tarifs du dépôt (`grille-tarifs.json`, relevée le 2026-10-12).
+
+**Repli** : quand un quota d'abonnement bloque, attendre la remise à zéro
+indiquée dans la fiche « Sessions Claude ».
+
+## Fiche — ccusage (lecture des journaux de session)
+
+**Quota ou coût** (appel d'essai du 2026-10-12, version épinglée 20.0.30) : pas
+de quota, c'est un outil qui lit les journaux locaux de session. Ses jetons
+recoupent les journaux au token près. Son `cost` vient d'une table de prix
+LiteLLM, différente de la grille de tarifs du dépôt : sur une mesure de deux
+sessions du 2026-10-12, ccusage annonçait 86,65 $ et la grille du dépôt, 80,14 $
+pour les mêmes jetons. La cause de l'écart n'est pas isolée.
+
+**Pièges datés** :
+
+- **2026-10-12 : le `cost` de ccusage n'est pas le prix de l'API tel que le
+  dépôt le compte.** Écart de 86,65 $ contre 80,14 $ sur deux sessions, cause non
+  isolée. Un chiffre de ccusage ne se recopie pas dans un rapport de coût.
+- **2026-10-12 : des noms de modèles qui ne sont pas tous des identifiants de la
+  grille.** Les journaux portent `claude-sonnet-5` et `claude-sonnet-5-5`,
+  `claude-opus-5` et `claude-opus-5-5`, puis `sonnet`, `opus`, `haiku` et des
+  noms anciens. `claude-opus-5` peut désigner Opus 5, plus cher qu'Opus 5.5 : une
+  ligne de ce nom ne se chiffre pas au tarif 5.5, elle reste « non chiffrée ».
+- **2026-10-12 : écriture de cache non ventilée.** `cacheCreationTokens` est un
+  total. L'écriture de 5 minutes et celle d'une heure ne se séparent que dans le
+  journal brut, au champ `message.usage.cache_creation`.
+
+**Bonne pratique** : installer la version épinglée (`npm i -g ccusage@20.0.30`),
+ne prendre de ccusage que les jetons, et chiffrer sur la grille du dépôt
+(`cout-plan.py` le fait). Le `cost` de ccusage ne sert pas de montant.
+
+**Repli** : si ccusage est absent ou change de forme de sortie, `cout-plan.py`
+s'arrête avec un message et le code 2, sans trace Python. Les jetons restent
+lisibles dans les journaux bruts (`~/.claude/projects`, champ `message.usage`),
+mais une somme brute compte deux fois les lignes répétées du streaming : elle ne
+sert pas de chiffre sans dédoublonnage.
+
 ## Fiche — Connecteurs MCP d'une session Claude Code (Notion, Composio)
 
 **Quota ou coût** : aucun quota rencontré au 2026-10-08. Le repli par Hermes
