@@ -263,18 +263,23 @@ class LancerLocalRefuseSiUnBancTourneEnCi(unittest.TestCase):
 class LancerLocalPrendLeJetonMachine(unittest.TestCase):
     """En local, les évals sont une action lourde : elles ne partent qu'avec le jeton."""
 
-    def test_jeton_deja_tenu_le_lanceur_attend_puis_refuse_sans_lancer_claude(self):
+    def test_deux_places_tenues_le_lanceur_attend_puis_refuse_sans_lancer_claude(self):
+        # Deux places (PLACES_LOURDES = 2) : deux détenteurs voisins les tiennent
+        # toutes, et le lanceur ne doit pas passer.
         lancement = _LancementLocal(self)
-        detenteur = subprocess.Popen(["sleep", "60"])
-        self.addCleanup(lambda: (detenteur.kill(), detenteur.wait()))
-        pris = subprocess.run(
-            [sys.executable, str(ETAT_MACHINE), "prendre", "e2e", "--plan", "Plan voisin",
-             "--pid", str(detenteur.pid)],
-            env=lancement.env, capture_output=True, text=True, timeout=30,
-        )
-        if pris.returncode == 4:
-            self.skipTest("la machine est saturée : le jeton refuse, quoi que fasse le lanceur")
-        self.assertEqual(pris.returncode, 0, pris.stderr)
+        voisins = [("Plan voisin", subprocess.Popen(["sleep", "60"])),
+                   ("Plan voisin bis", subprocess.Popen(["sleep", "60"]))]
+        for _plan, detenteur in voisins:
+            self.addCleanup(lambda d=detenteur: (d.kill(), d.wait()))
+        for plan, detenteur in voisins:
+            pris = subprocess.run(
+                [sys.executable, str(ETAT_MACHINE), "prendre", "e2e", "--plan", plan,
+                 "--pid", str(detenteur.pid)],
+                env=lancement.env, capture_output=True, text=True, timeout=30,
+            )
+            if pris.returncode == 4:
+                self.skipTest("la machine est saturée : le jeton refuse, quoi que fasse le lanceur")
+            self.assertEqual(pris.returncode, 0, pris.stderr)
 
         debut = time.monotonic()
         resultat = lancement.lancer()
@@ -283,6 +288,7 @@ class LancerLocalPrendLeJetonMachine(unittest.TestCase):
         self.assertNotEqual(resultat.returncode, 0, resultat.stderr)
         self.assertGreaterEqual(duree, 1.0, "EVALS_ATTENDRE=1 : le lanceur doit avoir attendu")
         self.assertIn("Plan voisin", resultat.stderr, "le refus doit dire qui tient le jeton")
+        self.assertIn("Plan voisin bis", resultat.stderr, "le refus cite tous les détenteurs")
         self.assertEqual(lancement.lancements_de_claude(), [])
 
     def test_le_jeton_est_tenu_pendant_claude_au_nom_du_plan_donne(self):
