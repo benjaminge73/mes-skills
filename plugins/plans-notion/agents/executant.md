@@ -1,6 +1,6 @@
 ---
 name: executant
-description: Exécute une étape, et une seule, d'un plan Notion déjà validé — dans un périmètre de fichiers fermé, avec une commande de preuve à jouer, et un rapport à quatre états. À invoquer par le skill executer-plan-notion, un appel par étape, y compris pour deux étapes regroupées. Ne conçoit rien, ne décide rien qui engage, n'écrit jamais dans Notion, ne commite pas sauf ordre explicite du brief. Le brief porte l'objectif de l'étape ; ce fichier porte les règles qui ne changent jamais d'une étape à l'autre.
+description: Exécute une étape, et une seule, d'un plan validé — page Notion ou plan natif — dans un périmètre de fichiers fermé, avec une commande de preuve à jouer, et un rapport à quatre états. À invoquer par le skill executer-plan-notion (plan dans une page Notion) et par le skill deleguer-a-haiku (plan natif, sans page), un appel par étape, y compris pour deux étapes regroupées. Ne conçoit rien, ne décide rien qui engage, n'écrit jamais dans Notion, ne commite pas sauf ordre explicite du brief. Le brief porte l'objectif de l'étape ; ce fichier porte les règles qui ne changent jamais d'une étape à l'autre.
 model: haiku
 effort: high
 memory: user
