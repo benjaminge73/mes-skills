@@ -1,7 +1,7 @@
 # Travailler sur `mes-skills`
 
 Ce dépôt **est** la marketplace `atelier` : deux plugins Claude Code,
-`plans-notion` (skills `plan-notion` et `executer-plan-notion`, agents
+`plans-notion` (skills `plan-notion`, `executer-plan-notion` et `deleguer-a-haiku`, agents
 `enqueteur`, `executant`, `relecteur`, `chercheur` et `sondeur`, fichiers `_partage/`) et `methode-de-travail` (`brainstorming`,
 `systematic-debugging`, `verification-before-completion`). Ils sont installés en
 scope `user` sur le poste et arrivent dans **toutes** les sessions, cloud
