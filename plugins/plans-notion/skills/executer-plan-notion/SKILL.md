@@ -132,7 +132,7 @@ Puis, dans le même tour, avant la première étape :
   que la session sait de son propre modèle et de son effort. Si ce n'est pas
   Sonnet effort `high`, proposer à Benjamin une ligne : « l'exécution se pilote
   en Sonnet effort `high` : relancer avec `claude --model sonnet --effort high`,
-  ou `/model sonnet` avant de continuer ». Le skill ne change pas le modèle
+  ou `/model sonnet` puis `/effort high` avant de continuer ». Le skill ne change pas le modèle
   lui-même : il se choisit au lancement de la session. Pourquoi Sonnet : le banc
   d'évals joue déjà tous ses cas en Sonnet 5.5 (`evals/outillage/lancer.sh`
   l.132, `.github/workflows/ci.yml` l.435), c'est donc la configuration testée, et
