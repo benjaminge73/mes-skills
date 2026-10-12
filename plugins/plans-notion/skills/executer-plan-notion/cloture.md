@@ -7,8 +7,8 @@ détail vit ici.
 Sommaire :
 
 - Dans le même tour : `Statut`, `Branche`, entrée `État final`, compte rendu
-- La séquence de clôture (suite complète locale, push, pas de PR, contrôle
-  bloquant, retrait du worktree)
+- La séquence de clôture (suite complète locale, allègement des `CLAUDE.md`
+  trop longs, push, pas de PR, contrôle bloquant, retrait du worktree)
 - La PR, puis la remontée sur `main` — sur demande seulement
 
 Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard » :
@@ -74,6 +74,9 @@ Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard » :
     reportées dans les `subgraph` si elles diffèrent de ce qui était prévu.
 
     📄 `${CLAUDE_PLUGIN_ROOT}/skills/_partage/schemas.md`
+  - **la taille des `CLAUDE.md`** — la ligne écrite par le geste du point 2
+    de la séquence ci-dessous (taille avant, après, destinations, ou « sous
+    les plafonds »).
 - Le compte rendu dit **quelles étapes sont parties en sous-agent `executant` (Haiku)** et,
   pour celles faites en direct, pourquoi (§3). Il dit aussi, en une ligne, que
   **la PR n'est pas ouverte et qu'elle le sera sur demande** — avec ou sans le
@@ -92,13 +95,43 @@ Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard » :
      sans navigateur, par exemple) se dit au journal, tests nommés — ce n'est
      pas un vert, c'est un trou, et Benjamin doit le voir avant de demander la
      PR. Suite complète et e2e prennent le jeton des actions lourdes :
-     `${CLAUDE_PLUGIN_ROOT}/skills/_partage/machine-partagee.md`. Un `CLAUDE.md` trop long : `${CLAUDE_PLUGIN_ROOT}/skills/_partage/ranger-claude-md.md`.
-  2. **Pousser la branche du plan.** C'est le seul push de la clôture quand le
+     `${CLAUDE_PLUGIN_ROOT}/skills/_partage/machine-partagee.md`.
+  2. **Alléger les `CLAUDE.md` trop longs, sans demander.** Ce geste ne tourne
+     que suite complète verte, et avant le push : son commit part avec la
+     branche. Pourquoi à la clôture : un `CLAUDE.md` est lu en entier à chaque
+     session, et il change assez rarement pour qu'un contrôle à chaque étape
+     soit du bruit. Trois temps :
+     - **(a) La mémoire du dépôt suit le plan.** Si le plan a changé une
+       convention, une commande ou un piège du dépôt, son `CLAUDE.md` le dit :
+       la ligne se met à jour, dans un commit à part sur la branche du plan.
+     - **(b) Mesurer**, à la racine du dépôt du plan :
+       ```bash
+       python3 ${CLAUDE_PLUGIN_ROOT}/skills/_partage/scripts/taille-claude-md.py --racine . --base origin/main
+       ```
+       Une ligne par fichier : `<chemin> <lignes> / <plafond> <verdict>`. Le
+       plafond est 200 lignes, ou la taille du même fichier sur `origin/main`
+       si elle est plus grande : un fichier ne grossit pas au-delà de ce qu'il
+       pèse déjà sur la base (c'est le cliquet). Verdict `REFUS` = au-delà du
+       plafond ; code de sortie 1 quand il y en a un.
+     - **(c) Alléger tout de suite** si un fichier dépasse 200 lignes, ou si
+       la mesure refuse. Un `executant` range le contenu selon
+       `${CLAUDE_PLUGIN_ROOT}/skills/_partage/ranger-claude-md.md` (où va chaque
+       type de ligne : reste dans le fichier, règle à portée de chemin, skill,
+       `docs/`, ou suppression si Claude le relit dans le dépôt). Le
+       `relecteur` vérifie qu'aucune information ne s'est perdue. Le tout part
+       dans un commit à part sur la branche du plan, puis la mesure est relancée :
+       le fichier doit repasser sous son plafond. Si le rangement touche autre
+       chose qu'un fichier de consignes, la suite complète est rejouée avant le
+       push.
+     - **Résultat** : une ligne à l'entrée `État final`, par fichier concerné,
+       avec la taille avant, la taille après et les destinations créées — ou,
+       si rien n'a dépassé, `CLAUDE.md : sous les plafonds, aucun allègement`.
+  3. **Pousser la branche du plan.** C'est le seul push de la clôture quand le
      relevé du §2 a retenu les commits en local ; sans lui, le travail ne vit
      que sur un disque. La sortie de la preuve va au journal (`État final`).
-  3. **Ne pas ouvrir la PR.** Ni la merger, ni la préparer « pour gagner du
+  4. **Ne pas ouvrir la PR.** Ni la merger, ni la préparer « pour gagner du
      temps ». Le compte rendu s'arrête sur la branche, prouvée et poussée.
-  4. **Contrôle bloquant, avant de poser `a merger`** :
+  5. **Contrôle bloquant, avant de poser `a merger`** :
      ```bash
      git branch --list '<branche-du-plan>-etape-*'
      git worktree list
@@ -113,7 +146,7 @@ Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard » :
      `État final`.
 
      📄 `${CLAUDE_PLUGIN_ROOT}/skills/_partage/vagues.md`
-  5. **Retirer le worktree**, `git worktree remove ~/repos/worktrees/<repo>/
+  6. **Retirer le worktree**, `git worktree remove ~/repos/worktrees/<repo>/
      <branche-kebab>` — **la branche, elle, reste** : c'est le hook
      `SessionStart` qui la nettoiera après le merge éventuel, et **une branche
      encore checked-out dans un worktree n'est jamais nettoyée par ce hook**
