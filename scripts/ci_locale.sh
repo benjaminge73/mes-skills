@@ -111,10 +111,12 @@ if [ "$faire_garde" = 1 ]; then
     etape "Une leçon a son cas" python3 scripts/check_lecon_a_son_cas.py --base "$BASE_REF"
     etape "Veille avant la mise à jour d'un skill" python3 scripts/check_veille.py --base "$BASE_REF"
     etape "Règles de forme des skills et registre des garde-fous" python3 scripts/check_skills.py --base "$BASE_REF"
+    etape "Taille des CLAUDE.md, à cliquet" python3 plugins/plans-notion/skills/_partage/scripts/taille-claude-md.py --racine . --base "$BASE_REF"
   else
     echo
     echo "(sans base : garde de version, leçon a son cas, veille et cliquet sautés)"
     etape "Règles de forme des skills et registre des garde-fous" python3 scripts/check_skills.py --sans-base
+    etape "Taille des CLAUDE.md (sans base : avertit seulement)" python3 plugins/plans-notion/skills/_partage/scripts/taille-claude-md.py --racine .
   fi
 fi
 

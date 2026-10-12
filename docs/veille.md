@@ -96,6 +96,8 @@ pas au fond). Un fait qu'on ne retrouve pas sur la page n'entre pas au tableau.
 | L'effort d'un frontmatter (skill ou sous-agent) l'emporte sur l'effort de session, pas sur `CLAUDE_CODE_EFFORT_LEVEL` | « Frontmatter effort applies when that skill or subagent is active, overriding the session level but not the environment variable. » | https://code.claude.com/docs/en/model-config.md | 2026-10-08 | `evals/outillage/lancer.sh` |
 | L'alias `haiku` désigne Haiku 5.5 depuis la 2.1.293 (API Anthropic seulement) | « `haiku` resolves to Haiku 5.5 on the Anthropic API » | https://code.claude.com/docs/en/model-config.md | 2026-10-08 | `evals/outillage/lancer.sh` |
 | Le `model` du frontmatter l'emporte sur `CLAUDE_CODE_SUBAGENT_MODEL` | « `CLAUDE_CODE_SUBAGENT_MODEL` is a default, so a subagent's definition or a model Claude passes still takes precedence over it. » | https://code.claude.com/docs/en/sub-agents.md | 2026-10-08 | `evals/outillage/lancer.sh` |
+| Un `CLAUDE.md` vise moins de 200 lignes | « target under 200 lines per CLAUDE.md file » | https://code.claude.com/docs/en/memory.md | 2026-10-12 | `scripts/test_taille_claude_md.py` (plafond de `taille-claude-md.py`, joué par `scripts/ci_locale.sh`, section `garde`) |
+| Pour alléger un `CLAUDE.md`, on sort la consigne vers un skill ou une règle à portée de chemin | « move it to a [skill](/docs/en/skills) or a [path-scoped rule](#organize-rules-with-claude/rules/) instead » | https://code.claude.com/docs/en/memory.md | 2026-10-12 | `scripts/test_taille_claude_md.py` (le guide `_partage/ranger-claude-md.md` reprend cette consigne) |
 
 ## 3. Le journal des passes
 
@@ -275,3 +277,22 @@ Une entrée par passe, la plus récente en dernier. Le titre est
   règle de refus.
 - **Verdict de `scripts/veille_faits.py`** (2026-10-09) : 17 faits vérifiés,
   0 citation à signaler, 0 page injoignable.
+
+### 2026-10-12 — passe avant l'étape 2 du plan « mes-skills — CLAUDE.md tenus, coût des plans, jeton lourd et délégation à Haiku »
+
+- **Sources lues** : la page mémoire de la doc Claude Code (`memory.md`), pour les deux
+  citations de la limite de 200 lignes et de la consigne de rangement, relevées dans sa
+  version `.md`. Les autres sources de la partie 1 n'ont **pas** été relues pour cette
+  entrée.
+- **Ce qui a changé** : rien de cassé sur les points relevés. « target under 200 lines per
+  CLAUDE.md file » figure à la section « Size ». La consigne de rangement figure à la
+  section sur les `CLAUDE.md`, mais le texte rendu (« move it to a skill or a path-scoped
+  rule instead ») porte dans la source les liens `[skill]` et `[path-scoped rule]` : la
+  citation du tableau garde donc ce balisage, pour que `scripts/veille_faits.py`, qui
+  compare à la source, la retrouve.
+- **Ce qu'on en fait** : les deux citations entrent au tableau de la partie 2, avec pour
+  contrôle `scripts/test_taille_claude_md.py`. Le garde de taille (`taille-claude-md.py`,
+  plugin `plans-notion`) est joué par `scripts/ci_locale.sh`, section `garde`, et sa ligne
+  entre au registre des garde-fous.
+- **Verdict de `scripts/veille_faits.py`** (2026-10-12) : 19 faits vérifiés, 0 citation à
+  signaler, 0 page injoignable.
