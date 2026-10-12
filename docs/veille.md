@@ -98,6 +98,7 @@ pas au fond). Un fait qu'on ne retrouve pas sur la page n'entre pas au tableau.
 | Le `model` du frontmatter l'emporte sur `CLAUDE_CODE_SUBAGENT_MODEL` | « `CLAUDE_CODE_SUBAGENT_MODEL` is a default, so a subagent's definition or a model Claude passes still takes precedence over it. » | https://code.claude.com/docs/en/sub-agents.md | 2026-10-08 | `evals/outillage/lancer.sh` |
 | Un `CLAUDE.md` vise moins de 200 lignes | « target under 200 lines per CLAUDE.md file » | https://code.claude.com/docs/en/memory.md | 2026-10-12 | `scripts/test_taille_claude_md.py` (plafond de `taille-claude-md.py`, joué par `scripts/ci_locale.sh`, section `garde`) |
 | Pour alléger un `CLAUDE.md`, on sort la consigne vers un skill ou une règle à portée de chemin | « move it to a [skill](/docs/en/skills) or a [path-scoped rule](#organize-rules-with-claude/rules/) instead » | https://code.claude.com/docs/en/memory.md | 2026-10-12 | `scripts/test_taille_claude_md.py` (le guide `_partage/ranger-claude-md.md` reprend cette consigne) |
+| Sur Opus 5.5 et Sonnet 5.5, une lecture de cache coûte 0,05 × le prix d'entrée (0,20 $ et 0,10 $) | « On Claude Opus 5.5 and Claude Sonnet 5.5, a cache hit costs 5% of the standard input price ($0.20 USD per million tokens on Claude Opus 5.5, $0.10 USD on Claude Sonnet 5.5). » | https://platform.claude.com/docs/en/about-claude/pricing.md | 2026-10-12 | `scripts/test_cout_plan.py` (classe `GrilleReelle`, lit `plugins/plans-notion/skills/_partage/scripts/grille-tarifs.json`) |
 
 ## 3. Le journal des passes
 
@@ -295,4 +296,26 @@ Une entrée par passe, la plus récente en dernier. Le titre est
   plugin `plans-notion`) est joué par `scripts/ci_locale.sh`, section `garde`, et sa ligne
   entre au registre des garde-fous.
 - **Verdict de `scripts/veille_faits.py`** (2026-10-12) : 19 faits vérifiés, 0 citation à
+  signaler, 0 page injoignable.
+
+### 2026-10-12 — veille des tarifs, étape 7 du plan « CLAUDE.md tenus, coût des plans, jeton lourd et délégation à Haiku »
+
+- **Sources lues** : la page tarifs d'Anthropic, en source `.md`
+  (`https://platform.claude.com/docs/en/about-claude/pricing.md`) : le tableau « Model
+  pricing », ses notes sous le tableau, la section sur le cache et celle sur le palier
+  de Haiku 5.5. Les autres sources de la partie 1 n'ont **pas** été relues pour cette
+  entrée. L'alias `opus` / `sonnet` / `haiku` de la doc des modèles n'a pas été relu
+  non plus : il reste à revérifier avant toute règle qui en dépend.
+- **Ce qui a changé** : le prix de la lecture de cache de Sonnet 5.5 est de 0,10 $ par
+  million de jetons, et non 0,20 $ comme la grille le donnait par déduction. Pour Opus
+  5.5, la lecture vaut 0,20 $ : c'est 0,05 × le prix d'entrée, comme pour Sonnet 5.5.
+  Haiku 5.5 a deux paliers selon la longueur du prompt (jusqu'à 100 000 tokens, puis
+  au-delà), et `cout-plan.py` ne lit que le premier.
+- **Ce qu'on en fait** : la grille `grille-tarifs.json` est corrigée (tous les prix
+  sont marqués relevés, lecture de Sonnet 5.5 à 0,10 $, palier au-delà de Haiku 5.5 dans
+  un champ à part) ; le test `GrilleReelle` de `scripts/test_cout_plan.py` la compare à la
+  page. Le fait « lecture à 5 % du prix d'entrée » entre au tableau de la partie 2, avec
+  ce test pour contrôle. Deux fiches entrent au registre des outils : « Abonnement Claude
+  Max » et « ccusage ».
+- **Verdict de `scripts/veille_faits.py`** (2026-10-12) : 20 faits vérifiés, 0 citation à
   signaler, 0 page injoignable.
