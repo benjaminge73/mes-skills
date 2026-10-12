@@ -1,7 +1,7 @@
 ---
 name: deleguer-a-haiku
 description: >-
-  Fait exécuter un plan natif, sans page Notion, par des sous-agents Haiku. À utiliser quand une session a un plan validé qui ne vit pas dans Notion : plan natif approuvé après ExitPlanMode, ou consigne d'Hermes qui lance une session Claude Code en mode plan et lit son compte rendu final. Découpe le plan en étapes de cinq fichiers au plus, chacune avec sa preuve ; envoie chaque étape à plans-notion:executant, en parallèle quand les fichiers sont disjoints ; relit chaque rapport et rejoue la preuve ; n'ajoute un relecteur qu'au-delà de cinq fichiers touchés en tout ; rend un compte rendu court dans la session. Rien ne s'écrit dans Notion. Pour un plan dans une page Notion, c'est executer-plan-notion.
+  Exécute un plan natif approuvé, sans page Notion, en le déléguant à des sous-agents Haiku. À utiliser quand on demande d'exécuter, dérouler ou implémenter un plan validé qui vit dans un fichier et non dans Notion : « exécute le plan », « déroule plan.md », plan natif approuvé après ExitPlanMode, ou consigne d'Hermes qui lance une session en mode plan et lit son compte rendu final. Découpe le plan en étapes de cinq fichiers au plus, chacune avec sa preuve ; envoie chaque étape à plans-notion:executant, en parallèle quand les fichiers sont disjoints ; relit chaque rapport et rejoue la preuve ; n'ajoute un relecteur qu'au-delà de cinq fichiers touchés en tout ; cite dans le compte rendu la commande de preuve de chaque étape. Rien ne s'écrit dans Notion. Pour un plan dans une page Notion, c'est executer-plan-notion.
 ---
 
 # Déléguer un plan natif à Haiku
