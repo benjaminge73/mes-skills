@@ -6,11 +6,16 @@ file) et par l'agent `executant`. Comme `vagues.md` et `revue.md`, il vit à un
 seul endroit pour que le skill garde sa taille : la règle ne se duplique pas,
 elle se référence.
 
-Il part d'une mesure : sur le VPS (6 cœurs), deux actions lourdes lancées
-ensemble font tomber une e2e sur un timeout et allongent la suite de 32 %
-(POC du 2026-10-01). Plusieurs sessions Claude Code partagent la même machine ;
-aucune ne voit ce que fait l'autre. D'où **une seule place** pour les actions
-lourdes, et un geste pour la prendre.
+Il part d'une mesure. Le POC du 2026-10-01 (VPS, 6 cœurs) a vu deux actions
+lourdes lancées ensemble faire tomber une e2e sur un timeout et allonger la
+suite de 32 %. Plusieurs sessions Claude Code partagent la même machine ;
+aucune ne voit ce que fait l'autre. D'où un **jeton à places** pour les actions
+lourdes, et un geste pour le prendre. Il y a **deux places** depuis le POC du
+2026-10-12 : la suite de hermes-custom seule prend 677 s, 727 s et 720 s avec
+l'e2e de vahiny en parallèle, sans aucun échec sur les deux passages ; le
+relevé disait « chargée » pendant l'e2e seul, jamais « saturée ». Le POC du
+2026-10-01 avait vu l'échec, celui du 2026-10-12 ne l'a pas reproduit : la
+deuxième place est une décision mesurée, pas une garantie.
 
 ## Ce qui est lourd
 
@@ -82,6 +87,7 @@ suite (verdict et causes du relevé), noter au journal, continuer le léger.
 ## Plusieurs plans
 
 Le plan maître porte une section **« File des actions lourdes »**. Le pilote y
-range les suites, e2e et évals de **tous** les plans et les prend **une par
-une**, chacune avec son jeton. Le parallèle reste la règle pour tout le reste :
+range les suites, e2e et évals de **tous** les plans et les prend dans l'ordre
+de la file, chacune avec son jeton : **deux au plus** tiennent les deux places
+à la fois. Le parallèle reste la règle pour tout le reste :
 la file ne concerne que ce qui est lourd.

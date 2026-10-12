@@ -35,17 +35,17 @@ sont exclus d'office, sans qu'il faille les nommer.
 Le jeton des actions lourdes
 ----------------------------
 Une action lourde (suite complète, e2e, évals locales, rejeu, build…) ne part
-qu'avec le jeton : ``PLACES_LOURDES`` places, une seule aujourd'hui.
+qu'avec le jeton : ``PLACES_LOURDES`` places, deux aujourd'hui.
 
 * ``prendre <action> --plan <titre>`` pose le jeton et écrit dans
-  ``${XDG_STATE_HOME:-~/.local/state}/plans-notion/lourd.lock`` le PID du
-  détenteur, l'action, le plan et l'heure. Avec ``--attendre S``, une prise sur
+  ``${XDG_STATE_HOME:-~/.local/state}/plans-notion/lourd.lock`` le PID de chaque
+  détenteur, son action, son plan et son heure. Avec ``--attendre S``, une prise sur
   un jeton tenu réessaie (toutes les 0,2 s) pendant S secondes avant d'échouer.
   Une machine ``saturée`` refuse tout de suite : attendre ne l'arrange pas.
   ``chargée`` n'empêche rien : le relevé est rendu sur la 2e ligne pour que
   l'appelant prévienne les autres.
 * ``rendre`` libère le jeton du PID donné ; sans effet pour un autre PID.
-* ``qui`` dit qui le tient (``--json`` : ``{"detenteurs": [...]}``).
+* ``qui`` dit qui les tient (``--json`` : ``{"detenteurs": [...]}``).
 
 Le détenteur est un **PID** (``--pid``, par défaut le processus parent du
 script : ``prendre`` est appelé par un script shell qui continue ensuite, et le
@@ -103,11 +103,14 @@ SEUIL_CPU_SOME_AVG10 = 50.0
 
 # --- Le jeton -------------------------------------------------------------------
 
-# Nombre d'actions lourdes simultanées. Provenance : POC de Q9, 2026-10-01 — à
-# deux (e2e Playwright de vahiny + suite de hermes-custom), l'e2e est tombée sur
-# un timeout de 30 s et la suite a pris 32 % de plus. Repasser à 2 un jour,
-# c'est changer cette ligne et refaire la mesure.
-PLACES_LOURDES = 1
+# Nombre d'actions lourdes simultanées. Provenance : POC de Q3, 2026-10-12 — la
+# suite de hermes-custom seule prend 677 s ; avec l'e2e de vahiny en parallèle,
+# 727 s et 720 s, sans aucun échec sur les deux passages. Le relevé disait
+# « chargée » pendant l'e2e seul, jamais « saturée ». Le POC de Q9, 2026-10-01,
+# avait vu l'e2e tomber sur un timeout de 30 s à deux actions, et la suite
+# prendre 32 % de plus : c'est ce qui valait une seule place jusqu'ici.
+# Changer cette ligne, c'est refaire une mesure.
+PLACES_LOURDES = 2
 
 SORTIE_OK = 0
 SORTIE_USAGE = 2
@@ -446,7 +449,7 @@ def prendre(proc: Path, action: str, plan: str, pid: int, attendre: float) -> in
                 print(f"accordé\njeton déjà tenu par le PID {pid}")
                 return SORTIE_OK
             if len(vivants) >= PLACES_LOURDES:
-                tenu_par = vivants[0]
+                tenus_par = vivants
             else:
                 rel = releve(proc, {d["pid"] for d in vivants})
                 if rel["verdict"] == VERDICT_SATUREE:
@@ -461,8 +464,11 @@ def prendre(proc: Path, action: str, plan: str, pid: int, attendre: float) -> in
                 return SORTIE_OK
         reste = fin - time.monotonic()
         if reste <= 0:
-            print(f"refusé : jeton tenu par le PID {tenu_par['pid']} — {tenu_par.get('action')} "
-                  f"({tenu_par.get('plan')}) depuis {tenu_par.get('depuis')}", file=sys.stderr)
+            detail = " ; ".join(
+                f"PID {d['pid']} — {d.get('action')} ({d.get('plan')}) depuis {d.get('depuis')}"
+                for d in tenus_par)
+            print(f"refusé : toutes les places sont tenues ({len(tenus_par)} sur {PLACES_LOURDES}) "
+                  f"— {detail}", file=sys.stderr)
             return SORTIE_OCCUPE
         time.sleep(min(PAS_D_ATTENTE_S, reste))
 

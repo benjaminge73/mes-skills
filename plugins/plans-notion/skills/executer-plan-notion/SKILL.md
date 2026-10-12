@@ -342,8 +342,8 @@ l'exécution fait attendre :
 
 - **le port des tests e2e** — deux plans ne le prennent pas en même temps ;
 - **la base locale** — même raison ;
-- **les actions lourdes** (suites, e2e, évals) — une seule à la fois sur la
-  machine : le plan maître porte leur file, le pilote les prend une par une
+- **les actions lourdes** (suites, e2e, évals) — deux à la fois au plus sur la
+  machine (deux places) : le plan maître porte leur file, le pilote les prend dans l'ordre
   (`${CLAUDE_PLUGIN_ROOT}/skills/_partage/machine-partagee.md`) ;
 - **le quota d'un outil**, lu au registre :
 
