@@ -112,7 +112,8 @@
         "agents/executant.md",
         "skills/_partage/lecture-deleguee.md"
       ],
-      "cas": ["deleguer-sans-notion"]
+      "cas": ["deleguer-sans-notion"],
+      "plancher": 0.9
     }
   },
   "voyages": {
