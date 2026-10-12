@@ -151,15 +151,17 @@ est gardé une fois, le premier rapport l'emporte) puis jugés comme un seul —
 ainsi que la CI juge ensemble les catégories reprises de son cache et celles qu'elle
 vient de jouer. ``--garder-tete <json>`` garde, avec ``--fumee`` joué, le rapport de
 la tête (pour que la CI en sauve une part par catégorie). Une catégorie sans
-plancher fait refuser le mode (code 3) : jamais un plancher implicite à 0, qui
-ne verrait aucun effondrement.
+plancher n'est pas jugée : la fumée la saute et la nomme (stderr et sous le
+tableau), sans plancher implicite à 0 qui la ferait passer en VERT. Un plancher
+**invalide** fait refuser le mode (code 3). Le plancher d'une catégorie est mesuré
+par un banc ``aa``, sur décision de Benjamin seulement.
 
 Codes de sortie
 ---------------
 ``0`` pas de recul au-delà du bruit (ou mode ``aa``, ou ``--previol-seul``
 réussi, ou fumée verte) ; ``1`` recul (ou, en fumée, une catégorie sous son
 plancher) ; ``2`` erreur d'usage (argparse) ; ``3`` refus (pré-vol, rapport
-partiel, lanceur en échec, donnée illisible, catégorie sans plancher) ; ``4``
+partiel, lanceur en échec, donnée illisible, plancher invalide) ; ``4``
 non concluant : un bras a des sessions en erreur, à relancer.
 
 Le lanceur
@@ -1225,16 +1227,24 @@ class Fumee:
     erreurs_par_tirage: list[int]
     sessions: int
     ignores: list[str]  # cas du rapport qu'aucune catégorie ne porte
+    sans_plancher: list[str]  # catégories jouées, écartées du jugement (plancher non mesuré)
 
     def sous_plancher(self, tirage: int) -> list[LigneFumee]:
         return [x for x in self.lignes if x.scores[tirage] < x.plancher - EPSILON]
 
 
-def lire_planchers(depot: Path, plugin: str) -> dict[str, dict]:
-    """Les catégories de ``plugin`` dans ``evals/categories.json``, planchers validés.
+def _note_sans_plancher(nom: str) -> str:
+    return (f"note : catégorie « {nom} » sans plancher : non jugée par la fumée "
+            "(plancher non mesuré)")
 
-    Une catégorie sans plancher est un refus qui la nomme : un plancher implicite
-    à 0 laisserait passer n'importe quel effondrement.
+
+def lire_planchers(depot: Path, plugin: str) -> tuple[dict[str, dict], list[str]]:
+    """Les catégories de ``plugin`` dans ``evals/categories.json``, et les noms de celles
+    qui n'ont **pas** de plancher.
+
+    Une catégorie sans plancher n'est pas jugée : son plancher n'est pas mesuré, la
+    fumée la saute et la nomme (un plancher implicite à 0 la ferait passer en VERT).
+    Un plancher **invalide** (hors 0..1, booléen, non numérique) reste un refus.
     """
     chemin = depot / "evals" / "categories.json"
     try:
@@ -1248,28 +1258,31 @@ def lire_planchers(depot: Path, plugin: str) -> dict[str, dict]:
             sans.append(nom)
         elif isinstance(plancher, bool) or not isinstance(plancher, (int, float)) or not 0 <= plancher <= 1:
             invalides.append(nom)
-    if sans:
-        raise ErreurRefus(
-            f"catégorie(s) sans plancher : {', '.join(sans)}. Le test de fumée refuse de "
-            f"juger sans plancher (jamais 0 par défaut) : en ajouter un dans {chemin}."
-        )
     if invalides:
         raise ErreurRefus(
             f"plancher invalide (un nombre de 0 à 1 est attendu) : {', '.join(invalides)}"
         )
-    return categories
+    return categories, sans
 
 
-def juger_fumee(rapport: dict, categories: dict[str, dict]) -> Fumee:
-    """Le score de chaque catégorie **jouée** (au moins un de ses cas est au rapport), par tirage."""
+def juger_fumee(rapport: dict, categories: dict[str, dict], sans_plancher: list[str]) -> Fumee:
+    """Le score de chaque catégorie **jouée** (au moins un de ses cas est au rapport), par tirage.
+
+    Une catégorie jouée sans plancher (``sans_plancher``) n'a pas de score jugé : elle
+    est nommée à part, et ses cas ne sont pas comptés comme « sans catégorie ».
+    """
     par_cas = {c["name"]: passages_du_cas(c) for c in rapport.get("cases", [])}
     tirages = min((len(p) for p in par_cas.values()), default=0)
     if tirages < 1:
         raise ErreurRefus("un cas du rapport n'a aucun passage joué : rien à juger")
-    lignes = []
+    lignes, sans_jouees, portes = [], [], set()
     for nom, categorie in categories.items():
         joues = [n for n in categorie["cas"] if n in par_cas]
         if not joues:
+            continue
+        portes.update(joues)
+        if nom in sans_plancher:
+            sans_jouees.append(nom)
             continue
         scores = [
             sum(float(par_cas[n][k].get("score", 0)) for n in joues) / len(joues)
@@ -1280,12 +1293,11 @@ def juger_fumee(rapport: dict, categories: dict[str, dict]) -> Fumee:
             for n in joues for p in par_cas[n]
         )
         lignes.append(LigneFumee(nom, joues, scores, float(categorie["plancher"]), cout))
-    if not lignes:
+    if not lignes and not sans_jouees:
         raise ErreurRefus("aucun cas du rapport n'appartient à une catégorie : rien à juger")
-    classes = {n for x in lignes for n in x.cas}
     erreurs, total = sessions_en_erreur(rapport)
     par_tirage = [sum(1 for _, k, _ in erreurs if k == t) for t in range(tirages)]
-    return Fumee(lignes, tirages, par_tirage, total, sorted(set(par_cas) - classes))
+    return Fumee(lignes, tirages, par_tirage, total, sorted(set(par_cas) - portes), sans_jouees)
 
 
 def _score(x: float) -> str:
@@ -1306,7 +1318,8 @@ def tableau_fumee(f: Fumee, etiquette_tete: str, motif_panne_texte: str) -> str:
             f"| {x.categorie} | {len(x.cas)} | {scores} | {_score(x.plancher)} | ${x.cout:.2f} |"
         )
     sortie.append("")
-    for k in range(f.tirages):
+    # Sans catégorie jugée, un tirage « VERT » ne voudrait rien dire : pas de ligne par tirage.
+    for k in (range(f.tirages) if f.lignes else []):
         raisons = []
         if f.erreurs_par_tirage[k]:
             raisons.append(f"{f.erreurs_par_tirage[k]} sessions en erreur")
@@ -1319,6 +1332,8 @@ def tableau_fumee(f: Fumee, etiquette_tete: str, motif_panne_texte: str) -> str:
         sortie.append(f"tirage {k + 1} : " + (f"ROUGE — {' ; '.join(raisons)}" if raisons else "VERT"))
     if f.ignores:
         sortie.append(f"Note : cas sans catégorie, non jugés : {', '.join(f.ignores)}.")
+    for nom in f.sans_plancher:
+        sortie.append(_note_sans_plancher(nom))
     sortie.append("")
     if motif_panne_texte:
         sortie.append(f"{motif_panne_texte}.")
@@ -1328,6 +1343,8 @@ def tableau_fumee(f: Fumee, etiquette_tete: str, motif_panne_texte: str) -> str:
         )
     elif any(f.sous_plancher(k) for k in range(f.tirages)):
         sortie.append("**Verdict : ROUGE — une catégorie est sous son plancher.**")
+    elif not f.lignes:
+        sortie.append("**Verdict : rien à juger — toutes les catégories jouées sont sans plancher.**")
     else:
         sortie.append("**Verdict : VERT — toutes les catégories jouées sont au-dessus de leur plancher.**")
     return "\n".join(sortie)
@@ -1517,11 +1534,12 @@ def _fumee(args, options_lanceur: list[str], depot: Path, plugin: str,
            sources: list[Path], lanceur: Path) -> int:
     """``--fumee`` : la tête seule, un passage, jugée par catégorie contre son plancher.
 
-    Les planchers sont lus **avant** de payer quoi que ce soit : une catégorie sans
-    plancher est un refus, pas un jeu perdu. Rend 4 (non concluant) si une session
-    est en erreur, 1 si une catégorie est sous son plancher, 0 sinon.
+    Les planchers sont lus **avant** de payer quoi que ce soit : un plancher invalide
+    est un refus, pas un jeu perdu. Une catégorie sans plancher est sautée et nommée
+    (non jugée). Rend 4 (non concluant) si une session est en erreur, 1 si une
+    catégorie est sous son plancher, 0 sinon.
     """
-    categories = lire_planchers(depot, plugin)
+    categories, sans_plancher = lire_planchers(depot, plugin)
     if args.tete_rapport:
         rapport = recoller_rapports([lire_rapport(Path(c), "de tête") for c in args.tete_rapport])
         if args.cas:
@@ -1543,7 +1561,9 @@ def _fumee(args, options_lanceur: list[str], depot: Path, plugin: str,
         etiq = etiquette(depot, args.tete, plugin)
         if args.garder_tete:
             Path(args.garder_tete).write_text(json.dumps(rapport), "utf-8")
-    f = juger_fumee(rapport, categories)
+    f = juger_fumee(rapport, categories, sans_plancher)
+    for nom in f.sans_plancher:
+        print(_note_sans_plancher(nom), file=sys.stderr)
     panne = motif_panne({"tête": rapport})
     print(tableau_fumee(f, etiq, panne))
     if panne:

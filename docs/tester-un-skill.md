@@ -277,8 +277,8 @@ Choisir des catégories implique donc le label ; `aucun` ne le pose pas.
 
 **Le défaut est `Evals: aucun — la fumée suffit`.** La [fumée](#la-fumée--ce-quelle-voit-ce-quelle-ne-voit-pas)
 tourne de toute façon sur les catégories touchées, pour quelques dollars, et voit
-un recul franc. Des catégories (donc le label `evals`) se choisissent seulement
-pour deux cas :
+un recul franc. Des catégories (donc le label `evals`) ne se choisissent que sur
+demande de Benjamin, et seulement pour deux cas :
 
 - **un changement de règle de comportement** dans un skill, un agent ou un
   `_partage/` : une consigne ajoutée, retirée ou inversée, dont l'effet se mesure
@@ -498,6 +498,13 @@ Ces valeurs sont l'origine des planchers ; ceux que la CI applique sont dans son
 code. Sur le seul bras cassé mesuré (trois bancs simultanés), les tirages
 tombaient à 0,48 – 0,52 pour 0,73 – 0,78 en bonne santé, avec 21 sessions en
 erreur sur 48 : un seul tirage l'aurait vu.
+
+**Une catégorie sans plancher est écartée, et nommée.** Une catégorie neuve s'écrit
+sans clé `plancher` dans `evals/categories.json` : la fumée ne la juge pas, et
+`evals_selection.py` ne retient pas ses cas (on ne paie pas des cas qu'on ne jugera
+pas). La sortie le dit, sur stderr et sous le tableau. Son plancher ne se mesure par un
+banc `aa` que sur décision de Benjamin. Jamais de plancher implicite à 0 ; un plancher
+**invalide** (hors de 0 à 1, booléen, non numérique) reste un refus.
 
 **Ce qu'elle ne voit pas :**
 
