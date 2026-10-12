@@ -1,0 +1,29 @@
+{
+  "_commentaire": "Tarifs en dollars par million de tokens, lus par scripts/cout-plan.py. Relevés le 2026-10-12 sur la page tarifs d'Anthropic : entrée et sortie des trois modèles, et les trois prix de cache d'Opus (lecture 0,20 $, écriture 1 h 8 $). Les autres prix de cache sont dérivés des coefficients d'Anthropic (lecture 0,1 × entrée, écriture 5 min 1,25 ×, écriture 1 h 2 ×) et marqués derive: true : la veille (étape 7) les fait vérifier. Pour Opus, la lecture relevée (0,20 $) ne suit pas le coefficient 0,1 × entrée (0,40 $) : le relevé est gardé tel quel, à vérifier.",
+  "releve": "2026-10-12",
+  "source": "page tarifs d'Anthropic, relevée le 2026-10-12 (brief de l'étape 5 du plan « CLAUDE.md tenus, coût des plans, jeton lourd et délégation à Haiku »)",
+  "unite": "dollars par million de tokens",
+  "modeles": {
+    "claude-opus-5-5": {
+      "entree": {"prix": 4, "derive": false},
+      "sortie": {"prix": 20, "derive": false},
+      "lecture_cache": {"prix": 0.2, "derive": false},
+      "ecriture_cache_5m": {"prix": 5, "derive": true},
+      "ecriture_cache_1h": {"prix": 8, "derive": false}
+    },
+    "claude-sonnet-5-5": {
+      "entree": {"prix": 2, "derive": false},
+      "sortie": {"prix": 10, "derive": false},
+      "lecture_cache": {"prix": 0.2, "derive": true},
+      "ecriture_cache_5m": {"prix": 2.5, "derive": true},
+      "ecriture_cache_1h": {"prix": 4, "derive": true}
+    },
+    "claude-haiku-5-5": {
+      "entree": {"prix": 0.1, "derive": false},
+      "sortie": {"prix": 0.5, "derive": false},
+      "lecture_cache": {"prix": 0.01, "derive": true},
+      "ecriture_cache_5m": {"prix": 0.125, "derive": true},
+      "ecriture_cache_1h": {"prix": 0.2, "derive": true}
+    }
+  }
+}
