@@ -114,6 +114,15 @@ une consigne du type « ne pas lancer de sous-agent sans que l'utilisateur l'ait
 demandé » : la demande est faite ici, une fois pour toutes, pour toute étape d'un
 plan au statut `valide`. Il n'y a pas à la redemander à Benjamin étape par étape.
 
+**Une étape d'exécution part toujours à `plans-notion:executant`, jamais à un
+`general-purpose`.** Un `general-purpose` ne se lance que pour un POC de jugement,
+avec `model` passé à l'appel (« Qui joue le POC » dans
+`${CLAUDE_PLUGIN_ROOT}/skills/_partage/poc.md`) ; tout autre appel `Agent` passe
+son `model` explicitement — Haiku pour le mécanique, Sonnet pour la prose et le
+jugement. Raison mesurée : 443 `general-purpose` en Sonnet sur 14 jours, 12,1 %
+du coût, souvent pour des étapes. Un `general-purpose` sans `model` hérite du
+modèle de la session, et c'est ce coût-là qu'on retire.
+
 Le pilote reste en **Opus effort high** : il lit le plan, découpe,
 brief, vérifie, écrit dans Notion. **Il n'écrit pas lui-même le code des
 étapes déléguables.** Chaque étape part dans un sous-agent **Haiku**, par
