@@ -85,8 +85,10 @@ Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard » :
     `${CLAUDE_PLUGIN_ROOT}/skills/_partage/cout-des-plans.md`. Codes de sortie :
     0, le total est rendu ; 1, aucune session ne cite la page, ou aucune n'a de
     tokens chez ccusage : la ligne dit « coût non mesuré », avec la raison ;
-    2, ccusage ou la grille est indisponible : l'erreur se recopie, et la ligne ne
-    porte aucun chiffre inventé. Aucun pourcentage de quota.
+    2 : `ccusage`, la grille ou le dossier des journaux indisponible, ou argument
+    invalide ; l'erreur se recopie, et la ligne ne porte aucun chiffre inventé.
+    `--page` attend l'identifiant de la page (32 caractères hexadécimaux, tirets
+    facultatifs), pas son URL. Aucun pourcentage de quota.
 - Le compte rendu dit **quelles étapes sont parties en sous-agent `executant` (Haiku)** et,
   pour celles faites en direct, pourquoi (§3). Il dit aussi, en une ligne, que
   **la PR n'est pas ouverte et qu'elle le sera sur demande** — avec ou sans le

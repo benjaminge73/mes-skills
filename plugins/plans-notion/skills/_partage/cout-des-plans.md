@@ -41,12 +41,20 @@ l'aura été, sa médiane s'ajoute ici, avec sa date et son nombre de sessions. 
 
 - Une médiane n'est pas une prévision pour un plan donné. La dispersion est
   large (de 1 $ à 398 $) : la ligne « Coût estimé » donne un ordre de grandeur.
+- **Les deux mesures n'appliquent pas le même tarif d'écriture de cache.** Le
+  barème compte les écritures au tarif 1 h (les écritures des sessions du pilote
+  Opus sont toutes en `ephemeral_1h`) ; `cout-plan.py` les compte au tarif 5 min
+  (`ECRITURE_CACHE = "ecriture_cache_5m"`), soit 5 $ le million pour Opus contre
+  8 $. Conséquence : tant que le script compte en 5 min, un « Coût réel » se lit
+  sous-estimé face au barème, surtout pour les sessions Opus. L'étape D3 du plan
+  aligne le script sur le tarif 1 h ; d'ici là, cette différence se garde en tête
+  quand on compare les deux.
 
 ## La remesure
 
 Le barème se remesure **à chaque passe de veille**, sur les sessions de plan des
-**14 derniers jours**, par la même méthode (journaux dédoublonnés par
-`message.id`, tarif de la grille). Chaque chiffre porte sa date de mesure ; une
+**14 derniers jours**, par la même méthode : journaux dédoublonnés par
+`message.id`, écritures de cache au tarif 1 h, autres tarifs de la grille. Chaque chiffre porte sa date de mesure ; une
 remesure remplace les médianes ci-dessus et change la date en même temps.
 
 ⚠️ La sonde qui a fait la mesure du 2026-10-12 n'est pas dans ce dépôt. Tant
