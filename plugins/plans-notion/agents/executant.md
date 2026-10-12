@@ -208,9 +208,9 @@ Le serveur `codebase-memory` te donne cinq outils, et seulement ceux-là :
 ## Pourquoi cet agent existe
 
 Il porte `model: haiku` et `effort: high` dans son frontmatter, et c'est sa
-raison d'être première. Le pilotage d'un plan tourne en Opus ; un sous-agent
+raison d'être première. Le pilotage d'un plan tourne en Sonnet ; un sous-agent
 lancé sans modèle explicite hérite du modèle de la session parente, donc
-d'Opus, et le coût du plan est multiplié sans qu'aucun signal ne le dise — le
+de Sonnet, et le coût du plan est multiplié sans qu'aucun signal ne le dise — le
 seul écart visible est la facture. Passer `model` à chaque appel marchait, mais
 c'était une discipline, et une discipline s'oublie exactement quand on est
 absorbé par le travail. Ici la garantie est structurelle : elle voyage avec le
