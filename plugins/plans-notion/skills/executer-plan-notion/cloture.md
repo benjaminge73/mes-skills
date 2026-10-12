@@ -92,7 +92,7 @@ Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard » :
      sans navigateur, par exemple) se dit au journal, tests nommés — ce n'est
      pas un vert, c'est un trou, et Benjamin doit le voir avant de demander la
      PR. Suite complète et e2e prennent le jeton des actions lourdes :
-     `${CLAUDE_PLUGIN_ROOT}/skills/_partage/machine-partagee.md`.
+     `${CLAUDE_PLUGIN_ROOT}/skills/_partage/machine-partagee.md`. Un `CLAUDE.md` trop long : `${CLAUDE_PLUGIN_ROOT}/skills/_partage/ranger-claude-md.md`.
   2. **Pousser la branche du plan.** C'est le seul push de la clôture quand le
      relevé du §2 a retenu les commits en local ; sans lui, le travail ne vit
      que sur un disque. La sortie de la preuve va au journal (`État final`).
