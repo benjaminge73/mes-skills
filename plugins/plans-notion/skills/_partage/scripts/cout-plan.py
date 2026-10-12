@@ -10,6 +10,9 @@ Usage : cout-plan.py --page <identifiant Notion> [--projets <dossier>] [--grille
 2. Les tokens : ``ccusage session --json``, sous-agents compris, filtré sur ces
    sessions. Le ``cost`` de ccusage n'est pas repris : les dollars se recalculent.
 3. Les dollars : les tokens de chaque modèle multipliés par ``grille-tarifs.json``.
+   Les écritures de cache se chiffrent à la part 1 h mesurée par modèle dans les
+   journaux des sessions retenues (``ventilation_des_ecritures``). Un modèle sans
+   ventilation dans les journaux reste au tarif 5 min, et sa ligne le dit.
    Un modèle absent de la grille est listé à part, « non chiffré », et exclu du
    total : jamais un zéro silencieux.
 
@@ -32,18 +35,25 @@ GRILLE_PAR_DEFAUT = Path(__file__).resolve().parent / "grille-tarifs.json"
 PROJETS_PAR_DEFAUT = Path.home() / ".claude" / "projects"
 
 # ccusage ne sépare pas l'écriture de cache 5 min de celle de 1 h (sortie de
-# `ccusage session --json`, vérifiée le 2026-10-12). Toutes les écritures sont
-# chiffrées au tarif 5 min : à revoir si la part 1 h grimpe dans les journaux.
-ECRITURE_CACHE = "ecriture_cache_5m"
+# `ccusage session --json`, vérifiée le 2026-10-12). Les journaux, eux, la
+# ventilent (champ `cache_creation` de chaque message assistant). Mesuré le
+# 2026-10-12 sur les journaux des 30 derniers jours : les sessions pilotes
+# écrivent 100 % en 1 h, les sous-agents 100 % en 5 min, quel que soit le
+# modèle. D'où une part 1 h mesurée par modèle sur les sessions retenues, et
+# appliquée aux écritures de ccusage (les tokens restent ceux de ccusage).
+TARIF_5_MIN = "ecriture_cache_5m"
+TARIF_1_H = "ecriture_cache_1h"
 
 # (champ de modelBreakdowns dans ccusage, champ de prix dans la grille, libellé d'affichage)
+# Les écritures de cache ont un champ de tokens, mais pas de prix propre : leur
+# prix se mélange selon la part 1 h (voir prix_ecriture).
 COLONNES = [
     ("inputTokens", "entree", "entrée"),
     ("outputTokens", "sortie", "sortie"),
     ("cacheReadTokens", "lecture_cache", "lecture cache"),
-    ("cacheCreationTokens", ECRITURE_CACHE, "écriture cache"),
+    ("cacheCreationTokens", "ecriture_cache", "écriture cache"),
 ]
-CHAMPS_PRIX = [champ for _, champ, _ in COLONNES]
+CHAMPS_PRIX = ["entree", "sortie", "lecture_cache", TARIF_5_MIN, TARIF_1_H]
 
 ID_NOTION = re.compile(r"^[0-9a-f]{32}$")
 
@@ -102,6 +112,68 @@ def sessions_qui_citent(projets: Path, motif: re.Pattern) -> set[str]:
     return trouvees
 
 
+def ventilation_des_ecritures(projets: Path, sessions: set[str]) -> dict[str, dict[str, int]]:
+    """Par modèle, les écritures de cache 5 min (« 5m ») et 1 h (« 1h ») des journaux des ``sessions``.
+
+    Un message écrit plusieurs fois dans un journal (une ligne par bloc de
+    contenu) compte une fois, par ``message.id`` : même règle que le barème.
+    Un modèle n'apparaît que si un de ses messages porte un des deux champs.
+    """
+    vus: set[tuple[str, str]] = set()
+    sommes: dict[str, dict[str, int]] = {}
+    for chemin in sorted(projets.rglob("*.jsonl")):
+        session = session_du_journal(chemin)
+        if session not in sessions:
+            continue
+        with chemin.open(encoding="utf-8", errors="replace") as h:
+            for ligne in h:
+                if "cache_creation" not in ligne:
+                    continue
+                try:
+                    objet = json.loads(ligne)
+                except ValueError:
+                    continue
+                message = objet.get("message") if isinstance(objet, dict) else None
+                if not isinstance(message, dict):
+                    continue
+                usage = message.get("usage")
+                cache = usage.get("cache_creation") if isinstance(usage, dict) else None
+                modele = message.get("model")
+                if not isinstance(cache, dict) or not isinstance(modele, str):
+                    continue
+                cinq = cache.get("ephemeral_5m_input_tokens")
+                heure = cache.get("ephemeral_1h_input_tokens")
+                if cinq is None and heure is None:
+                    continue
+                ident = message.get("id")
+                if ident is not None:
+                    if (session, ident) in vus:
+                        continue
+                    vus.add((session, ident))
+                t = sommes.setdefault(modele, {"5m": 0, "1h": 0})
+                t["5m"] += int(cinq or 0)
+                t["1h"] += int(heure or 0)
+    return sommes
+
+
+def part_une_heure(ventilation: dict[str, int] | None) -> float | None:
+    """La part 1 h des écritures d'un modèle, ou None si les journaux ne la donnent pas."""
+    if not ventilation:
+        return None
+    total = ventilation["5m"] + ventilation["1h"]
+    if total <= 0:
+        return None
+    return ventilation["1h"] / total
+
+
+def prix_ecriture(tarifs_modele: dict[str, float], part: float | None) -> float:
+    """Le prix du million d'écritures de cache : le mélange des deux tarifs selon la part 1 h."""
+    p5 = tarifs_modele[TARIF_5_MIN]
+    if part is None:
+        return p5
+    return part * tarifs_modele[TARIF_1_H] + (1 - part) * p5
+
+
 def commande_ccusage() -> list[str]:
     exe = shutil.which("ccusage")
     if exe:
@@ -151,6 +223,10 @@ def fmt_usd(x: float) -> str:
     return f"{x:,.4f}".replace(",", " ").replace(".", ",") + " $"
 
 
+def fmt_pourcent(x: float) -> str:
+    return f"{x * 100:.1f}".replace(".", ",") + " %"
+
+
 def ligne_de_tokens(nom: str, t: dict) -> str:
     return f"  {nom} | " + " | ".join(
         f"{libelle} {fmt_tokens(t[champ])}" for _, champ, libelle in COLONNES)
@@ -196,13 +272,20 @@ def main(argv: list[str] | None = None) -> int:
 
     chiffres = {nom: t for nom, t in totaux.items() if nom in tarifs}
     hors_grille = {nom: t for nom, t in totaux.items() if nom not in tarifs}
+    ventilations = ventilation_des_ecritures(args.projets, avec_tokens)
     total = 0.0
     lignes_modeles = []
     for nom in sorted(chiffres):
         t = chiffres[nom]
-        cout = sum(t[champ] * tarifs[nom][champ] for champ in CHAMPS_PRIX) / 1_000_000
+        part = part_une_heure(ventilations.get(nom))
+        cout = (sum(t[champ] * tarifs[nom][champ] for champ in ("entree", "sortie", "lecture_cache"))
+                + t["ecriture_cache"] * prix_ecriture(tarifs[nom], part)) / 1_000_000
         total += cout
-        lignes_modeles.append(ligne_de_tokens(nom, t) + f" | {fmt_usd(cout)}")
+        if part is None:
+            statut = "écriture cache au tarif 5 min, ventilation absente"
+        else:
+            statut = f"part 1 h {fmt_pourcent(part)}"
+        lignes_modeles.append(ligne_de_tokens(nom, t) + f" | {statut} | {fmt_usd(cout)}")
 
     sortie = [
         f"Plan {args.page} : {len(citantes)} session(s) citent la page, {len(avec_tokens)} avec des tokens chez ccusage.",
