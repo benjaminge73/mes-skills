@@ -10,6 +10,7 @@ from __future__ import annotations
 import json
 import subprocess
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -30,6 +31,10 @@ def bash(commande: str) -> dict:
 
 def exit_plan_mode(plan: str) -> dict:
     return {"tool_name": "ExitPlanMode", "tool_input": {"plan": plan}}
+
+
+def entree_fichier_de_plan(chemin: str) -> dict:
+    return {"tool_name": "ExitPlanMode", "tool_input": {"planFilePath": chemin}}
 
 
 class RefuserNoVerify(unittest.TestCase):
@@ -161,8 +166,10 @@ PLAN_SANS_NOTION = "## Plan\n1. Étape un\n2. Étape deux"
 class RappelDelegationApresExitPlanMode(unittest.TestCase):
     """Hook PostToolUse sur ExitPlanMode : rappel de déléguer, jamais bloquant.
 
-    Le témoin du test (b) — le même plan sans URL rend le rappel — est là pour
-    que le silence du cas Notion ne soit pas gagné par un script muet.
+    Le texte du plan vient de ``tool_input.plan``, sinon du fichier
+    ``planFilePath`` (dans ``tool_input`` ou ``tool_response``). Les témoins des
+    tests (b) et (d) — le même plan sans URL rend le rappel — sont là pour que le
+    silence du cas Notion ne soit pas gagné par un script muet.
     """
     SCRIPT = "rappel_delegation.py"
 
@@ -183,15 +190,57 @@ class RappelDelegationApresExitPlanMode(unittest.TestCase):
                 self.assertEqual(r.returncode, 0, r.stderr)
                 self.assertEqual(r.stdout, "")
 
-    def test_une_entree_illisible_ou_incomplete_sort_en_zero_sans_rien_rendre(self):
-        entrees = ("pas du json {", "",
-                   '{"tool_input": "pas un objet"}',
-                   '{"tool_name": "ExitPlanMode", "tool_input": {}}')
-        for entree in entrees:
+    def test_une_entree_illisible_sort_en_zero_sans_rien_rendre(self):
+        for entree in ("pas du json {", ""):
             with self.subTest(entree=entree):
                 r = jouer(self.SCRIPT, entree)
                 self.assertEqual(r.returncode, 0, r.stderr)
                 self.assertEqual(r.stdout, "")
+
+    def test_un_plan_lu_dans_un_fichier_qui_cite_notion_ne_rend_rien(self):
+        # Témoin : le même plan sans URL, lu dans le même fichier, rend le rappel.
+        with tempfile.TemporaryDirectory() as dossier:
+            chemin = Path(dossier) / "plan.md"
+            chemin.write_text(PLAN_SANS_NOTION, encoding="utf-8")
+            self.assertIn("additionalContext",
+                          jouer(self.SCRIPT, entree_fichier_de_plan(str(chemin))).stdout)
+            for url in ("https://www.notion.so/Plan-abc123", "https://app.notion.com/p/abc123"):
+                with self.subTest(url=url):
+                    chemin.write_text(f"Suivi : {url}\n1. Étape un", encoding="utf-8")
+                    r = jouer(self.SCRIPT, entree_fichier_de_plan(str(chemin)))
+                    self.assertEqual(r.returncode, 0, r.stderr)
+                    self.assertEqual(r.stdout, "")
+
+    def test_un_plan_lu_dans_un_fichier_sans_url_rend_le_rappel(self):
+        # Le plan n'est pas dans tool_input.plan : le chemin est dans tool_input, ou dans tool_response.
+        with tempfile.TemporaryDirectory() as dossier:
+            chemin = Path(dossier) / "plan.md"
+            chemin.write_text(PLAN_SANS_NOTION, encoding="utf-8")
+            entrees = {
+                "chemin dans tool_input": entree_fichier_de_plan(str(chemin)),
+                "chemin dans tool_response": {"tool_name": "ExitPlanMode", "tool_input": {},
+                                              "tool_response": {"planFilePath": str(chemin)}},
+            }
+            for nom, entree in entrees.items():
+                with self.subTest(nom=nom):
+                    r = jouer(self.SCRIPT, entree)
+                    self.assertEqual(r.returncode, 0, r.stderr)
+                    self.assertIn("plans-notion:deleguer-a-haiku",
+                                  json.loads(r.stdout)["hookSpecificOutput"]["additionalContext"])
+
+    def test_un_json_valide_sans_plan_ni_chemin_rend_le_rappel_par_defaut(self):
+        # PostToolUse ne part que si ExitPlanMode a réussi : un plan a été approuvé.
+        entrees = (
+            {"tool_name": "ExitPlanMode", "tool_input": {}},
+            {"tool_input": "pas un objet"},
+            {"tool_name": "ExitPlanMode", "tool_input": {"planFilePath": "/chemin/qui/n/existe/pas.md"}},
+            [],
+        )
+        for entree in entrees:
+            with self.subTest(entree=entree):
+                r = jouer(self.SCRIPT, entree)
+                self.assertEqual(r.returncode, 0, r.stderr)
+                self.assertIn("additionalContext", r.stdout)
 
 
 if __name__ == "__main__":
