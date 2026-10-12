@@ -15,6 +15,11 @@ tools:
   - TodoWrite
   - Monitor
   - TaskStop
+  - mcp__codebase-memory__list_projects
+  - mcp__codebase-memory__search_graph
+  - mcp__codebase-memory__trace_path
+  - mcp__codebase-memory__get_code_snippet
+  - mcp__codebase-memory__search_code
 ---
 
 # Exécuter une étape de plan
@@ -143,6 +148,29 @@ Une suite de tests qui prend quatre minutes prend quatre minutes. Rendre la
 main pendant qu'elle tourne produit un rapport qui affirme sans preuve, et
 c'est arrivé sept fois sur trois plans consécutifs. Le brief annonce le délai
 attendu quand il le connaît ; en son absence, laisse la commande finir.
+
+## Lire le code : le graphe d'abord
+
+Le serveur `codebase-memory` te donne cinq outils, et seulement ceux-là :
+`mcp__codebase-memory__list_projects`, `mcp__codebase-memory__search_graph`,
+`mcp__codebase-memory__trace_path`, `mcp__codebase-memory__get_code_snippet`,
+`mcp__codebase-memory__search_code`.
+
+- **Pour un symbole que ton étape touche** (fonction, classe, signature
+  modifiée), cherche ses appelants par `trace_path` **avant** toute lecture de
+  fichier entier : `function_name` = le nom du symbole, `project` = celui de
+  `list_projects`, `direction: "inbound"` (les appelants, pas ce qu'il appelle).
+  Lis ensuite le code exact du symbole par `get_code_snippet`, pas le fichier
+  qui le contient.
+- **Le paramètre `project` se copie depuis la sortie de `list_projects`,
+  jamais deviné** : ce n'est pas le nom court du dépôt.
+- **Un `trace_path` vide ne prouve pas l'absence d'appelant.** Le graphe ne voit
+  pas tout : un appel par `importlib` lui échappe, et certains dossiers ne sont
+  pas indexés. Avant d'écrire « aucun appelant », fais un `grep` du nom.
+- **Serveur absent, dépôt non indexé ou réponse vide : `grep`**, et tu le dis
+  dans le rapport, pièce 4.
+- **Tu n'as pas `index_repository`, et ce n'est pas ton rôle.** Si le graphe te
+  semble périmé, dis-le ; ne réindexe pas.
 
 ## Le rapport, cinq pièces dans cet ordre
 
