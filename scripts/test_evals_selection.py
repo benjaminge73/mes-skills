@@ -41,15 +41,17 @@ SCRIPT = RACINE / "scripts" / "evals_selection.py"
 CI = RACINE / ".github" / "workflows" / "ci.yml"
 
 CATEGORIES = {
-    "_commentaire": "jeu fabriqué pour les tests",
+    "_commentaire": "jeu fabriqué pour les tests ; chaque catégorie a un plancher (la fumée le lit)",
     "jouet": {
-        "recherche": {"exerce": ["skills/plan/", "agents/chercheur.md"], "cas": ["a1", "a2"]},
-        "bruit": {"exerce": ["skills/plan/"], "cas": ["b1"]},
-        "depart": {"exerce": ["skills/plan/", "agents/enqueteur.md"], "cas": ["c1", "c2", "c3"]},
+        "recherche": {"exerce": ["skills/plan/", "agents/chercheur.md"], "cas": ["a1", "a2"],
+                      "plancher": 0.5},
+        "bruit": {"exerce": ["skills/plan/"], "cas": ["b1"], "plancher": 0.5},
+        "depart": {"exerce": ["skills/plan/", "agents/enqueteur.md"], "cas": ["c1", "c2", "c3"],
+                   "plancher": 0.5},
         "execution": {"exerce": ["skills/executer/", "agents/executant.md",
-                                 "skills/_partage/regle.md"], "cas": ["d1"]},
+                                 "skills/_partage/regle.md"], "cas": ["d1"], "plancher": 0.5},
     },
-    "autre": {"solo": {"exerce": ["skills/z/"], "cas": ["z1"]}},
+    "autre": {"solo": {"exerce": ["skills/z/"], "cas": ["z1"], "plancher": 0.5}},
 }
 TOUS_LES_CAS_DE_JOUET = ["a1", "a2", "b1", "c1", "c2", "c3", "d1"]
 
@@ -329,6 +331,40 @@ class FumeeDeCi(Selection):
         self.assertTrue(s["tout"])
         self.assertEqual(sorted(s["categories"]), sorted(CATEGORIES["jouet"]))
         self.assertEqual(sorted(s["cas"]), TOUS_LES_CAS_DE_JOUET)
+
+    def test_une_categorie_sans_plancher_n_est_pas_jouee_par_la_fumee_et_le_dit(self):
+        # ``bruit`` n'a pas de plancher (non mesuré) : la fumée ne paie pas son cas b1, et
+        # la raison rendue la nomme. ``recherche`` et ``depart`` exercent le même skill :
+        # elles restent jouées avec tous leurs cas.
+        cats = json.loads(json.dumps(CATEGORIES))
+        del cats["jouet"]["bruit"]["plancher"]
+        chemin = self.dossier / "sans-plancher.json"
+        chemin.write_text(json.dumps(cats), "utf-8")
+        code, sortie, erreur = jouer_script([PLAN], None, "jouet", chemin, self.dossier,
+                                            labels="", extra=("--fumee",))
+        self.assertEqual(code, 0, erreur)
+        s = json.loads(sortie)
+        self.assertFalse(s["tout"])
+        self.assertEqual(sorted(s["categories"]), ["depart", "recherche"])
+        self.assertEqual(sorted(s["cas"]), ["a1", "a2", "c1", "c2", "c3"])
+        self.assertIn("bruit", s["raison"])
+
+    def test_une_categorie_sans_plancher_seule_retenue_ne_laisse_rien_a_jouer_et_le_dit(self):
+        # Le seul skill touché n'est exercé que par ``neuve``, sans plancher : rien à jouer,
+        # et la raison le dit (pas un banc entier, pas un cas payé pour rien).
+        cats = json.loads(json.dumps(CATEGORIES))
+        cats["jouet"]["neuve"] = {"exerce": ["skills/neuf/"], "cas": ["n1"]}
+        chemin = self.dossier / "neuve.json"
+        chemin.write_text(json.dumps(cats), "utf-8")
+        code, sortie, erreur = jouer_script(["plugins/jouet/skills/neuf/SKILL.md"], None,
+                                            "jouet", chemin, self.dossier,
+                                            labels="", extra=("--fumee",))
+        self.assertEqual(code, 0, erreur)
+        s = json.loads(sortie)
+        self.assertFalse(s["tout"])
+        self.assertEqual(s["categories"], [])
+        self.assertEqual(s["cas"], [])
+        self.assertIn("neuve", s["raison"])
 
 
 class FichiersDuSocleCommun(Selection):

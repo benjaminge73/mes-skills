@@ -92,7 +92,9 @@ catégories exercent rend ces catégories — un fichier de ``skills/_partage/``
 comme un skill ; ``hooks/`` et un fichier qu'aucune catégorie n'exerce rendent **toutes**
 celles du plugin (le défaut prudent de la règle 4). Aucun de ces dossiers touché : sélection vide. Chaque
 catégorie retenue garde **tous** ses cas (``cas``) : la fumée juge une catégorie
-sur les seuls cas joués. Un plugin sans catégorie déclarée est refusé (code 1) :
+sur les seuls cas joués. Une catégorie **sans plancher** n'est pas retenue (on ne
+paie pas des cas qu'on ne jugera pas) : ``raison`` la nomme. Un plugin sans
+catégorie déclarée est refusé (code 1) :
 il n'y aurait aucun plancher à tenir.
 
 Sortie et codes
@@ -165,7 +167,8 @@ def a_le_label(labels: str) -> bool:
 
 
 def lire_categories(chemin: Path) -> dict[str, dict[str, dict]]:
-    """``{plugin: {catégorie: {"exerce": [...], "cas": [...]}}}`` ; ``Panne`` si mal formé."""
+    """``{plugin: {catégorie: {"exerce": [...], "cas": [...], "plancher": x ou None}}}`` ;
+    ``Panne`` si mal formé. Le plancher n'est lu que pour sa présence (``None`` : absent)."""
     try:
         brut = json.loads(Path(chemin).read_text("utf-8"))
     except (OSError, ValueError) as e:
@@ -184,7 +187,8 @@ def lire_categories(chemin: Path) -> dict[str, dict[str, dict]]:
                     or not isinstance(cat.get("exerce"), list)
                     or not isinstance(cat.get("cas"), list)):
                 raise Panne(f"{chemin} : catégorie « {plugin}/{nom} » sans listes `exerce` et `cas`")
-            lu[plugin][nom.lower()] = {"exerce": list(cat["exerce"]), "cas": list(cat["cas"])}
+            lu[plugin][nom.lower()] = {"exerce": list(cat["exerce"]), "cas": list(cat["cas"]),
+                                       "plancher": cat.get("plancher")}
     return lu
 
 
@@ -349,8 +353,17 @@ def fumee(plugin: str, fichiers: list[str], categories: dict[str, dict[str, dict
     if pourquoi:
         retenues = set(cats)
     noms = [n for n in cats if n in retenues]
+    # Une catégorie sans plancher n'est pas jouée : on ne paie pas des cas qu'on ne jugera pas.
+    sans = [n for n in noms if cats[n]["plancher"] is None]
+    noms = [n for n in noms if n not in sans]
+    raison = ""
+    if sans:
+        raison = ("catégorie(s) sans plancher écartée(s) de la fumée, cas non joués "
+                  "(plancher non mesuré) : " + ", ".join(sans))
+    if not noms:
+        return _rien_a_jouer(plugin, raison)
     return {"plugin": plugin, "tout": bool(pourquoi), "categories": noms,
-            "cas": _union(cats, noms), "raison": "", "pourquoi_tout": pourquoi}
+            "cas": _union(cats, noms), "raison": raison, "pourquoi_tout": pourquoi}
 
 
 def main(argv: list[str] | None = None) -> int:

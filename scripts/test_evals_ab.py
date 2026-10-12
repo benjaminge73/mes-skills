@@ -1590,16 +1590,52 @@ class FumeeEtPlanchers(DepotEtLanceur):
         self.assertEqual(code, 0, sortie + erreur)
         self.assertNotIn("ROUGE", sortie)
 
-    def test_une_categorie_sans_plancher_est_refusee_et_nommee_jamais_un_plancher_a_zero(self):
+    def test_une_categorie_sans_plancher_est_sautee_et_nommee_jamais_un_plancher_a_zero(self):
+        # Une maquette à 0 sans plancher ne rougit pas la fumée (son plancher n'est pas
+        # mesuré, donc rien n'est jugé) : elle est nommée comme non jugée, et les autres
+        # catégories restent jugées. Un plancher implicite à 0 la verrait passer en VERT.
         self.ecrire_categories({**self.PLANCHERS, "maquette": None})
         chemin = self.rapport_sain(
             {"appelants": 1.0, "existant-jeu-de-questions": 0.9, "maquette-requise": 0.0}
         )
-        # Une maquette à 0 passerait sous un plancher implicite de 0 : le refus l'empêche.
         code, sortie, erreur = self.fumee(chemin)
-        self.assertEqual(code, 3, sortie)
-        self.assertIn("maquette", erreur)
-        self.assertNotIn("VERT", sortie)
+        self.assertEqual(code, 0, sortie + erreur)
+        self.assertNotIn("ROUGE", sortie)
+        self.assertIn("| existant |", sortie)  # les autres catégories restent au tableau
+        self.assertNotIn("| maquette |", sortie)  # la maquette n'est pas jugée, donc pas au tableau
+        self.assertIn("sans plancher", sortie)  # ... mais elle est nommée sous le tableau
+        self.assertIn("maquette", sortie)
+        self.assertIn("maquette", erreur)  # et sur stderr
+
+    def test_un_plancher_invalide_reste_un_refus_meme_quand_l_absence_saute(self):
+        # Garde qui tient dans l'ancien comme dans le nouveau contrat : seule l'absence
+        # du plancher devient un saut. Une valeur hors 0..1, un booléen ou une chaîne
+        # restent un refus (code 3) qui nomme la catégorie fautive.
+        chemin = self.rapport_sain(
+            {"appelants": 1.0, "existant-jeu-de-questions": 0.9, "maquette-requise": 0.0}
+        )
+        for invalide in ("0,8", 1.5, True):
+            with self.subTest(plancher=invalide):
+                self.ecrire_categories({**self.PLANCHERS, "maquette": 0.8})
+                chemin_categories = self.depot / "evals" / "categories.json"
+                donnees = json.loads(chemin_categories.read_text("utf-8"))
+                donnees["jouet"]["maquette"]["plancher"] = invalide
+                ecrire(chemin_categories, json.dumps(donnees))
+                code, sortie, erreur = self.fumee(chemin)
+                self.assertEqual(code, 3, sortie + erreur)
+                self.assertIn("maquette", erreur)
+
+    def test_si_toutes_les_categories_jouees_sont_sans_plancher_la_fumee_rend_zero_et_le_dit(self):
+        # Rien à juger : la fumée rend 0 avec la note, jamais un refus ni un plancher à 0.
+        self.ecrire_categories({"depart": None, "existant": None, "maquette": None})
+        chemin = self.rapport_sain(
+            {"appelants": 1.0, "existant-jeu-de-questions": 0.9, "maquette-requise": 0.0}
+        )
+        code, sortie, erreur = self.fumee(chemin)
+        self.assertEqual(code, 0, sortie + erreur)
+        self.assertNotIn("ROUGE", sortie)
+        for nom in ("depart", "existant", "maquette"):
+            self.assertIn(nom, sortie)  # chacune est nommée comme non jugée
 
     def test_un_ab_dont_la_tete_a_des_sessions_en_erreur_rend_quatre_et_non_un(self):
         # Test construit pour la panne réelle de la PR #19 : la tête a perdu 6 sessions
