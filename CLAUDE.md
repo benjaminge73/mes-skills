@@ -184,5 +184,7 @@ dans un `SKILL.md` passe au vert et part dans toutes les sessions.
 
 Rien ne se déploie depuis ce dépôt : les postes **tirent** `main`, par
 `claude plugin update` ou par l'`autoUpdate` de la marketplace au démarrage.
+Le point 4 bis de `plugins/plans-notion/skills/_partage/remontee-sur-main.md`
+fait cette mise à jour du poste juste après le merge.
 Merger sur `main` avec la version bumpée *est* la mise à disposition. C'est
 pourquoi la CI n'a pas de job de livraison, et n'en aura pas.
