@@ -243,5 +243,72 @@ class RappelDelegationApresExitPlanMode(unittest.TestCase):
                 self.assertIn("additionalContext", r.stdout)
 
 
+def lecture(reponse, agent=None) -> dict:
+    """Sortie d'un outil lu par le pilote ; ``agent`` présent = un sous-agent la porte."""
+    entree = {"tool_name": "Read", "tool_input": {"file_path": "/notes.md"}, "tool_response": reponse}
+    if agent is not None:
+        entree["agent_id"] = agent
+    return entree
+
+
+class SignalerLecturePilote(unittest.TestCase):
+    """Hook PostToolUse sur Read|Bash|Grep|notion-fetch : rappel si la sortie dépasse 20 000 caractères.
+
+    Le pilote se reconnaît à l'absence de ``agent_id`` ; un sous-agent le porte.
+    Les témoins (b) et (c) rendent le rappel sur la même entrée sans ``agent_id``
+    ou à 25 000 caractères, pour qu'un script muet ne passe pas le silence.
+    """
+    SCRIPT = "signaler_lecture_pilote.py"
+
+    def test_une_lecture_de_25000_caracteres_sans_agent_id_rend_le_rappel(self):
+        r = jouer(self.SCRIPT, lecture("a" * 25000))
+        self.assertEqual(r.returncode, 0, r.stderr)
+        rappel = json.loads(r.stdout)["hookSpecificOutput"]
+        self.assertEqual(rappel["hookEventName"], "PostToolUse")
+        self.assertIn("Lecture de 25000 caractères dans le contexte du pilote", rappel["additionalContext"])
+        self.assertIn("_partage/lecture-deleguee.md", rappel["additionalContext"])
+
+    def test_la_meme_lecture_portee_par_un_sous_agent_ne_rend_rien(self):
+        # Témoin : sans agent_id, la même entrée rend le rappel.
+        self.assertIn("additionalContext", jouer(self.SCRIPT, lecture("a" * 25000)).stdout)
+        for agent in ("agent-123", ""):
+            with self.subTest(agent_id=agent):
+                r = jouer(self.SCRIPT, lecture("a" * 25000, agent=agent))
+                self.assertEqual(r.returncode, 0, r.stderr)
+                self.assertEqual(r.stdout, "")
+
+    def test_une_lecture_de_5000_caracteres_ne_rend_rien(self):
+        # Témoin : la même entrée à 25 000 caractères rend le rappel.
+        self.assertIn("additionalContext", jouer(self.SCRIPT, lecture("a" * 25000)).stdout)
+        r = jouer(self.SCRIPT, lecture("a" * 5000))
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(r.stdout, "")
+
+    def test_une_entree_illisible_sort_en_zero_sans_rien_rendre(self):
+        # Témoin : une entrée valide de 25 000 caractères rend le rappel.
+        self.assertIn("additionalContext", jouer(self.SCRIPT, lecture("a" * 25000)).stdout)
+        for entree in ("pas du json {", "", [], {"tool_name": "Read"}):
+            with self.subTest(entree=entree):
+                r = jouer(self.SCRIPT, entree)
+                self.assertEqual(r.returncode, 0, r.stderr)
+                self.assertEqual(r.stdout, "")
+
+    # Extra (hors budget de l'étape, justifié) : la panne « seuil mal placé à la frontière »
+    # (``>=`` pour ``>``, ou seuil recopié à 20 001 ou 24 999) n'est pas vue par 5 000 et 25 000.
+    def test_le_seuil_de_20000_caracteres_est_strict(self):
+        self.assertEqual(jouer(self.SCRIPT, lecture("a" * 20000)).stdout, "")
+        r = jouer(self.SCRIPT, lecture("a" * 20001))
+        self.assertNotEqual(r.stdout, "", r.stderr)
+        self.assertIn("Lecture de 20001 caractères", json.loads(r.stdout)["hookSpecificOutput"]["additionalContext"])
+
+    # Extra (justifié) : la panne « objet ignoré, ou compté en octets encodés » n'est pas vue par
+    # les tests de chaîne. Un objet se mesure à sa sérialisation JSON sans échappement :
+    # '{"a": "' (7) + 20000 é + '"}' (2) = 20009 caractères, et 120009 si ensure_ascii était vrai.
+    def test_une_sortie_objet_se_mesure_a_sa_serialisation_sans_echappement(self):
+        r = jouer(self.SCRIPT, lecture({"a": "é" * 20000}))
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("Lecture de 20009 caractères", json.loads(r.stdout)["hookSpecificOutput"]["additionalContext"])
+
+
 if __name__ == "__main__":
     unittest.main()
