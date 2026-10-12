@@ -35,6 +35,7 @@ Dans les trois cas, même séquence — et **elle ne s'arrête pas au merge** :
        Il y commande `tools` et `e2e`, que la CI ne joue pas sur une PR ordinaire,
        puis, tout vert, le merge sur `main` par le job `auto-merge`. Une PR de plan
        ouverte sans ce label y serait mergée sur la seule foi des tests unitaires.
+       Le label n'y retient le merge que pour les PR Dependabot.
      - **`micro-trading` — le poser.** Même logique que `vahiny`, depuis le
        2026-10-09 (PR `#4`). Une PR ordinaire n'y joue que `test` et `audit` ; le
        label lance `e2e` **sur le runner du VPS** (appels réels à Jev, aux sources
