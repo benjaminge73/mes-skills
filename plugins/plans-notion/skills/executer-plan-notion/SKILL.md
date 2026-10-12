@@ -423,6 +423,7 @@ Elle s'écrit avec les mêmes précautions que le reste (§5).
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/bons-tests.md`,
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/poc.md`,
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/machine-partagee.md`,
+  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/cout-des-plans.md`,
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/ranger-claude-md.md` et
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/outils-et-quotas.md`, livrés par le
   plugin `plans-notion` — pas par le dépôt de travail, quel qu'il soit.
