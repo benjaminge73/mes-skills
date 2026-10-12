@@ -27,8 +27,12 @@ dépôt n'enregistre de marketplace à l'ouverture. Le chargement `@inline`
 vient de la surface `claude.ai`, pas d'ici.
 
 **Une modification ici ne change rien à ta session en cours**, quelle que
-soit la copie qui te gouverne. Elle prend effet après merge sur `main`,
-`claude plugin update <plugin>@atelier`, et un redémarrage. Ne cherche pas à
+soit la copie qui te gouverne. Elle prend effet après merge sur `main` : la
+remontée joue le point 4 bis de
+`plugins/plans-notion/skills/_partage/remontee-sur-main.md`
+(`claude plugin marketplace update atelier`, puis
+`claude plugin update <plugin>@atelier` pour chaque plugin dont la version a
+bougé), et un redémarrage ou `/reload-plugins`. Ne cherche pas à
 vérifier un changement de règle en te regardant travailler : lis le fichier.
 
 ## D'où vient un instantané, et pourquoi rien ne le rattrape
