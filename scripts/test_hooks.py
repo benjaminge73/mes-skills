@@ -28,6 +28,10 @@ def bash(commande: str) -> dict:
     return {"tool_name": "Bash", "tool_input": {"command": commande}}
 
 
+def exit_plan_mode(plan: str) -> dict:
+    return {"tool_name": "ExitPlanMode", "tool_input": {"plan": plan}}
+
+
 class RefuserNoVerify(unittest.TestCase):
     SCRIPT = "refuser_no_verify.py"
 
@@ -149,6 +153,45 @@ class RefuserStatutAccentue(unittest.TestCase):
         r = jouer(self.SCRIPT, "")
         self.assertEqual(r.returncode, 0)
         self.assertNotEqual(r.stderr.strip(), "")
+
+
+PLAN_SANS_NOTION = "## Plan\n1. Étape un\n2. Étape deux"
+
+
+class RappelDelegationApresExitPlanMode(unittest.TestCase):
+    """Hook PostToolUse sur ExitPlanMode : rappel de déléguer, jamais bloquant.
+
+    Le témoin du test (b) — le même plan sans URL rend le rappel — est là pour
+    que le silence du cas Notion ne soit pas gagné par un script muet.
+    """
+    SCRIPT = "rappel_delegation.py"
+
+    def test_un_plan_sans_url_notion_rend_le_rappel_de_delegation(self):
+        r = jouer(self.SCRIPT, exit_plan_mode(PLAN_SANS_NOTION))
+        self.assertEqual(r.returncode, 0, r.stderr)
+        rappel = json.loads(r.stdout)["hookSpecificOutput"]
+        self.assertEqual(rappel["hookEventName"], "PostToolUse")
+        self.assertIn("plans-notion:deleguer-a-haiku", rappel["additionalContext"])
+        self.assertIn("executant", rappel["additionalContext"])
+
+    def test_un_plan_qui_cite_une_page_notion_ne_rend_rien(self):
+        # Témoin : sans lui, un script qui ne rend jamais rien passerait le test.
+        self.assertIn("additionalContext", jouer(self.SCRIPT, exit_plan_mode(PLAN_SANS_NOTION)).stdout)
+        for url in ("https://www.notion.so/Plan-abc123", "https://app.notion.com/p/abc123"):
+            with self.subTest(url=url):
+                r = jouer(self.SCRIPT, exit_plan_mode(f"Suivi : {url}\n1. Étape un"))
+                self.assertEqual(r.returncode, 0, r.stderr)
+                self.assertEqual(r.stdout, "")
+
+    def test_une_entree_illisible_ou_incomplete_sort_en_zero_sans_rien_rendre(self):
+        entrees = ("pas du json {", "",
+                   '{"tool_input": "pas un objet"}',
+                   '{"tool_name": "ExitPlanMode", "tool_input": {}}')
+        for entree in entrees:
+            with self.subTest(entree=entree):
+                r = jouer(self.SCRIPT, entree)
+                self.assertEqual(r.returncode, 0, r.stderr)
+                self.assertEqual(r.stdout, "")
 
 
 if __name__ == "__main__":
