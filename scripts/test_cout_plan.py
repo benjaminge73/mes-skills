@@ -207,5 +207,42 @@ class CoutPlan(unittest.TestCase):
         self.assertAlmostEqual(montant(total[0]), 16.10, places=4)
 
 
+GRILLE_REELLE = RACINE / "plugins" / "plans-notion" / "skills" / "_partage" / "scripts" / "grille-tarifs.json"
+
+# Prix relevés sur la page tarifs d'Anthropic le 2026-10-12, en dollars par
+# million de tokens ; pour Haiku 5.5, le palier « prompt jusqu'à 100 000
+# tokens ». Écrits à la main, jamais lus dans la grille.
+PAGE_TARIFS = {
+    OPUS: {"entree": 4, "sortie": 20, "ecriture_cache_5m": 5, "ecriture_cache_1h": 8, "lecture_cache": 0.2},
+    SONNET: {"entree": 2, "sortie": 10, "ecriture_cache_5m": 2.5, "ecriture_cache_1h": 4, "lecture_cache": 0.1},
+    HAIKU: {"entree": 0.1, "sortie": 0.5, "ecriture_cache_5m": 0.125, "ecriture_cache_1h": 0.2, "lecture_cache": 0.01},
+}
+
+
+class GrilleReelle(unittest.TestCase):
+    """Ce test lit la vraie grille du dépôt, pas une fixture : c'est le contrôle du fait porteur de docs/veille.md."""
+
+    def test_la_grille_du_depot_porte_les_prix_de_la_page_et_une_lecture_de_cache_a_5_pour_cent_de_l_entree(self):
+        # Attrape : la grille du dépôt porte un prix qui ne vient pas de la page.
+        # Panne réelle au 2026-10-12 : la lecture de cache de Sonnet 5.5 valait
+        # 0,20 $ (coefficient 0,10 × entrée déduit) au lieu de 0,10 $ relevé,
+        # soit 0,05 × l'entrée. Le test rend la liste complète des écarts.
+        grille = json.loads(GRILLE_REELLE.read_text(encoding="utf-8"))
+        ecarts = []
+        for modele, releve in PAGE_TARIFS.items():
+            portee = grille["modeles"].get(modele, {})
+            for champ, prix_page in releve.items():
+                prix_grille = portee.get(champ, {}).get("prix")
+                if prix_grille is None or abs(float(prix_grille) - prix_page) > 1e-9:
+                    ecarts.append(f"{modele} {champ} : grille {prix_grille}, page {prix_page}")
+        for modele in (OPUS, SONNET):
+            portee = grille["modeles"].get(modele, {})
+            entree = portee.get("entree", {}).get("prix")
+            lecture = portee.get("lecture_cache", {}).get("prix")
+            if entree is None or lecture is None or abs(float(lecture) - 0.05 * float(entree)) > 1e-9:
+                ecarts.append(f"{modele} lecture_cache : grille {lecture}, attendu 0,05 × entrée ({entree})")
+        self.assertEqual(ecarts, [], "écarts entre grille-tarifs.json et la page tarifs :\n" + "\n".join(ecarts))
+
+
 if __name__ == "__main__":
     unittest.main()
