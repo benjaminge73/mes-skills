@@ -35,5 +35,13 @@
     "plugins/plans-notion/skills/executer-plan-notion/SKILL.md"
   ],
   "veille_jours_max": 30,
-  "exceptions": []
+  "exceptions": [
+    {
+      "regle": "b",
+      "cible": "plugins/plans-notion/skills/deleguer-a-haiku/SKILL.md",
+      "date": "2026-10-13",
+      "raison": "La section « Avant le plan » (22 lignes) porte la méthode d'enquête pour une session en mode plan natif lancée par Hermes ; le plafond du fichier était déjà atteint (76 lignes, 4306 octets) et tout ajout dépasse. Le plafond ne bouge pas (cliquet) : le dépassement est déclaré, pas absorbé.",
+      "levee_par": "un allègement de deleguer-a-haiku (déplacer « Avant le plan » dans un fichier _partage/ ou retirer des règles redondantes), à décider au prochain plan qui touche ce skill"
+    }
+  ]
 }
