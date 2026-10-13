@@ -512,7 +512,7 @@ quelques applications Access.
 **Repli** : désactiver la validation du jeton sur la route rend le comportement
 précédent, sans redémarrage.
 
-## Fiche — Hermes Agent (cron et hub de skills)
+## Fiche — Hermes Agent (cron, hub de skills, rendu Slack)
 
 **Quota ou coût** (mesuré le 2026-10-06) : aucun quota propre. Un passage de
 job qui réveille l'agent coûte les tokens du modèle du job : un passage de
@@ -537,6 +537,14 @@ d'entrée cumulés, cache à environ 98 %, en 46 s.
   résout d'abord par l'index public skills.sh quand le dépôt y est indexé,
   avant le tap GitHub du profil. Seul l'identifiant au chemin complet
   `<owner>/<repo>/<chemin>/<skill>` installe depuis le tap.
+- **2026-10-12** : le rendu Slack d'Hermes a deux lecteurs de tableau Markdown,
+  et ils ne lisent pas `\|` de la même façon. Le chemin par blocs riches
+  (table native Block Kit, `plugins/platforms/slack/block_kit.py`, fonction
+  `_split_row`) protège la barre échappée et l'affiche dans la cellule. Le
+  chemin texte (`plugins/platforms/slack/adapter.py`, `_split_table_row`, appelé
+  par `_align_table`) ne la protège pas : il coupe sur `\|`, le tableau gagne
+  une colonne et la ligne se décale. Une cellule qui doit contenir une barre
+  s'écrit donc avec `¦` à la place, que les deux lecteurs ne coupent pas.
 
 **Bonne pratique** :
 
@@ -552,6 +560,8 @@ d'entrée cumulés, cache à environ 98 %, en 46 s.
   d'un passage, vers un script d'enrobage qui appelle le pré-script avec un
   instant forcé, et rétablir le script d'origine par un `trap` dans le même
   appel de shell.
+- Dans un tableau destiné à Slack, remplacer la barre d'une cellule par `¦`
+  plutôt que l'échapper en `\|` : seul un des deux lecteurs sait lire `\|`.
 
 **Repli** : pour le hub de skills, l'identifiant au chemin complet ; sinon
 aucun connu au 2026-10-06.
