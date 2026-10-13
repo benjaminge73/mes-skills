@@ -8,6 +8,7 @@ entrée illisible = code 0 (un garde-fou cassé ne bloque aucune session).
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 import sys
 import tempfile
@@ -308,6 +309,65 @@ class SignalerLecturePilote(unittest.TestCase):
         r = jouer(self.SCRIPT, lecture({"a": "é" * 20000}))
         self.assertEqual(r.returncode, 0, r.stderr)
         self.assertIn("Lecture de 20009 caractères", json.loads(r.stdout)["hookSpecificOutput"]["additionalContext"])
+
+
+class RappelMethodeHermes(unittest.TestCase):
+    """Hook SessionStart : rappel de la méthode dans une session lancée par Hermes.
+
+    Le marqueur est la variable ``HERMES_SESSION`` (``code`` ou ``revue``), seul
+    contrat avec hermes-custom. Les tests fixent l'environnement eux-mêmes : une
+    session Hermes peut porter la variable, et le test ne doit pas en dépendre.
+    """
+    SCRIPT = "rappel_methode_hermes.py"
+    DEMARRAGE = {"hook_event_name": "SessionStart", "source": "startup"}
+
+    def lancer(self, entree, marqueur=None) -> subprocess.CompletedProcess:
+        env = {cle: valeur for cle, valeur in os.environ.items() if cle != "HERMES_SESSION"}
+        if marqueur is not None:
+            env["HERMES_SESSION"] = marqueur
+        brut = entree if isinstance(entree, str) else json.dumps(entree)
+        return subprocess.run([sys.executable, str(HOOKS / self.SCRIPT)], input=brut,
+                              capture_output=True, text=True, timeout=30, env=env)
+
+    def consigne(self, r) -> str:
+        """Le texte injecté, ou ``""`` si le hook s'est tu."""
+        if r.stdout == "":
+            return ""
+        sortie = json.loads(r.stdout)["hookSpecificOutput"]
+        self.assertEqual(sortie["hookEventName"], "SessionStart")
+        return sortie["additionalContext"]
+
+    def test_une_session_code_recoit_le_skill_deleguer_a_haiku_nomme(self):
+        r = self.lancer(self.DEMARRAGE, marqueur="code")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("plans-notion:deleguer-a-haiku", self.consigne(r))
+
+    def test_une_session_revue_nomme_l_enqueteur_sans_deleguer_l_ecriture(self):
+        # Sans l'enquêteur nommé, la session de revue ne sait pas qui lit à sa place.
+        r = self.lancer(self.DEMARRAGE, marqueur="revue")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        consigne = self.consigne(r)
+        self.assertIn("plans-notion:enqueteur", consigne)
+        self.assertNotIn("deleguer-a-haiku", consigne)
+        self.assertNotIn("executant", consigne.lower())
+
+    def test_sans_marqueur_connu_le_hook_se_tait(self):
+        # « codes » est une valeur proche : un contrôle par préfixe la prendrait pour « code ».
+        for marqueur in (None, "", "autre", "codes"):
+            with self.subTest(marqueur=marqueur):
+                r = self.lancer(self.DEMARRAGE, marqueur=marqueur)
+                self.assertEqual(r.returncode, 0, r.stderr)
+                self.assertEqual(r.stdout, "")
+
+    def test_une_entree_illisible_sort_en_zero_sans_rien_rendre(self):
+        # Le marqueur est posé à chaque valeur utile : l'entrée illisible doit taire
+        # le hook même quand la session est une session Hermes.
+        for marqueur in ("code", "revue", None):
+            for entree in ("pas du json {", ""):
+                with self.subTest(marqueur=marqueur, entree=entree):
+                    r = self.lancer(entree, marqueur=marqueur)
+                    self.assertEqual(r.returncode, 0, r.stderr)
+                    self.assertEqual(r.stdout, "")
 
 
 if __name__ == "__main__":
