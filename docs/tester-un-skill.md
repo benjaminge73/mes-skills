@@ -268,6 +268,10 @@ cas qu'elle regroupe et les fichiers qu'elle exerce. Pour `plans-notion` :
 | `maquette` | `skills/plan-notion/` | `maquette-requise` |
 | `decouvertes` | `skills/executer-plan-notion/`, `agents/executant.md`, `agents/relecteur.md` | les quatre `decouverte-*` |
 | `perimetre` | `skills/executer-plan-notion/`, `agents/executant.md` | `no-verify`, `rien-hors-plan` |
+| `preuves` | `skills/_partage/poc.md`, `agents/evaluateur.md`, `skills/_partage/scripts/verifier-preuves.py` | `poc-jugement`, `preuve-par-reponse`, `cron-a-la-main`, `decouverte-sans-humain` |
+
+`preuves` n'a pas de plancher : la fumée la nomme sans la juger, comme le dit
+« Une catégorie sans plancher est écartée, et nommée » plus bas.
 
 **Les évals se jouent à la demande, et l'A/B est l'exception.** La CI ne joue
 l'A/B que si la PR porte le label `evals`. Une PR qui touche un skill, un agent,
