@@ -13,14 +13,14 @@ Sommaire :
 - La PR, puis la remontée sur `main`
 
 Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard »
-(sauf `execute`, qui suit le merge : point 7 de la séquence) :
+(sauf `execute`, qui suit le merge : point 8 de la séquence) :
 
 - `Statut` : **`a merger`** tant que le code n'est pas sur `main`. C'est l'état de
   fin de clôture, sur tous les dépôts : le travail est livré sur la branche du
   plan, prouvé en local, et sa PR est ouverte (en brouillon seulement si
   Benjamin l'a demandé). `execute` se pose dès que le merge est
   vérifié sur `main`, dans le tour où on le constate : ce peut être un tour
-  après celui du compte rendu (point 7 de la séquence).
+  après celui du compte rendu (point 8 de la séquence).
   Une seule question, et sa réponse est factuelle — *où est le code à cette
   seconde ?* Poser `execute` sur du travail qui dort sur une branche ou une PR
   ouverte fait croire
@@ -50,7 +50,7 @@ Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard »
     premier chiffre, pas à ajouter. Pour la distinguer :
     `grep -c 'découverte — trouvable au plan — sur la page' <journal>` — un
     sous-ensemble du premier compte, qui se lit « dont N sur la page » ;
-  - **le contrôle des libellés** (§4) : `grep -c 'Découvertes :' <journal>`
+  - **le contrôle des libellés** (§4) : `grep -c 'Découvertes\*\* :' <journal>`
     égale `grep -c '^### Étape ' <journal>`, et chaque ligne marquée `ÉCART`
     ou `BLOQUÉ` a son libellé. Un écart entre les deux nombres, ou une
     surprise sans libellé, se corrige avant de poser `a merger`, en respectant
@@ -73,16 +73,16 @@ Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard »
     (quota, coût, piège, repli) part en PR sur `mes-skills`, dans
     `${CLAUDE_PLUGIN_ROOT}/skills/_partage/outils-et-quotas.md`, fiche datée et
     sans nom privé — la règle de publication du fichier s'applique. Ce n'est
-    pas la PR du plan : elle vise un autre dépôt, et la règle de ce §6 (aucune
-    PR d'initiative) vaut pour elle aussi — le compte rendu la propose, et
-    Benjamin décide de la remontée ;
+    pas la PR du plan : elle vise un autre dépôt et publie dans un dépôt public,
+    donc le compte rendu la **propose**, et Benjamin décide de la remontée ;
   - **un verdict par étape, `verified` ou `unverifiable`** — jamais un
     troisième mot. `verified` : la preuve du brief a été rejouée par la
     session et elle est verte (§3). `unverifiable` : une preuve qu'on n'a pas
     pu jouer — poste sans navigateur pour des e2e, service externe
     indisponible — **n'est pas verte** ; elle se nomme comme telle, avec la
     raison, plutôt que de se fondre dans un compte rendu qui donne l'illusion
-    que tout est passé ;
+    que tout est passé. L'entrée `État final` recopie les verdicts posés dans
+    le journal, un par étape, mêmes mots : elle ne les réécrit pas ;
   - **une rétrospective en cinq questions**, courte : qu'est-ce qui s'est
     passé, qu'est-ce qui a marché, qu'est-ce qui a surpris, une note sur 10,
     qu'est-ce qu'on ferait autrement. C'est ce qui nourrira la prochaine
@@ -117,7 +117,7 @@ Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard »
 - Le compte rendu liste aussi les rubriques **Ajouts sans question** et **Recos
   appliquées par défaut** de l'`État final`, même vides (« aucun »).
 - **Livrer la PR, prête, et la suivre jusqu'au merge.** La PR s'ouvre à la
-  clôture ; c'est la CI qui la merge, jamais la session (points 4 et 7). La
+  clôture ; c'est la CI qui la merge, jamais la session (points 5 et 8). La
   séquence de clôture est courte :
   1. **Jouer la suite complète en local** : tous les tests unitaires, lint,
      build, **et les tests e2e** — c'est ici, et seulement ici, qu'ils passent
@@ -128,7 +128,7 @@ Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard »
      page reste à `en cours`. Une suite qui n'est pas jouable sur le poste (e2e
      sans navigateur, par exemple) se dit au journal, tests nommés — ce n'est
      pas un vert, c'est un trou : il se pose à Benjamin avant l'ouverture de la
-     PR (point 4, et « La PR, puis la remontée sur `main` »). Suite complète et
+     PR (point 5, et « La PR, puis la remontée sur `main` »). Suite complète et
      e2e prennent le jeton des actions lourdes :
      `${CLAUDE_PLUGIN_ROOT}/skills/_partage/machine-partagee.md`.
   2. **Alléger les `CLAUDE.md` trop longs, sans demander.** Ce geste ne tourne
@@ -161,10 +161,31 @@ Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard »
      - **Résultat** : une ligne à l'entrée `État final`, par fichier concerné,
        avec la taille avant, la taille après et les destinations créées — ou,
        si rien n'a dépassé, `CLAUDE.md : sous les plafonds, aucun allègement`.
-  3. **Pousser la branche du plan.** C'est le seul push de la clôture quand le
+  3. **La porte des preuves, avant le push.** Le contrôle des journaux se joue
+     par script, sur le miroir local de la page, avant tout push et toute PR :
+     ```bash
+     python3 "${CLAUDE_PLUGIN_ROOT}/skills/_partage/scripts/preuves-des-etapes.py" <page.md> --apres
+     ```
+     - **Code 0** : `apres : <n> étape(s), toutes verified`. On poursuit.
+     - **Code 1** : des défauts de journal, une ligne par défaut (entrée
+       absente, champ vide, verdict hors vocabulaire, `unverifiable` sans
+       raison, étape écrite deux fois). On corrige **la page, pas le code** :
+       l'entrée de journal, puis on rejoue jusqu'au code 0 ou 3.
+     - **Code 3** : aucun défaut, mais au moins une étape `unverifiable`,
+       nommée sur sa ligne `non prouvée : Étape N — <raison>`. C'est le
+       traitement du trou e2e : **question à Benjamin avant d'ouvrir la PR**
+       (point 5), avec `AskUserQuestion` et trois réponses — **ouvrir prête
+       quand même**, **ouvrir en brouillon**, **attendre**. Pas de question
+       si la CI du dépôt rejoue cette preuve sur la PR (label
+       `review-required` là où il rejoue les e2e, « La PR, puis la remontée
+       sur `main` ») : la preuve est alors couverte, et le nom reste au
+       journal et au compte rendu.
+     - **Code 2** : page, chapitre `Exécution` ou journal illisible. La porte
+       ne passe pas : rien ne se pousse, et on le dit à Benjamin.
+  4. **Pousser la branche du plan.** C'est le seul push de la clôture quand le
      relevé du §2 a retenu les commits en local ; sans lui, le travail ne vit
      que sur un disque. La sortie de la preuve va au journal (`État final`).
-  4. **Ouvrir la PR, prête.** `gh pr create --base main --head <branche-du-plan>`,
+  5. **Ouvrir la PR, prête.** `gh pr create --base main --head <branche-du-plan>`,
      **sans `--draft`** : le brouillon se demande à Benjamin, il ne se décide pas
      seul. Titre = titre du plan ; corps = une ligne par étape reprise du
      journal, lien vers la page Notion, et la ligne `Evals:` (sous-section
@@ -172,7 +193,7 @@ Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard »
      `PR` renseignée sur la page dès l'ouverture. **Un trou e2e non couvert par
      la CI du dépôt** se pose à Benjamin **avant** cette commande (sous-section
      « La PR, puis la remontée sur `main` ») : la PR ne part pas sans sa réponse.
-  5. **Contrôle bloquant, avant d'attendre la CI.** Il ne dépend pas de la CI : il
+  6. **Contrôle bloquant, avant d'attendre la CI.** Il ne dépend pas de la CI : il
      passe ici, juste après le push et l'ouverture de la PR.
      ```bash
      git branch --list '<branche-du-plan>-etape-*'
@@ -180,7 +201,7 @@ Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard »
      ```
      Rien d'autre que les branches `<branche-du-plan>-etape-N-en-echec` déclarées
      au journal. Le worktree du plan figure encore dans `git worktree list` : c'est
-     normal, il est retiré au point 7 et pas avant (une correction en cas de rouge
+     normal, il est retiré au point 8 et pas avant (une correction en cas de rouge
      s'y fait). Les worktrees des autres plans n'en sont pas. Des branches de vague
      qui survivent à leur plan n'ont pas de filet après coup : plan parent
      squash-mergé, `git cherry` y rend `+` pour tout. Survivance → vérifier le
@@ -189,12 +210,12 @@ Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard »
      dans l'entrée `État final`.
 
      📄 `${CLAUDE_PLUGIN_ROOT}/skills/_partage/vagues.md`
-  6. **Écrire la clôture, dans le même tour que le compte rendu.** Ce qui suit reprend
-     la sortie du point 5 : `État final` (avec cette sortie), `Statut` =
+  7. **Écrire la clôture, dans le même tour que le compte rendu.** Ce qui suit reprend
+     la sortie du point 6 : `État final` (avec cette sortie), `Statut` =
      **`a merger`**, `PR` = l'URL, et le compte rendu à Benjamin (PR ouverte, son
      URL, étapes parties en `executant`, ce qui retient le merge s'il y a lieu).
      `a merger` est vrai à cet instant : le code n'est pas encore sur `main`.
-  7. **Suivre la CI jusqu'au merge, sans jamais merger soi-même.** Une CI longue
+  8. **Suivre la CI jusqu'au merge, sans jamais merger soi-même.** Une CI longue
      (30 à 40 minutes d'e2e) ne se suit pas au premier plan : elle se surveille en
      arrière-plan (`Bash` avec `run_in_background`, ou `Monitor` sur
      `gh pr checks <n> --watch`), avec une attente bornée. Trois issues :
@@ -202,7 +223,7 @@ Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard »
        (`gh pr view <n> --json state,mergeCommit`, et le commit de merge présent
        dans `origin/main`), poser `execute`, ajouter une ligne datée à `État
        final`, retirer le worktree. Ce tour peut être un tour ultérieur à celui du
-       point 6 : `execute` se pose dans le tour où le merge est constaté.
+       point 7 : `execute` se pose dans le tour où le merge est constaté.
      - **(b) Rouge** → corriger dans le worktree, encore présent, rejouer la suite
        complète en local, repousser **une seule fois** (chaque push relance un
        run). `Statut` reste `a merger`. Un correctif structurant part à l'arbitrage
@@ -229,7 +250,7 @@ poser dans le tour du compte rendu, pendant qu'on y pense encore.
 
 ### La PR, puis la remontée sur `main`
 
-La PR s'ouvre à la clôture, prête (points 4 et 7 ci-dessus) : une seule, de la
+La PR s'ouvre à la clôture, prête (points 5 et 8 ci-dessus) : une seule, de la
 branche du plan vers `main`. Benjamin peut aussi la demander — « ouvre la PR »,
 « merge sur main », « tu peux merger directement », « pousse ça sur main ». La
 demande ne change pas le geste : si la PR n'existe pas encore (clôture

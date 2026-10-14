@@ -40,17 +40,28 @@ Sous ce titre, l'entrée porte :
   l'étape, ceux des fichiers impactés — et sa sortie ;
 - le **commit de l'étape** (SHA court), poussé ou resté local — ou la branche de
   côté où le travail attend, si l'étape est en échec (§3) ;
-- **une ligne `Découvertes :` — obligatoire, dans chaque entrée d'étape.** Elle
-  vaut `aucune`, ou porte la liste des découvertes, une par ligne, chacune sous
-  l'un des libellés de la sous-section suivante, suivi de **son traitement**
-  (sous-section d'après). Une entrée sans cette ligne est
+- **une ligne `**Découvertes** :` — obligatoire, dans chaque entrée d'étape.**
+  Elle vaut `aucune`, ou porte la liste des découvertes, une par ligne, chacune
+  sous l'un des libellés de la sous-section suivante, suivi de **son
+  traitement** (sous-section d'après). Une entrée sans cette ligne est
   incomplète, même si l'étape n'a rien surpris : c'est le `aucune` écrit qui
   distingue une étape sans surprise d'une étape dont personne n'a rien relevé ;
+- **une puce `**Verdict**`** — `verified` si la preuve du brief a été rejouée
+  par le pilote et qu'elle est verte ; `unverifiable — <raison>` si elle n'a
+  pas pu être jouée sur ce poste. La raison est obligatoire : un
+  `unverifiable` nu est refusé. Le verdict s'écrit au moment de l'étape
+  (`etapes.md`, « Après chaque étape »), jamais reconstruit à la clôture.
 - pour une étape qui **repose sur un POC** : l'**écart POC / exécution**, au
   format « POC : 8, exécuté : 39 » — ce que la mesure avait annoncé, ce que
   l'exécution a trouvé — avec un renvoi à
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/poc.md` ;
 - le **reste à faire**, s'il en reste, chaque ligne avec son propriétaire (voir « Découvertes hors plan »).
+
+Dans l'entrée, quatre champs portent ces clés, en gras et suivies de ` :` :
+`**Preuve**`, `**Commit**`, `**Découvertes**`, `**Verdict**`. La clôture les
+contrôle par script (`preuves-des-etapes.py --apres`, §6, point 3) : une
+étape sans entrée, ou un champ vide, est refusée. Une clé écrite autrement
+(sans gras, ou « Découvertes : » seul) n'est pas lue.
 
 C'est la version longue du récap affiché dans la session (§3) : la session dit
 l'essentiel, la page garde le détail.
@@ -71,11 +82,11 @@ après coup revient à réécrire l'histoire, et on ne sait plus ce qui était p
 
 ### Qualifier chaque découverte : trouvable au plan, ou pas
 
-Toute découverte notée au journal porte **l'un des trois libellés ci-dessous**
-— les deux premiers, plus la variante « sur la page » du cas particulier qui
-suit — et jamais aucun autre. Le libellé n'est pas facultatif : c'est lui que la
-ligne `Découvertes :` de chaque entrée d'étape (§4) et le contrôle de clôture
-(§6) attendent.
+Toute découverte notée au journal porte **l'un des trois libellés ci-dessous** —
+les deux premiers, plus la variante « sur la page » du cas particulier qui suit
+— et jamais aucun autre. Le libellé n'est pas facultatif : c'est lui que la
+ligne `**Découvertes** :` de chaque entrée d'étape (§4) et le contrôle de
+clôture (§6) attendent.
 
 - `découverte — trouvable au plan` : l'information **était déjà là** quand le plan
   s'écrivait. Dans le code (un appelant, un réglage, un test existant), dans
@@ -110,16 +121,17 @@ c'est ce qui signale que l'enquête a fait son travail.
 
 **Le libellé se contrôle mécaniquement à la clôture** (§6), pas de mémoire :
 
-- le **nombre de lignes `Découvertes :`** est égal au nombre d'entrées
+- le **nombre de lignes `**Découvertes** :`** est égal au nombre d'entrées
   `Étape N` (les entrées `Ouverture` et `État final` n'en portent pas) ;
 - **aucune surprise marquée `ÉCART` ou `BLOQUÉ` ne reste sans libellé** : chaque
   ligne ainsi marquée se retrouve, avec son libellé, dans la ligne
-  `Découvertes :` de son étape.
+  `**Découvertes** :` de son étape.
 
 ### Découvertes hors plan : chaque trouvaille reçoit un traitement
 
-Le tri d'une découverte vit dans `${CLAUDE_PLUGIN_ROOT}/skills/_partage/decouvertes.md`,
-règle unique, aussi appliquée à la conception et à l'ouverture. Le journal, lui, exige
-que chaque découverte reçoive **un** traitement, écrit sur sa ligne `Découvertes :` de
-l'entrée d'étape — jamais « noté pour plus tard » sans propriétaire. Un secret : sa
-valeur ne s'écrit nulle part (règle complète dans le même fichier).
+Le tri d'une découverte vit dans
+`${CLAUDE_PLUGIN_ROOT}/skills/_partage/decouvertes.md`, règle unique, aussi
+appliquée à la conception et à l'ouverture. Le journal, lui, exige que chaque
+découverte reçoive **un** traitement, écrit sur sa ligne `**Découvertes** :` de
+l'entrée d'étape — jamais « noté pour plus tard » sans propriétaire. Un secret :
+sa valeur ne s'écrit nulle part (règle complète dans le même fichier).

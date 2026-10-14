@@ -29,6 +29,8 @@ détaille.
   de Benjamin) ; la CI la merge, la session ne merge jamais (§6, « La PR, puis
   la remontée sur `main` »). Un trou e2e non couvert par la CI se pose à Benjamin
   avant l'ouverture.
+- **Aucune clôture sans preuve de chaque étape** : `preuves-des-etapes.py
+  --avant` à l'ouverture, `--apres` avant le push (§2, §6).
 - **Découvertes hors plan** : une seule règle de tri, dans
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/decouvertes.md` — question à Benjamin si
   elle touche une décision, la sécurité, l'irréversible ou une dépense ; sinon,
@@ -119,6 +121,11 @@ aussi une réponse qui ne change rien (`_Q2 confirme l'approche, étape
 inchangée._`), relire le chapitre entier — c'est lui seul qui part dans les
 briefs. Cette passe met le plan à jour, elle ne le redessine pas : si
 l'approche est en cause, repasser par `plan-notion` et ne rien coder.
+
+**La porte des preuves, avant la première étape** : `preuves-des-etapes.py
+<page.md> --avant` rend 0 si chaque étape du chapitre porte une `Preuve de
+fin` ; sinon la remise à jour la pose, datée, et on ne code pas
+(`ouverture.md`).
 
 Puis, dans le même tour, avant la première étape :
 
@@ -306,6 +313,10 @@ Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard »
   pour celles faites en direct, pourquoi ; il dit aussi que **la PR est ouverte**
   (son URL), prête, ou pourquoi elle est en brouillon, retenue, ou attend la
   réponse de Benjamin sur un trou e2e.
+- **Porte des preuves, avant le push** : `preuves-des-etapes.py <page.md>
+  --apres` — code 0, on poursuit ; code 1, des défauts de journal, on corrige
+  la page et on rejoue ; code 3, une étape `unverifiable` est nommée, et sa
+  question part à Benjamin avant la PR (`cloture.md`, point 3).
 - **Livrer la PR prête, et la suivre jusqu'au merge** : la suite complète jouée
   en local, e2e compris, c'est le verdict de fin de plan — la PR ne s'ouvre pas
   sur une suite rouge ; puis le push de la branche, et la PR ouverte (`gh pr

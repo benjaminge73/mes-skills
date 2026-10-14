@@ -291,6 +291,13 @@ en disant quelles étapes ont été faites en direct et pourquoi.
   (`git diff --name-only`), pas sur celle du brief (§3). Un sous-agent qui
   annonce « les tests passent » a parfois lancé autre chose que ce qu'on croit,
   ou touché un fichier de plus que ce que la commande couvrait.
+- **Poser le `Verdict` de l'étape**, dans son entrée de journal (écrite
+  ci-dessous), **après ce rejeu** : `- **Verdict** : verified` si la preuve du
+  brief a été rejouée par le pilote et qu'elle est verte ; `- **Verdict** :
+  unverifiable — <raison>` si elle n'a pas pu être jouée sur ce poste (e2e
+  sans navigateur, service externe indisponible). Une preuve rouge n'a pas de
+  verdict : elle se corrige d'abord (§3). Le verdict s'écrit ici, à chaud ; la
+  clôture le recopie, elle ne le reconstruit pas (`cloture.md`).
 - **Au premier `executant` de la session, vérifier le modèle sur lequel il a
   réellement tourné** — et de nouveau après tout `claude plugin update` ou
   `/reload-plugins` en cours de session. Le frontmatter garantit le modèle à

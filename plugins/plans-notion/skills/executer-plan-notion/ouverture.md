@@ -6,6 +6,7 @@ lire (à l'ouverture, avant la première étape). Le détail vit ici.
 Sommaire :
 
 - Remettre le chapitre `Exécution` à jour — toujours
+- La porte des preuves, avant — chaque étape a sa preuve de fin
 - Puis, dans le même tour : maquette, questions orange, `Statut`, worktree,
   relevé de la CI, vagues
 - Une branche, la PR à la clôture
@@ -50,6 +51,28 @@ Cette passe **met le plan à jour, elle ne le redessine pas**. Si une réponse r
 en cause l'approche elle-même — pas une étape, l'approche — ce n'est plus une mise
 à jour mais une nouvelle passe de conception : le dire, repasser par
 `plan-notion`, et ne rien coder en attendant.
+
+**La porte des preuves, avant.** Une étape sans preuve de fin ne se code pas :
+on ne saurait pas dire comment on prouvera qu'elle est faite. Une fois la
+remise à jour écrite et relue, le contrôle se joue par script, sur le miroir
+local de la page :
+
+```bash
+python3 "${CLAUDE_PLUGIN_ROOT}/skills/_partage/scripts/preuves-des-etapes.py" <page.md> --avant
+```
+
+- **Code 0** : `avant : <n> étape(s), toutes ont une preuve de fin`. On
+  commence la première étape.
+- **Code 1** : une ligne par étape sans `**Preuve de fin**` non vide, ou
+  écrite deux fois dans le chapitre. Une coquille (« — », « aucune », « à
+  définir », « à voir ») compte comme absence. On écrit la preuve dans le
+  chapitre, en correction **datée** (`_maj <date> — preuve de fin : …_`), et
+  on rejoue jusqu'au code 0.
+- **Code 2** : page, chapitre `Exécution` ou étape introuvable. On ne
+  commence pas, et on le dit à Benjamin.
+
+Le script ne juge pas la preuve : il vérifie qu'elle est écrite. C'est le
+pilote qui la jouera (`SKILL.md` §3).
 
 Puis, dans le même tour, avant la première étape :
 
