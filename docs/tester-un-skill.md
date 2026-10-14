@@ -260,7 +260,7 @@ lesquelles jouer. Le plan choisit, la CI tient un plancher.
 la **seule** liste (les cas n'ont pas d'étiquette). Chaque catégorie nomme les
 cas qu'elle regroupe et les fichiers qu'elle exerce. Pour `plans-notion` :
 
-| Catégorie | Exerce | Cas |
+| Catégorie | Skills et agents exercés | Cas |
 |---|---|---|
 | `existant` | `skills/plan-notion/`, `agents/chercheur.md`, `agents/sondeur.md` | `existant-jeu-de-donnees`, `existant-jeu-de-questions`, `poc-mecanique` |
 | `bruit` | `skills/plan-notion/` | `bruit-bounded`, `bruit-doc-seule`, `report-sans-seuil` |
@@ -268,8 +268,10 @@ cas qu'elle regroupe et les fichiers qu'elle exerce. Pour `plans-notion` :
 | `maquette` | `skills/plan-notion/` | `maquette-requise` |
 | `decouvertes` | `skills/executer-plan-notion/`, `agents/executant.md`, `agents/relecteur.md` | les quatre `decouverte-*` et `cloture-ouvre-la-pr` |
 | `perimetre` | `skills/executer-plan-notion/`, `agents/executant.md` | `no-verify`, `rien-hors-plan` |
-| `delegation` | `skills/deleguer-a-haiku/`, `agents/executant.md`, `skills/_partage/avant-le-plan.md`, `skills/_partage/compte-rendu-natif.md` | `deleguer-sans-notion` |
-| `preuves` | `skills/_partage/poc.md`, `skills/_partage/cron-a-la-main.md`, `agents/evaluateur.md`, `skills/_partage/scripts/verifier-preuves.py` | `poc-jugement`, `preuve-par-reponse`, `cron-a-la-main`, `decouverte-sans-humain` |
+| `delegation` | `skills/deleguer-a-haiku/`, `agents/executant.md` | `deleguer-sans-notion` |
+| `preuves` | `agents/evaluateur.md` | `poc-jugement`, `preuve-par-reponse`, `cron-a-la-main`, `decouverte-sans-humain` |
+
+La colonne ne nomme que les skills et les agents. Les fichiers de `skills/_partage/` qu'une catégorie exerce (consignes et scripts partagés, par exemple `cron-a-la-main.md` pour `preuves`) ne sont pas recopiés ici : ils changent presque à chaque PR, et la clé `exerce` de `evals/categories.json` les donne, elle seule.
 
 `preuves` n'a pas de plancher : la fumée la nomme sans la juger, comme le dit
 « Une catégorie sans plancher est écartée, et nommée » plus bas.
@@ -419,7 +421,7 @@ en cache, c'est `--estimer` (bras de tête seul, lu dans le rapport de la base).
 Sans base en cache, aucun rapport ne dit les coûts, et la CI annonce le pire :
 au plus 70 $, soit deux bras au plafond. **Le plafond est de 35 $ par bras**
 (`EVALS_MAX_COUT_USD`, passé à `claude plugin eval --max-cost-usd`) ; un bras
-complet coûte 27,53 $ sur Sonnet, soit un quart de marge. Un bras qui dépasse est
+complet coûtait 27,53 $ sur Sonnet (mesure du 2026-09-30 sur 16 cas, non remesurée depuis que le banc en compte 24). Un bras qui dépasse est
 rendu partiel et refusé (code 3), et la facture s'arrête là.
 
 ## Lancer une évaluation
@@ -435,9 +437,9 @@ d'un skill si une session se trompe encore de geste.
    python3 scripts/evals_ab.py --plugin <p> --estimer --cas …
    ```
    Le script l'établit d'après le coût par cas des derniers rapports. Une A/B
-   joue deux bras (base et tête), un bras complet coûte 27,53 $ sur Sonnet,
+   joue deux bras (base et tête), un bras complet coûtait 27,53 $ sur Sonnet (mesure du 2026-09-30 sur 16 cas, non remesurée),
    et une catégorie 1,61 $ à 7,13 $ par bras (tableau de la fiche
-   `claude plugin eval` de `outils-et-quotas.md`). **Annoncer ce coût à
+   `claude plugin eval` de `outils-et-quotas.md`, mesuré aussi sur 16 cas). **Annoncer ce coût à
    Benjamin avant de lancer.** Le plafond est de 35 $ par bras
    (`EVALS_MAX_COUT_USD=35`), contre 120 $ avant, jamais atteint.
 2. **Vérifier le verrou.** Un seul banc à la fois : toutes les sessions d'un
