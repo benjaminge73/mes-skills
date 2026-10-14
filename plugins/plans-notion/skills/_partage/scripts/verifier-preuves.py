@@ -17,6 +17,8 @@ Usage : verifier-preuves.py <page.md> [--format notion|natif] [--depot <dir>]
   --depot <dir> : le fichier cité par une ``lecture`` doit exister dans le dépôt,
     tel quel ou comme suffixe de chemin d'un fichier du dépôt. Un chemin externe
     (URL, ~, /, domaine) n'est pas cherché ; il lui faut un détail.
+    ``--depot`` est indispensable pour contrôler l'existence d'un chemin interne ;
+    sans lui, tout chemin est accepté pour son existence.
   --transcripts [<racine>] : pour un POC, lance modele-sous-agent.py en
     sous-processus et compare le modèle servi au modèle cité. Sans valeur : la
     racine par défaut de modele-sous-agent.py. Sans l'option, les POC ne sont pas

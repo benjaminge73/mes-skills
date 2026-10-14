@@ -238,7 +238,12 @@ Les quatre types, un par puce, au format exact :
   fichier du dépôt reste une lecture ; compter le corpus réel qui tranche ne l'est pas.
 - **`lecture`** — `Preuve : lecture — <chemin>:<ligne> (ce que le passage dit)` :
   un fichier du dépôt ou une doc installée, lu pour de bon, et non repéré par une
-  recherche qui le mentionne.
+  recherche qui le mentionne. Hors dépôt (doc installée, page web, autre dépôt) :
+  le chemin commence par `~` ou `/`, est une URL, un domaine suivi d'une barre, ou
+  la mention « hors dépôt » le précède ; pas de `:<ligne>`, mais un détail, par
+  exemple `lecture — ~/.hermes/docs/x.md (ce que dit la section)`. Un chemin du
+  dépôt exige `:<ligne>`, par exemple `lecture — skills/_partage/poc.md:217 (la règle)`,
+  et le script ne vérifie son existence que si on lui passe `--depot`.
 - **`dispense`** — `Preuve : dispense — parce que <raison>` : un choix de
   préférence ou de gouvernance, qui ne dépend d'aucun comportement mesurable. La
   raison est obligatoire : une dispense sans « parce que » n'est pas une dispense.
