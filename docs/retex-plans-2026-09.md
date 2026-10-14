@@ -171,7 +171,7 @@ preuve avant de valider.
 
 **5. Ne pas lire le CLAUDE.md / README / skill qui pilote l'étape** (~14,
 ~10 plans). « **la conception n'avait pas lu le skill qui pilote précisément
-cette étape** » (`routard-t2/SKILL.md:152-165`, *A #2*). **Vérif.** : lire
+cette étape** » (`routard-t2/SKILL.md:152-165`, *A #2*) [état au 2026-10-14 : ce skill s'appelle `routard-lecture` dans le dépôt `vahiny` depuis le renommage du 2026-09-03, PR #152]. **Vérif.** : lire
 CLAUDE.md dépôt + global et le `SKILL.md` de tout skill invoqué.
 
 **6. Ne pas vérifier droits, chemins, PATH, sandbox** (~12, ~10 plans).
@@ -202,7 +202,7 @@ ne déploie que des `*.py` » (*Optimisations mémoire*). **Vérif.** :
 
 **10. Tests figés sur des comptes exacts, ou qui défendent l'erreur
 corrigée** (~10 plans). « `test_routard_gamme.py:206-215` **fige des comptes
-réels** » (*A #2*) ; « un test **verrouillait l'affirmation fausse** du
+réels** » (*A #2*) [état au 2026-10-14 : dans `vahiny/tools/test_routard_gamme.py`, ces lignes portent aujourd'hui un autre test ; la citation est celle du plan, relevée le 2026-09-08] ; « un test **verrouillait l'affirmation fausse** du
 README… il défendait l'erreur qu'on venait corriger » (*Angles morts #2*).
 **Vérif.** : `grep -rn '== [0-9]\{3,\}' tests/`, lister les tests-verrous.
 
