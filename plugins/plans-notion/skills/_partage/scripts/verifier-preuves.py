@@ -212,7 +212,9 @@ class Verificateur:
         # chemin ; le contrôle d'externe ne lit que le jeton et ce qui le précède.
         premier = premier_chemin(reste)
         if premier is not None and externe(premier.group(1), reste[:premier.start()]):
-            if detail_apres(reste[premier.end():]):
+            # Un détail réel porte au moins un caractère alphanumérique : un tiret ou une
+            # ponctuation seuls ne disent pas ce que dit le passage.
+            if re.search(r"\w", detail_apres(reste[premier.end():])):
                 return []
             return [f"{ident} : lecture externe sans détail"]
         m = CHEMIN.search(reste)
