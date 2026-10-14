@@ -174,9 +174,11 @@ Les valeurs de la propriété `Statut` sont **sans accents** : `brouillon`,
 `en revue`, `valide`, `en cours`, `a merger`, `execute`, `archive`. Écrire
 `exécuté` fait échouer l'appel avec une `validation_error`.
 
-`a merger` et `execute` se distinguent par **où vit le travail** : sur sa branche
-pour le premier, sur `main` pour le second. Un plan livré mais non remonté reste
-à `a merger` — c'est la vérité, pas un oubli. Et **dès que la branche part sur
-`main`, la page passe à `execute` dans le même tour que le merge** : le statut
-suit le code, et une page restée à `a merger` sur du travail déjà remonté annonce
-un chantier en attente qui n'existe plus.
+`a merger` et `execute` se distinguent par **où vit le travail**. `a merger`
+tant que le code n'est pas sur `main` : il vit sur la branche du plan, et sa PR
+de clôture est ouverte, prête, en attente de la CI ou d'une décision. `execute`
+dès qu'il est sur `main`. Un plan livré mais non remonté reste à `a merger` —
+c'est la vérité, pas un oubli. Et **dès que la branche part sur `main`, la page
+passe à `execute` dans le même tour que le merge** : le statut suit le code, et
+une page restée à `a merger` sur du travail déjà remonté annonce un chantier en
+attente qui n'existe plus.

@@ -62,8 +62,8 @@ temps, et qu'est-ce qui attend quoi ?*
   d'œil ce qui peut partir ensemble.
 - Chaque boîte porte le code couleur (section suivante).
 - Les **flèches pointillées** marquent ce qui attend un geste de Benjamin (une
-  réponse, une validation, une PR) — elles se distinguent des flèches pleines, qui
-  marquent une dépendance entre étapes.
+  réponse, une validation, une PR retenue) — elles se distinguent des flèches
+  pleines, qui marquent une dépendance entre étapes.
 
 Voir l'exemple complet en fin de fichier : c'est un schéma réel, déjà rendu par
 Notion.
@@ -175,7 +175,7 @@ flowchart TD
   E11["11 · en-tête des trois skills :<br>d'où je suis chargé, comment me mettre à jour"]:::det
   E9["9 · versions, README, validation"]:::det
   E10["10 · clôture : cette page relue,<br>schémas à jour, branche poussée"]:::agent
-  BR[("branche feat/schemas-tendances-parallelisation<br>page à a merger")]:::data
+  BR[("branche feat/schemas-tendances-parallelisation<br>PR ouverte, page à a merger")]:::data
 
   Q --> V1
   TEND --> E3
