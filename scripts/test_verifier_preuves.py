@@ -193,6 +193,62 @@ class VerifierPreuves(unittest.TestCase):
         code, sortie, _ = jouer(p, "--depot", depot)
         self.assertEqual(code, 0, sortie)
 
+    # Revue de la page réelle (étape 5) : quatre pannes, un test par panne.
+
+    def test_une_prose_qui_cite_la_forme_preuve_n_est_pas_une_ligne_de_preuve(self):
+        # La prose qui cite « Preuve : POC » au milieu d'une phrase n'est pas une ligne
+        # de preuve : seule une ligne qui commence par « Preuve : » en est une.
+        depot = self.dossier / "depot"
+        (depot / "plans").mkdir(parents=True)
+        (depot / "plans" / "x.md").write_text("x\n", encoding="utf-8")
+        prose = "**Forme citée** : une `Preuve : POC` cite l'identifiant de l'agent, sans le prouver."
+        p = self.ecrire("p.md", plan(question(1, prose, "Preuve : lecture — plans/x.md:1 (le passage)")))
+        code, sortie, _ = jouer(p, "--depot", depot)
+        self.assertEqual(code, 0, sortie)
+
+    def test_dispense_avec_elision_de_parce_que(self):
+        # « parce qu'aucun » (élision) vaut « parce que » suivi d'un mot, avec l'apostrophe
+        # droite comme avec l'apostrophe typographique.
+        for apostrophe in ("'", "’"):
+            with self.subTest(apostrophe=apostrophe):
+                p = self.ecrire("p.md", plan(question(
+                    1, f"Preuve : dispense — parce qu{apostrophe}aucun comportement n{apostrophe}est mesurable")))
+                code, sortie, _ = jouer(p)
+                self.assertEqual(code, 0, sortie)
+
+    def test_lecture_externe_sans_numero_de_ligne(self):
+        # Un chemin externe (domaine, « ~ ») se passe de « :ligne ». Le contre-test : un
+        # chemin interne sans « :ligne » reste refusé, pour la même raison d'écart.
+        p = self.ecrire("p.md", plan(
+            question(1, "Preuve : lecture — code.claude.com/docs/en/sub-agents.md "
+                        "(sans modèle à l'appel, le sous-agent prend celui de la session)"),
+            question(2, "Preuve : lecture — ~/.hermes/hermes-agent/website/docs/x.md (ce que dit le passage)")))
+        code, sortie, _ = jouer(p, "--depot", self.dossier)
+        self.assertEqual(code, 0, sortie)
+
+        depot = self.dossier / "depot"
+        depot.mkdir()
+        interne = self.ecrire("i.md", plan(question(1, "Preuve : lecture — plans/x.md (le passage)")))
+        code2, sortie2, _ = jouer(interne, "--depot", depot)
+        self.assertEqual(code2, 1, sortie2)
+        self.assertIn("sans chemin:ligne", sortie2)
+
+    def test_un_poc_servi_par_deux_modeles_est_refuse(self):
+        # Transcription mêlant deux modèles servis : tout modèle servi doit correspondre
+        # au modèle cité, pas un seul. Le modèle qui diffère doit être nommé.
+        racine = self.dossier / "claude"
+        sub = racine / "projects" / "-home-x" / "sess-1" / "subagents"
+        sub.mkdir(parents=True)
+        lignes = [json.dumps({"type": "assistant",
+                              "message": {"role": "assistant", "content": "x", "model": m}})
+                  for m in ("claude-haiku-5-5", "claude-sonnet-5-5")]
+        (sub / f"agent-{AGENT_ID}.jsonl").write_text("\n".join(lignes) + "\n", encoding="utf-8")
+        p = self.ecrire("p.md", plan(question(1, poc(modele="claude-haiku-5-5"))))
+        code, sortie, _ = jouer(p, "--transcripts", racine)
+        self.assertEqual(code, 1, sortie)
+        self.assertIn("différent", sortie)
+        self.assertIn("claude-sonnet-5-5", sortie)
+
 
 if __name__ == "__main__":
     unittest.main()
