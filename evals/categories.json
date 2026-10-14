@@ -117,7 +117,7 @@
       "plancher": 0.9
     },
     "preuves": {
-      "exerce": ["skills/_partage/poc.md"],
+      "exerce": ["skills/_partage/poc.md", "agents/evaluateur.md"],
       "cas": ["poc-jugement", "preuve-par-reponse", "cron-a-la-main", "decouverte-sans-humain"]
     }
   },
