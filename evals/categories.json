@@ -118,7 +118,7 @@
     },
     "preuves": {
       "exerce": ["skills/_partage/poc.md"],
-      "cas": ["poc-jugement", "preuve-par-reponse"]
+      "cas": ["poc-jugement", "preuve-par-reponse", "cron-a-la-main"]
     }
   },
   "voyages": {
