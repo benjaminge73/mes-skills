@@ -110,7 +110,8 @@
       "exerce": [
         "skills/deleguer-a-haiku/",
         "agents/executant.md",
-        "skills/_partage/lecture-deleguee.md"
+        "skills/_partage/lecture-deleguee.md",
+        "skills/_partage/avant-le-plan.md"
       ],
       "cas": ["deleguer-sans-notion"],
       "plancher": 0.9
