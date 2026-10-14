@@ -113,9 +113,18 @@ def apres_tiret(reste: str) -> str:
     return m.group(1).strip() if m else ""
 
 
-def externe(chemin: str, ligne: str) -> bool:
-    """Chemin hors dépôt (URL, ~, /, nom de domaine, « hors dépôt ») : pas de contrôle."""
-    return (chemin.startswith(("~", "/")) or "://" in ligne or "hors dépôt" in ligne
+def premier_chemin(reste: str) -> re.Match | None:
+    """Premier jeton du texte qui ressemble à un chemin : il porte un point, une barre ou un tilde."""
+    for m in CHEMIN_NU.finditer(reste):
+        if re.search(r"[./~]", m.group(1)):
+            return m
+    return None
+
+
+def externe(chemin: str, avant: str) -> bool:
+    """Chemin hors dépôt : pas de contrôle. Le schéma compte s'il fait partie du jeton du
+    chemin ; « hors dépôt » compte s'il est placé avant le chemin (``avant``), jamais après."""
+    return (chemin.startswith(("~", "/")) or "://" in chemin or "hors dépôt" in avant
             or DOMAINE.match(chemin) is not None)
 
 
@@ -192,14 +201,15 @@ class Verificateur:
         if typ == "commande":
             return [] if apres_tiret(reste) else [f"{rep.ident} : commande sans détail"]
         if typ == "lecture":
-            return self._lecture(rep.ident, ligne, reste)
+            return self._lecture(rep.ident, reste)
         return self._poc(rep.ident, ligne, reste)
 
-    def _lecture(self, ident: str, ligne: str, reste: str) -> list[str]:
+    def _lecture(self, ident: str, reste: str) -> list[str]:
         # Chemin externe testé avant l'exigence de « :ligne » : il s'en passe, mais il lui
-        # faut un détail non vide (ce que dit le passage).
-        premier = CHEMIN_NU.search(reste)
-        if premier is not None and externe(premier.group(1), ligne):
+        # faut un détail non vide (ce que dit le passage). Le détail est ce qui suit le
+        # chemin ; le contrôle d'externe ne lit que le jeton et ce qui le précède.
+        premier = premier_chemin(reste)
+        if premier is not None and externe(premier.group(1), reste[:premier.start()]):
             if detail_apres(reste[premier.end():]):
                 return []
             return [f"{ident} : lecture externe sans détail"]
@@ -207,7 +217,7 @@ class Verificateur:
         if m is None:
             return [f"{ident} : lecture sans chemin:ligne"]
         chemin = m.group(1)
-        if externe(chemin, ligne) or self.depot.contient(chemin):
+        if externe(chemin, reste[:m.start()]) or self.depot.contient(chemin):
             return []
         return [f"{ident} : fichier introuvable dans le dépôt : {chemin}"]
 
