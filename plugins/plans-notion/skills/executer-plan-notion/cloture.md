@@ -8,17 +8,19 @@ Sommaire :
 
 - Dans le même tour : `Statut`, `Branche`, entrée `État final`, compte rendu
 - La séquence de clôture (suite complète locale, allègement des `CLAUDE.md`
-  trop longs, push, PR prête, suivi de la CI, contrôle bloquant, retrait du
-  worktree)
+  trop longs, push, PR prête, contrôle bloquant, clôture écrite, suivi de la
+  CI, retrait du worktree)
 - La PR, puis la remontée sur `main`
 
-Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard » :
+Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard »
+(sauf `execute`, qui suit le merge : point 7 de la séquence) :
 
 - `Statut` : **`a merger`** tant que le code n'est pas sur `main`. C'est l'état de
   fin de clôture, sur tous les dépôts : le travail est livré sur la branche du
   plan, prouvé en local, et sa PR est ouverte (en brouillon seulement si
   Benjamin l'a demandé). `execute` se pose dès que le merge est
-  vérifié sur `main`, dans le tour où on le constate (sous-section suivante).
+  vérifié sur `main`, dans le tour où on le constate : ce peut être un tour
+  après celui du compte rendu (point 7 de la séquence).
   Une seule question, et sa réponse est factuelle — *où est le code à cette
   seconde ?* Poser `execute` sur du travail qui dort sur une branche ou une PR
   ouverte fait croire
@@ -110,11 +112,12 @@ Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard » :
   pour celles faites en direct, pourquoi (§3). Il dit aussi, en une ligne, que
   **la PR est ouverte** (son URL), prête — avec ou sans le label
   `review-required` selon ce que ce dépôt-là en fait (relevé du §2, les quatre
-  cas connus au §6) — ou pourquoi elle est en brouillon ou retenue.
+  cas connus au §6) — ou pourquoi elle est en brouillon, retenue, ou attend la
+  réponse de Benjamin sur un trou e2e.
 - Le compte rendu liste aussi les rubriques **Ajouts sans question** et **Recos
   appliquées par défaut** de l'`État final`, même vides (« aucun »).
 - **Livrer la PR, prête, et la suivre jusqu'au merge.** La PR s'ouvre à la
-  clôture ; c'est la CI qui la merge, jamais la session (étapes 4 et 5). La
+  clôture ; c'est la CI qui la merge, jamais la session (points 4 et 7). La
   séquence de clôture est courte :
   1. **Jouer la suite complète en local** : tous les tests unitaires, lint,
      build, **et les tests e2e** — c'est ici, et seulement ici, qu'ils passent
@@ -124,8 +127,9 @@ Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard » :
      diagnostiquer → même arbitrage (§3) : journal, plan de suite (§7), et la
      page reste à `en cours`. Une suite qui n'est pas jouable sur le poste (e2e
      sans navigateur, par exemple) se dit au journal, tests nommés — ce n'est
-     pas un vert, c'est un trou : le compte rendu le dit en tête, à côté de la
-     PR. Suite complète et e2e prennent le jeton des actions lourdes :
+     pas un vert, c'est un trou : il se pose à Benjamin avant l'ouverture de la
+     PR (point 4, et « La PR, puis la remontée sur `main` »). Suite complète et
+     e2e prennent le jeton des actions lourdes :
      `${CLAUDE_PLUGIN_ROOT}/skills/_partage/machine-partagee.md`.
   2. **Alléger les `CLAUDE.md` trop longs, sans demander.** Ce geste ne tourne
      que suite complète verte, et avant le push : son commit part avec la
@@ -165,33 +169,56 @@ Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard » :
      seul. Titre = titre du plan ; corps = une ligne par étape reprise du
      journal, lien vers la page Notion, et la ligne `Evals:` (sous-section
      ci-dessous). Label : décidé en regardant ce dépôt-là (sous-section).
-     `PR` renseignée sur la page dès l'ouverture.
-  5. **Suivre la CI jusqu'au merge, sans jamais merger soi-même.** Rouge →
-     corriger tout en local, rejouer la suite complète, repousser une seule fois
-     (chaque push relance un run). Vert, et merge fait par la CI → le vérifier
-     sur pièce (`gh pr view <n> --json state,mergeCommit`), puis poser
-     `execute` dans le même tour. Une PR retenue (brouillon, CI rouge, workflows
-     touchés, PR Dependabot : sous-section) reste à `a merger`, et le compte
-     rendu le dit à Benjamin.
-  6. **Contrôle bloquant, avant de retirer le worktree** :
+     `PR` renseignée sur la page dès l'ouverture. **Un trou e2e non couvert par
+     la CI du dépôt** se pose à Benjamin **avant** cette commande (sous-section
+     « La PR, puis la remontée sur `main` ») : la PR ne part pas sans sa réponse.
+  5. **Contrôle bloquant, avant d'attendre la CI.** Il ne dépend pas de la CI : il
+     passe ici, juste après le push et l'ouverture de la PR.
      ```bash
      git branch --list '<branche-du-plan>-etape-*'
      git worktree list
      ```
-     Rien d'autre que les branches `<branche-du-plan>-etape-N-en-echec`
-     déclarées au journal, ni le worktree du plan (retiré au point suivant).
-     Des branches de vague qui survivent à leur plan n'ont pas de filet après
-     coup : plan parent squash-mergé, `git cherry` y rend `+` pour tout.
-     Survivance → vérifier le report (`git log
-     <branche-du-plan>`, `git cherry <branche-du-plan> <branche-d-etape>` :
-     que des `-`), puis nettoyer. Sortie des deux commandes dans l'entrée
-     `État final`.
+     Rien d'autre que les branches `<branche-du-plan>-etape-N-en-echec` déclarées
+     au journal. Le worktree du plan figure encore dans `git worktree list` : c'est
+     normal, il est retiré au point 7 et pas avant (une correction en cas de rouge
+     s'y fait). Les worktrees des autres plans n'en sont pas. Des branches de vague
+     qui survivent à leur plan n'ont pas de filet après coup : plan parent
+     squash-mergé, `git cherry` y rend `+` pour tout. Survivance → vérifier le
+     report (`git log <branche-du-plan>`, `git cherry <branche-du-plan>
+     <branche-d-etape>` : que des `-`), puis nettoyer. Sortie des deux commandes
+     dans l'entrée `État final`.
 
      📄 `${CLAUDE_PLUGIN_ROOT}/skills/_partage/vagues.md`
-  7. **Retirer le worktree**, `git worktree remove ~/repos/worktrees/<repo>/
-     <branche-kebab>` — **la branche, elle, reste** : c'est le hook
-     `SessionStart` qui la nettoiera après le merge éventuel, et **une branche
-     encore checked-out dans un worktree n'est jamais nettoyée par ce hook**
+  6. **Écrire la clôture, dans le même tour que le compte rendu.** Ce qui suit reprend
+     la sortie du point 5 : `État final` (avec cette sortie), `Statut` =
+     **`a merger`**, `PR` = l'URL, et le compte rendu à Benjamin (PR ouverte, son
+     URL, étapes parties en `executant`, ce qui retient le merge s'il y a lieu).
+     `a merger` est vrai à cet instant : le code n'est pas encore sur `main`.
+  7. **Suivre la CI jusqu'au merge, sans jamais merger soi-même.** Une CI longue
+     (30 à 40 minutes d'e2e) ne se suit pas au premier plan : elle se surveille en
+     arrière-plan (`Bash` avec `run_in_background`, ou `Monitor` sur
+     `gh pr checks <n> --watch`), avec une attente bornée. Trois issues :
+     - **(a) Verte, et mergée par la CI** → vérifier le merge sur pièce
+       (`gh pr view <n> --json state,mergeCommit`, et le commit de merge présent
+       dans `origin/main`), poser `execute`, ajouter une ligne datée à `État
+       final`, retirer le worktree. Ce tour peut être un tour ultérieur à celui du
+       point 6 : `execute` se pose dans le tour où le merge est constaté.
+     - **(b) Rouge** → corriger dans le worktree, encore présent, rejouer la suite
+       complète en local, repousser **une seule fois** (chaque push relance un
+       run). `Statut` reste `a merger`. Un correctif structurant part à l'arbitrage
+       de Benjamin, comme au §3 : la PR reste ouverte et rouge, et la session
+       s'arrête là, comme en (c).
+     - **(c) Retenue** (brouillon, workflows touchés, PR Dependabot) **ou session
+       qui doit s'arrêter avant le merge** → `Statut` reste `a merger` avec l'URL de
+       la PR, retirer le worktree, et dire dans le compte rendu que **la prochaine
+       session qui lit `a merger` avec une PR renseignée vérifie l'état de la PR et
+       pose `execute` si elle est mergée**. La branche reste : elle se rouvre par
+       `git worktree add`.
+
+     Retrait du worktree (issues a et c) : `git worktree remove
+     ~/repos/worktrees/<repo>/<branche-kebab>` — **la branche, elle, reste** : c'est
+     le hook `SessionStart` qui la nettoiera après le merge éventuel, et **une
+     branche encore checked-out dans un worktree n'est jamais nettoyée par ce hook**
      tant que le worktree existe. Retirer le worktree avant le hook, jamais la
      branche à sa place.
 
@@ -202,7 +229,7 @@ poser dans le tour du compte rendu, pendant qu'on y pense encore.
 
 ### La PR, puis la remontée sur `main`
 
-La PR s'ouvre à la clôture, prête (étapes 4 et 5 ci-dessus) : une seule, de la
+La PR s'ouvre à la clôture, prête (points 4 et 7 ci-dessus) : une seule, de la
 branche du plan vers `main`. Benjamin peut aussi la demander — « ouvre la PR »,
 « merge sur main », « tu peux merger directement », « pousse ça sur main ». La
 demande ne change pas le geste : si la PR n'existe pas encore (clôture
@@ -227,8 +254,8 @@ tiennent :
     empêcherait le merge.
   - **`hermes-custom` : le label n'existe pas**, et `gh pr create --label` y
     échoue. Le dépôt a des e2e sans label pour les commander : c'est un trou
-    connu de sa CI, à dire à Benjamin avant d'ouvrir plutôt qu'à contourner en
-    silence.
+    connu de sa CI : le trou se pose à Benjamin avant l'ouverture (bullet « Ce
+    qui retient l'ouverture »), jamais contourné en silence.
 
   La ceinture reste la suite complète jouée en local à la clôture ; le label
   n'est que la bretelle, et une bretelle n'existe que si le dépôt en a une.
@@ -236,6 +263,16 @@ tiennent :
   rouge, des workflows touchés (`.github/workflows/`), une PR Dependabot. Dans
   ces cas `Statut` reste `a merger`, et le compte rendu le dit à Benjamin : la
   PR est ouverte, elle attend une décision.
+- **Ce qui retient l'ouverture elle-même** : un trou e2e non couvert par la CI du
+  dépôt (suite e2e non jouable sur le poste, et aucun label `review-required` qui
+  la rejoue sur la PR). La question part à Benjamin **avant** d'ouvrir, avec
+  `AskUserQuestion` et trois réponses : **ouvrir prête quand même**, **ouvrir en
+  brouillon**, **attendre**. Sans PR, `PR` reste vide et `Statut` reste `a merger`
+  (le code est sur la branche, pas sur `main`). Quand la CI rejoue ces e2e sur la
+  PR (`review-required` posé là où il existe : `vahiny`, `micro-trading`,
+  `mavod-perso`), le trou est couvert : il se note au journal et au compte rendu,
+  et la PR s'ouvre prête. Sur `mes-skills` et `hermes-custom`, le label ne rejoue
+  rien : la question se pose dès qu'un trou existe.
 
 Si le chapitre `Exécution` porte une ligne `Évals à jouer : …`, la recopier dans le
 corps de la PR : `Evals: <catégories> — <raison>`, `Evals: tout` ou `Evals: aucun —
@@ -257,5 +294,7 @@ opération de ce skill qui peut arriver à trois moments différents, et qui a d
 été bâclée en s'arrêtant au merge sans mettre `Statut` à jour. Une demande
 explicite de PR ou de remontée se suit **sans réclamer de confirmation
 supplémentaire** : refuser au nom d'une règle qui n'existait que pour le
-protéger, c'est prendre la règle pour une fin. Ce que la session ne fait jamais,
+protéger, c'est prendre la règle pour une fin. Un trou e2e fait exception : c'est un fait
+que Benjamin n'a pas encore vu, et sa demande ne le couvrait pas (sous-section
+ci-dessus). Ce que la session ne fait jamais,
 même sur demande, c'est le merge lui-même (sous-section ci-dessus).

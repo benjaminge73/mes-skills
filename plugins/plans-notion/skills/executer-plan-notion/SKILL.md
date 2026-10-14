@@ -27,7 +27,8 @@ détaille.
   preuve rouge se corrige (§3, « Une étape = un commit… »).
 - **La clôture ouvre la PR vers `main`, prête** (brouillon seulement sur demande
   de Benjamin) ; la CI la merge, la session ne merge jamais (§6, « La PR, puis
-  la remontée sur `main` »).
+  la remontée sur `main` »). Un trou e2e non couvert par la CI se pose à Benjamin
+  avant l'ouverture.
 - **Découvertes hors plan** : une seule règle de tri, dans
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/decouvertes.md` — question à Benjamin si
   elle touche une décision, la sécurité, l'irréversible ou une dépense ; sinon,
@@ -65,8 +66,9 @@ protège à partir de la version qui la porte. (Historique : `docs/retex/execute
   **Une exception, et une seule** : à `a merger`, la suite n'est pas une
   réexécution mais la fin de la clôture (§6) : suivre la CI de la PR, marquer
   prête une PR brouillon si Benjamin le demande, traiter ce qui retient le
-  merge — et poser `execute` dans le même tour dès que le merge est vérifié
-  sur `main`.
+  merge — et poser `execute` dans le tour où le merge est constaté sur `main`,
+  qui peut être un tour après la clôture. Une PR déjà mergée à la reprise se
+  vérifie sur pièce, et `execute` se pose ; une PR encore ouverte se suit.
 - `brouillon`, `en revue` → s'arrêter et le dire. Un plan pas encore validé est
   une proposition, pas une commande : coder dessus, c'est produire un travail que
   Benjamin n'a jamais accepté.
@@ -280,7 +282,8 @@ tout ce dispositif existe pour empêcher.
 
 ## 6. Clore
 
-Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard » :
+Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard »
+(sauf `execute`, qui suit le merge : voir plus bas) :
 
 - `Statut` : **`a merger`** tant que le code n'est pas sur `main` — l'état de fin
   de clôture, sur tous les dépôts (PR ouverte, en brouillon seulement si
@@ -301,22 +304,30 @@ Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard » :
   (`${CLAUDE_PLUGIN_ROOT}/skills/_partage/schemas.md`).
 - Le compte rendu dit **quelles étapes sont parties en sous-agent `executant` (Haiku)** et,
   pour celles faites en direct, pourquoi ; il dit aussi que **la PR est ouverte**
-  (son URL), prête, ou pourquoi elle est en brouillon ou retenue.
-- **Livrer la PR prête, et la suivre jusqu'au merge** : (1) jouer la suite
-  complète en local, e2e compris — c'est le verdict de fin de plan, et la PR ne
-  s'ouvre pas sur une suite rouge ; (2) pousser la branche du plan ; (3) ouvrir
-  la PR, prête (`gh pr create`, sans `--draft`), label décidé en regardant ce
-  dépôt-là ; (4) suivre la CI jusqu'au merge, **sans jamais merger soi-même** ;
-  (5) vérifier le merge sur `main`, puis poser `execute` ; (6) contrôle bloquant
-  (`git branch --list '<branche-du-plan>-etape-*'`, `git worktree list`) ;
-  (7) retirer le worktree, **pas la branche**.
+  (son URL), prête, ou pourquoi elle est en brouillon, retenue, ou attend la
+  réponse de Benjamin sur un trou e2e.
+- **Livrer la PR prête, et la suivre jusqu'au merge** : la suite complète jouée
+  en local, e2e compris, c'est le verdict de fin de plan — la PR ne s'ouvre pas
+  sur une suite rouge ; puis le push de la branche, et la PR ouverte (`gh pr
+  create`, sans `--draft`), label décidé en regardant ce dépôt-là. Un trou e2e
+  non couvert par la CI du dépôt se pose à Benjamin **avant** cette ouverture.
+  Juste après, et **avant toute attente de CI**, le contrôle bloquant
+  (`git branch --list '<branche-du-plan>-etape-*'`, `git worktree list`). Dans le
+  même tour : `Statut` = `a merger`, `PR`, `État final` et le compte rendu. Alors
+  seulement, la CI : elle se suit en arrière-plan, **sans jamais merger
+  soi-même**. Merge constaté sur `main` → `execute`, puis retrait du worktree,
+  **pas la branche**. Rouge → correction dans le worktree encore présent. Retenue,
+  ou session qui s'arrête avant le merge → le worktree se retire, `a merger`
+  reste avec l'URL de la PR. Le détail des points et des trois issues : `cloture.md`.
 
 Quand Benjamin demande « ouvre la PR » ou « merge sur main » : si la PR du plan
 n'existe pas encore, elle s'ouvre comme à la clôture (une seule, de la branche
 vers `main`, le label décidé en regardant ce dépôt-là) ; si elle existe, on la
-suit jusqu'au merge. **La session ne lance jamais `gh pr merge`, même sur
-demande** : c'est la CI qui merge. `Statut` = `execute` dans le même tour que le
-merge vérifié sur `main`.
+suit jusqu'au merge. Un trou e2e non couvert retient cette ouverture : la question
+part à Benjamin d'abord, sa demande ne le couvrait pas. **La session ne lance
+jamais `gh pr merge`, même sur
+demande** : c'est la CI qui merge. `Statut` = `execute` dans le tour où le
+merge est constaté sur `main`.
 
 📄 `${CLAUDE_PLUGIN_ROOT}/skills/executer-plan-notion/cloture.md` — **à lire à la clôture, et à chaque demande de PR ou de
 remontée sur `main`** : le détail de chaque point ci-dessus, la séquence de
