@@ -14,6 +14,8 @@ Usage : preuves-des-etapes.py <page.md> (--avant | --apres)
   --apres : avant le push et l'ouverture de la PR. Chaque étape a une entrée du
     « Journal d'exécution » portant « Preuve », « Commit(s) » et « Découvertes »
     non vides, et un « Verdict » : ``verified``, ou ``unverifiable — <raison>``.
+    « Preuve » refuse les coquilles de « --avant » ; « Commit(s) » et « Découvertes »
+    refusent seulement le vide et le tiret (« aucun » ou « aucune » y est valide).
 Une étape écrite deux fois dans le chapitre est un défaut dans les deux modes.
 Codes : 0 conforme ; 1 au moins un défaut, un par ligne sur la sortie standard
 (les défauts d'abord) ; 3 (--apres seulement) aucun défaut mais une étape
@@ -34,10 +36,14 @@ from pathlib import Path
 ETAPE = re.compile(r"^###[ \t]+étape[ \t]+(D?\d+)", re.IGNORECASE)
 PREUVE_DE_FIN = re.compile(r"^[ \t]*[-*][ \t]+\*\*Preuve de fin\*\*[ \t]*:[ \t]*(.*)$")
 # Une clé de champ du journal : au début de la puce, ou après un point (« … . **Commit** : »).
+# « Commit », « Commits » ou « Commit(s) » : le « (s) » est dans le gras, donc dans la clé.
 CHAMP = re.compile(
-    r"(?:^[ \t]*[-*][ \t]+|\.[ \t]+)\*\*(Preuve|Commits?|D[ée]couvertes|Verdict)\*\*"
+    r"(?:^[ \t]*[-*][ \t]+|\.[ \t]+)\*\*(Preuve|Commit(?:s|\(s\))?|D[ée]couvertes|Verdict)\*\*"
     r"[ \t]*(?:\([^)]*\)[ \t]*)?:")
 VALEURS_VIDES = {"", "—", "-", "aucune", "à définir", "à voir"}
+# Commit et Découvertes : « aucun » ou « aucune » sont des valeurs légitimes (étape sans
+# fichier, rien à signaler) ; seul le vide ou le tiret seul est une coquille.
+TIRETS_VIDES = {"", "—", "-"}
 VERDICT = re.compile(r"\s*`?(verified|unverifiable)(?![\w-])`?(.*)$")
 TIRET = re.compile(r"\s*[—–-]+\s*(.*)$")
 
@@ -100,6 +106,12 @@ def lire_journal(texte: str) -> dict[str, list[list[str]]]:
 def _vide(valeur: str) -> bool:
     v = valeur.strip().strip("`*").strip().rstrip(".").strip().lower()
     return v in VALEURS_VIDES
+
+
+def _tiret_ou_vide(valeur: str) -> bool:
+    """Vide ou tiret seul : la seule coquille de « Commit » et de « Découvertes »."""
+    v = valeur.strip().strip("`*").strip().rstrip(".").strip()
+    return v in TIRETS_VIDES
 
 
 def preuve_de_fin(bloc: list[str]) -> str:
@@ -171,8 +183,9 @@ def controler_apres(texte: str) -> tuple[list[str], list[str], int]:
         if len(entrees) > 1:
             defauts.append(f"{etiq} : deux entrées de journal")
         val = champs(entrees[0])
-        for nom in ("Preuve", "Commit", "Découvertes"):
-            if not val.get(nom, "").strip():
+        for nom, coquille in (("Preuve", _vide), ("Commit", _tiret_ou_vide),
+                              ("Découvertes", _tiret_ou_vide)):
+            if coquille(val.get(nom, "")):
                 defauts.append(f"{etiq} : pas de {nom}")
         mot, raison = verdict(val.get("Verdict", ""))
         if mot is None:
