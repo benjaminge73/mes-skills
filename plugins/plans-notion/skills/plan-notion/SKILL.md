@@ -395,7 +395,7 @@ Quand Benjamin valide le plan :
    `Exécution` juste, ou il n'y passe pas : c'est ce chapitre-là, et pas les
    réponses éparpillées dans la page, qui part dans les briefs des sous-agents
    d'exécution.
-2. **Passer le plan au filtre de l'enquête.** Douze vérifications, et elles se
+2. **Passer le plan au filtre de l'enquête.** Treize vérifications, et elles se
    font page ouverte, pas de mémoire :
    1. plus aucune question ouverte dont la réponse était vérifiable et n'a pas
       été vérifiée ;
@@ -430,6 +430,8 @@ Quand Benjamin valide le plan :
        `python3 "${CLAUDE_PLUGIN_ROOT}/skills/_partage/scripts/verifier-preuves.py" <miroir> --depot <dépôt> --transcripts` :
        chaque écart se corrige, ou se justifie par une dispense motivée, avant
        `valide` ; le format de la preuve est dans `${CLAUDE_PLUGIN_ROOT}/skills/_partage/poc.md`.
+   13. chaque cron touché (job Hermes, unité systemd, workflow `schedule:`) a son
+       étape `C<n>`, ou la page dit « Aucun cron touché » : `${CLAUDE_PLUGIN_ROOT}/skills/_partage/cron-a-la-main.md`.
 
    Ce filtre vient de l'enquête sur les plans passés ; il coûte quelques minutes ici
    et évite la découverte en pleine exécution, qui coûte une étape. Les mesures
@@ -472,6 +474,7 @@ comment de la séance de code.
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/poc.md`,
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/outils-et-quotas.md`,
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/schemas.md`,
+  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/cron-a-la-main.md`,
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/revue.md` et
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/bons-tests.md`, ses trois fichiers de
   référence (`enquete.md`, `chapitres-cadrage.md`,

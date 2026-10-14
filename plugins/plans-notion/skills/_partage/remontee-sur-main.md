@@ -92,6 +92,23 @@ Dans les trois cas, même séquence — et **elle ne s'arrête pas au merge** :
    joue aussi quand c'est `merge-auto` qui a mergé, puisque le point 4 a vérifié
    le merge sur pièce, quel qu'en soit l'auteur.
 
+4 ter. **Rejouer le cron touché, après le déploiement.** Joué juste après le point
+   4 bis (ou après le point 4 s'il est sauté), merge vérifié. Seulement si le plan
+   porte une étape `C<n>` (un cron lancé à la main) : sinon le point est sauté, sans
+   bruit. Le déploiement doit avoir eu lieu d'abord : sur `hermes-custom`, le job
+   `deploy` de la CI pousse `origin/main` sur le VPS (point 3).
+   - `hermes cron status` : la gateway tourne, donc le tick aussi. Sinon le rejeu ne
+     peut pas partir ; le dire, la cause est la gateway, pas le cron.
+   - `hermes cron run <id>` : le job part au **prochain tick**, pas tout de suite.
+   - Une minute d'attente au plus : un tick a lieu toutes les 60 secondes.
+   - `last_status` (champ du job) lu dans `hermes cron list`. La doc ne décrit ce
+     champ que pour `delivery_failed` ; s'il n'apparaît pas, `hermes cron doctor` le
+     signale quand il n'est pas `ok`. `ok` : le critère de `C<n>` est rejoué pour de
+     vrai. Autre valeur : rouge, plan de suite (`_partage/plan-de-suite.md`), avec le
+     nom du job et la valeur lue.
+   - Un job sans script (prompt ou skill seulement) n'a que cette preuve.
+   - Détail et boucle de correction : `${CLAUDE_PLUGIN_ROOT}/skills/_partage/cron-a-la-main.md`.
+
 5. **`Statut` = `execute`** — seulement si le point 4 a rendu un merge.
 6. Une entrée de journal **`Remontée sur main`** (H3, comme les autres, §4) : la
    PR, le commit de merge, la date, et ce qui reste à faire après le merge s'il

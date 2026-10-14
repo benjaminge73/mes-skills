@@ -173,6 +173,11 @@ le premier à sauter quand on est absorbé par le travail, et sans lui l'étape
 partait quand même — en Sonnet, avec la facture pour seul signal. L'`effort`
 suit la même logique : le frontmatter le fixe, l'appel ne le répète pas.
 
+Une étape `C<n>` (lancer un cron à la main) se délègue de la même façon, sans `model`.
+Seule sa correction `D<n>` porte un `model` (`"sonnet"`, diagnostic oblige) : c'est la
+seule exception au principe ci-dessus, détaillée dans
+`${CLAUDE_PLUGIN_ROOT}/skills/_partage/cron-a-la-main.md`.
+
 ⚠️ **Le nom court `"executant"` ne résout pas.** Un agent fourni par un plugin
 s'invoque avec son nom qualifié, `plugin:agent` — `"plans-notion:executant"` ici.
 Le nom nu rend `Agent type 'executant' not found` et l'étape ne part pas du tout.
