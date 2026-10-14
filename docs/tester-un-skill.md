@@ -266,9 +266,10 @@ cas qu'elle regroupe et les fichiers qu'elle exerce. Pour `plans-notion` :
 | `bruit` | `skills/plan-notion/` | `bruit-bounded`, `bruit-doc-seule`, `report-sans-seuil` |
 | `etat-de-depart` | `skills/plan-notion/`, `agents/enqueteur.md` | `appelants`, `garde-fou-cache`, `hook-claude`, `depart-rouge` |
 | `maquette` | `skills/plan-notion/` | `maquette-requise` |
-| `decouvertes` | `skills/executer-plan-notion/`, `agents/executant.md`, `agents/relecteur.md` | les quatre `decouverte-*` |
+| `decouvertes` | `skills/executer-plan-notion/`, `agents/executant.md`, `agents/relecteur.md` | les quatre `decouverte-*` et `cloture-ouvre-la-pr` |
 | `perimetre` | `skills/executer-plan-notion/`, `agents/executant.md` | `no-verify`, `rien-hors-plan` |
-| `preuves` | `skills/_partage/poc.md`, `agents/evaluateur.md`, `skills/_partage/scripts/verifier-preuves.py` | `poc-jugement`, `preuve-par-reponse`, `cron-a-la-main`, `decouverte-sans-humain` |
+| `delegation` | `skills/deleguer-a-haiku/`, `agents/executant.md`, `skills/_partage/avant-le-plan.md`, `skills/_partage/compte-rendu-natif.md` | `deleguer-sans-notion` |
+| `preuves` | `skills/_partage/poc.md`, `skills/_partage/cron-a-la-main.md`, `agents/evaluateur.md`, `skills/_partage/scripts/verifier-preuves.py` | `poc-jugement`, `preuve-par-reponse`, `cron-a-la-main`, `decouverte-sans-humain` |
 
 `preuves` n'a pas de plancher : la fumée la nomme sans la juger, comme le dit
 « Une catégorie sans plancher est écartée, et nommée » plus bas.
@@ -293,7 +294,7 @@ demande de Benjamin, et seulement pour deux cas :
 Une reformulation, une doc, un renvoi corrigé ou un exemple ne méritent pas
 l'A/B. **Le coût est annoncé avant de poser le label** : environ 55 $ pour tout
 le banc, 3 à 14 $ par catégorie (base et tête), contre 0,54 à 2,38 $ par
-catégorie pour la fumée. L'A/B reste le seul juge d'un recul fin ; on ne le
+catégorie pour la fumée (chiffres mesurés le 2026-09-30 sur un banc de 16 cas, voir la fiche « claude plugin eval » de `plugins/plans-notion/skills/_partage/outils-et-quotas.md`). L'A/B reste le seul juge d'un recul fin ; on ne le
 supprime pas, on le garde pour ce qui le justifie.
 
 **Le label est lu par l'API, et le poser lance la CI.** `evals-portee` relit les
@@ -464,8 +465,10 @@ Quand une PR touche un skill, un agent, un hook ou `_partage/` sans porter le
 label `evals`, la CI joue une **fumée** : la tête seule, en **un passage**, sur
 Sonnet, sur les catégories que les fichiers touchés exercent. Ces catégories
 sont **calculées** par `scripts/evals_selection.py`, pas choisies ; tout le banc
-part pour les hooks et pour un fichier qu'aucune catégorie n'exerce. Elle coûte 0,54 $ à 2,38 $ par catégorie,
-environ 9,2 $ au plus. La fumée ne remplace pas l'A/B : c'est le label `evals`
+part pour les hooks et pour un fichier qu'aucune catégorie n'exerce. Mesurée le 2026-09-30 sur un banc de 16 cas, elle coûtait 0,54 $ à 2,38 $ par
+catégorie et environ 9,2 $ pour tout le banc ; le banc compte 24 cas depuis
+(23 pour `plans-notion`, 1 pour `voyages`) et ce total n'a pas été remesuré : le
+job annonce son coût avant de jouer. La fumée ne remplace pas l'A/B : c'est le label `evals`
 qui remplace la fumée par l'A/B.
 
 Elle est jouée par le job `fumee` de `ci.yml`, qui partage le groupe de

@@ -312,7 +312,7 @@ label `evals`. Sans ce label, une PR qui touche un skill, un agent, un hook ou
 un `_partage/` doit porter dans son corps une ligne `Evals: aucun — <raison>`,
 sinon `evals-portee` est rouge. Elle passe alors par le job `fumee` : la tête
 seule, en un passage, sur les catégories que ses fichiers exercent, jugée sur
-des planchers par catégorie (`evals/categories.json`), pour 0,54 à 9,2 $.
+des planchers par catégorie (`evals/categories.json`), pour 0,54 à 9,2 $ (mesurés le 2026-09-30 sur un banc de 16 cas ; il en compte 24 depuis).
 
 Le banc est sobre. Un seul banc tourne par plugin à la fois
 (`concurrency: evals-<plugin>`). Le rapport de la base est repris du cache selon
