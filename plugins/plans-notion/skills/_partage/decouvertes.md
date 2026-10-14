@@ -60,7 +60,7 @@ et il est **listé au compte rendu** : jamais en silence.
   numérotée à part des étapes du plan) : une ligne de tableau, un titre H3, une
   correction datée. Elle part à l'exécutant avec sa liste fermée de fichiers, dans
   ses propres commits, est relue (`_partage/revue.md`), et se journalise sous
-  `Étape D<n> — …` avec sa propre ligne `Découvertes :`.
+  `Étape D<n> — …` avec sa propre ligne `**Découvertes** :`.
 
 ## 3. Variante sans humain
 
@@ -78,9 +78,9 @@ personne pour répondre), une question n'obtiendra jamais de réponse. Alors :
 - une exécution de plan Notion garde la règle générale : une dépense y reste une
   question, comme au point 1.
 
-## 4. Le traitement, sur la ligne `Découvertes :`
+## 4. Le traitement, sur la ligne `**Découvertes** :`
 
-Chaque découverte reçoit **un** traitement, écrit sur sa ligne `Découvertes :` de
+Chaque découverte reçoit **un** traitement, écrit sur sa ligne `**Découvertes** :` de
 l'entrée d'étape (`journal.md` §4) : `Question à Benjamin`, `Traitée dans le plan
 (D<n>)`, ou `Recos appliquées par défaut` en variante sans humain. Un libellé « noté
 pour plus tard » sans propriétaire ne compte pas.

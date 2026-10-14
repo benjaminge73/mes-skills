@@ -222,7 +222,7 @@ après un compactage. Règles qui ne bougent pas :
 - **une entrée = un titre H3**, repris mot pour mot du chapitre `Exécution` :
   `Étape N — <titre court>` ; `Ouverture` au démarrage, `État final` à la
   clôture (§6) ;
-- **une ligne `Découvertes :` obligatoire** dans chaque entrée d'étape —
+- **une ligne `**Découvertes** :` obligatoire** dans chaque entrée d'étape —
   `aucune`, ou la liste, chacune avec son libellé (`découverte — trouvable au
   plan` / `découverte — pas trouvable`, jamais un autre) **et** son traitement
   (étape `D<n>` ou question à Benjamin) ; dans le doute, `trouvable` ;
