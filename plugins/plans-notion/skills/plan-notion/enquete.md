@@ -142,8 +142,8 @@ qui est déjà su.** Six gisements, du moins cher au plus cher :
 
    Le POC, s'il y en a un, se joue **après** cette recherche, selon « Qui joue le
    POC » du fichier partagé `${CLAUDE_PLUGIN_ROOT}/skills/_partage/poc.md` : le
-   mécanique au `sondeur`, le jugement au `general-purpose` en Sonnet, `effort`
-   high, passés à l'appel.
+   mécanique au `sondeur`, le jugement à `plans-notion:evaluateur`, sans
+   paramètre `model` ni `effort` à l'appel (la définition les porte).
 
 Le budget d'enquête est **proportionnel à l'enjeu**, pas à la longueur du plan : une
 étape qui touche un fichier et se relit d'un coup d'œil ne mérite pas une fouille
@@ -211,9 +211,9 @@ vit dans le fichier partagé :
   produit** (voir « Une option qui reporte la décision n'est pas une option »).
 
 Le POC de décision se joue selon « Qui joue le POC » du même fichier partagé :
-le mécanique au `sondeur` (`plans-notion:sondeur`), le jugement au
-`general-purpose` avec `model: "sonnet"` et `effort: "high"` passés à l'appel. Le
-pilote conclut dans le plan, jamais l'agent.
+le mécanique au `sondeur` (`plans-notion:sondeur`), le jugement à
+`plans-notion:evaluateur`, sans paramètre `model` ni `effort` à l'appel (la
+définition les porte). Le pilote conclut dans le plan, jamais l'agent.
 
 ### Le registre des outils
 

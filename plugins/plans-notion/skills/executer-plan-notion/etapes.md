@@ -122,13 +122,14 @@ demandé » : la demande est faite ici, une fois pour toutes, pour toute étape 
 plan au statut `valide`. Il n'y a pas à la redemander à Benjamin étape par étape.
 
 **Une étape d'exécution part toujours à `plans-notion:executant`, jamais à un
-`general-purpose`.** Un `general-purpose` ne se lance que pour un POC de jugement,
-avec `model` passé à l'appel (« Qui joue le POC » dans
-`${CLAUDE_PLUGIN_ROOT}/skills/_partage/poc.md`) ; tout autre appel `Agent` passe
-son `model` explicitement — Haiku pour le mécanique, Sonnet pour la prose et le
-jugement. Raison mesurée : 443 `general-purpose` en Sonnet sur 14 jours, 12,1 %
-du coût, souvent pour des étapes. Un `general-purpose` sans `model` hérite du
-modèle de la session, et c'est ce coût-là qu'on retire.
+`general-purpose`, et un POC non plus.** Un POC part au `plans-notion:sondeur`
+(mécanique) ou à `plans-notion:evaluateur` (jugement), jamais à un
+`general-purpose`, et sans paramètre `model` à l'appel : la définition de l'agent
+le porte, et un `model` passé à l'appel l'emporte sur elle (« Qui joue le POC »
+dans `${CLAUDE_PLUGIN_ROOT}/skills/_partage/poc.md`). Raison mesurée : 443
+`general-purpose` en Sonnet sur 14 jours, 12,1 % du coût, souvent pour des
+étapes. Un `general-purpose` sans `model` hérite du modèle de la session, et
+c'est ce coût-là qu'on retire.
 
 Le pilote tourne en **Sonnet effort high** : il lit le plan, découpe,
 brief, vérifie, écrit dans Notion. **Il n'écrit pas lui-même le code des
