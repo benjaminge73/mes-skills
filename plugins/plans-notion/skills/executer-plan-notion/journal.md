@@ -118,30 +118,8 @@ c'est ce qui signale que l'enquête a fait son travail.
 
 ### Découvertes hors plan : chaque trouvaille reçoit un traitement
 
-Le libellé ci-dessus mesure le plan (était-ce trouvable ?) ; le traitement dit
-**quoi faire** de ce qu'on a vu en route — bug voisin, secret, dépendance
-douteuse, doc fausse. Il vient du rapport de l'exécutant (cinquième pièce), du
-relecteur ou du pilote. Chaque découverte reçoit **un** traitement, écrit sur sa
-ligne `Découvertes :` : jamais « noté pour plus tard » sans propriétaire.
-
-- **Traitée dans le plan** — si elle est à la fois **réversible** (un `git
-  revert` la défait), **hors sécurité** et **petite** (une étape, sans revenir
-  sur une décision du plan). On ajoute une étape `D<n>` au chapitre `Exécution`
-  avec sa correction datée (`_maj 2026-09-30 — D1 : …_`) et sa ligne de tableau ;
-  elle part à l'exécutant avec sa liste fermée de fichiers, **dans ses propres
-  commits**, est relue (`revue.md`), et se journalise sous `Étape D<n> — …` avec
-  sa propre ligne `Découvertes :`.
-- **Question à Benjamin** — si elle est **irréversible** (suppression de données
-  ou de fichiers non versionnés, écriture dans un service externe ou en
-  production, publication, migration, réécriture d'historique, dépense) **ou liée
-  à la sécurité** (secret, droits, authentification, exposition réseau,
-  dépendance non vérifiée, donnée personnelle) — et aussi quand elle est trop
-  grande pour le plan validé. Outil de question natif (§3, « L'autonomie est le
-  défaut »), sinon texte, recommandation en premier ; l'exécution continue sur ce
-  qui n'en dépend pas. **Question sans réponse à la clôture → plan de suite
-  (§7).** Dans le doute entre les deux : la question.
-
-**Un secret découvert ne se corrige jamais seul** : ni suppression, ni rotation,
-ni réécriture d'historique, et **sa valeur ne s'écrit nulle part** — ni brief,
-ni journal, ni page Notion. On note où il est (`fichier:ligne`) et ce que c'est,
-puis la question part tout de suite.
+Le tri d'une découverte vit dans `${CLAUDE_PLUGIN_ROOT}/skills/_partage/decouvertes.md`,
+règle unique, aussi appliquée à la conception et à l'ouverture. Le journal, lui, exige
+que chaque découverte reçoive **un** traitement, écrit sur sa ligne `Découvertes :` de
+l'entrée d'étape — jamais « noté pour plus tard » sans propriétaire. Un secret : sa
+valeur ne s'écrit nulle part (règle complète dans le même fichier).

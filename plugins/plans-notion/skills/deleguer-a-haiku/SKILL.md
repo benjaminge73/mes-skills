@@ -13,7 +13,7 @@ règle reste dans les fichiers qu'il cite, pour ne pas en avoir deux copies.
 ## Avant le plan
 
 Une session lancée en mode plan natif relève de ce skill dès son lancement, avant
-`ExitPlanMode` : lire `${CLAUDE_PLUGIN_ROOT}/skills/_partage/avant-le-plan.md` et suivre ses cinq temps dans l'ordre.
+`ExitPlanMode` : lire `${CLAUDE_PLUGIN_ROOT}/skills/_partage/avant-le-plan.md` et suivre ses six temps dans l'ordre.
 
 ## Invariants
 
@@ -21,8 +21,7 @@ Une session lancée en mode plan natif relève de ce skill dès son lancement, a
   paramètre `model` (son frontmatter le fixe). Jamais `general-purpose` pour une
   étape d'exécution : `${CLAUDE_PLUGIN_ROOT}/skills/executer-plan-notion/etapes.md`,
   section « La délégation est la règle, pas une faveur ».
-- **Diagnostic, pas correctif.** Une preuve rouge ne se corrige pas dans la session :
-  on lit la sortie, on la rend à Benjamin ou on relance une étape avec un brief précis.
+- **Diagnostic, pas correctif** : voir `${CLAUDE_PLUGIN_ROOT}/skills/_partage/compte-rendu-natif.md`.
 
 ## Suis-je la bonne version ?
 
@@ -59,13 +58,12 @@ compte rendu.
 
 ## 4. Compte rendu
 
-La dernière réponse de la session, courte : pour chaque étape, son état, sa commande de
-preuve et le résultat rejoué ; le verdict du relecteur s'il a été appelé ; les écarts et
-les questions ouvertes. Une consigne d'Hermes lit ce texte tel quel. Rien n'est écrit
-dans Notion ni ailleurs.
+Avant la réponse finale, lire `${CLAUDE_PLUGIN_ROOT}/skills/_partage/compte-rendu-natif.md` :
+il fixe le texte, dont la commande de preuve de chaque étape et ses trois rubriques.
 
 Ses compagnons sont les fichiers partagés
 `${CLAUDE_PLUGIN_ROOT}/skills/_partage/avant-le-plan.md`,
 `${CLAUDE_PLUGIN_ROOT}/skills/_partage/vagues.md`,
-`${CLAUDE_PLUGIN_ROOT}/skills/_partage/revue.md` et
-`${CLAUDE_PLUGIN_ROOT}/skills/_partage/lecture-deleguee.md`.
+`${CLAUDE_PLUGIN_ROOT}/skills/_partage/revue.md`,
+`${CLAUDE_PLUGIN_ROOT}/skills/_partage/lecture-deleguee.md` et
+`${CLAUDE_PLUGIN_ROOT}/skills/_partage/compte-rendu-natif.md`.

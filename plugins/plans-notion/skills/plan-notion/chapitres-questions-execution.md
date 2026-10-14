@@ -51,6 +51,11 @@ Contenu de l'encadré :
   vérification. Et si l'enquête donne la réponse, la question naît **verte** — on
   n'ouvre pas une question pour faire joli dans le sommaire.
 
+L'encadré ✅ porte sa ligne `Preuve :` **au moment où la question passe au vert**,
+y compris quand la reco s'applique par défaut : elle est prouvée elle aussi. Une
+question née verte porte sa preuve de `lecture` ou de `commande` dès sa création.
+Format et types : `${CLAUDE_PLUGIN_ROOT}/skills/_partage/poc.md`, « La preuve de chaque réponse ».
+
 ### Le chapitre `Exécution`
 
 Présent **dès la première version du plan**, jamais repoussé au moment de coder.
@@ -143,6 +148,9 @@ Ce chapitre **bouge à chaque passe**, pour deux raisons distinctes :
   une contrainte du framework, un fichier généré. **Ce qui est découvert
   s'écrit**, avec sa conséquence sur les étapes, même si personne ne l'a demandé.
   Une découverte gardée en tête disparaît au compactage du contexte.
+  Le tri (retouche datée, ou question à Benjamin) suit
+  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/decouvertes.md` : ce fichier dit quand une
+  découverte est une question plutôt qu'une retouche directe du chapitre.
 
 Toute modification d'une étape déjà écrite se **date** en fin d'entrée :
 `_maj 2026-08-17 — étapes 3 et 4 fusionnées, la réponse à Q2 supprime le cache._`

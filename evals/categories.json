@@ -76,7 +76,8 @@
         "skills/_partage/scripts/taille-claude-md.py",
         "skills/_partage/scripts/cout-plan.py",
         "skills/_partage/scripts/grille-tarifs.json",
-        "skills/_partage/lecture-deleguee.md"
+        "skills/_partage/lecture-deleguee.md",
+        "skills/_partage/decouvertes.md"
       ],
       "cas": ["decouverte-irreversible", "decouverte-reversible", "decouverte-secret", "decouverte-trop-grande"],
       "plancher": 0.41
@@ -111,10 +112,15 @@
         "skills/deleguer-a-haiku/",
         "agents/executant.md",
         "skills/_partage/lecture-deleguee.md",
-        "skills/_partage/avant-le-plan.md"
+        "skills/_partage/avant-le-plan.md",
+        "skills/_partage/compte-rendu-natif.md"
       ],
       "cas": ["deleguer-sans-notion"],
       "plancher": 0.9
+    },
+    "preuves": {
+      "exerce": ["skills/_partage/poc.md", "skills/_partage/cron-a-la-main.md", "agents/evaluateur.md", "skills/_partage/scripts/verifier-preuves.py"],
+      "cas": ["poc-jugement", "preuve-par-reponse", "cron-a-la-main", "decouverte-sans-humain"]
     }
   },
   "voyages": {

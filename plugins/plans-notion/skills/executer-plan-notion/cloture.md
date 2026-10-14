@@ -50,6 +50,20 @@ Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard » :
     ou `BLOQUÉ` a son libellé. Un écart entre les deux nombres, ou une
     surprise sans libellé, se corrige avant de poser `a merger`, en respectant
     la règle « dans le doute, `trouvable` » (§4) ;
+  - **Ajouts sans question** : la liste des intégrations directes faites sans
+    demander — retouches `_maj … ajouté sans question parce que …_` et puces de la
+    section `### Ajouts sans question` de la page (conception) — pour qu'aucun ajout
+    ne passe sans que Benjamin le voie. Le décompte se vérifie mécaniquement, jamais
+    de tête, chiffres recopiés tels quels ; « aucun » s'écrit aussi :
+    retouches : `grep -c 'maj 20[0-9][0-9]-[0-9][0-9]-[0-9][0-9] — ajouté sans question' <miroir de la page>` ;
+    conception : `sed -n '/^### Ajouts sans question/,/^## /p' <miroir de la page> | grep -c '^- '`.
+    Le total est la somme de ces deux termes, jamais un seul grep. Le nombre d'étapes
+    `D` (`grep '^### Étape D' <miroir de la page> | sort -u | wc -l`) n'en est pas un : c'est un contrôle croisé, il doit être **inférieur ou égal** aux retouches (chaque `D<n>` porte sa correction datée). Un `D` de plus signale une correction oubliée, à corriger avant de clore. La règle est dans
+    `${CLAUDE_PLUGIN_ROOT}/skills/_partage/decouvertes.md` (§ 2) ;
+  - **Recos appliquées par défaut** : les recos appliquées sans réponse de Benjamin —
+    questions passées au vert `(reco appliquée par défaut)` à l'ouverture et, en
+    session sans humain, découvertes traitées par défaut, la dépense en tête. « aucune »
+    s'écrit aussi. La règle est dans `decouvertes.md` (§ 3) ;
   - **le registre des outils** : toute découverte qui concerne un outil
     (quota, coût, piège, repli) part en PR sur `mes-skills`, dans
     `${CLAUDE_PLUGIN_ROOT}/skills/_partage/outils-et-quotas.md`, fiche datée et
@@ -94,6 +108,8 @@ Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard » :
   **la PR n'est pas ouverte et qu'elle le sera sur demande** — avec ou sans le
   label `review-required` selon ce que ce dépôt-là en fait (relevé du §2, les
   quatre cas connus au §6).
+- Le compte rendu liste aussi les rubriques **Ajouts sans question** et **Recos
+  appliquées par défaut** de l'`État final`, même vides (« aucun »).
 - **Livrer la branche, et s'arrêter là.** Pas de PR : la remontée vers `main`
   est un geste vers l'extérieur, et il n'a lieu que sur demande explicite de
   Benjamin. La séquence de clôture est courte :

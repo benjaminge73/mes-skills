@@ -27,9 +27,11 @@ détaille.
   preuve rouge se corrige (§3, « Une étape = un commit… »).
 - **Pas de PR vers `main` sans demande explicite** de Benjamin : l'exécution
   s'arrête à la branche (§6, « La PR, puis la remontée sur `main` »).
-- **Découvertes hors plan** : réversible, hors sécurité et petite → étape
-  `D<n>` ; sinon question à Benjamin ; un secret ne se corrige jamais seul et
-  sa valeur ne s'écrit nulle part (§4, « Découvertes hors plan »).
+- **Découvertes hors plan** : une seule règle de tri, dans
+  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/decouvertes.md` — question à Benjamin si
+  elle touche une décision, la sécurité, l'irréversible ou une dépense ; sinon,
+  réversible et petite → étape `D<n>`. Elle vaut à l'ouverture (§2) comme pendant
+  l'exécution (§4). Un secret ne se corrige jamais seul.
 
 ## Suis-je la bonne version ?
 
@@ -169,7 +171,10 @@ pas pour raconter l'avancement, qui va dans `Journal d'exécution` (§4).
 - **La délégation est la règle** : charger ce skill vaut demande de déléguer.
   Pilote en Sonnet effort `high`, **un appel `Agent` par étape**
   (`subagent_type: "plans-notion:executant"`, nom qualifié, aucun paramètre
-  `model` ni `effort` : l'agent porte `haiku` et `effort: high`), en séquence
+  `model` ni `effort`, seule la correction `D<n>` d'une boucle de cron passe
+  `model: "sonnet"` (jamais `effort`), voir
+  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/cron-a-la-main.md` : l'agent porte
+  `haiku` et `effort: high`), en séquence
   par défaut, en parallèle par
   vagues ou regroupées quand `vagues.md` le prescrit. Une exécution sans
   aucun appel `Agent` est un défaut.
@@ -424,6 +429,7 @@ Elle s'écrit avec les mêmes précautions que le reste (§5).
 - Il ne dépend d'aucun `CLAUDE.md`, d'aucun hook, d'aucun fichier du dépôt de
   travail. Ses compagnons sont les fichiers partagés
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/ecrire-dans-notion.md`,
+  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/decouvertes.md`,
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/vagues.md`,
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/schemas.md`,
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/remontee-sur-main.md`,
@@ -434,6 +440,7 @@ Elle s'écrit avec les mêmes précautions que le reste (§5).
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/bons-tests.md`,
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/poc.md`,
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/machine-partagee.md`,
+  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/cron-a-la-main.md`,
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/cout-des-plans.md`,
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/ranger-claude-md.md` et
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/outils-et-quotas.md`, livrés par le

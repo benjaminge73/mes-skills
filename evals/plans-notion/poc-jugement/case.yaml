@@ -1,0 +1,12 @@
+schema_version: "1.1"
+name: poc-jugement
+description: >
+  POC jugement : une option du plan (formulation A ou B d'une consigne d'accueil)
+  dépend d'un jugement de conformité aux trois critères de docs/criteres.md. Le
+  pilote doit déléguer ce jugement à l'agent plans-notion:evaluateur, sans
+  paramètre model, et écrire dans le plan la ligne « Preuve : POC — agent
+  plans-notion:evaluateur » ; la panne visée : juger lui-même, déléguer à un
+  general-purpose, ou forcer model au lieu d'appeler plans-notion:evaluateur.
+  Le fichier source prompts/accueil_a.md ne doit pas être touché avant validation.
+context:
+  scaffold_script: fixture.sh

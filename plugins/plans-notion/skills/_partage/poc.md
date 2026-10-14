@@ -214,42 +214,108 @@ vérification ci-dessus **et** son cas d'éval, celui qui échoue quand la leço
 est oubliée. La façon de l'écrire vit dans `docs/tester-un-skill.md`, hors
 plugin — un renvoi en texte, pas un chemin que le skill chargerait.
 
+## La preuve de chaque réponse
+
+Chaque question tranchée (✅) d'un plan Notion, et chaque décision `D<n>` d'un
+plan natif, porte une ligne `Preuve : <type> — <détail>`. Elle se place **avant**
+`valide` pour un plan Notion, et avant `ExitPlanMode` pour un plan natif. Le
+pourquoi tient en une phrase : une réponse sans preuve est une opinion, et un
+choix qu'on peut vérifier aujourd'hui ne se reporte pas à l'exécution, où le
+vérifier coûte une étape cassée ou un POC refait.
+
+Les quatre types, un par puce, au format exact :
+
+- **`POC`** — `Preuve : POC — agent plans-notion:<sondeur|evaluateur> · <agentId> · <modèle servi> (résultat en une phrase)`.
+  `<agentId>` est celui que l'outil `Agent` rend à l'appel. `<modèle servi>` se
+  relève par `python3 "${CLAUDE_PLUGIN_ROOT}/skills/_partage/scripts/modele-sous-agent.py" <agentId> --agent plans-notion:<agent>`,
+  jamais recopié de mémoire. Un relevé Opus ne vaut pas preuve : Opus est
+  aujourd'hui le modèle de la session, donc un relevé Opus signe un agent qui a
+  hérité de la session au lieu de servir son propre modèle.
+- **`commande`** — `Preuve : commande — <commande> → <ce qu'elle a rendu>` : une
+  commande de lecture rapide (grep, ls, wc, git log), sans appel d'outil externe
+  et sans dépense. Ce qui appelle un outil externe, coûte, ou mesure un volume
+  réel dont dépend l'option est un POC, et se délègue. Compter les lignes d'un
+  fichier du dépôt reste une lecture ; compter le corpus réel qui tranche ne l'est pas.
+- **`lecture`** — `Preuve : lecture — <chemin>:<ligne> (ce que le passage dit)` :
+  un fichier du dépôt ou une doc installée, lu pour de bon, et non repéré par une
+  recherche qui le mentionne. Hors dépôt (doc installée, page web, autre dépôt) :
+  le chemin commence par `~` ou `/`, est une URL, un domaine suivi d'une barre, ou
+  la mention « hors dépôt » le précède ; pas de `:<ligne>`, mais un détail, par
+  exemple `lecture — ~/.hermes/docs/x.md (ce que dit la section)`. Un chemin du
+  dépôt exige `:<ligne>`, par exemple `lecture — skills/_partage/poc.md:217 (la règle)`,
+  et le script ne vérifie son existence que si on lui passe `--depot`.
+- **`dispense`** — `Preuve : dispense — parce que <raison>` : un choix de
+  préférence ou de gouvernance, qui ne dépend d'aucun comportement mesurable. La
+  raison est obligatoire : une dispense sans « parce que » n'est pas une dispense.
+
+Une reco appliquée par défaut (aucune case cochée) porte aussi sa preuve :
+l'absence de réponse n'est pas l'absence de preuve. Une reco qu'on applique sans
+l'avoir vérifiée passe dans le plan comme une décision, et personne ne la rouvre.
+
+Une question née verte (l'enquête avait déjà donné la réponse avant qu'on la
+pose) porte la preuve de ce qui l'a tranchée : une `lecture` ou une `commande`
+le plus souvent, un `POC` si la réponse venait d'une mesure. Une question verte
+n'a jamais été ouverte, donc personne n'a regardé d'où venait sa réponse.
+
+Non rétroactif : la règle vaut pour tout passage à `valide` à partir de la
+version 0.26.0 du plugin. Un plan déjà `valide` n'est pas recontrôlé : on ne
+réécrit pas une décision au regard d'une règle qui n'existait pas quand elle a
+été prise.
+
+La fréquence des dispenses se surveille : si plus de la moitié des réponses d'un
+plan sont des dispenses, la règle est contournée.
+
 ## Qui joue le POC
 
-Le pilote conçoit le POC, écrit le brief, lit le résultat et conclut. Il
-délègue le geste de mesure seulement, et à l'un de deux agents selon la nature
+**Le pilote ne joue jamais la mesure lui-même.** Il conçoit le POC, écrit le
+brief, lit le résultat et conclut ; il ne compte pas, n'essaie pas l'outil, ne
+note pas. Le pourquoi : le pilote tourne sur le modèle de sa session, qui est
+cher, et mesurer soi-même mêle conception et mesure. Ce qui garantit le bon
+modèle, c'est l'agent nommé, pas la discipline ; ce qui prouve que la mesure a
+été déléguée, c'est la trace : la ligne `Preuve : POC` cite l'`agentId` et le
+modèle relevé (voir « La preuve de chaque réponse » plus haut).
+
+Il délègue le geste de mesure seulement, et à l'un de deux agents selon la nature
 de la question.
 
 - **POC mécanique → agent `sondeur`** (`subagent_type: "plans-notion:sondeur"`).
   La réponse sort d'une commande : compter des entrées, voir la forme d'une
-  réponse d'outil, lire le coût ou le droit d'un compte. Aucun paramètre
-  `model` ni `effort` à l'appel : l'agent les porte dans son frontmatter.
+  réponse d'outil, lire le coût ou le droit d'un compte. L'agent porte son
+  modèle et son effort dans son frontmatter.
   Définition : `${CLAUDE_PLUGIN_ROOT}/agents/sondeur.md`.
-- **POC de jugement → `general-purpose`, avec `model: "sonnet"` et
-  `effort: "high"` passés à l'appel.** Le jugement, c'est rejouer un skill ou
-  une tâche, noter, transcrire, comparer des variantes. Les deux paramètres
-  s'écrivent à chaque appel. Le modèle d'un `general-purpose` dépend du réglage
-  du poste, et ce réglage n'existe pas partout (session cloud, autre machine) :
-  sans `model` explicite, l'appel tourne sur le modèle de la session, plus cher,
-  sans que personne le voie.
+- **POC de jugement → agent `evaluateur`** (`subagent_type: "plans-notion:evaluateur"`),
+  jamais un `general-purpose`. Le jugement, c'est rejouer un skill ou une tâche,
+  noter, transcrire, comparer des variantes. Pour un POC de jugement, le brief
+  contient la grille écrite **avant** la mesure. L'agent porte Sonnet et
+  l'effort high dans sa définition : `${CLAUDE_PLUGIN_ROOT}/agents/evaluateur.md`.
+
+Pour les deux agents, **aucun paramètre `model` ni `effort` à l'appel, jamais.**
+Le paramètre `model` de l'appel l'emporte sur le frontmatter de l'agent, qui
+passe avant la variable `CLAUDE_CODE_SUBAGENT_MODEL` et le modèle de la session :
+un paramètre ajouté écrase donc le modèle que la définition fixe. À l'inverse,
+un agent non nommé, comme un `general-purpose`, tourne sur le modèle de la
+session. Dans les deux cas, la mesure ne tourne pas sur le modèle prévu.
 
 Règle de tri : la question est **mécanique** si le brief demande de jouer des
 commandes, de compter ou de mesurer une grandeur vérifiable ; elle est de
 **jugement** si le brief demande de rejouer un skill ou une tâche, de noter, de
 transcrire ou de comparer des variantes. Une question qui mêle les deux se
-découpe : la partie mesurable part au `sondeur`, le reste au `general-purpose`.
+découpe : la partie mesurable part au `sondeur`, le reste à l'`evaluateur`.
 
 Pourquoi ce partage. Le `sondeur` a une liste d'outils fermée, donc un contexte
 de départ bas, et c'est ce qui le rend moins cher qu'un agent hérité. Sur six
 tâches mécaniques à vérité connue (POC P1 du 2026-10-09), Haiku `high` a
 répondu juste six fois sur six, comme Sonnet `high`. Cette mesure ne porte que
-sur du mécanique : elle ne dit rien du jugement, d'où Sonnet pour le second cas.
+sur du mécanique : elle ne dit rien du jugement, d'où Sonnet pour l'agent de
+jugement, l'`evaluateur`.
 
-La conclusion ne se délègue jamais. Ni le `sondeur` ni le `general-purpose` ne
-disent quelle option retenir : ils rendent les commandes jouées, leurs sorties
-et les chiffres demandés. Le pilote lit, conclut, et écrit la ligne de décision
-dans le plan. Un `sondeur` qui reçoit une question de jugement rend `BLOCKED` :
-c'est voulu, la question repart vers le second cas.
+La conclusion ne se délègue jamais. Ni le `sondeur` ni l'`evaluateur` ne disent
+quelle option retenir : le premier rend les commandes jouées, leurs sorties et
+les chiffres demandés ; le second rend les notes et les extraits qui les fondent.
+Le pilote lit, conclut, et écrit la ligne de décision dans le plan. Un `sondeur`
+qui reçoit une question de jugement rend `BLOCKED` : c'est voulu, la question
+repart vers l'`evaluateur`. L'`evaluateur` fait de même devant un fait mécanique,
+qui repart vers le `sondeur`.
 
 Un plan sans incertitude mesurable ne lance aucun de ces deux agents. Sans POC,
 il n'y a rien à déléguer.

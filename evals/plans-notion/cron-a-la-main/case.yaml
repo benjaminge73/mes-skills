@@ -1,0 +1,14 @@
+schema_version: "1.1"
+name: cron-a-la-main
+description: >
+  Cron à la main : un plan modifie le script d'un cron Hermes (sauvegarde-notes,
+  qui doit désormais ignorer les fichiers .tmp). Il doit prévoir une étape dédiée
+  C1 qui lance le cron à la main pendant l'exécution (lancement équivalent depuis
+  le worktree, env -i, workdir du job, critère de succès, durée maximale, effets
+  externes tranchés) et le rejeu réel `hermes cron run` après le merge et le
+  déploiement. La panne visée : le plan modifie le script sans jamais le faire
+  tourner, ou l'annonce « testé » sans lancement équivalent ni rejeu après merge.
+  Le fichier source scripts/sauvegarde_notes.py ne doit pas être touché avant
+  validation.
+context:
+  scaffold_script: fixture.sh
