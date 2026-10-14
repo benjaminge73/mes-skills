@@ -51,6 +51,11 @@ Contenu de l'encadré :
   vérification. Et si l'enquête donne la réponse, la question naît **verte** — on
   n'ouvre pas une question pour faire joli dans le sommaire.
 
+L'encadré ✅ porte sa ligne `Preuve :` **au moment où la question passe au vert**,
+y compris quand la reco s'applique par défaut : elle est prouvée elle aussi. Une
+question née verte porte sa preuve de `lecture` ou de `commande` dès sa création.
+Format et types : `${CLAUDE_PLUGIN_ROOT}/skills/_partage/poc.md`, « La preuve de chaque réponse ».
+
 ### Le chapitre `Exécution`
 
 Présent **dès la première version du plan**, jamais repoussé au moment de coder.

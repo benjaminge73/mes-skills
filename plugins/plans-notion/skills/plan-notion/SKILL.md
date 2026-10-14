@@ -395,7 +395,7 @@ Quand Benjamin valide le plan :
    `Exécution` juste, ou il n'y passe pas : c'est ce chapitre-là, et pas les
    réponses éparpillées dans la page, qui part dans les briefs des sous-agents
    d'exécution.
-2. **Passer le plan au filtre de l'enquête.** Onze vérifications, et elles se
+2. **Passer le plan au filtre de l'enquête.** Douze vérifications, et elles se
    font page ouverte, pas de mémoire :
    1. plus aucune question ouverte dont la réponse était vérifiable et n'a pas
       été vérifiée ;
@@ -426,6 +426,10 @@ Quand Benjamin valide le plan :
        vérifiées` (geste du pilote, `enquete.md`), ou une dispense écrite
        `Pas de carte — <raison>` dont la raison est l'une des trois recevables :
        dépôt de contenu sans code touché, serveur MCP absent, dépôt non indexé.
+   12. le miroir de la page (fetch) rend 0 à
+       `python3 "${CLAUDE_PLUGIN_ROOT}/skills/_partage/scripts/verifier-preuves.py" <miroir> --depot <dépôt> --transcripts` :
+       chaque écart se corrige, ou se justifie par une dispense motivée, avant
+       `valide` ; le format de la preuve est dans `${CLAUDE_PLUGIN_ROOT}/skills/_partage/poc.md`.
 
    Ce filtre vient de l'enquête sur les plans passés ; il coûte quelques minutes ici
    et évite la découverte en pleine exécution, qui coûte une étape. Les mesures
