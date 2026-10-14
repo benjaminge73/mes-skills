@@ -33,8 +33,10 @@ sans sauter d'étape :
    `ExitPlanMode`, la vérification doit rendre 0 :
 
    ```bash
-   python3 "${CLAUDE_PLUGIN_ROOT}/skills/_partage/scripts/verifier-preuves.py" --format natif <plan>
+   python3 "${CLAUDE_PLUGIN_ROOT}/skills/_partage/scripts/verifier-preuves.py" --format natif <plan> --depot <dépôt> --transcripts
    ```
+
+   `--transcripts` fait vérifier le modèle servi de chaque POC cité ; sans lui, le script le signale sur la sortie d'erreur (« POC non vérifié »).
 
    Code 1 : un écart par ligne, à corriger dans le plan. Code 2 : plan illisible
    (pas de section `## Décisions`, ou aucune ligne `D<n>` dedans).
