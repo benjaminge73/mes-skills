@@ -15,7 +15,8 @@ Usage : verifier-preuves.py <page.md> [--format notion|natif] [--depot <dir>]
   --format natif : sous « Décisions », chaque ligne « D<n> » est une décision, et
     sa ligne porte la preuve.
   --depot <dir> : le fichier cité par une ``lecture`` doit exister dans le dépôt,
-    tel quel ou comme suffixe de chemin d'un fichier du dépôt.
+    tel quel ou comme suffixe de chemin d'un fichier du dépôt. Un chemin externe
+    (URL, ~, /, domaine) n'est pas cherché ; il lui faut un détail.
   --transcripts [<racine>] : pour un POC, lance modele-sous-agent.py en
     sous-processus et compare le modèle servi au modèle cité. Sans valeur : la
     racine par défaut de modele-sous-agent.py. Sans l'option, les POC ne sont pas
@@ -39,7 +40,10 @@ TYPES = ("POC", "commande", "lecture", "dispense")
 AGENTS_POC = ("plans-notion:sondeur", "plans-notion:evaluateur")
 QUESTION = re.compile(r"^###\s+.*?\b(Q\d+)\b")
 DECISION = re.compile(r"^\s*(?:[-*]\s+)?(D\d+)\b")
+PREUVE_EN_TETE = re.compile(r"^\s*Preuve\s*:")
 CHEMIN = re.compile(r"([\w./~\-]+):(\d+)(?:-(\d+))?")
+# Premier jeton d'un chemin, schéma compris (https://), avant tout « :ligne ».
+CHEMIN_NU = re.compile(r"((?:\w+://)?[\w./~\-]+)")
 DOMAINE = re.compile(r"[\w-]+(?:\.[\w-]+)*\.[A-Za-z]{2,}/")
 HEXA = re.compile(r"[0-9a-fA-F]{6,}")
 MODELE_SERVI = re.compile(r"^\s*\d+ × (\S+)")
@@ -55,6 +59,7 @@ class Reponse:
     ident: str
     bloc: list[str] = field(default_factory=list)
     ouverte: bool = False
+    natif: bool = False
 
 
 def extraire_notion(texte: str) -> list[Reponse]:
@@ -94,7 +99,7 @@ def extraire_natif(texte: str) -> list[Reponse]:
             continue
         m = DECISION.match(ligne) if dans_section else None
         if m is not None:
-            decisions.append(Reponse(m.group(1), [ligne]))
+            decisions.append(Reponse(m.group(1), [ligne], natif=True))
     if not trouvee:
         raise Illisible("section « Décisions » absente")
     if not decisions:
@@ -112,6 +117,11 @@ def externe(chemin: str, ligne: str) -> bool:
     """Chemin hors dépôt (URL, ~, /, nom de domaine, « hors dépôt ») : pas de contrôle."""
     return (chemin.startswith(("~", "/")) or "://" in ligne or "hors dépôt" in ligne
             or DOMAINE.match(chemin) is not None)
+
+
+def detail_apres(apres: str) -> str:
+    """Le détail qui suit un chemin : le « :ligne » éventuel et les parenthèses ôtés."""
+    return re.sub(r"^:\d+(?:-\d+)?", "", apres).strip().strip("()").strip()
 
 
 def meme_modele(cite: str, servi: str) -> bool:
@@ -153,20 +163,30 @@ class Verificateur:
         self.poc_non_verifies = 0
 
     def controler(self, rep: Reponse) -> list[str]:
-        preuves = [ligne for ligne in rep.bloc if "Preuve :" in ligne]
+        # Plan natif : la preuve suit « · Preuve : » sur la ligne D<n>. Plan Notion : une
+        # ligne qui COMMENCE par « Preuve : » ; une prose qui la cite en milieu de phrase non.
+        if rep.natif:
+            preuves = [ligne for ligne in rep.bloc if "Preuve :" in ligne]
+        else:
+            preuves = [ligne for ligne in rep.bloc if PREUVE_EN_TETE.match(ligne)]
         if not preuves:
             return [f"{rep.ident} : sans ligne Preuve"]
         if len(preuves) > 1:
             return [f"{rep.ident} : plusieurs lignes Preuve ({len(preuves)})"]
         ligne = preuves[0]
-        apres = ligne.split("Preuve :", 1)[1].replace("`", "")
+        if rep.natif:
+            apres = ligne.split("Preuve :", 1)[1]
+        else:
+            apres = PREUVE_EN_TETE.sub("", ligne, count=1)
+        apres = apres.replace("`", "")
         m = re.match(r"\s*(\w+)", apres)
         typ = m.group(1) if m else ""
         if typ not in TYPES:
             return [f"{rep.ident} : type inconnu ({typ or 'absent'})"]
         reste = apres[m.end():]
         if typ == "dispense":
-            if not re.search(r"parce que\s+\w", apres_tiret(reste), re.IGNORECASE):
+            # « parce qu'aucun » (élision, apostrophe droite ou typographique) = « parce que » + mot.
+            if not re.search(r"parce (?:que\s+\w|qu['’]\w)", apres_tiret(reste), re.IGNORECASE):
                 return [f"{rep.ident} : dispense sans raison"]
             return []
         if typ == "commande":
@@ -176,6 +196,13 @@ class Verificateur:
         return self._poc(rep.ident, ligne, reste)
 
     def _lecture(self, ident: str, ligne: str, reste: str) -> list[str]:
+        # Chemin externe testé avant l'exigence de « :ligne » : il s'en passe, mais il lui
+        # faut un détail non vide (ce que dit le passage).
+        premier = CHEMIN_NU.search(reste)
+        if premier is not None and externe(premier.group(1), ligne):
+            if detail_apres(reste[premier.end():]):
+                return []
+            return [f"{ident} : lecture externe sans détail"]
         m = CHEMIN.search(reste)
         if m is None:
             return [f"{ident} : lecture sans chemin:ligne"]
@@ -224,8 +251,10 @@ class Verificateur:
         opus = [s for s in servis if "opus" in s.lower()]
         if opus:
             ecarts.append(f"{ident} : POC servi par Opus : {', '.join(opus)}")
-        if modele and not any(meme_modele(modele, s) for s in servis):
-            ecarts.append(f"{ident} : modèle cité {modele} différent du modèle servi {', '.join(servis)}")
+        # Tout modèle servi doit correspondre au modèle cité : un seul qui diffère suffit à refuser.
+        differents = [s for s in servis if not meme_modele(modele, s)]
+        if modele and differents:
+            ecarts.append(f"{ident} : modèle cité {modele} différent du modèle servi {', '.join(differents)}")
         return ecarts
 
 
