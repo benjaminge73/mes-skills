@@ -148,6 +148,9 @@ Ce chapitre **bouge à chaque passe**, pour deux raisons distinctes :
   une contrainte du framework, un fichier généré. **Ce qui est découvert
   s'écrit**, avec sa conséquence sur les étapes, même si personne ne l'a demandé.
   Une découverte gardée en tête disparaît au compactage du contexte.
+  Le tri (retouche datée, ou question à Benjamin) suit
+  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/decouvertes.md` : ce fichier dit quand une
+  découverte est une question plutôt qu'une retouche directe du chapitre.
 
 Toute modification d'une étape déjà écrite se **date** en fin d'entrée :
 `_maj 2026-08-17 — étapes 3 et 4 fusionnées, la réponse à Q2 supprime le cache._`
