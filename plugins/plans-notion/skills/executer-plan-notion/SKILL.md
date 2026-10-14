@@ -152,7 +152,7 @@ prête (§3, §6). Une autre organisation ne se fait que si Benjamin la demande.
 📄 `${CLAUDE_PLUGIN_ROOT}/skills/executer-plan-notion/ouverture.md` — **à lire en entier à l'ouverture**, avant la première
 étape : la procédure de remise à jour du chapitre, la vérification de la
 maquette, les commandes de relevé de la CI, le calcul des vagues et la
-raison de la règle « une branche, pas de PR ».
+raison de la règle « une branche, pas de PR d'étape ».
 
 Une session peut aussi porter **plusieurs plans** à la fois : tout ce qui
 précède vaut alors pour chacun, et la section « Plusieurs plans », plus bas,
