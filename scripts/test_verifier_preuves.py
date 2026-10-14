@@ -290,6 +290,32 @@ class VerifierPreuves(unittest.TestCase):
         code, sortie, _ = jouer(p, "--depot", depot)
         self.assertEqual(code, 0, sortie)
 
+    # Étape D3 : un tiret seul après l'externe n'est pas un détail. Panne : le détail
+    # ne contenait aucun caractère alphanumérique et passait quand même pour non vide.
+    def test_lecture_externe_dont_le_detail_est_un_tiret_est_refusee(self):
+        p = self.ecrire("p.md", plan(question(
+            1, "Preuve : lecture — https://code.claude.com/docs/en/x.md —")))
+        code, sortie, _ = jouer(p)
+        self.assertEqual(code, 1, sortie)
+        self.assertIn("sans détail", sortie)
+
+    # Étape D3, test en plus de la liste : des parenthèses vides ne sont pas un détail.
+    # Le contrôle « au moins un caractère alphanumérique » les refuse aussi ; ce test
+    # garde la forme « () » contre une régression de ce contrôle.
+    def test_lecture_externe_dont_le_detail_est_des_parentheses_vides_est_refusee(self):
+        p = self.ecrire("p.md", plan(question(
+            1, "Preuve : lecture — ~/x.md ()")))
+        code, sortie, _ = jouer(p)
+        self.assertEqual(code, 1, sortie)
+        self.assertIn("sans détail", sortie)
+
+    # Étape D3, garde-fou : un détail réel reste accepté (doit passer avant et après).
+    def test_lecture_externe_avec_un_detail_reel_reste_acceptee(self):
+        p = self.ecrire("p.md", plan(question(
+            1, "Preuve : lecture — https://code.claude.com/docs/en/x.md — ce que dit le passage")))
+        code, sortie, _ = jouer(p)
+        self.assertEqual(code, 0, sortie)
+
 
 if __name__ == "__main__":
     unittest.main()
