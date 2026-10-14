@@ -27,9 +27,11 @@ détaille.
   preuve rouge se corrige (§3, « Une étape = un commit… »).
 - **Pas de PR vers `main` sans demande explicite** de Benjamin : l'exécution
   s'arrête à la branche (§6, « La PR, puis la remontée sur `main` »).
-- **Découvertes hors plan** : réversible, hors sécurité et petite → étape
-  `D<n>` ; sinon question à Benjamin ; un secret ne se corrige jamais seul et
-  sa valeur ne s'écrit nulle part (§4, « Découvertes hors plan »).
+- **Découvertes hors plan** : une seule règle de tri, dans
+  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/decouvertes.md` — question à Benjamin si
+  elle touche une décision, la sécurité, l'irréversible ou une dépense ; sinon,
+  réversible et petite → étape `D<n>`. Elle vaut à l'ouverture (§2) comme pendant
+  l'exécution (§4). Un secret ne se corrige jamais seul.
 
 ## Suis-je la bonne version ?
 
@@ -424,6 +426,7 @@ Elle s'écrit avec les mêmes précautions que le reste (§5).
 - Il ne dépend d'aucun `CLAUDE.md`, d'aucun hook, d'aucun fichier du dépôt de
   travail. Ses compagnons sont les fichiers partagés
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/ecrire-dans-notion.md`,
+  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/decouvertes.md`,
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/vagues.md`,
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/schemas.md`,
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/remontee-sur-main.md`,

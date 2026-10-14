@@ -40,6 +40,12 @@ jour, même s'il a été écrit dans la même session :
    lui seul, qui part dans les briefs des sous-agents (§3), et un sous-agent n'a
    pas la page.
 
+**Une découverte faite à l'ouverture** — en relisant le plan, ou à la répétition à
+blanc (`_partage/poc.md`) — passe par le tri de
+`${CLAUDE_PLUGIN_ROOT}/skills/_partage/decouvertes.md` **avant la première étape** :
+question à Benjamin, ou correction datée du chapitre `Exécution`. Ce n'est pas encore
+une étape `D`, rien n'a été exécuté.
+
 Cette passe **met le plan à jour, elle ne le redessine pas**. Si une réponse remet
 en cause l'approche elle-même — pas une étape, l'approche — ce n'est plus une mise
 à jour mais une nouvelle passe de conception : le dire, repasser par
