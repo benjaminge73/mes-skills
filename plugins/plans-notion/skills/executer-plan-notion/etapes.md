@@ -160,7 +160,7 @@ Agent({
 })
 ```
 
-**Aucun paramètre `model` ni `effort` ici, et c'est voulu.** L'agent
+**Aucun paramètre `model` ni `effort` ici, et c'est voulu, sauf la correction `D<n>` d'une boucle de cron (renvoi plus bas).** L'agent
 `executant` porte `model: haiku` et `effort: high` dans son propre fichier de
 définition :
 
