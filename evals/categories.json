@@ -115,6 +115,10 @@
       ],
       "cas": ["deleguer-sans-notion"],
       "plancher": 0.9
+    },
+    "preuves": {
+      "exerce": ["skills/_partage/poc.md"],
+      "cas": ["poc-jugement"]
     }
   },
   "voyages": {
