@@ -49,7 +49,7 @@ Le défaut, sauf avis contraire de Benjamin :
   3. **les gardes qui lisent les dossiers touchés** : un test qui n'importe pas le
      fichier touché, mais le *lit* (il parcourt un dossier de skills, compte les
      `SKILL.md`), n'est trouvé ni par le nom ni par l'import. On le cherche par le
-     chemin : `git grep -l '<dossier ou fichier touché>' -- scripts/ 'plugins/*/tests/'`,
+     chemin : `git grep -l '<dossier ou fichier touché>' -- scripts/ 'plugins/*/tests/*'`,
      et on garde les `test_*.py` ainsi que les `check_*.py` que `scripts/ci_locale.sh`
      joue. Sans cette source, une garde qui lit un dossier modifié ne tombe qu'à la
      clôture (deux défauts du plan précédent y sont passés).
