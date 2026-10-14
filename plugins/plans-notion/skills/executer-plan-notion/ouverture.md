@@ -66,8 +66,10 @@ python3 "${CLAUDE_PLUGIN_ROOT}/skills/_partage/scripts/preuves-des-etapes.py" <p
 - **Code 1** : une ligne par étape sans `**Preuve de fin**` non vide, ou
   écrite deux fois dans le chapitre. Une coquille (« — », « aucune », « à
   définir », « à voir ») compte comme absence. On écrit la preuve dans le
-  chapitre, en correction **datée** (`_maj <date> — preuve de fin : …_`), et
-  on rejoue jusqu'au code 0.
+  chapitre, **sur la puce `- **Preuve de fin** : …` de l'étape** (la forme que
+  le script lit : une ligne `_maj …_` seule ne compte pas), et on **date** la
+  correction par une ligne `_maj <date> — preuve de fin de l'étape N écrite._`
+  à côté. On rejoue jusqu'au code 0.
 - **Code 2** : page, chapitre `Exécution` ou étape introuvable. On ne
   commence pas, et on le dit à Benjamin.
 
