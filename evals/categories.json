@@ -79,7 +79,7 @@
         "skills/_partage/lecture-deleguee.md",
         "skills/_partage/decouvertes.md"
       ],
-      "cas": ["decouverte-irreversible", "decouverte-reversible", "decouverte-secret", "decouverte-trop-grande"],
+      "cas": ["decouverte-irreversible", "decouverte-reversible", "decouverte-secret", "decouverte-trop-grande", "cloture-ouvre-la-pr"],
       "plancher": 0.41
     },
     "perimetre": {
