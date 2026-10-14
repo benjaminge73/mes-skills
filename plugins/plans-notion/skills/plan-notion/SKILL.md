@@ -23,8 +23,8 @@ détaille.
 - **Relevé avant d'écrire, recompte après** : cases cochées et textes libres
   relevés avant toute écriture, recomptés après (§4, `_partage/ecrire-dans-notion.md`).
 - **Ce qui est découvert s'écrit dans le plan**, avec sa conséquence sur les
-  étapes : une découverte gardée en tête disparaît au compactage (« Le
-  chapitre `Exécution` »).
+  étapes (tri : `${CLAUDE_PLUGIN_ROOT}/skills/_partage/decouvertes.md`) : une
+  découverte gardée en tête disparaît au compactage (« Le chapitre `Exécution` »).
 
 ## Suis-je la bonne version ?
 
@@ -475,6 +475,7 @@ comment de la séance de code.
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/outils-et-quotas.md`,
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/schemas.md`,
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/cron-a-la-main.md`,
+  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/decouvertes.md`,
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/revue.md` et
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/bons-tests.md`, ses trois fichiers de
   référence (`enquete.md`, `chapitres-cadrage.md`,
