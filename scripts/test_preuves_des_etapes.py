@@ -269,6 +269,76 @@ class PorteApres(_Dossier):
         self.assertEqual(code, 0, sortie)
         self.assertIn("toutes verified", sortie)
 
+    # Panne : le champ « **Commit(s)** » n'est pas lu (le « (s) » sépare le mot du « ** »
+    # fermant), donc une entrée conforme passe pour « pas de Commit », et le code 3 (étape
+    # non prouvée) n'est jamais atteint pour elle.
+    def test_commit_avec_parentheses_s_est_lu(self):
+        p = self.ecrire("p.md", ENTETE + chapitre_ok("1", "2") + journal(
+            entree("1", remplace={
+                "Commit": "- **Commit(s)** : `abc1234`. **Modèle** : claude-haiku-5-5",
+                "Verdict": "- **Verdict** : unverifiable — pas de moyen de rejouer ici"}),
+            entree("2")))
+        code, sortie, _ = jouer(p, "--apres")
+        self.assertEqual(code, 3, sortie)
+        self.assertIn("non prouvée : Étape 1 — pas de moyen de rejouer ici", sortie)
+
+    # Panne : « Preuve » rempli d'une coquille (tiret, « aucune », « à voir ») passe la porte
+    # d'après, comme une preuve rejouée.
+    def test_preuve_coquille_au_journal_est_refusee(self):
+        for coquille in ("—", "-", "aucune", "à voir"):
+            with self.subTest(coquille=coquille):
+                p = self.ecrire("p.md", ENTETE + chapitre_ok("1", "2") + journal(
+                    entree("1", remplace={"Preuve": f"- **Preuve** (rejouée par le pilote) : {coquille}"}),
+                    entree("2")))
+                code, sortie, _ = jouer(p, "--apres")
+                self.assertEqual(code, 1, sortie)
+                self.assertIn("Étape 1 : pas de Preuve", sortie)
+
+    # Panne : « Commit » rempli d'un tiret seul passe la porte d'après, et l'étape paraît
+    # livrée sans trace de commit.
+    def test_commit_tiret_seul_est_refuse(self):
+        for coquille in ("—", "-"):
+            with self.subTest(coquille=coquille):
+                p = self.ecrire("p.md", ENTETE + chapitre_ok("1", "2") + journal(
+                    entree("1", remplace={"Commit": f"- **Commit** : {coquille}"}),
+                    entree("2")))
+                code, sortie, _ = jouer(p, "--apres")
+                self.assertEqual(code, 1, sortie)
+                self.assertIn("Étape 1 : pas de Commit", sortie)
+
+    # Panne : « Découvertes » rempli d'un tiret seul passe la porte d'après.
+    def test_decouvertes_tiret_seul_est_refuse(self):
+        for coquille in ("—", "-"):
+            with self.subTest(coquille=coquille):
+                p = self.ecrire("p.md", ENTETE + chapitre_ok("1", "2") + journal(
+                    entree("1", remplace={"Découvertes": f"- **Découvertes** : {coquille}"}),
+                    entree("2")))
+                code, sortie, _ = jouer(p, "--apres")
+                self.assertEqual(code, 1, sortie)
+                self.assertIn("Étape 1 : pas de Découvertes", sortie)
+
+    # Garde contre une correction trop large : « Découvertes : aucune » est la valeur que le
+    # SKILL écrit quand il n'y a rien à signaler. Panne : un correctif qui réutilise la liste
+    # de « Preuve » (où « aucune » est une coquille) la refuserait à tort.
+    def test_decouvertes_aucune_est_acceptee(self):
+        p = self.ecrire("p.md", ENTETE + chapitre_ok("1", "2") + journal(
+            entree("1", remplace={"Découvertes": "- **Découvertes** : aucune"}),
+            entree("2")))
+        code, sortie, _ = jouer(p, "--apres")
+        self.assertEqual(code, 0, sortie)
+        self.assertIn("toutes verified", sortie)
+
+    # Garde contre une correction trop large : « Commit : aucun (lecture seule) » est une
+    # étape sans fichier, légitime. Panne : « aucun » traité comme une coquille, et une étape
+    # de lecture seule refusée à tort.
+    def test_commit_aucun_pour_une_etape_sans_fichier_est_accepte(self):
+        p = self.ecrire("p.md", ENTETE + chapitre_ok("1", "2") + journal(
+            entree("1", remplace={"Commit": "- **Commit** : aucun (lecture seule)"}),
+            entree("2")))
+        code, sortie, _ = jouer(p, "--apres")
+        self.assertEqual(code, 0, sortie)
+        self.assertIn("toutes verified", sortie)
+
     # Test en plus, hors liste du brief : les deux modes sont exclusifs et l'un des deux est
     # obligatoire (argparse). Panne : un mode est choisi en silence, l'autre ignoré.
     def test_avant_et_apres_exclusifs_ou_aucun_rendent_deux(self):
