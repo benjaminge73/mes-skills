@@ -8,17 +8,20 @@ Sommaire :
 
 - Dans le même tour : `Statut`, `Branche`, entrée `État final`, compte rendu
 - La séquence de clôture (suite complète locale, allègement des `CLAUDE.md`
-  trop longs, push, pas de PR, contrôle bloquant, retrait du worktree)
-- La PR, puis la remontée sur `main` — sur demande seulement
+  trop longs, push, PR prête, suivi de la CI, contrôle bloquant, retrait du
+  worktree)
+- La PR, puis la remontée sur `main`
 
 Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard » :
 
-- `Statut` : **`a merger`**. C'est le statut normal de fin d'exécution, sur tous
-  les dépôts : le travail est livré sur la branche du plan, prouvé en local, et
-  il attend une décision de remontée qui n'appartient pas à ce skill. `execute`
-  ne se pose que sur du code **vérifié sur `main`** (sous-section suivante).
+- `Statut` : **`a merger`** tant que le code n'est pas sur `main`. C'est l'état de
+  fin de clôture, sur tous les dépôts : le travail est livré sur la branche du
+  plan, prouvé en local, et sa PR est ouverte (en brouillon seulement si
+  Benjamin l'a demandé). `execute` se pose dès que le merge est
+  vérifié sur `main`, dans le tour où on le constate (sous-section suivante).
   Une seule question, et sa réponse est factuelle — *où est le code à cette
-  seconde ?* Poser `execute` sur du travail qui dort sur une branche fait croire
+  seconde ?* Poser `execute` sur du travail qui dort sur une branche ou une PR
+  ouverte fait croire
   la base plus avancée qu'elle ne l'est, et c'est le genre de mensonge qu'on ne
   découvre qu'en cherchant une fonctionnalité absente de la production. **La
   symétrie est vraie aussi, et c'est elle qu'on oublie** : laisser `a merger`
@@ -26,9 +29,9 @@ Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard » :
   n'existe plus, et le plan suivant repart d'une base fausse.
 - Ce skill ne pose jamais `archive` : ranger une page est une décision de
   Benjamin, pas un effet de bord d'un merge.
-- `Branche` renseignée : la branche du plan. `PR` reste **vide** tant qu'aucune
-  PR n'existe — une propriété remplie d'une PR qui n'a pas été ouverte ment
-  autant qu'un statut faux.
+- `Branche` renseignée : la branche du plan. `PR` porte l'URL de la PR dès
+  qu'elle existe, et reste **vide** tant que la PR n'a pas été ouverte — une
+  propriété remplie d'une PR qui n'existe pas ment autant qu'un statut faux.
 - `Journal d'exécution` clos par une entrée `État final` (H3, comme les autres,
   §4) : ce qui est livré, le verdict de la suite complète (point 1 ci-dessous),
   les écarts, le reste à faire s'il y en a — **chaque ligne avec son propriétaire** :
@@ -105,14 +108,14 @@ Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard » :
     facultatifs), pas son URL. Aucun pourcentage de quota.
 - Le compte rendu dit **quelles étapes sont parties en sous-agent `executant` (Haiku)** et,
   pour celles faites en direct, pourquoi (§3). Il dit aussi, en une ligne, que
-  **la PR n'est pas ouverte et qu'elle le sera sur demande** — avec ou sans le
-  label `review-required` selon ce que ce dépôt-là en fait (relevé du §2, les
-  quatre cas connus au §6).
+  **la PR est ouverte** (son URL), prête — avec ou sans le label
+  `review-required` selon ce que ce dépôt-là en fait (relevé du §2, les quatre
+  cas connus au §6) — ou pourquoi elle est en brouillon ou retenue.
 - Le compte rendu liste aussi les rubriques **Ajouts sans question** et **Recos
   appliquées par défaut** de l'`État final`, même vides (« aucun »).
-- **Livrer la branche, et s'arrêter là.** Pas de PR : la remontée vers `main`
-  est un geste vers l'extérieur, et il n'a lieu que sur demande explicite de
-  Benjamin. La séquence de clôture est courte :
+- **Livrer la PR, prête, et la suivre jusqu'au merge.** La PR s'ouvre à la
+  clôture ; c'est la CI qui la merge, jamais la session (étapes 4 et 5). La
+  séquence de clôture est courte :
   1. **Jouer la suite complète en local** : tous les tests unitaires, lint,
      build, **et les tests e2e** — c'est ici, et seulement ici, qu'ils passent
      (§3). C'est **le verdict de fin de plan** : tant qu'il n'est pas vert, le
@@ -121,7 +124,7 @@ Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard » :
      diagnostiquer → même arbitrage (§3) : journal, plan de suite (§7), et la
      page reste à `en cours`. Une suite qui n'est pas jouable sur le poste (e2e
      sans navigateur, par exemple) se dit au journal, tests nommés — ce n'est
-     pas un vert, c'est un trou, et Benjamin doit le voir avant de demander la
+     pas un vert, c'est un trou : le compte rendu le dit en tête, à côté de la
      PR. Suite complète et e2e prennent le jeton des actions lourdes :
      `${CLAUDE_PLUGIN_ROOT}/skills/_partage/machine-partagee.md`.
   2. **Alléger les `CLAUDE.md` trop longs, sans demander.** Ce geste ne tourne
@@ -157,9 +160,20 @@ Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard » :
   3. **Pousser la branche du plan.** C'est le seul push de la clôture quand le
      relevé du §2 a retenu les commits en local ; sans lui, le travail ne vit
      que sur un disque. La sortie de la preuve va au journal (`État final`).
-  4. **Ne pas ouvrir la PR.** Ni la merger, ni la préparer « pour gagner du
-     temps ». Le compte rendu s'arrête sur la branche, prouvée et poussée.
-  5. **Contrôle bloquant, avant de poser `a merger`** :
+  4. **Ouvrir la PR, prête.** `gh pr create --base main --head <branche-du-plan>`,
+     **sans `--draft`** : le brouillon se demande à Benjamin, il ne se décide pas
+     seul. Titre = titre du plan ; corps = une ligne par étape reprise du
+     journal, lien vers la page Notion, et la ligne `Evals:` (sous-section
+     ci-dessous). Label : décidé en regardant ce dépôt-là (sous-section).
+     `PR` renseignée sur la page dès l'ouverture.
+  5. **Suivre la CI jusqu'au merge, sans jamais merger soi-même.** Rouge →
+     corriger tout en local, rejouer la suite complète, repousser une seule fois
+     (chaque push relance un run). Vert, et merge fait par la CI → le vérifier
+     sur pièce (`gh pr view <n> --json state,mergeCommit`), puis poser
+     `execute` dans le même tour. Une PR retenue (brouillon, CI rouge, workflows
+     touchés, PR Dependabot : sous-section) reste à `a merger`, et le compte
+     rendu le dit à Benjamin.
+  6. **Contrôle bloquant, avant de retirer le worktree** :
      ```bash
      git branch --list '<branche-du-plan>-etape-*'
      git worktree list
@@ -174,7 +188,7 @@ Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard » :
      `État final`.
 
      📄 `${CLAUDE_PLUGIN_ROOT}/skills/_partage/vagues.md`
-  6. **Retirer le worktree**, `git worktree remove ~/repos/worktrees/<repo>/
+  7. **Retirer le worktree**, `git worktree remove ~/repos/worktrees/<repo>/
      <branche-kebab>` — **la branche, elle, reste** : c'est le hook
      `SessionStart` qui la nettoiera après le merge éventuel, et **une branche
      encore checked-out dans un worktree n'est jamais nettoyée par ce hook**
@@ -186,27 +200,49 @@ livré, et c'est la page qui fait foi. Ce statut s'oublie exactement comme la r�
 d'entrée s'oublie : en étant absorbé par le travail lui-même. D'où le fait de le
 poser dans le tour du compte rendu, pendant qu'on y pense encore.
 
-### La PR, puis la remontée sur `main` — sur demande seulement
+### La PR, puis la remontée sur `main`
 
-Benjamin demande la suite quand il le décide : « ouvre la PR », « merge sur
-main », « tu peux merger directement », « pousse ça sur main ». Deux demandes
-distinctes, et il faut entendre laquelle est faite :
+La PR s'ouvre à la clôture, prête (étapes 4 et 5 ci-dessus) : une seule, de la
+branche du plan vers `main`. Benjamin peut aussi la demander — « ouvre la PR »,
+« merge sur main », « tu peux merger directement », « pousse ça sur main ». La
+demande ne change pas le geste : si la PR n'existe pas encore (clôture
+interrompue, plan repris plus tard), elle s'ouvre comme à la clôture ; si elle
+existe, on la suit jusqu'au merge. Quelle que soit la demande, ces points
+tiennent :
 
-- **« ouvre la PR »** → une seule PR, de la branche du plan vers `main`. **Le
-  label `review-required` se décide en regardant ce dépôt-là**, jamais depuis la
-  règle générale : il n'existe pas partout, et là où il existe son effet change
-  de signe (§6, quatre cas relevés). La ceinture reste la suite complète jouée en
-  local à la clôture ; le label n'est que la bretelle. Sur `vahiny`, il commande
-  aussi le merge par la CI une fois tout vert : y demander la PR, c'est demander
-  la remontée, et Benjamin le sait.
-  Si le chapitre `Exécution` porte une ligne `Évals à jouer : …`, la recopier dans le
-  corps de la PR : `Evals: <catégories> — <raison>`, `Evals: tout` ou `Evals: aucun —
-  <raison>`. Le défaut du plan est `aucun — la fumée suffit` : recopier tel quel, sans
-  label. Le label `evals` ne se pose que sur demande de Benjamin, pour des catégories
-  ou `tout`, jamais pour `aucun` ; sans ligne, la CI est rouge. Coûts :
-  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/outils-et-quotas.md`.
-- **« merge sur main »** → la PR (ouverte à cette occasion si elle ne l'est
-  pas), CI verte, merge, vérification sur pièce, `execute`.
+- **La session ne merge jamais**, pas même sur « merge sur main » ni sur « tu
+  peux merger directement » : `gh pr merge` n'est pas lancé. C'est la CI qui
+  merge une PR prête, quand les règles du dépôt le permettent. Si Benjamin veut
+  un merge à la main, c'est lui qui le fait.
+- **Le label `review-required` se décide en regardant ce dépôt-là**, jamais
+  depuis la règle générale : il n'existe pas partout, et là où il existe son
+  effet change de signe. Les quatre cas relevés à ce jour :
+  - **`vahiny`, `micro-trading`, `mavod-perso` : le poser**
+    (`gh pr create --label review-required …`). Là où son workflow le lit, il
+    commande la suite complète. Sur `vahiny`, la CI merge seule une fois tout
+    vert. Sur `micro-trading`, il lance l'e2e sur le runner du VPS ; `auto-merge`
+    attend ce vert, et `deploy` met en production. Sur `mavod-perso`, il
+    commande la suite complète (smoke puis e2e).
+  - **`mes-skills` : jamais.** Son job `merge-auto` en est exclu : le label y
+    empêcherait le merge.
+  - **`hermes-custom` : le label n'existe pas**, et `gh pr create --label` y
+    échoue. Le dépôt a des e2e sans label pour les commander : c'est un trou
+    connu de sa CI, à dire à Benjamin avant d'ouvrir plutôt qu'à contourner en
+    silence.
+
+  La ceinture reste la suite complète jouée en local à la clôture ; le label
+  n'est que la bretelle, et une bretelle n'existe que si le dépôt en a une.
+- **Ce qui retient le merge** : une PR brouillon (demandée par Benjamin), une CI
+  rouge, des workflows touchés (`.github/workflows/`), une PR Dependabot. Dans
+  ces cas `Statut` reste `a merger`, et le compte rendu le dit à Benjamin : la
+  PR est ouverte, elle attend une décision.
+
+Si le chapitre `Exécution` porte une ligne `Évals à jouer : …`, la recopier dans le
+corps de la PR : `Evals: <catégories> — <raison>`, `Evals: tout` ou `Evals: aucun —
+<raison>`. Le défaut du plan est `aucun — la fumée suffit` : recopier tel quel, sans
+label. Le label `evals` ne se pose que sur demande de Benjamin, pour des catégories
+ou `tout`, jamais pour `aucun` ; sans ligne, la CI est rouge. Coûts :
+`${CLAUDE_PLUGIN_ROOT}/skills/_partage/outils-et-quotas.md`.
 
 La séquence complète — ouvrir, attendre la CI, vérifier que le merge a bien eu
 lieu, poser `Statut` = `execute`, journaliser — et le piège qui la fait échouer
@@ -219,6 +255,7 @@ vivent dans un fichier partagé :
 ou une session plus tard sur un plan déjà à `a merger` : c'est la seule
 opération de ce skill qui peut arriver à trois moments différents, et qui a déjà
 été bâclée en s'arrêtant au merge sans mettre `Statut` à jour. Une demande
-explicite se fait **sans réclamer de confirmation supplémentaire** : refuser au
-nom d'une règle qui n'existait que pour le protéger, c'est prendre la règle pour
-une fin.
+explicite de PR ou de remontée se suit **sans réclamer de confirmation
+supplémentaire** : refuser au nom d'une règle qui n'existait que pour le
+protéger, c'est prendre la règle pour une fin. Ce que la session ne fait jamais,
+même sur demande, c'est le merge lui-même (sous-section ci-dessus).
