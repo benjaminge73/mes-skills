@@ -149,6 +149,16 @@ Le budget d'enquête est **proportionnel à l'enjeu**, pas à la longueur du pla
 étape qui touche un fichier et se relit d'un coup d'œil ne mérite pas une fouille
 d'historique. Une étape qui change un réglage de production, oui.
 
+**Une étape qui modifie une configuration vivante exige une sonde avant d'être
+écrite.** Une configuration vivante, c'est un réglage lu par un service qui tourne :
+une tâche planifiée, la config d'un agent, la liste des dossiers de skills d'un outil.
+La sonde est une commande **en lecture seule** qui interroge l'état réel et dit ce que
+le service servira **après** le changement ; sa sortie s'écrit dans `Contraintes
+techniques vérifiées`, et l'étape ne s'écrit qu'après. Pourquoi : une étape a été
+écrite sur une précédence supposée (« à nom égal, le dossier le plus prioritaire
+gagne ») et défaite ensuite, alors qu'une lecture du catalogue réel la réfutait en une
+commande. Le cas Hermes est fiché dans `${CLAUDE_PLUGIN_ROOT}/skills/_partage/outils-et-quotas.md`.
+
 **Une vérification nomme la décision qu'elle peut changer, ou le risque qu'elle
 couvre — sinon elle ne se fait pas.** Une recherche, une mesure ou un POC dont le
 résultat, quel qu'il soit, laisserait le plan tel quel n'est que du bruit : elle

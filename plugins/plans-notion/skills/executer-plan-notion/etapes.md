@@ -36,7 +36,7 @@ Le défaut, sauf avis contraire de Benjamin :
 
   **« Les tests des fichiers impactés », précisément.** La liste se construit à
   partir des fichiers **réellement** touchés — `git diff --name-only` depuis le
-  commit de l'étape précédente, pas la liste du brief — et elle a deux sources :
+  commit de l'étape précédente, pas la liste du brief — et elle a trois sources :
   1. **les tests écrits ou modifiés pendant l'étape** : en TDD ce sont eux qui
      définissent l'étape, ils tournent forcément ;
   2. **les tests existants qui couvrent les sources touchées**. Le plus sûr est
@@ -45,7 +45,14 @@ Le défaut, sauf avis contraire de Benjamin :
      <sources>`. Sans ce mode (pytest, autres) : la convention de nommage du
      dépôt (`foo.py` → `test_foo.py`, `foo.ts` → `foo.test.ts`) **plus** un
      `grep -l` du nom du module dans les dossiers de tests, pour attraper ceux
-     qui l'importent sous un autre nom.
+     qui l'importent sous un autre nom ;
+  3. **les gardes qui lisent les dossiers touchés** : un test qui n'importe pas le
+     fichier touché, mais le *lit* (il parcourt un dossier de skills, compte les
+     `SKILL.md`), n'est trouvé ni par le nom ni par l'import. On le cherche par le
+     chemin : `git grep -l '<dossier ou fichier touché>' -- scripts/ 'plugins/*/tests/*'`,
+     et on garde les `test_*.py` ainsi que les `check_*.py` que `scripts/ci_locale.sh`
+     joue. Sans cette source, une garde qui lit un dossier modifié ne tombe qu'à la
+     clôture (deux défauts du plan précédent y sont passés).
 
   La commande de preuve du brief se dérive de cette liste ; au retour du
   sous-agent, elle se **rejoue sur la liste réelle** — un fichier touché en plus
@@ -201,8 +208,9 @@ et c'est ce qui donne ensuite l'envie de « faire soi-même ». Le brief porte d
    sortie **bornée** recopiée sans paraphrase : les dernières lignes du log (le
    résumé du runner), le compte des échecs, et pour chaque échec son nom et
    l'extrait qui dit pourquoi — jamais le log entier. Elle ne porte que sur **les tests des fichiers
-   impactés** (§3, « précisément ») : ceux que l'étape écrit ou modifie, et ceux
-   qui couvrent les sources qu'elle touche — jamais la suite complète.
+   impactés** (§3, « précisément ») : ceux que l'étape écrit ou modifie, ceux
+   qui couvrent les sources qu'elle touche, et les gardes qui lisent ses dossiers —
+   jamais la suite complète.
    **Le délai attendu quand elle est longue** : « `pytest` prend 4 minutes,
    attends-le. » Sept abandons prématurés relevés sur l'historique viennent
    d'un sous-agent qui rend la main pendant une commande encore en cours, faute
@@ -216,6 +224,12 @@ et c'est ce qui donne ensuite l'envie de « faire soi-même ». Le brief porte d
    seules exceptions à cette règle. En cas d'échec : **diagnostic, pas
    correctif** — le debug revient au pilote, seul à avoir le
    plan.
+
+   **Le trailer, quand il commite** (regroupement ou étape testée) : la dernière
+   ligne du message est exactement `Co-Authored-By: Claude <noreply@anthropic.com>`.
+   Pas de nom de modèle, ni dans le trailer ni ailleurs dans le message : le rappel
+   d'attribution du harnais en suggère un, et la règle du poste l'interdit. Le pilote
+   vérifie la ligne à la relecture du commit (§3, « Après chaque étape »).
 6. **Le format du rapport attendu** — cinq pièces, toujours dans cet ordre :
    - **Un état, un seul, parmi quatre** : `DONE` (fait, prouvé, rien à
      signaler), `DONE_WITH_CONCERNS` (fait et prouvé, mais quelque chose mérite
@@ -290,7 +304,10 @@ en disant quelles étapes ont été faites en direct et pourquoi.
   `Modèle :`. L'effort, lui, n'apparaît dans aucune transcription : il ne se
   vérifie pas ainsi.
 - **Commiter l'étape sur la branche du plan**, et la pousser si le relevé du §2
-  l'autorise (sous-section précédente). Pas de PR.
+  l'autorise (sous-section précédente). Pas de PR. Le trailer se vérifie ici, à la
+  relecture : `git log -1 --format=%B <sha>` doit porter `Co-Authored-By: Claude
+  <noreply@anthropic.com>` et aucun nom de modèle — sur chaque commit d'un
+  regroupement ou d'une étape testée, pas seulement le dernier.
 - **Faire relire par l'agent `relecteur` selon la colonne `Relecture`** :
   une étape `étape` se relit seule, ici ; une étape `lot` attend la preuve de
   fin de son lot, relu d'un seul coup avec les autres. On boucle jusqu'à

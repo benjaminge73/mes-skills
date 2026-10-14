@@ -16,11 +16,15 @@
 #                        limites.json). Défaut : origin/main.
 #   CI_LOCALE_SANS_BASE  non vide : sauter ces contrôles (poussée sur main, où il
 #                        n'y a pas de PR à comparer).
-#   PYTHON_PLUGINS      l'interpréteur des tests sous plugins/<p>/tests/ (défaut :
-#                        python3). En local, un interpréteur qui a PyMuPDF et
-#                        zxing-cpp (dépendances de plugins/<p>/tests/
-#                        requirements.txt) ; la CI les installe puis passe
-#                        « python ».
+#   PYTHON_PLUGINS      l'interpréteur des tests sous plugins/<p>/tests/. Ordre :
+#                        1. .venv-plugins/bin/python, s'il existe (dossier ignoré
+#                        par git) ; 2. PYTHON_PLUGINS, si l'environnement la pose ;
+#                        3. python3. Le venv se crée depuis la racine du dépôt :
+#                          python3 -m venv .venv-plugins && .venv-plugins/bin/pip install -r plugins/*/tests/requirements.txt
+#                        Sans lui, les tests qui importent PyMuPDF ou zxing-cpp
+#                        (dépendances de plugins/<p>/tests/requirements.txt)
+#                        échouent sur un python3 qui ne les a pas. La CI pose
+#                        PYTHON_PLUGINS=python et n'a pas de venv.
 #   CLAUDE_BIN           la CLI Claude Code pour `claude plugin validate`
 #                        (défaut : claude). Ce script ne l'installe pas : la CI
 #                        le fait dans son job `validation`, en local elle est
@@ -35,7 +39,14 @@ cd "$(dirname "${BASH_SOURCE[0]}")/.."
 section="${1:-tout}"
 BASE_REF="${BASE_REF:-origin/main}"
 CLAUDE_BIN="${CLAUDE_BIN:-claude}"
-PYTHON_PLUGINS="${PYTHON_PLUGINS:-python3}"
+if [ -x .venv-plugins/bin/python ]; then
+  PYTHON_PLUGINS=".venv-plugins/bin/python"
+else
+  if [ -z "${PYTHON_PLUGINS:-}" ]; then
+    echo "Pas de .venv-plugins : les tests des plugins tournent avec python3 (PyMuPDF peut manquer). Pour créer le venv : python3 -m venv .venv-plugins && .venv-plugins/bin/pip install -r plugins/*/tests/requirements.txt" >&2
+  fi
+  PYTHON_PLUGINS="${PYTHON_PLUGINS:-python3}"
+fi
 SANS_BASE="${CI_LOCALE_SANS_BASE:-}"
 
 case "$section" in
