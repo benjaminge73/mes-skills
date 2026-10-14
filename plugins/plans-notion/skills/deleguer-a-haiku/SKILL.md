@@ -7,7 +7,7 @@ description: >-
 # Déléguer un plan natif à Haiku
 
 Ce skill sert une session qui a un plan **sans page Notion**, à écrire ou déjà approuvé.
-Il ne lit ni n'écrit aucune page. Le geste tient en cinq temps ; le détail de chaque
+Il ne lit ni n'écrit aucune page. Le geste tient en quatre temps ; le détail de chaque
 règle reste dans les fichiers qu'il cite, pour ne pas en avoir deux copies.
 
 ## Avant le plan
