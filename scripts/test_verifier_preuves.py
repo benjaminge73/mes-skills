@@ -249,6 +249,47 @@ class VerifierPreuves(unittest.TestCase):
         self.assertIn("différent", sortie)
         self.assertIn("claude-sonnet-5-5", sortie)
 
+    # Revue 2 : « :// » et « hors dépôt » ne comptent que dans le jeton du chemin ou avant
+    # lui, jamais dans le détail qui le suit. Le dépôt est fourni pour que le chemin
+    # interne soit réellement cherché (sans --depot, tout chemin passe).
+
+    def test_lecture_interne_absente_avec_url_dans_le_detail_est_refusee(self):
+        # Panne : une URL dans le détail faisait passer pour externe un chemin interne absent.
+        p = self.ecrire("p.md", plan(question(
+            1, "Preuve : lecture — plans/absent.md:3 (voir https://exemple.org)")))
+        code, sortie, _ = jouer(p, "--depot", RACINE)
+        self.assertEqual(code, 1, sortie)
+        self.assertIn("introuvable", sortie)
+
+    def test_lecture_interne_absente_avec_hors_depot_apres_le_chemin_est_refusee(self):
+        # Panne : « hors dépôt » placé après le chemin rendait le chemin interne absent conforme.
+        depot = self.dossier / "depot"
+        depot.mkdir()
+        p = self.ecrire("p.md", plan(question(
+            1, "Preuve : lecture — plans/absent.md:3 — confirmé, rien hors dépôt")))
+        code, sortie, _ = jouer(p, "--depot", depot)
+        self.assertEqual(code, 1, sortie)
+        self.assertIn("introuvable", sortie)
+
+    def test_hors_depot_avant_le_chemin_est_accepte(self):
+        # Garde : « hors dépôt » avant le chemin reste le marqueur valide. Le dépôt vide
+        # rend l'essai discriminant : sans le marqueur, cron.md serait introuvable.
+        depot = self.dossier / "depot"
+        depot.mkdir()
+        p = self.ecrire("p.md", plan(question(
+            1, "Preuve : lecture — hors dépôt — cron.md:925 (ce que dit le passage)")))
+        code, sortie, _ = jouer(p, "--depot", depot)
+        self.assertEqual(code, 0, sortie)
+
+    def test_schema_dans_le_chemin_reste_externe_et_accepte(self):
+        # Garde : un schéma qui fait partie du jeton du chemin rend le chemin externe.
+        depot = self.dossier / "depot"
+        depot.mkdir()
+        p = self.ecrire("p.md", plan(question(
+            1, "Preuve : lecture — https://code.claude.com/docs/en/x.md (ce que dit le passage)")))
+        code, sortie, _ = jouer(p, "--depot", depot)
+        self.assertEqual(code, 0, sortie)
+
 
 if __name__ == "__main__":
     unittest.main()
