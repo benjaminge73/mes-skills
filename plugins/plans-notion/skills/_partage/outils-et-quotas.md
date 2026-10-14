@@ -545,6 +545,11 @@ d'entrée cumulés, cache à environ 98 %, en 46 s.
   par `_align_table`) ne la protège pas : il coupe sur `\|`, le tableau gagne
   une colonne et la ligne se décale. Une cellule qui doit contenir une barre
   s'écrit donc avec `¦` à la place, que les deux lecteurs ne coupent pas.
+- **2026-10-13** : `skills.external_dirs` n'a pas de précédence entre ses
+  dossiers. Deux dossiers déclarés là qui portent un skill de même nom sont au
+  même rang : Hermes ne les départage pas et masque les deux copies (état
+  `ambiguous` du catalogue). Un skill posé au rang local (`~/.hermes/skills/`)
+  l'emporte sur les externes.
 
 **Bonne pratique** :
 
@@ -562,6 +567,9 @@ d'entrée cumulés, cache à environ 98 %, en 46 s.
   appel de shell.
 - Dans un tableau destiné à Slack, remplacer la barre d'une cellule par `¦`
   plutôt que l'échapper en `\|` : seul un des deux lecteurs sait lire `\|`.
+- Avant une étape qui change une configuration vivante comme `skills.external_dirs`,
+  une sonde en lecture seule du catalogue réel de Hermes dit ce qu'il servira ;
+  sans elle, l'étape écrite sur une précédence supposée a été défaite.
 
 **Repli** : pour le hub de skills, l'identifiant au chemin complet ; sinon
 aucun connu au 2026-10-06.
@@ -633,6 +641,11 @@ aucun connu au 2026-10-06.
   longue durée, à ranger soi-même (variable d'environnement). Sur un compte qui
   doit lancer `claude -p` sans surveillance, `/login` dans une session interactive
   enregistre les identifiants du compte et les renouvelle seul.
+- **2026-10-13 : `claude --plugin-dir` cède à un plugin installé du même nom.**
+  Un plugin déjà installé qui porte le même nom que le dossier passé par
+  `--plugin-dir` masque ce dossier : la session charge la copie installée, pas le
+  dossier de travail. Une preuve « mon hook de branche tourne » prouve alors la
+  mauvaise copie.
 
 **Bonne pratique** :
 
@@ -647,6 +660,10 @@ aucun connu au 2026-10-06.
 - Jouer un e2e qui appelle `claude` sous le compte qui porte la connexion, pas
   sous `sudo`. Ne charger par `sudo` que les tests qui ont besoin d'un fichier
   de secrets réservé à root.
+- Prouver un hook ou un skill de branche avec une **copie renommée** du plugin
+  (nom différent de celui qui est installé), jamais avec le dossier de travail sous
+  son nom d'origine : la copie renommée n'entre pas en collision avec le plugin
+  installé, donc rien ne la masque.
 
 **Repli** : mise à jour à la main, `sudo apt update && sudo apt upgrade
 claude-code`, en attendant qu'une origine autorisée ou un veilleur s'en charge.
