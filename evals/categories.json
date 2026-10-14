@@ -71,6 +71,7 @@
         "skills/_partage/schemas.md",
         "skills/_partage/scripts/verifier-version.sh",
         "skills/_partage/scripts/compter-cases.py",
+        "skills/_partage/scripts/preuves-des-etapes.py",
         "skills/_partage/scripts/vagues.py",
         "skills/_partage/ranger-claude-md.md",
         "skills/_partage/scripts/taille-claude-md.py",
