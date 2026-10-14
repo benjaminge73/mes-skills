@@ -297,10 +297,13 @@ de base à dépasser) et un plugin qui disparaît.
 pousser »). `garde` tient les invariants du dépôt : la marketplace et le disque
 concordent, la version d'un plugin touché a bougé (la règle ci-dessus), les
 règles de forme des skills et le registre des garde-fous
-([docs/garde-fous.md](docs/garde-fous.md)) sont respectés, et une leçon ajoutée
-à un skill a son cas d'éval. `validation` fait valider chaque manifeste par la
-CLI Claude Code elle-même (`claude plugin validate`), joue les tests des
-scripts de garde et attrape les renvois `${CLAUDE_PLUGIN_ROOT}/…` pointant dans
+([docs/garde-fous.md](docs/garde-fous.md)) sont respectés, une leçon ajoutée à un
+skill a son cas d'éval, aucune donnée personnelle ne se glisse sous `plugins/voyages/`
+ni `evals/voyages/`, la dernière passe de veille a moins de 30 jours quand un skill
+change, et les `CLAUDE.md` ne grossissent pas au-delà de 200 lignes (cliquet).
+`validation` fait valider chaque manifeste par la CLI Claude Code elle-même
+(`claude plugin validate`), joue les tests des scripts de garde et ceux des plugins,
+et attrape les renvois `${CLAUDE_PLUGIN_ROOT}/…` pointant dans
 le vide, ainsi que les frontmatters incomplets ou mal nommés.
 
 Le banc d'évals a ses propres jobs, et il ne joue plus sur chaque PR : il part
@@ -312,7 +315,7 @@ label `evals`. Sans ce label, une PR qui touche un skill, un agent, un hook ou
 un `_partage/` doit porter dans son corps une ligne `Evals: aucun — <raison>`,
 sinon `evals-portee` est rouge. Elle passe alors par le job `fumee` : la tête
 seule, en un passage, sur les catégories que ses fichiers exercent, jugée sur
-des planchers par catégorie (`evals/categories.json`), pour 0,54 à 9,2 $ (mesurés le 2026-09-30 sur un banc de 16 cas ; il en compte 24 depuis).
+des planchers par catégorie (`evals/categories.json`), pour 0,54 à 9,2 $ (mesurés le 2026-09-30 sur un banc de 16 cas, qui a grandi depuis : `evals/categories.json` en tient le compte).
 
 Le banc est sobre. Un seul banc tourne par plugin à la fois
 (`concurrency: evals-<plugin>`). Le rapport de la base est repris du cache selon
@@ -352,7 +355,7 @@ joue dans ses jobs `garde` et `validation`, dans l'ordre. Rien à énumérer ici
 un contrôle ajouté au dépôt s'ajoute dans ce script, et la CI comme les
 contributeurs le reprennent. Il ne joue ni le job `evals`, payant, ni `fumee` : ils tournent
 sur le runner GitHub. Sur une branche de PR il compare à `origin/main` (une
-autre base : `BASE_REF=<réf>`) ; la CLI `claude` doit être installée.
+autre base : `BASE_REF=<réf>`) ; la CLI `claude` doit être installée, et un `.venv-plugins` (le script affiche la commande pour le créer) évite qu'il manque PyMuPDF aux tests des plugins.
 
 Les règles que ces contrôles tiennent, et d'où elles viennent, sont dans
 [docs/garde-fous.md](docs/garde-fous.md) ; la méthode pour prouver un skill, dans
