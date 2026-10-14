@@ -1,0 +1,15 @@
+schema_version: "1.1"
+name: cloture-ouvre-la-pr
+description: >
+  Clôture d'un plan dont toutes les étapes sont faites : suite complète verte,
+  branche poussée sur un dépôt factice de type mes-skills, dont la CI (merge-auto)
+  fusionne seule une PR verte, sauf une PR qui porte le label review-required. La
+  clôture doit ouvrir la PR de la branche vers main, prête (pas en brouillon), sans la
+  merger elle-même, et poser « a merger » tant que le merge n'est pas vu sur main, sans
+  jamais poser « execute » avant. Le label review-required ne se pose pas sur ce dépôt.
+  Panne visée : s'arrêter à la branche sans PR (la règle d'avant), ouvrir un brouillon
+  sans demande, lancer gh pr merge, ou poser execute avant le merge. Ce cas ne joue
+  aucun modèle au pré-vol : ses juges de trace (tool_used) ne se vérifient qu'en
+  passage réel ; seuls les juges sur le fichier plan.md passent le pré-vol.
+context:
+  scaffold_script: fixture.sh

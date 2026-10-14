@@ -33,9 +33,12 @@ qu'à condition que ce qui a été mis de côté atterrisse quelque part de visi
   repartir avec le plan d'hier.
 - **Lier les deux pages** : le plan précédent pointe le suivant dans son
   `État final`, le suivant pointe le précédent dans sa reprise.
-- Le plan précédent **garde son statut de fin** — `a merger`, ou `execute` si sa
-  branche est partie sur `main`. Il a été exécuté jusqu'où il pouvait l'être : ce
-  n'est pas un échec à cacher, c'est un périmètre qui a bougé.
+- Le plan précédent **garde son statut de fin** — `a merger` tant que son code
+  n'est pas sur `main`, `execute` une fois qu'il y est. Sa PR de clôture a été
+  ouverte par la clôture elle-même (`remontee-sur-main.md`) : le plan de suite
+  la cite telle quelle, il ne la rouvre pas. Il a été exécuté jusqu'où il
+  pouvait l'être : ce n'est pas un échec à cacher, c'est un périmètre qui a
+  bougé.
 
 Ne pas créer de plan de suite quand tout est passé. Une page vide de contenu utile
 encombre la base et fait douter du statut de celle qui la précède.

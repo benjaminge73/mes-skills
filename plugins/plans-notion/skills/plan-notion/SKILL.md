@@ -220,12 +220,13 @@ chaque URL avant de choisir, plutôt que de prendre la première trouvée.
   `execute` (valeurs **sans accents**, cf. la règle en tête).
 - **`a merger` et `execute` ne disent pas la même chose**, et les confondre fait
   mentir la base :
-  - **`a merger`** — le travail est fait, testé et poussé, mais il vit **encore
-    sur sa branche**. C'est là que tout plan s'arrête : la PR vers `main` ne
-    s'ouvre que sur demande de Benjamin, jamais d'elle-même.
-  - **`execute`** — le travail est **sur `main`**. Ce statut se pose au merge, et
-    pas une minute avant : c'est la seule façon de lire d'un coup d'œil ce qui est
-    réellement livré et ce qui attend encore.
+  - **`a merger`** — le travail est fait, testé et poussé, et sa **PR est
+    ouverte** : le code n'est **pas encore sur `main`** (PR en attente de CI,
+    brouillon demandé, CI rouge, merge retenu, trou e2e en attente de décision).
+    C'est là que tout plan s'arrête tant que le merge n'est pas vérifié.
+  - **`execute`** — le travail est **sur `main`**. Ce statut se pose quand le
+    merge est vérifié, et pas une minute avant : c'est la seule façon de lire
+    d'un coup d'œil ce qui est réellement livré et ce qui attend encore.
 - **`execute` est le terminus.** La valeur `archive` existe dans la base mais ce
   skill ne la pose jamais : ranger une page est une décision de Benjamin, pas un
   effet de bord d'un merge.
@@ -452,7 +453,7 @@ travail qui répond à la version d'avant.
 
 Ce que `executer-plan-notion` prend en charge, et qu'il est donc inutile de
 détailler dans le plan : la découpe en sous-agents, le `Journal d'exécution`, la
-branche du plan — sa PR unique n'attend que la demande de Benjamin —, le
+branche du plan — sa PR unique s'ouvre à la clôture —, le
 déroulé de bout en bout en autonomie, le
 statut de fin (`a merger`, puis `execute` une fois sur `main`), et le plan de
 suite `#N+1` s'il reste des arbitrages. Ce
@@ -465,7 +466,8 @@ comment de la séance de code.
   (Le code jetable d'un POC ou d'une répétition à blanc n'est pas du code livré :
   règle 2.)
 - Il ne résout pas les fils de commentaires.
-- Il n'ouvre pas de PR de lui-même et ne merge rien.
+- Il n'ouvre pas de PR et ne merge rien : la PR du plan est ouverte par la
+  clôture de `executer-plan-notion`.
 - Il ne passe jamais un plan en `archive`.
 - Il ne dépend d'aucun `CLAUDE.md`, d'aucun hook, d'aucun fichier du dépôt de
   travail. Ses compagnons sont les fichiers partagés

@@ -1,7 +1,7 @@
 ---
 name: executer-plan-notion
 description: >-
-  Implémente un plan de travail cadré dans Notion — vérification du statut avant de coder, découpe en étapes, sous-agents, journal d'exécution écrit sur la page, statut final. À charger AVANT d'écrire la moindre ligne de code dès que Benjamin donne le feu vert sur un travail déjà cadré, par exemple « go », « vas-y », « on y va », « attaque », « tu peux coder », « lance l'implémentation », « déroule le plan », « on passe à la réalisation », « c'est bon pour moi ». À charger aussi pour reprendre un chantier commencé — « reprends là où on s'est arrêté », « continue le refacto », « t'en étais à l'étape 2 », « on continue l'exécution ». À charger aussi quand Benjamin demande la PR ou la remontée sur `main` d'un travail déjà livré — « ouvre la PR », « merge sur main », « tu peux merger directement », « pousse ça sur main » — y compris dans une session où rien n'a été codé : la PR ne s'ouvre que sur sa demande, et ce skill fait passer la page de `a merger` à `execute`. Vaut même si ni Notion ni le mot « plan » ne sont cités, même si seule une partie des étapes est demandée, et même si le plan n'est pas encore validé, car c'est ce skill qui dit quoi faire dans ce cas. Commence toujours par remettre le chapitre Exécution à jour des dernières réponses et commentaires de Benjamin. Ne couvre pas la conception du plan, qui relève du skill plan-notion, ni une tâche isolée sans plan derrière.
+  Implémente un plan de travail cadré dans Notion — vérification du statut avant de coder, découpe en étapes, sous-agents, journal d'exécution écrit sur la page, statut final. À charger AVANT d'écrire la moindre ligne de code dès que Benjamin donne le feu vert sur un travail déjà cadré, par exemple « go », « vas-y », « on y va », « attaque », « tu peux coder », « lance l'implémentation », « déroule le plan », « on passe à la réalisation », « c'est bon pour moi ». À charger aussi pour reprendre un chantier commencé — « reprends là où on s'est arrêté », « continue le refacto », « t'en étais à l'étape 2 », « on continue l'exécution ». À charger aussi quand Benjamin demande la PR ou la remontée sur `main` d'un travail déjà livré — « ouvre la PR », « merge sur main », « tu peux merger directement », « pousse ça sur main » — y compris dans une session où rien n'a été codé : la clôture ouvre elle-même la PR, prête, suit la CI jusqu'au merge et fait passer la page de `a merger` à `execute`. Vaut même si ni Notion ni le mot « plan » ne sont cités, même si seule une partie des étapes est demandée, et même si le plan n'est pas encore validé, car c'est ce skill qui dit quoi faire dans ce cas. Commence toujours par remettre le chapitre Exécution à jour des dernières réponses et commentaires de Benjamin. Ne couvre pas la conception du plan, qui relève du skill plan-notion, ni une tâche isolée sans plan derrière.
 ---
 
 # Exécuter un plan Notion
@@ -25,8 +25,12 @@ détaille.
   relevé du §1 et se vérifie en recomptant (§5).
 - **Jamais `--no-verify`**, ni check désactivé, ni test rendu tolérant : une
   preuve rouge se corrige (§3, « Une étape = un commit… »).
-- **Pas de PR vers `main` sans demande explicite** de Benjamin : l'exécution
-  s'arrête à la branche (§6, « La PR, puis la remontée sur `main` »).
+- **La clôture ouvre la PR vers `main`, prête** (brouillon seulement sur demande
+  de Benjamin) ; la CI la merge, la session ne merge jamais (§6, « La PR, puis
+  la remontée sur `main` »). Un trou e2e non couvert par la CI se pose à Benjamin
+  avant l'ouverture.
+- **Aucune clôture sans preuve de chaque étape** : `preuves-des-etapes.py
+  --avant` à l'ouverture, `--apres` avant le push (§2, §6).
 - **Découvertes hors plan** : une seule règle de tri, dans
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/decouvertes.md` — question à Benjamin si
   elle touche une décision, la sécurité, l'irréversible ou une dépense ; sinon,
@@ -58,13 +62,15 @@ protège à partir de la version qui la porte. (Historique : `docs/retex/execute
 **Aucune ligne de code avant d'avoir lu le `Statut` de la page du plan.**
 
 - `valide` → on y va.
-- `a merger` ou `execute` → **le travail est déjà fait**, sur sa branche pour le
-  premier, sur `main` pour le second. S'arrêter et le dire : refaire une
-  exécution terminée est le plus coûteux des malentendus.
-  **Une exception, et une seule** : à `a merger`, Benjamin peut demander la
-  **PR du plan, ou la remontée sur `main`**. Ce n'est pas une réexécution,
-  c'est la dernière opération du plan — la faire (§6), et poser `execute` dans
-  le même tour si le code part sur `main`.
+- `a merger` ou `execute` → **le travail est déjà fait**, sa PR en attente de
+  merge pour le premier, `main` pour le second. S'arrêter et le
+  dire : refaire une exécution terminée est le plus coûteux des malentendus.
+  **Une exception, et une seule** : à `a merger`, la suite n'est pas une
+  réexécution mais la fin de la clôture (§6) : suivre la CI de la PR, marquer
+  prête une PR brouillon si Benjamin le demande, traiter ce qui retient le
+  merge — et poser `execute` dans le tour où le merge est constaté sur `main`,
+  qui peut être un tour après la clôture. Une PR déjà mergée à la reprise se
+  vérifie sur pièce, et `execute` se pose ; une PR encore ouverte se suit.
 - `brouillon`, `en revue` → s'arrêter et le dire. Un plan pas encore validé est
   une proposition, pas une commande : coder dessus, c'est produire un travail que
   Benjamin n'a jamais accepté.
@@ -116,6 +122,11 @@ inchangée._`), relire le chapitre entier — c'est lui seul qui part dans les
 briefs. Cette passe met le plan à jour, elle ne le redessine pas : si
 l'approche est en cause, repasser par `plan-notion` et ne rien coder.
 
+**La porte des preuves, avant la première étape** : `preuves-des-etapes.py
+<page.md> --avant` rend 0 si chaque étape du chapitre porte une `Preuve de
+fin` ; sinon la remise à jour la pose, datée, et on ne code pas
+(`ouverture.md`).
+
 Puis, dans le même tour, avant la première étape :
 
 - **Maquette** : une étape à `Impact fonctionnel` autre que « Rien » exige une
@@ -141,15 +152,14 @@ Puis, dans le même tour, avant la première étape :
   Sonnet coûte la moitié d'Opus sur chaque poste. La conception (`plan-notion`)
   reste en Opus.
 
-**Par défaut, un plan = une seule branche, et aucune PR tant que Benjamin ne la
-demande pas** : les étapes sont des commits sur la branche du plan, et
-l'exécution s'arrête à la branche (§3, §6). Une autre organisation ne se fait que
-si Benjamin la demande.
+**Par défaut, un plan = une seule branche, sans PR d'étape** : les étapes sont
+des commits sur la branche du plan, et la PR du plan s'ouvre à la clôture,
+prête (§3, §6). Une autre organisation ne se fait que si Benjamin la demande.
 
 📄 `${CLAUDE_PLUGIN_ROOT}/skills/executer-plan-notion/ouverture.md` — **à lire en entier à l'ouverture**, avant la première
 étape : la procédure de remise à jour du chapitre, la vérification de la
 maquette, les commandes de relevé de la CI, le calcul des vagues et la
-raison de la règle « une branche, pas de PR ».
+raison de la règle « une branche, pas de PR d'étape ».
 
 Une session peut aussi porter **plusieurs plans** à la fois : tout ce qui
 précède vaut alors pour chacun, et la section « Plusieurs plans », plus bas,
@@ -212,7 +222,7 @@ après un compactage. Règles qui ne bougent pas :
 - **une entrée = un titre H3**, repris mot pour mot du chapitre `Exécution` :
   `Étape N — <titre court>` ; `Ouverture` au démarrage, `État final` à la
   clôture (§6) ;
-- **une ligne `Découvertes :` obligatoire** dans chaque entrée d'étape —
+- **une ligne `**Découvertes** :` obligatoire** dans chaque entrée d'étape —
   `aucune`, ou la liste, chacune avec son libellé (`découverte — trouvable au
   plan` / `découverte — pas trouvable`, jamais un autre) **et** son traitement
   (étape `D<n>` ou question à Benjamin) ; dans le doute, `trouvable` ;
@@ -279,13 +289,18 @@ tout ce dispositif existe pour empêcher.
 
 ## 6. Clore
 
-Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard » :
+Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard »
+(sauf `execute`, qui suit le merge : voir plus bas) :
 
-- `Statut` : **`a merger`** — le statut normal de fin d'exécution, sur tous les
-  dépôts. `execute` ne se pose que sur du code **vérifié sur `main`** ; la
-  symétrie est vraie aussi : jamais `a merger` sur du travail déjà parti sur
-  `main`. Ce skill ne pose jamais `archive`.
-- `Branche` renseignée ; `PR` reste **vide** tant qu'aucune PR n'existe.
+- `Statut` : **`a merger`** tant que le code n'est pas sur `main` — l'état de fin
+  de clôture, sur tous les dépôts (PR ouverte, en brouillon seulement si
+  Benjamin l'a demandé). **`execute`** se pose dès que le merge est
+  vérifié sur `main`, dans le tour où on le constate ; `execute` ne se pose que
+  sur du code **vérifié sur `main`**, et la symétrie est vraie aussi : jamais
+  `a merger` sur du travail déjà parti sur `main`. Ce skill ne pose jamais
+  `archive`.
+- `Branche` renseignée ; `PR` porte l'URL de la PR dès qu'elle existe, et reste
+  **vide** tant que la PR n'a pas été ouverte.
 - `Journal d'exécution` clos par une entrée `État final` (H3) : ce qui est
   livré, le verdict de la suite complète, les écarts, le reste à faire (chaque
   ligne avec son propriétaire), plus : le décompte des découvertes **vérifié
@@ -295,18 +310,35 @@ Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard » :
   questions, les schémas relus
   (`${CLAUDE_PLUGIN_ROOT}/skills/_partage/schemas.md`).
 - Le compte rendu dit **quelles étapes sont parties en sous-agent `executant` (Haiku)** et,
-  pour celles faites en direct, pourquoi ; il dit aussi que **la PR n'est pas
-  ouverte et qu'elle le sera sur demande**.
-- **Livrer la branche, et s'arrêter là** : (1) jouer la suite complète en
-  local, e2e compris — c'est le verdict de fin de plan ; (2) pousser la branche
-  du plan ; (3) **ne pas ouvrir la PR** ; (4) contrôle bloquant
-  (`git branch --list '<branche-du-plan>-etape-*'`, `git worktree list`)
-  avant de poser `a merger` ; (5) retirer le worktree, **pas la branche**.
+  pour celles faites en direct, pourquoi ; il dit aussi que **la PR est ouverte**
+  (son URL), prête, ou pourquoi elle est en brouillon, retenue, ou attend la
+  réponse de Benjamin sur un trou e2e.
+- **Porte des preuves, avant le push** : `preuves-des-etapes.py <page.md>
+  --apres` — code 0, on poursuit ; code 1, des défauts de journal, on corrige
+  la page et on rejoue ; code 3, une étape `unverifiable` est nommée, et sa
+  question part à Benjamin avant la PR (`cloture.md`, point 3).
+- **Livrer la PR prête, et la suivre jusqu'au merge** : la suite complète jouée
+  en local, e2e compris, c'est le verdict de fin de plan — la PR ne s'ouvre pas
+  sur une suite rouge ; puis le push de la branche, et la PR ouverte (`gh pr
+  create`, sans `--draft`), label décidé en regardant ce dépôt-là. Un trou e2e
+  non couvert par la CI du dépôt se pose à Benjamin **avant** cette ouverture.
+  Juste après, et **avant toute attente de CI**, le contrôle bloquant
+  (`git branch --list '<branche-du-plan>-etape-*'`, `git worktree list`). Dans le
+  même tour : `Statut` = `a merger`, `PR`, `État final` et le compte rendu. Alors
+  seulement, la CI : elle se suit en arrière-plan, **sans jamais merger
+  soi-même**. Merge constaté sur `main` → `execute`, puis retrait du worktree,
+  **pas la branche**. Rouge → correction dans le worktree encore présent. Retenue,
+  ou session qui s'arrête avant le merge → le worktree se retire, `a merger`
+  reste avec l'URL de la PR. Le détail des points et des trois issues : `cloture.md`.
 
-Quand Benjamin demande « ouvre la PR » ou « merge sur main » : une seule PR, de
-la branche du plan vers `main`, le label `review-required` se décide en
-regardant ce dépôt-là ; `Statut` = `execute` dans le même tour que le merge
-vérifié.
+Quand Benjamin demande « ouvre la PR » ou « merge sur main » : si la PR du plan
+n'existe pas encore, elle s'ouvre comme à la clôture (une seule, de la branche
+vers `main`, le label décidé en regardant ce dépôt-là) ; si elle existe, on la
+suit jusqu'au merge. Un trou e2e non couvert retient cette ouverture : la question
+part à Benjamin d'abord, sa demande ne le couvrait pas. **La session ne lance
+jamais `gh pr merge`, même sur
+demande** : c'est la CI qui merge. `Statut` = `execute` dans le tour où le
+merge est constaté sur `main`.
 
 📄 `${CLAUDE_PLUGIN_ROOT}/skills/executer-plan-notion/cloture.md` — **à lire à la clôture, et à chaque demande de PR ou de
 remontée sur `main`** : le détail de chaque point ci-dessus, la séquence de
@@ -405,18 +437,13 @@ Elle s'écrit avec les mêmes précautions que le reste (§5).
   vit dans un worktree dédié dès sa création (§2), retiré à la clôture (§6) —
   jamais avant, et jamais à la place de la branche elle-même, que le hook
   `SessionStart` nettoie après le merge.
-- Il n'ouvre **aucune PR de sa propre initiative** — ni d'étape, ni de
-  clôture (§6). L'exécution s'arrête à la branche du plan, prouvée en local et
-  poussée. Chaque PR est un run de CI, et le quota GitHub Actions est la
-  contrainte qui a fixé cette règle (§2) ; la remontée vers `main` est un geste
-  vers l'extérieur, et c'est Benjamin qui en décide le moment.
-- Il ouvre **la** PR du plan — une seule, de la branche vers `main` — **quand
-  Benjamin la demande**, avec ou sans `review-required` selon ce que ce dépôt-là
-  en fait (§6) ;
-  il merge sur `main` **quand Benjamin le demande** — et pose alors `execute`
-  dans le même tour, une fois le merge vérifié (§6). Là où la CI du dépôt merge
-  seule la PR (`vahiny` sur `review-required`), il **vérifie** le merge et pose
-  `execute` ; il ne merge rien de sa propre initiative.
+- Il n'ouvre **la** PR du plan qu'à la clôture (§6) — une seule, de la branche
+  vers `main`, **prête** (brouillon seulement sur demande de Benjamin), avec ou
+  sans `review-required` selon ce que ce dépôt-là en fait. Pas de PR d'étape.
+  Chaque PR est un run de CI, et le quota GitHub Actions est la contrainte qui a
+  fixé la règle « une branche par plan » (§2).
+- Il ne **merge jamais** lui-même, même sur demande : c'est la CI qui merge la
+  PR (§6). Il suit la CI, **vérifie** le merge sur pièce, puis pose `execute`.
 - Il ne pose jamais `execute` sur un travail qui n'est pas sur `main` — ni ne
   laisse `a merger` sur un travail qui y est déjà (§6).
 - Il ne s'arrête pas entre deux étapes pour demander l'autorisation de continuer

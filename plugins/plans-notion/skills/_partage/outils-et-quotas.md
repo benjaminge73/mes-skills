@@ -195,7 +195,9 @@ Pour le reste, aucun connu au 2026-10-08.
   permissions.** Un `gh pr create --label <label d'auto-merge>` en fin
   d'exécution autonome est refusé (« Merge Without Review »), alors que la
   demande avait été écrite d'avance par l'utilisateur. La même commande passe
-  quand la demande figure dans son message du tour.
+  quand la demande figure dans son message du tour. Depuis le 2026-10-14, la
+  clôture ouvre sa PR sans demande dans le tour (`remontee-sur-main.md`) : ce
+  refus peut donc tomber à chaque clôture, et pas seulement sur une demande.
 
 **Bonne pratique** :
 
@@ -208,8 +210,9 @@ Pour le reste, aucun connu au 2026-10-08.
 
 **Repli** : attendre la remise à zéro (00 h 30 UTC après le 429 de 23 h UTC).
 Pour une PR refusée par le classifieur : ne pas contourner (un merge local
-aurait le même effet), livrer la branche poussée avec la commande prête, et
-attendre la demande dans le tour.
+aurait le même effet). La branche reste poussée ; le compte rendu donne la
+commande `gh pr create` prête et dit à Benjamin que la PR attend sa décision.
+`PR` reste vide et `Statut` reste `a merger`. Une PR déjà ouverte reste ouverte.
 
 ## Fiche — Abonnement Claude Max
 

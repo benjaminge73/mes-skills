@@ -6,9 +6,10 @@ lire (à l'ouverture, avant la première étape). Le détail vit ici.
 Sommaire :
 
 - Remettre le chapitre `Exécution` à jour — toujours
+- La porte des preuves, avant — chaque étape a sa preuve de fin
 - Puis, dans le même tour : maquette, questions orange, `Statut`, worktree,
   relevé de la CI, vagues
-- Une branche, aucune PR par défaut
+- Une branche, la PR à la clôture
 
 ### Remettre le chapitre `Exécution` à jour — toujours
 
@@ -50,6 +51,30 @@ Cette passe **met le plan à jour, elle ne le redessine pas**. Si une réponse r
 en cause l'approche elle-même — pas une étape, l'approche — ce n'est plus une mise
 à jour mais une nouvelle passe de conception : le dire, repasser par
 `plan-notion`, et ne rien coder en attendant.
+
+**La porte des preuves, avant.** Une étape sans preuve de fin ne se code pas :
+on ne saurait pas dire comment on prouvera qu'elle est faite. Une fois la
+remise à jour écrite et relue, le contrôle se joue par script, sur le miroir
+local de la page :
+
+```bash
+python3 "${CLAUDE_PLUGIN_ROOT}/skills/_partage/scripts/preuves-des-etapes.py" <page.md> --avant
+```
+
+- **Code 0** : `avant : <n> étape(s), toutes ont une preuve de fin`. On
+  commence la première étape.
+- **Code 1** : une ligne par étape sans `**Preuve de fin**` non vide, ou
+  écrite deux fois dans le chapitre. Une coquille (« — », « aucune », « à
+  définir », « à voir ») compte comme absence. On écrit la preuve dans le
+  chapitre, **sur la puce `- **Preuve de fin** : …` de l'étape** (la forme que
+  le script lit : une ligne `_maj …_` seule ne compte pas), et on **date** la
+  correction par une ligne `_maj <date> — preuve de fin de l'étape N écrite._`
+  à côté. On rejoue jusqu'au code 0.
+- **Code 2** : page, chapitre `Exécution` ou étape introuvable. On ne
+  commence pas, et on le dit à Benjamin.
+
+Le script ne juge pas la preuve : il vérifie qu'elle est écrite. C'est le
+pilote qui la jouera (`SKILL.md` §3).
 
 Puis, dans le même tour, avant la première étape :
 
@@ -95,18 +120,21 @@ Puis, dans le même tour, avant la première étape :
   grep -rli 'e2e\|playwright\|cypress' .github/workflows/ package.json pyproject.toml 2>/dev/null  # des e2e ?
   ```
 
-  Trois réponses à noter dans l'entrée `Ouverture` du journal (§4), parce
+  Quatre réponses à noter dans l'entrée `Ouverture` du journal (§4), parce
   qu'elles commandent la suite : **un `push` sur une branche autre que `main`
   lance-t-il un run ?** (si oui, la branche ne se pousse qu'à la clôture, §6 ;
   sinon, elle se pousse après chaque étape, §3) ; **le dépôt a-t-il des tests
-  e2e ?** (si oui, ils passent en local à la clôture, §6) ; **que fait ce dépôt
-  du label `review-required` ?** — `gh label list` et `grep -rn 'review-required'
-  .github/workflows/`, parce que son effet change de signe d'un dépôt à l'autre
-  et qu'il n'existe pas partout (§6) ;
-  **un job merge-t-il tout seul les PR vertes ?** (si oui, ouvrir la PR, c'est
-  remonter sur `main` — sur `vahiny`, `review-required` commande la suite
-  complète de tests puis, tout vert, le merge par la CI : sans lui, ce dépôt ne
-  joue que les tests unitaires).
+  e2e ?** (si oui, ils passent en local à la clôture, §6 ; la PR de clôture ne
+  les rejoue en CI que là où le label `review-required` les commande) ; **que
+  fait ce dépôt du label `review-required` ?** — `gh label list` et `grep -rn
+  'review-required' .github/workflows/`, parce que son effet change de signe
+  d'un dépôt à l'autre et qu'il n'existe pas partout (§6) ;
+  **un job merge-t-il tout seul les PR vertes ?** (si oui, la PR de clôture
+  déclenche un run, puis le merge par la CI quand il est vert : la clôture
+  remonte donc le plan sur `main` sans autre geste, et Benjamin le sait déjà
+  par la règle. Sur `micro-trading`, ce merge déploie. Sur `vahiny`,
+  `review-required` commande la suite complète avant le merge : sans lui, ce
+  dépôt ne joue que les tests unitaires.)
 
 - **Calculer les vagues**, une fois pour tout le plan : lire le tableau de
   chevauchement du chapitre `Exécution` (`Étape · Fichiers touchés · Dépend de
@@ -129,19 +157,21 @@ Puis, dans le même tour, avant la première étape :
   les deux relevés commandent la suite de la même façon, et se lisent
   ensemble.
 
-**Par défaut, un plan = une seule branche, et aucune PR tant que Benjamin ne la
-demande pas** (§3, §6). Les étapes sont des **commits** sur la branche du plan,
-pas des PR, et l'exécution **s'arrête à la branche** : travail complet, suite
-complète jouée en local, page à `a merger`. La raison est comptable : chaque PR
-déclenche un run GitHub Actions complet — tests, build, e2e sur runner — et le
-quota mensuel d'Actions s'y consumait. Même la PR unique de clôture ne
-s'ouvre pas d'elle-même — la remontée vers `main` est un geste vers
-l'extérieur, et il n'a lieu que sur demande explicite de Benjamin (§6). La CI ne
-tourne donc **au plus qu'une fois par plan**, sur la PR qu'il demande ; en
-cours de route comme à la clôture, la preuve est **locale** (§3, §6). Ce qui ne
-change pas : `main` ne bouge pas de toute l'exécution, et la branche du plan
-porte à tout moment l'état complet de ce qui est livré. Une autre organisation —
-une PR par étape, plusieurs branches — ne se fait que si Benjamin la demande.
+**Une branche, la PR à la clôture.** Un plan garde **une seule branche**, et
+**pas de PR d'étape** : les étapes sont des **commits** sur la branche du plan,
+prouvés en local (§3). La raison est comptable, et elle justifie ce refus :
+chaque PR déclenche un run GitHub Actions complet — tests, build, e2e sur
+runner — et une PR par étape consumait le quota mensuel d'Actions. À la
+clôture (§6), la suite complète est jouée en local, la branche est poussée, et
+**la PR de clôture s'ouvre prête** (brouillon seulement sur demande de
+Benjamin). La CI la merge quand les règles du dépôt le permettent ; la session
+ne merge jamais. La CI ne tourne donc **au plus une fois par plan**. `main` ne
+bouge pas pendant l'exécution des étapes : il ne bouge qu'au merge de la PR de
+clôture, par la CI.
+Ce qui ne change pas : la branche du plan porte à tout moment l'état complet de
+ce qui est livré, et la preuve de chaque étape est **locale** (§3, §6). Une
+autre organisation — une PR par étape, plusieurs branches — ne se fait que si
+Benjamin la demande.
 
 Une session peut aussi porter **plusieurs plans** à la fois : tout ce qui
 précède vaut alors pour chacun, et la section « Plusieurs plans », plus bas,

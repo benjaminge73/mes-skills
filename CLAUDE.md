@@ -165,16 +165,19 @@ description longue s'écrit en bloc (`description: >-`).
 ## Ouvrir une PR ici, c'est demander la publication
 
 La CI merge seule toute PR verte (job `merge-auto`, décision de Benjamin du
-2026-09-09). Sur ce dépôt, la règle générale « aucune PR vers `main` sans
-demande explicite » se lit donc autrement : **c'est l'ouverture de la PR qui
-est la demande**, puisqu'il n'y a plus de geste entre le vert et la mise en
-ligne.
+2026-09-09). Sur ce dépôt, **ouvrir la PR prête vaut publication** : il n'y a
+plus de geste entre le vert et la mise en ligne. La règle d'un plan est la
+même : la clôture ouvre la PR prête, la CI la merge, la session ne merge
+jamais (`plugins/plans-notion/skills/_partage/remontee-sur-main.md`).
 
-Trois choses la retiennent : une PR en brouillon, une PR ouverte par quelqu'un
-d'autre, et le label **`review-required`**, qui est la porte de sortie quand on
-veut relire malgré le vert. C'est le même nom et le même sens que sur `vahiny`
-et `kanban_mAIster_ATI4`. Poser ce label est le geste correct pour une
-modification dont on n'est pas sûr ; ouvrir la PR sans lui vaut publication.
+Trois choses retiennent le merge : une PR en brouillon (demandé par Benjamin
+seulement), une PR ouverte par quelqu'un d'autre, et le label
+**`review-required`**, la porte de sortie d'un humain qui veut relire malgré
+le vert. C'est le même nom et le même sens que sur `vahiny` et
+`kanban_mAIster_ATI4`. **Jamais sur la PR de clôture d'un plan** : la clôture
+l'ouvre pour qu'elle parte, et ici le label empêcherait le merge (`merge-auto`
+en est exclu). Une modification dont on n'est pas sûr s'ouvre **en brouillon**,
+à la demande de Benjamin, jamais avec ce label.
 
 ⚠️ Ce que la CI vérifie, ce sont des manifestes, des renvois et un numéro de
 version. **Elle ne dit rien de la justesse d'une consigne.** Une phrase fausse

@@ -77,7 +77,7 @@ Le défaut, sauf avis contraire de Benjamin :
   contournement** : ni `--no-verify`, ni check désactivé, ni test rendu tolérant
   pour faire passer la barre. Un test rouge dit quelque chose ; le faire taire ne
   le fait pas disparaître, ça le déplace dans l'étape suivante — ou dans la suite
-  complète de la clôture, ou dans le run de CI de la PR que Benjamin demandera.
+  complète de la clôture, ou dans le run de CI de la PR de clôture.
 - **La seule sortie de cette boucle est l'arbitrage de Benjamin : quand le
   correctif est structurant.** C'est-à-dire quand réparer ne tient plus dans
   l'étape — il faut revenir sur une décision du plan, toucher un schéma de
@@ -100,7 +100,7 @@ Le défaut, sauf avis contraire de Benjamin :
   blocage à faire remonter, pas une boucle à poursuivre.
 - **Avec ou sans CI sur le dépôt, le verdict de fin de plan est local** : la
   suite complète jouée à la clôture (§6). La CI, s'il y en a une, ne rejoue
-  cette suite que sur la PR que Benjamin demande — c'est la seconde ceinture,
+  cette suite que sur la PR de clôture — c'est la seconde ceinture,
   pas la première.
 
 **Pour une étape qui écrit du code testé, l'étape = deux commits, rouge puis
@@ -291,6 +291,13 @@ en disant quelles étapes ont été faites en direct et pourquoi.
   (`git diff --name-only`), pas sur celle du brief (§3). Un sous-agent qui
   annonce « les tests passent » a parfois lancé autre chose que ce qu'on croit,
   ou touché un fichier de plus que ce que la commande couvrait.
+- **Poser le `Verdict` de l'étape**, dans son entrée de journal (écrite
+  ci-dessous), **après ce rejeu** : `- **Verdict** : verified` si la preuve du
+  brief a été rejouée par le pilote et qu'elle est verte ; `- **Verdict** :
+  unverifiable — <raison>` si elle n'a pas pu être jouée sur ce poste (e2e
+  sans navigateur, service externe indisponible). Une preuve rouge n'a pas de
+  verdict : elle se corrige d'abord (§3). Le verdict s'écrit ici, à chaud ; la
+  clôture le recopie, elle ne le reconstruit pas (`cloture.md`).
 - **Au premier `executant` de la session, vérifier le modèle sur lequel il a
   réellement tourné** — et de nouveau après tout `claude plugin update` ou
   `/reload-plugins` en cours de session. Le frontmatter garantit le modèle à
@@ -310,10 +317,11 @@ en disant quelles étapes ont été faites en direct et pourquoi.
   `Modèle :`. L'effort, lui, n'apparaît dans aucune transcription : il ne se
   vérifie pas ainsi.
 - **Commiter l'étape sur la branche du plan**, et la pousser si le relevé du §2
-  l'autorise (sous-section précédente). Pas de PR. Le trailer se vérifie ici, à la
-  relecture : `git log -1 --format=%B <sha>` doit porter `Co-Authored-By: Claude
-  <noreply@anthropic.com>` et aucun nom de modèle — sur chaque commit d'un
-  regroupement ou d'une étape testée, pas seulement le dernier.
+  l'autorise (sous-section précédente). Pas de PR d'étape. Le trailer se
+  vérifie ici, à la relecture : `git log -1 --format=%B <sha>` doit porter
+  `Co-Authored-By: Claude <noreply@anthropic.com>` et aucun nom de modèle — sur
+  chaque commit d'un regroupement ou d'une étape testée, pas seulement le
+  dernier.
 - **Faire relire par l'agent `relecteur` selon la colonne `Relecture`** :
   une étape `étape` se relit seule, ici ; une étape `lot` attend la preuve de
   fin de son lot, relu d'un seul coup avec les autres. On boucle jusqu'à
@@ -372,9 +380,11 @@ On ne s'arrête en cours de route que sur ce qui rendrait la suite fausse ou
 irréversible :
 
 - une preuve rouge — locale, en cours de route comme à la clôture ; CI, sur la
-  PR si Benjamin la demande — dont le **correctif serait structurant**, ou qu'on
-  ne sait plus diagnostiquer (§3, plus haut) — tant que la correction tient dans
-  l'étape, on corrige et on continue, sans rien demander ;
+  PR de clôture (elle s'ouvre à la clôture, §6) — dont le **correctif serait
+  structurant** (il part alors sur une branche de côté, avec son arbitrage au
+  plan de suite, §3 et §7), ou qu'on ne sait plus diagnostiquer (§3, plus
+  haut) — tant que la correction tient dans l'étape, on corrige et on continue,
+  sans rien demander ;
 - une décision qui n'est ni dans le plan ni déductible de lui, et qui engage :
   schéma de données, contrat d'API public, suppression de données, dépense ;
 - un fil de commentaire non résolu qui contredit l'étape à venir (§1).
