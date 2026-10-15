@@ -187,6 +187,41 @@ class LecteursBase(unittest.TestCase):
         self.assertIn("+    return 2", par_ligne[2]["extrait_diff"])
         self.assertLessEqual(len(par_ligne[2]["extrait_diff"]), 4000)
 
+    # Panne : la base avance après le point de branchement, et ce qu'elle a changé
+    # (renommage g -> h, constante LIMITE 3 -> 5) ressort comme touché par la branche,
+    # alors que la branche ne touche qu'à `autre`. Le relevé doit se faire au merge-base.
+    def test_une_base_qui_avance_apres_le_branchement_ne_fait_pas_relever_ce_qu_elle_seule_a_change(self):
+        racine = self.depot.racine
+        self.depot.commit(
+            {"scripts/outils.py": "def g(x):\n    return x\n\ndef autre(x):\n    return x\n\nLIMITE = 3\n",
+             "docs/a.md": "Appeler `h()` ici.\nLe plafond `LIMITE` vaut 3.\nAppeler `autre()` ici.\n"},
+            "point de branchement")
+        principale = git(racine, "symbolic-ref", "--short", "HEAD")
+        git(racine, "checkout", "-q", "-b", "branche")
+        self.depot.commit(
+            {"scripts/outils.py": "def g(x):\n    return x\n\ndef autre(x, y=0):\n    return x\n\nLIMITE = 3\n"},
+            "branche : seule autre change (signature)")
+        git(racine, "checkout", "-q", principale)
+        base = self.depot.commit(
+            {"scripts/outils.py": "def h(x):\n    return x\n\ndef autre(x):\n    return x\n\nLIMITE = 5\n"},
+            "main : g renommé en h, LIMITE à 5")
+        git(racine, "checkout", "-q", "branche")
+        code, sortie, erreur = lire(racine, base)
+        self.assertEqual(code, 0, f"lecteurs a rendu {code} : {erreur}")
+        rapport = json.loads(sortie)
+        self.assertEqual(lignes_relevees(rapport, "docs/a.md"), [3])
+
+    # Trou connu : la borne droite `(?![\w-])` peut être retirée sans qu'aucun test ne
+    # bronche. Un terme suivi d'un chiffre ou d'un tiret n'est pas le même nom ; la
+    # ligne 3, qui cite le vrai nom, sert de témoin.
+    def test_un_terme_suivi_d_un_chiffre_ou_d_un_tiret_ne_releve_pas_le_passage(self):
+        rapport = self.faire(
+            {"scripts/deploy.py": "x = 1\n",
+             "docs/a.md": "Lancer `deploy.py2`.\nLancer `deploy.py-old`.\nLancer `deploy.py`.\n"},
+            {"scripts/deploy.py": "x = 2\n"},
+        )
+        self.assertEqual(lignes_relevees(rapport, "docs/a.md"), [3])
+
 
 if __name__ == "__main__":
     unittest.main()
