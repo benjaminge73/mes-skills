@@ -1,4 +1,4 @@
-"""Tests de ``qualite-doc.py lecteurs`` : quels passages Markdown relire après une branche.
+"""Tests de ``qualite-doc.py`` : ``lecteurs`` (quels passages relire après une branche) et ``juger``.
 
 Chaque test fabrique un dépôt git jetable (une base, puis les commits de la
 branche) et lance le vrai script en sous-processus (``sys.executable``), comme
@@ -11,6 +11,7 @@ dépendance : ``unittest`` est dans la bibliothèque standard.
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 import sys
 import tempfile
@@ -19,6 +20,8 @@ from pathlib import Path
 
 RACINE = Path(__file__).resolve().parent.parent
 SCRIPT = RACINE / "plugins" / "plans-notion" / "skills" / "_partage" / "scripts" / "qualite-doc.py"
+GRILLE = RACINE / "plugins" / "plans-notion" / "skills" / "_partage" / "grille-doc.md"
+MODELE = "claude-haiku-5-5"
 
 
 def git(racine: Path, *args: str) -> str:
@@ -221,6 +224,169 @@ class LecteursBase(unittest.TestCase):
             {"scripts/deploy.py": "x = 2\n"},
         )
         self.assertEqual(lignes_relevees(rapport, "docs/a.md"), [3])
+
+
+# Faux exécutable de ``claude`` : écrit par le test dans son dossier temporaire. Chaque appel
+# consomme une réponse (cyclique), garde son prompt reçu sur l'entrée standard et le dossier
+# de travail d'où il a été lancé. Les tests ne vérifient pas les arguments de ``subprocess.run``.
+FAUX_CLAUDE = """#!{python}
+import glob, json, os, sys
+dossier = {dossier!r}
+with open(os.path.join(dossier, "reponses.json"), encoding="utf-8") as f:
+    reponses = json.load(f)
+n = len(glob.glob(os.path.join(dossier, "prompt-*.txt")))
+with open(os.path.join(dossier, "prompt-%03d.txt" % n), "w", encoding="utf-8") as f:
+    f.write(sys.stdin.buffer.read().decode("utf-8"))
+with open(os.path.join(dossier, "cwd-%03d.txt" % n), "w", encoding="utf-8") as f:
+    f.write(os.getcwd())
+sys.stdout.write(reponses[n % len(reponses)])
+"""
+
+
+def sortie_juge(texte, cout=0.01, modeles=(MODELE,), erreur=False) -> str:
+    """Sortie brute de ``claude -p --output-format json`` : un objet JSON, rendu en texte."""
+    return json.dumps({
+        "type": "result",
+        "is_error": erreur,
+        "result": texte,
+        "total_cost_usd": cout,
+        "modelUsage": {m: {"costUSD": cout} for m in modeles},
+    })
+
+
+def verdict(exact, confiance, raison="motif") -> str:
+    """Le texte ``result`` attendu d'un vote : l'objet JSON que la grille demande."""
+    return json.dumps({"exact": exact, "confiance": confiance, "raison": raison})
+
+
+def passage(ligne=1, extrait="+    return 2") -> dict:
+    return {"fichier": "docs/a.md", "ligne": ligne, "texte": f"Ligne {ligne} : `deploy.py`.",
+            "termes": ["deploy.py"], "extrait_diff": extrait}
+
+
+class FauxClaude:
+    def __init__(self, dossier: Path, reponses: list[str]):
+        self.dossier = dossier
+        self.exe = dossier / "claude"
+        (dossier / "reponses.json").write_text(json.dumps(reponses), encoding="utf-8")
+        self.exe.write_text(FAUX_CLAUDE.format(python=sys.executable, dossier=str(dossier)),
+                            encoding="utf-8")
+        self.exe.chmod(0o755)
+
+    def prompts(self) -> list[str]:
+        return [p.read_text(encoding="utf-8") for p in sorted(self.dossier.glob("prompt-*.txt"))]
+
+    def cwds(self) -> list[str]:
+        return [p.read_text(encoding="utf-8") for p in sorted(self.dossier.glob("cwd-*.txt"))]
+
+
+class Juger(unittest.TestCase):
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        self.dossier = Path(self._tmp.name)
+
+    def tearDown(self):
+        self._tmp.cleanup()
+
+    def juger(self, entree, exe: Path, *extra: str):
+        """Écrit ``entree`` (liste ou dict ``passages``) et lance ``juger`` ; rend (code, stdout, stderr)."""
+        fichier = self.dossier / "entree.json"
+        fichier.write_text(json.dumps(entree, ensure_ascii=False), encoding="utf-8")
+        env = {**os.environ, "QUALITE_DOC_CLAUDE": str(exe)}
+        r = subprocess.run(
+            [sys.executable, str(SCRIPT), "juger", "--entree", str(fichier), *extra],
+            capture_output=True, text=True, encoding="utf-8", env=env)
+        return r.returncode, r.stdout, r.stderr
+
+    def test_deux_votes_divergents_font_retenir_le_plus_pessimiste(self):
+        faux = FauxClaude(self.dossier, [sortie_juge(verdict(True, 0.9)),
+                                         sortie_juge(verdict(False, 0.7))])
+        code, sortie, erreur = self.juger([passage()], faux.exe)
+        self.assertEqual(code, 0, erreur)
+        v = json.loads(sortie)["verdicts"][0]
+        self.assertAlmostEqual(v["score"], 0.7)
+        self.assertFalse(v["exact"])
+
+    def test_un_autre_modele_servi_fait_echouer_avec_le_code_5(self):
+        faux = FauxClaude(self.dossier,
+                          [sortie_juge(verdict(True, 0.9), modeles=("claude-autre-modele",))])
+        code, sortie, erreur = self.juger([passage()], faux.exe)
+        self.assertEqual(code, 5, erreur)
+        self.assertNotIn("Traceback", erreur)
+
+    def test_claude_absent_rend_le_code_3_avec_un_message_nomme(self):
+        absent = self.dossier / "absent" / "claude"
+        code, sortie, erreur = self.juger([passage()], absent)
+        self.assertEqual(code, 3, erreur)
+        self.assertIn("juge indisponible", erreur)
+        self.assertNotIn("Traceback", erreur)
+
+    def test_un_result_illisible_compte_comme_douteux_et_jamais_comme_exact(self):
+        faux = FauxClaude(self.dossier, [sortie_juge("je ne sais pas, aucun objet ici")])
+        code, sortie, erreur = self.juger([passage()], faux.exe)
+        self.assertEqual(code, 0, erreur)
+        rapport = json.loads(sortie)
+        v = rapport["verdicts"][0]
+        self.assertFalse(v["exact"])
+        self.assertEqual(v["score"], 1.0)
+        self.assertEqual(v["raison"], "réponse illisible")
+        self.assertEqual([d["ligne"] for d in rapport["douteux"]], [1])
+
+    def test_le_seuil_separe_les_douteux_et_compte_le_seuil_lui_meme(self):
+        # Le score exactement égal au seuil (0,5) est douteux : la comparaison est ≥.
+        faux = FauxClaude(self.dossier, [sortie_juge(verdict(False, c)) for c in (0.3, 0.5, 0.6)])
+        code, sortie, erreur = self.juger([passage(1), passage(2), passage(3)], faux.exe,
+                                          "--votes", "1", "--seuil", "0.5")
+        self.assertEqual(code, 0, erreur)
+        self.assertEqual([d["ligne"] for d in json.loads(sortie)["douteux"]], [2, 3])
+
+    def test_max_cout_atteint_rend_le_code_4_avec_le_partiel_et_le_compte_non_juge(self):
+        faux = FauxClaude(self.dossier, [sortie_juge(verdict(False, 0.2), cout=0.5)])
+        code, sortie, erreur = self.juger([passage(1), passage(2), passage(3)], faux.exe,
+                                          "--votes", "1", "--max-cout", "0.6")
+        self.assertEqual(code, 4, erreur)
+        rapport = json.loads(sortie)
+        self.assertEqual(rapport["passages_non_juges"], 1)
+        self.assertEqual(len(rapport["verdicts"]), 2)
+
+    def test_une_liste_nue_de_passages_est_acceptee(self):
+        faux = FauxClaude(self.dossier, [sortie_juge(verdict(True, 0.9))])
+        code, sortie, erreur = self.juger([passage()], faux.exe, "--votes", "1")
+        self.assertEqual(code, 0, erreur)
+        self.assertEqual(len(json.loads(sortie)["verdicts"]), 1)
+
+    def test_le_prompt_porte_la_grille_et_l_extrait_du_diff(self):
+        marque = "retour_neuf_7f3a"
+        faux = FauxClaude(self.dossier, [sortie_juge(verdict(True, 0.9))])
+        code, sortie, erreur = self.juger([passage(extrait=f"+    return {marque}")], faux.exe,
+                                          "--votes", "1")
+        self.assertEqual(code, 0, erreur)
+        prompts = faux.prompts()
+        self.assertEqual(len(prompts), 1)
+        # La grille est lue telle quelle depuis le dépôt : le juge reçoit ses critères, sans copie.
+        self.assertIn(GRILLE.read_text(encoding="utf-8"), prompts[0])
+        self.assertIn(marque, prompts[0])
+
+    # Test en plus, hors liste du brief : le juge ne doit jamais tourner dans le dépôt, sinon
+    # les hooks et les CLAUDE.md du dépôt entreraient dans son contexte. Sans lui, un juge lancé
+    # depuis la racine du dépôt passerait tous les autres tests.
+    def test_le_juge_tourne_hors_du_depot(self):
+        faux = FauxClaude(self.dossier, [sortie_juge(verdict(True, 0.9))])
+        code, sortie, erreur = self.juger([passage()], faux.exe, "--votes", "1")
+        self.assertEqual(code, 0, erreur)
+        cwd = Path(faux.cwds()[0]).resolve()
+        self.assertNotIn(RACINE, [cwd, *cwd.parents])
+
+    # Test en plus, hors liste du brief : Haiku suit souvent le format ```json. Sans ce test,
+    # un extracteur qui ne lit que le texte nu rendrait douteux un verdict pourtant exact.
+    def test_le_json_entoure_de_cloture_markdown_est_lu(self):
+        faux = FauxClaude(self.dossier,
+                          [sortie_juge("```json\n" + verdict(True, 0.9) + "\n```")])
+        code, sortie, erreur = self.juger([passage()], faux.exe, "--votes", "1")
+        self.assertEqual(code, 0, erreur)
+        rapport = json.loads(sortie)
+        self.assertTrue(rapport["verdicts"][0]["exact"])
+        self.assertEqual(rapport["douteux"], [])
 
 
 if __name__ == "__main__":
