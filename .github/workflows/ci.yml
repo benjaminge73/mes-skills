@@ -445,11 +445,14 @@ jobs:
       # pour la tête), donc par bras. Mesuré avec Sonnet, le modèle joué ici (run
       # 36758086456) : un bras complet de 16 cas x 3 passages coûte 27,53 $, et un
       # cas entre 0,98 et 3,57 $. Décision de Benjamin (Q5, 2026-10-01) : 35 $, soit
-      # un quart de marge au-dessus du bras complet. Un bras qui dépasse est rendu
-      # partiel, refusé par `evals_ab.py` (code 3) : le job est rouge, et la
-      # facture s'arrête là. Le coût attendu s'écrit en tête du résumé avant de
-      # payer (`--estimer`).
-      EVALS_MAX_COUT_USD: '35'
+      # un quart de marge au-dessus du bras complet de l'époque (16 cas). Décision
+      # de Benjamin (2026-10-15) : le banc compte désormais 23 cas, donc un bras
+      # complet coûte ~39,6 $ au même coût par cas, et 35 $ refuserait un passage
+      # complet. Relevé à 45 $ (~14 % de marge au-dessus de ce bras), sans remesure.
+      # Un bras qui dépasse est rendu partiel, refusé par `evals_ab.py` (code 3) :
+      # le job est rouge, et la facture s'arrête là. Le coût attendu s'écrit en
+      # tête du résumé avant de payer (`--estimer`).
+      EVALS_MAX_COUT_USD: '45'
       EVALS_RUNS: '3'
       # Décision de Benjamin (étape B9) : 5 agents en parallèle.
       EVALS_CONCURRENCE: '5'
@@ -785,7 +788,7 @@ jobs:
       # ont été mesurés avec ceux-ci.
       EVALS_MODELE: claude-sonnet-5-5
       EVALS_EFFORT: high
-      EVALS_MAX_COUT_USD: '35'
+      EVALS_MAX_COUT_USD: '45'
       EVALS_CONCURRENCE: '5'
     steps:
       - name: Vérifier que le jeton est là

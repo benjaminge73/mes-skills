@@ -419,9 +419,9 @@ sauvée sous sa propre clé `-sel-…`.
 **Le coût est annoncé avant de payer**, en tête du résumé du job. Avec une base
 en cache, c'est `--estimer` (bras de tête seul, lu dans le rapport de la base).
 Sans base en cache, aucun rapport ne dit les coûts, et la CI annonce le pire :
-au plus 70 $, soit deux bras au plafond. **Le plafond est de 35 $ par bras**
+au plus 90 $, soit deux bras au plafond. **Le plafond est de 45 $ par bras**
 (`EVALS_MAX_COUT_USD`, passé à `claude plugin eval --max-cost-usd`) ; un bras
-complet coûtait 27,53 $ sur Sonnet (mesure du 2026-09-30 sur 16 cas, non remesurée depuis que le banc en compte 24). Un bras qui dépasse est
+complet coûtait 27,53 $ sur Sonnet (mesure du 2026-09-30 sur 16 cas, non remesurée : le banc en compte 23 le 2026-10-15, soit ~39,6 $ au même coût par cas, d'où le relèvement). Un bras qui dépasse est
 rendu partiel et refusé (code 3), et la facture s'arrête là.
 
 ## Lancer une évaluation
@@ -440,8 +440,9 @@ d'un skill si une session se trompe encore de geste.
    joue deux bras (base et tête), un bras complet coûtait 27,53 $ sur Sonnet (mesure du 2026-09-30 sur 16 cas, non remesurée),
    et une catégorie 1,61 $ à 7,13 $ par bras (tableau de la fiche
    `claude plugin eval` de `outils-et-quotas.md`, mesuré aussi sur 16 cas). **Annoncer ce coût à
-   Benjamin avant de lancer.** Le plafond est de 35 $ par bras
-   (`EVALS_MAX_COUT_USD=35`), contre 120 $ avant, jamais atteint.
+   Benjamin avant de lancer.** Le plafond est de 45 $ par bras
+   (`EVALS_MAX_COUT_USD=45`) ; il valait 120 $ avant le 2026-10-01, puis 35 $
+   jusqu'au 2026-10-15. Le 120 $ n'a jamais été atteint.
 2. **Vérifier le verrou.** Un seul banc à la fois : toutes les sessions d'un
    appel partagent la limite de débit de leur compte, et trois bancs ensemble
    ont rendu des scores inexploitables. En CI, le groupe de concurrence

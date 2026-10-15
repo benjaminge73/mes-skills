@@ -384,9 +384,11 @@ commune pour comparer les postes.
   change pas, la catégorie n'est pas rejouée, soit 0 $ au lieu de 0,54 à 2,38 $ pour
   elle. Seul un vert est gardé : un rouge se rejoue à chaque push. Le résumé du job
   dit « fumée reprise du cache ».
-- **Le plafond par appel** (`EVALS_MAX_COUT_USD`) vaut 35 $ par bras, soit un
-  bras complet plus une marge. Il valait 120 $ avant le 2026-10-01 et n'a jamais
-  été atteint : il ne protégeait de rien.
+- **Le plafond par appel** (`EVALS_MAX_COUT_USD`) vaut 45 $ par bras, soit un
+  bras de 23 cas (~39,6 $ au coût par cas mesuré) plus une marge d'environ 14 %.
+  Il valait 120 $ avant le 2026-10-01, puis 35 $ du 2026-10-01 au 2026-10-15 :
+  trop bas pour un passage complet du banc à 23 cas. Le 120 $ n'a jamais été
+  atteint : il ne protégeait de rien.
 - **Les sessions d'un appel partagent une seule limite de débit**, celle du
   compte qui les paie. La doc de l'outil le dit pour l'option `-j` (nombre de
   runs en parallèle) : *« Each run is a full claude child on your own
