@@ -164,7 +164,7 @@ résumé ci-dessus ne suffit pas à les faire bien.
 
 **Plusieurs plans à croiser — le plan maître.** Croiser, remettre à jour ou
 séquencer plusieurs plans, c'est concevoir chacun d'eux : même enquête, plan par
-plan, **en parallèle** (une fiche par page lue par un agent Haiku, un `enqueteur`
+plan, **en parallèle** (une fiche par page lue par l'agent `lecteur`, un `enqueteur`
 par plan, les comptages au `sondeur`). Le pilote ne garde que le croisement et
 l'écriture. La page, les gestes et la raison :
 
@@ -490,6 +490,7 @@ comment de la séance de code.
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/bons-tests.md`, ses quatre fichiers de
   référence (`enquete.md`, `chapitres-cadrage.md`,
   `chapitres-questions-execution.md` et `plan-maitre.md`, dans ce dossier), ainsi que les
-  agents `${CLAUDE_PLUGIN_ROOT}/agents/enqueteur.md` et
-  `${CLAUDE_PLUGIN_ROOT}/agents/chercheur.md`, livrés par le plugin
+  agents `${CLAUDE_PLUGIN_ROOT}/agents/enqueteur.md`,
+  `${CLAUDE_PLUGIN_ROOT}/agents/chercheur.md` et
+  `${CLAUDE_PLUGIN_ROOT}/agents/lecteur.md`, livrés par le plugin
   `plans-notion` — pas par le dépôt de travail, quel qu'il soit.

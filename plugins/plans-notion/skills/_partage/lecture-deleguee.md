@@ -14,6 +14,7 @@ commande de plus de 200 lignes, ni une page Notion de cette taille. Il pose la q
   question chiffrée, la commande exacte, le plafond d'appels et de coût, et le chemin du
   scratchpad ; sans ces quatre éléments, il rend `NEEDS_CONTEXT` sans rien jouer
   (`agents/sondeur.md`, « Ce que le brief te donne ») ;
+- une **page Notion** de plan : l'agent `lecteur`, qui écrit le miroir dans le scratchpad et rend une fiche ;
 - une **étape** d'exécution : l'agent `executant`.
 
 ## Ce qui reste au pilote

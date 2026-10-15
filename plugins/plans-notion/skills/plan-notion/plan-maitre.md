@@ -61,12 +61,12 @@ par plan et par geste. Le pool d'une douzaine de places
 
 1. **Relever les plans** dans la base `Plans Claude` : une requête, filtrée sur
    `Repo`, hors `execute` et `archive`. Rien à déléguer : la réponse est courte.
-2. **Faire lire chaque page, pas la lire.** Aucun agent du plugin n'a les
-   outils Notion : la lecture part à un `general-purpose` **avec
-   `model: "haiku"`** à l'appel — sans ce paramètre, il hérite du modèle de la
-   session, et c'est exactement la façon dont tout finit en Opus
-   (`_partage/poc.md`, « Qui joue le POC »). Lecture seule, une page par agent.
-   Il rend une fiche courte : `Statut`, `Branche`, la date de la page, chaque
+2. **Faire lire chaque page, pas la lire.** La lecture part à l'agent `lecteur`
+   (`plans-notion:lecteur`, nom qualifié, sans `model` ni `effort`) : Haiku, avec
+   les seuls outils Notion en lecture, une page par agent. Jamais un
+   `general-purpose`, qui hériterait du modèle de la session — Opus, et c'est
+   exactement la façon dont tout finit en Opus (`_partage/poc.md`, « Qui joue le
+   POC »). Il rend une fiche courte : `Statut`, `Branche`, la date de la page, chaque
    étape avec ses « Fichiers touchés » et ce qui en reste, les questions
    ouvertes et celles déjà tranchées, et **les affirmations sur le dépôt** à
    revérifier (chemins, numéros de ligne, comptes). Il écrit aussi le miroir
@@ -89,6 +89,25 @@ par plan et par geste. Le pool d'une douzaine de places
 
 Une fiche qui manque ou rend `NEEDS_CONTEXT` se relance pour ce plan seul ; les
 autres ne l'attendent pas.
+
+**Quand Notion ne répond pas.** Le `lecteur` rend `BLOCKED` avec l'erreur mot
+pour mot ; le repli est au pilote, dans l'ordre de la fiche « Connecteurs MCP
+d'une session Claude Code » de `_partage/outils-et-quotas.md` :
+
+1. panne « hôte injoignable » (hook, délai dépassé, appel non parti) : attendre
+   une à deux minutes et relancer le `lecteur`, trois fois au plus — rien n'est
+   parti, donc pas de doublon ;
+2. la panne dure et la session a l'outil Composio : lire la page par lui. Une
+   lecture de blocs volumineuse revient élidée par `COMPOSIO_MULTI_EXECUTE_TOOL` ;
+   pour une page longue, c'est le workbench (`COMPOSIO_REMOTE_WORKBENCH`) qui la
+   rend, et son code écrit la page dans un fichier au lieu de la renvoyer, pour
+   que le pilote ne la charge pas dans son contexte ;
+3. toujours rien : `hermes chat --query-file`, délai d'au moins 900 s (300 s a
+   expiré), seulement pour lire — le pilote écrit lui-même la consigne.
+
+Le pilote ne lit jamais la page en Opus par le connecteur « pour aller plus
+vite » : c'est le chemin que ce fichier ferme. Et les pages que le `lecteur` a
+déjà rendues ne se relisent pas à cause d'un repli sur une autre.
 
 ## Ce qui reste au pilote
 

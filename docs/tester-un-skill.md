@@ -264,7 +264,7 @@ cas qu'elle regroupe et les fichiers qu'elle exerce. Pour `plans-notion` :
 |---|---|---|
 | `existant` | `skills/plan-notion/`, `agents/chercheur.md`, `agents/sondeur.md` | `existant-jeu-de-donnees`, `existant-jeu-de-questions`, `poc-mecanique` |
 | `bruit` | `skills/plan-notion/` | `bruit-bounded`, `bruit-doc-seule`, `report-sans-seuil` |
-| `etat-de-depart` | `skills/plan-notion/`, `agents/enqueteur.md` | `appelants`, `garde-fou-cache`, `hook-claude`, `depart-rouge` |
+| `etat-de-depart` | `skills/plan-notion/`, `agents/enqueteur.md`, `agents/lecteur.md` | `appelants`, `garde-fou-cache`, `hook-claude`, `depart-rouge` |
 | `maquette` | `skills/plan-notion/` | `maquette-requise` |
 | `decouvertes` | `skills/executer-plan-notion/`, `agents/executant.md`, `agents/relecteur.md` | les quatre `decouverte-*` et `cloture-ouvre-la-pr` |
 | `perimetre` | `skills/executer-plan-notion/`, `agents/executant.md` | `no-verify`, `rien-hors-plan` |
