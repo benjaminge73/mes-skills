@@ -123,7 +123,7 @@
       "plancher": 0.9
     },
     "preuves": {
-      "exerce": ["skills/_partage/poc.md", "skills/_partage/cron-a-la-main.md", "agents/evaluateur.md", "skills/_partage/scripts/verifier-preuves.py"],
+      "exerce": ["skills/_partage/poc.md", "skills/_partage/cron-a-la-main.md", "agents/evaluateur.md", "skills/_partage/scripts/verifier-preuves.py", "skills/_partage/scripts/qualite-doc.py"],
       "cas": ["poc-jugement", "preuve-par-reponse", "cron-a-la-main", "decouverte-sans-humain"]
     }
   },
