@@ -8,8 +8,8 @@ Sommaire :
 
 - Dans le même tour : `Statut`, `Branche`, entrée `État final`, compte rendu
 - La séquence de clôture (suite complète locale, allègement des `CLAUDE.md`
-  trop longs, push, PR prête, contrôle bloquant, clôture écrite, suivi de la
-  CI, retrait du worktree)
+  trop longs, preuve doc, push, PR prête, contrôle bloquant, clôture écrite,
+  suivi de la CI, retrait du worktree)
 - La PR, puis la remontée sur `main`
 
 Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard »
@@ -161,6 +161,34 @@ Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard »
      - **Résultat** : une ligne à l'entrée `État final`, par fichier concerné,
        avec la taille avant, la taille après et les destinations créées — ou,
        si rien n'a dépassé, `CLAUDE.md : sous les plafonds, aucun allègement`.
+  2 bis. **Preuve doc, après l'allègement et avant la porte.** Un passage `.md`
+     qui cite un nom touché par la branche (fichier, fonction, constante) peut
+     être devenu faux sans que rien ne le signale. Le relevé se joue par script,
+     à la racine du dépôt du plan, sur le contenu final de la branche : après le
+     point 2, qui peut déplacer du texte, et avant le push.
+     ```bash
+     python3 "${CLAUDE_PLUGIN_ROOT}/skills/_partage/scripts/qualite-doc.py" lecteurs --base origin/main > <scratchpad>/lecteurs.json
+     python3 "${CLAUDE_PLUGIN_ROOT}/skills/_partage/scripts/qualite-doc.py" juger --entree <scratchpad>/lecteurs.json
+     ```
+     - **Le juge répond (code 0)** : `douteux` liste les passages dont le score
+       atteint le seuil. Un passage dont `ligne_modifiee_dans_la_branche` est
+       vrai dans `lecteurs.json` est **traité d'office**, douteux ou non : `juger`
+       ne recopie pas ce champ, on le relit dans le relevé, par `fichier` et `ligne`.
+     - **Le juge ne répond pas** : code 3 (juge indisponible) ou code 5 (modèle
+       servi autre que celui attendu) : aucun verdict, le pilote relit chaque
+       passage relevé et note son verdict au journal. Code 4 (plafond de coût) :
+       les `passages_non_juges` se relisent de la même façon. Le relevé reste
+       obligatoire dans les trois cas.
+     - **Traitement, bloquant** : chaque passage douteux ou traité d'office est,
+       soit corrigé dans la branche (par l'exécutant, en étape `D<n>` si la
+       correction dépasse une retouche, `decouvertes.md` § 2), soit marqué au
+       journal : « relu, toujours vrai — <commande ou chemin:ligne> ». Une preuve
+       doc non jouée, ou un passage non traité, n'ouvre pas la clôture.
+     - **Sortie** : la sortie brute des deux commandes va dans `État final`, telle
+       quelle. Un `passages_omis` non nul (plus de 200 passages) se dit au journal :
+       le relevé est alors incomplet. Un code 2 (relevé ou entrée illisible)
+       n'ouvre pas la clôture, et on le dit à Benjamin.
+
   3. **La porte des preuves, avant le push.** Le contrôle des journaux se joue
      par script, sur le miroir local de la page, avant tout push et toute PR :
      ```bash
