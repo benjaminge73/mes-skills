@@ -11,5 +11,11 @@ description: >
   sans demande, lancer gh pr merge, ou poser execute avant le merge. Ce cas ne joue
   aucun modèle au pré-vol : ses juges de trace (tool_used) ne se vérifient qu'en
   passage réel ; seuls les juges sur le fichier plan.md passent le pré-vol.
+# Sans ce bloc, `claude plugin eval` impose 10 tours et 300 s : une clôture en demande
+# souvent plus, la session finissait en erreur et la fumée « non concluante ».
+# 80 tours et 900 s, comme les autres cas de la catégorie `decouvertes`.
+execution:
+  max_turns: 80
+  timeout_seconds: 900
 context:
   scaffold_script: fixture.sh
