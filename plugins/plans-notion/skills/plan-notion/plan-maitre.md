@@ -90,6 +90,25 @@ par plan et par geste. Le pool d'une douzaine de places
 Une fiche qui manque ou rend `NEEDS_CONTEXT` se relance pour ce plan seul ; les
 autres ne l'attendent pas.
 
+**Quand Notion ne répond pas.** Le `lecteur` rend `BLOCKED` avec l'erreur mot
+pour mot ; le repli est au pilote, dans l'ordre de la fiche « Connecteurs MCP
+d'une session Claude Code » de `_partage/outils-et-quotas.md` :
+
+1. panne « hôte injoignable » (hook, délai dépassé, appel non parti) : attendre
+   une à deux minutes et relancer le `lecteur`, trois fois au plus — rien n'est
+   parti, donc pas de doublon ;
+2. la panne dure et la session a l'outil Composio : lire la page par lui. Une
+   lecture de blocs volumineuse revient élidée par `COMPOSIO_MULTI_EXECUTE_TOOL` ;
+   pour une page longue, c'est le workbench (`COMPOSIO_REMOTE_WORKBENCH`) qui la
+   rend, et son code écrit la page dans un fichier au lieu de la renvoyer, pour
+   que le pilote ne la charge pas dans son contexte ;
+3. toujours rien : `hermes chat --query-file`, délai d'au moins 900 s (300 s a
+   expiré), seulement pour lire — le pilote écrit lui-même la consigne.
+
+Le pilote ne lit jamais la page en Opus par le connecteur « pour aller plus
+vite » : c'est le chemin que ce fichier ferme. Et les pages que le `lecteur` a
+déjà rendues ne se relisent pas à cause d'un repli sur une autre.
+
 ## Ce qui reste au pilote
 
 - **Le jugement** : l'ordre de merge, l'exception voulue au parallèle (des

@@ -42,7 +42,11 @@ rien lire.
 
 1. `notion-fetch` de la page, **avec `include_discussions`**, et écris-la telle
    quelle dans le scratchpad (le miroir). Une page tronquée (`truncated`, blocs
-   inconnus) se dit dans la fiche.
+   inconnus) se dit dans la fiche. Au-delà d'environ 200 000 caractères, la
+   réponse n'est pas rendue : elle est enregistrée dans un fichier dont le
+   message donne le chemin, JSON dont le champ `text` porte la page en Markdown.
+   Extrais ce champ vers le miroir avec Python (`python3 -I`), sans afficher la
+   page.
 2. `notion-get-comments` pour les fils non résolus, y compris ceux ancrés dans le
    corps.
 3. Joue sur le miroir les contrôles que le brief nomme, depuis
@@ -50,6 +54,25 @@ rien lire.
    `preuves-des-etapes.py --avant`, `verifier-preuves.py`. Ils rendent un code de
    sortie et des écarts : tu les rends tels quels.
 4. Rends la fiche.
+
+# Quand Notion ne répond pas
+
+Les connecteurs tombent parfois, et le plugin a déjà la conduite à tenir
+(fiche « Connecteurs MCP d'une session Claude Code » du registre
+`_partage/outils-et-quotas.md`). Lis le message d'erreur avant de conclure :
+
+- il nomme un hook de l'hôte, « host client may be unreachable », « did not
+  respond before its timeout » ou « The tool call was not executed » : la panne
+  est entre la session et l'hôte, **rien n'est parti**. Réessaie **une fois**,
+  tout de suite, puis arrête-toi ;
+- tout autre message (page introuvable, droit refusé) : ne réessaie pas, il ne
+  passera pas.
+
+Dans les deux cas, rends `BLOCKED` avec le message d'erreur **mot pour mot** et
+la catégorie (« hôte injoignable » ou « autre »). Le repli appartient au pilote,
+qui a Composio et Hermes : tu n'as ni l'un ni l'autre, et tu ne cherches pas
+d'autre chemin vers la page (ni `curl` vers l'API Notion, ni clé trouvée dans
+l'environnement). Un `BLOCKED` sur une page n'arrête pas les lectures des autres.
 
 # Le contrat de sortie
 
