@@ -16,7 +16,11 @@ Ce qu'il relève comme noms :
   complet relatif à la racine ; à la racine du dépôt, ils n'ont aucun terme ;
 - les symboles Python de premier niveau retirés (renommage compris), dont la
   signature change, et les constantes MAJUSCULES dont la valeur change. On les
-  compare entre ``<base>:<chemin>`` et ``HEAD:<chemin>``, par le module ``ast``.
+  compare entre le merge-base de ``<base>`` et ``HEAD`` (``git merge-base``, le
+  point de branchement) et ``HEAD:<chemin>``, par le module ``ast``. Pourquoi le
+  merge-base : si la base avance après le branchement, comparer à sa pointe
+  ferait ressortir ce que seule la base a changé, comme un renommage fait sur
+  ``main`` que la branche n'a jamais touché.
 
 Chaque terme se cherche dans les ``*.md`` suivis par git, avec des bornes de
 mot : ``deploy.py`` ne matche pas ``test_deploy.py``. Les ``*.md`` sous un
@@ -172,11 +176,16 @@ def symboles(source: str, chemin: str, ref: str) -> dict[str, tuple[str, str]]:
     return rendus
 
 
-def termes_de_symboles(racine: Path, base: str, chemin: str) -> set[str]:
-    """Noms de premier niveau retirés ou dont la signature (ou la valeur) change."""
-    avant = version(racine, base, chemin)
+def termes_de_symboles(racine: Path, fusion: str, chemin: str) -> set[str]:
+    """Noms de premier niveau retirés ou dont la signature (ou la valeur) change.
+
+    ``fusion`` est le merge-base de la base et de HEAD : la version « avant » est
+    lue à ce commit-là, et non à la pointe de la base, pour ne relever que ce que
+    la branche a changé.
+    """
+    avant = version(racine, fusion, chemin)
     apres = version(racine, "HEAD", chemin)
-    ancien = symboles(avant, chemin, base) if avant is not None else {}
+    ancien = symboles(avant, chemin, fusion) if avant is not None else {}
     nouveau = symboles(apres, chemin, "HEAD") if apres is not None else {}
     return {nom for nom, valeur in ancien.items() if nouveau.get(nom) != valeur}
 
@@ -229,6 +238,7 @@ def lecteurs(base: str, racine_arg: Path, exclure: list[str], max_passages: int)
     if git_brut(racine, "rev-parse", "--verify", "--quiet", f"{base}^{{commit}}").returncode != 0:
         raise ErreurQualite(f"base introuvable dans ce dépôt : {base}")
 
+    fusion = git(racine, "merge-base", base, "HEAD").strip()
     modifies = [c for c in git(racine, "diff", "--no-renames", "--name-only", "-z",
                                f"{base}...HEAD").split("\0") if c]
     diffs = {
@@ -241,7 +251,7 @@ def lecteurs(base: str, racine_arg: Path, exclure: list[str], max_passages: int)
     for chemin in modifies:
         termes |= termes_de_chemin(chemin)
         if chemin.endswith(".py"):
-            termes |= termes_de_symboles(racine, base, chemin)
+            termes |= termes_de_symboles(racine, fusion, chemin)
     ordre = sorted(termes)
     regs = [(t, terme_borne(t)) for t in ordre]
 
