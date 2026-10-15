@@ -61,12 +61,12 @@ par plan et par geste. Le pool d'une douzaine de places
 
 1. **Relever les plans** dans la base `Plans Claude` : une requête, filtrée sur
    `Repo`, hors `execute` et `archive`. Rien à déléguer : la réponse est courte.
-2. **Faire lire chaque page, pas la lire.** Aucun agent du plugin n'a les
-   outils Notion : la lecture part à un `general-purpose` **avec
-   `model: "haiku"`** à l'appel — sans ce paramètre, il hérite du modèle de la
-   session, et c'est exactement la façon dont tout finit en Opus
-   (`_partage/poc.md`, « Qui joue le POC »). Lecture seule, une page par agent.
-   Il rend une fiche courte : `Statut`, `Branche`, la date de la page, chaque
+2. **Faire lire chaque page, pas la lire.** La lecture part à l'agent `lecteur`
+   (`plans-notion:lecteur`, nom qualifié, sans `model` ni `effort`) : Haiku, avec
+   les seuls outils Notion en lecture, une page par agent. Jamais un
+   `general-purpose`, qui hériterait du modèle de la session — Opus, et c'est
+   exactement la façon dont tout finit en Opus (`_partage/poc.md`, « Qui joue le
+   POC »). Il rend une fiche courte : `Statut`, `Branche`, la date de la page, chaque
    étape avec ses « Fichiers touchés » et ce qui en reste, les questions
    ouvertes et celles déjà tranchées, et **les affirmations sur le dépôt** à
    revérifier (chemins, numéros de ligne, comptes). Il écrit aussi le miroir
