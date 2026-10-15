@@ -114,6 +114,11 @@ Sous chaque titre, le contenu de l'étape :
 
 - **Choix d'architecture** retenu — et celui qu'on écarte, avec la raison.
 - **Fichiers touchés**, chemin par chemin, en distinguant créé / modifié / supprimé.
+- **Docs relues** — les documents du dépôt qui citent ce que l'étape touche
+  (`fichier:ligne`, relevés par le geste « lecteurs documentaires » de
+  `agents/enqueteur.md`, geste 9). Une doc qui deviendra fausse après l'étape passe
+  aussi dans « Fichiers touchés », pour être corrigée dans la même étape. « — » si
+  aucune doc ne cite ce que l'étape touche.
 - **Dépend de** — les étapes et les questions dont l'étape a besoin, « — » si
   aucune. C'est cette ligne, reprise dans le tableau de tête de chapitre, que
   `executer-plan-notion` lit pour calculer les vagues d'exécution.

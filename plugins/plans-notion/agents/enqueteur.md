@@ -161,6 +161,16 @@ pour tout skill dont le nom recoupe l'étape, puis `Read` dessus.
 Fiche : toute règle ou tout comportement trouvé y va comme fait vérifié,
 avec son `fichier:ligne` — jamais reformulé de mémoire.
 
+**Sous-partie « lecteurs documentaires ».** Pour chaque fichier et chaque symbole
+que le plan va toucher, cherche qui le cite dans la documentation du dépôt : `Grep`
+sur les `*.md` du dépôt (`glob: "*.md"`), en écartant à la lecture les passages sous
+un dossier `out/` (sorties générées, pas de la documentation). Un nom générique
+(`SKILL.md`, `CLAUDE.md`, `README.md`) ne se cherche que par son chemin complet : seul,
+il ramène un bruit énorme (1 858 passages mesurés pour un `CLAUDE.md` à la racine).
+Un autre nom se cherche entre bornes de mot (`\bdeploy\.py\b`), pour que `deploy.py`
+ne relève pas `test_deploy.py`. Fiche : une ligne par passage trouvé,
+`fichier:ligne` → nom cité, rangée sous le fichier ou le symbole qu'elle cite.
+
 ## 10. CI, déploiement et garde-fous
 
 Lis les fichiers de workflow CI concernés : leurs déclencheurs, leurs
