@@ -46,7 +46,7 @@ rien lire.
 2. `notion-get-comments` pour les fils non résolus, y compris ceux ancrés dans le
    corps.
 3. Joue sur le miroir les contrôles que le brief nomme, depuis
-   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/scripts/` : `compter-cases.py`,
+   le dossier `skills/_partage/scripts/` du plugin (le brief en donne le chemin) : `compter-cases.py`,
    `preuves-des-etapes.py --avant`, `verifier-preuves.py`. Ils rendent un code de
    sortie et des écarts : tu les rends tels quels.
 4. Rends la fiche.
