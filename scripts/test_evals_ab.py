@@ -1566,6 +1566,14 @@ class FumeeEtPlanchers(DepotEtLanceur):
         self.assertIn("6 sur 9", sortie)  # les sessions en erreur sont comptées à part
         self.assertEqual(self.appels(), [])  # le rapport est jugé, rien n'est joué
 
+    def test_la_fumee_non_concluante_nomme_les_cas_en_erreur(self):
+        # Avant : « 1 sur 19 » et « max turns », sans dire lequel des cas relever.
+        code, sortie, erreur = self.fumee(FIXTURES / "rapport_tete_session_limite.json")
+        self.assertEqual(code, 4, sortie + erreur)
+        self.assertIn("6 sur 9 (existant-jeu-de-questions, maquette-requise)", sortie)
+        self.assertIn("Premier motif : existant-jeu-de-questions — ", sortie)
+        self.assertNotIn("appelants", sortie.split("Sessions en erreur")[1])
+
     def test_une_categorie_a_0_60_pour_un_plancher_de_0_70_est_nommee_sous_plancher(self):
         self.PLANCHERS = {**self.PLANCHERS, "maquette": 0.70}
         self.ecrire_categories(self.PLANCHERS)

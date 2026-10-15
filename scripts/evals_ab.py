@@ -890,13 +890,19 @@ def sessions_en_erreur(rapport: dict) -> tuple[list[tuple[str, int, str]], int]:
 
 
 def motif_panne(bras: dict[str, dict]) -> str:
-    """Le motif de non-conclusion pour les bras qui portent des sessions en erreur, ou ``""``."""
+    """Le motif de non-conclusion pour les bras qui portent des sessions en erreur, ou ``""``.
+
+    Chaque bras nomme ses cas en erreur : sans eux, le résumé disait « 1 sur 19 » et
+    « max turns », et il fallait deviner lequel des 19 cas relever (2026-10-15).
+    """
     morceaux, premier = [], ""
     for nom, rapport in bras.items():
         erreurs, total = sessions_en_erreur(rapport)
         if erreurs:
-            morceaux.append(f"{nom} {len(erreurs)} sur {total}")
-            premier = premier or " ".join(erreurs[0][2].split())[:120]
+            cas = list(dict.fromkeys(c for c, _, _ in erreurs))
+            noms = ", ".join(cas[:5]) + (f", et {len(cas) - 5} autres" if len(cas) > 5 else "")
+            morceaux.append(f"{nom} {len(erreurs)} sur {total} ({noms})")
+            premier = premier or f"{erreurs[0][0]} — " + " ".join(erreurs[0][2].split())[:120]
     if not morceaux:
         return ""
     return f"Sessions en erreur : {', '.join(morceaux)}. Premier motif : {premier}"
