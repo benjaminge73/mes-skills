@@ -320,7 +320,7 @@ des planchers par catégorie (`evals/categories.json`), pour 0,54 à 9,2 $ (mesu
 Le banc est sobre. Un seul banc tourne par plugin à la fois
 (`concurrency: evals-<plugin>`). Le rapport de la base est repris du cache selon
 son contenu (`--base-rapport`) au lieu d'être rejoué. Le coût est annoncé avant
-de jouer (`--estimer`), avec un plafond de 35 $ par bras. Des sessions en erreur
+de jouer (`--estimer`), avec un plafond de 45 $ par bras. Des sessions en erreur
 rendent « non concluant » (code 4), jamais un recul. Un label étranger ajouté à
 la PR ne relance rien et ne blanchit pas le verdict (« Verdict des évals »).
 `scripts/ci_locale.sh` ne joue ni `evals` ni `fumee`. Côté poste,
