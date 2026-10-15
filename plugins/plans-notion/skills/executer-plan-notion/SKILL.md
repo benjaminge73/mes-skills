@@ -418,8 +418,9 @@ Deux plans qui touchent **le même fichier** ne s'attendent pas : ils donnent un
 plan vit sur sa propre branche, donc rien ne se marche dessus à l'exécution ;
 c'est au moment de remonter sur `main` que l'ordre compte.
 
-**Un plan maître.** Une page Notion sans statut de validation — ce n'est pas
-un plan qu'on valide, et la porte d'entrée n'a rien à y lire. Si `plan-notion`
+**Un plan maître** (au moins deux plans d'une même session). Sa page porte un
+`Statut` hérité des plans, calculé par `statut-maitre.py` — ce n'est pas un plan
+qu'on valide, et la porte d'entrée ne le lit jamais. Si `plan-notion`
 l'a déjà écrite, elle se met à jour ; sinon elle se crée au lancement. Sa forme
 et sa préparation (une lecture Haiku par page, un `enqueteur` par plan, en
 parallèle ; le pilote ne garde que le croisement) vivent dans un seul fichier :

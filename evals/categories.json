@@ -74,6 +74,7 @@
         "skills/_partage/scripts/compter-cases.py",
         "skills/_partage/scripts/preuves-des-etapes.py",
         "skills/_partage/scripts/preparation-prete.py",
+        "skills/_partage/scripts/statut-maitre.py",
         "skills/_partage/scripts/vagues.py",
         "skills/_partage/ranger-claude-md.md",
         "skills/_partage/scripts/taille-claude-md.py",
