@@ -12,6 +12,7 @@ et la façon de la préparer ne vivent qu'ici.
 - La page
 - Le travail préliminaire : les règles d'un plan classique, plan par plan
 - Ce qui reste au pilote
+- Le statut du plan maître et son lot
 - Lancé par `executer-plan-notion`
 
 ## Pourquoi ce fichier
@@ -33,8 +34,9 @@ lecture qu'un plan classique délègue.
 
 Une page de la base `Plans Claude`, titre `[Plan maître] Nom_du_projet - Titre
 thématique`, propriétés `Projet`, `Repo` et `Date` comme un plan (§2 de
-`SKILL.md`), **sans `Statut`** : ce n'est pas un plan qu'on valide, et la porte
-d'entrée de `executer-plan-notion` n'a rien à y lire. Une page par ensemble de
+`SKILL.md`), et un `Statut` **hérité** de ses plans (« Le statut du plan maître et
+son lot ») : ce n'est pas un plan qu'on valide, et la porte d'entrée de
+`executer-plan-notion` ne lit jamais ce statut, qui n'est qu'un affichage. Une page par ensemble de
 plans : si une page maître couvre déjà ces plans, elle se met à jour au lieu
 d'être recréée. Elle porte :
 
@@ -121,6 +123,59 @@ déjà rendues ne se relisent pas à cause d'un repli sur une autre.
   reste au pilote »).
 - **Les questions à Benjamin**, groupées sur la page maître en un seul tableau,
   sans remplacer celles des pages.
+
+## Le statut du plan maître et son lot
+
+**Un plan maître couvre au moins deux plans, gérés dans une seule session** (le
+pilote unique de `executer-plan-notion`, « Plusieurs plans »). Un plan seul n'a
+pas de maître. Un plan appartient à **un seul** maître : avant d'en ajouter un,
+chercher dans la base les autres maîtres du même `Repo` qui le listent.
+
+**Le statut est hérité des plans du lot, et calculé, jamais écrit de tête.** Le
+pilote lit les `Statut` actuels des plans (une requête sur la base ou la fiche du
+`lecteur`, pas la colonne recopiée dans la page maître, qui se périme dès que
+Benjamin change un statut à la main), puis joue :
+
+```bash
+python3 "${CLAUDE_PLUGIN_ROOT}/skills/_partage/scripts/statut-maitre.py" "en cours" valide pret
+```
+
+Le script rend `statut=<valeur>` et `lot=ouvert|ferme`. La règle :
+
+- **dès qu'un plan est `en cours`, le maître l'est** ; sinon il prend le statut du
+  plan **le moins avancé** (`brouillon` < `en revue` < `valide` < `pret` <
+  `en cours` < `a merger` < `execute`). Le minimum strict ferait reculer le maître
+  à `valide` quand on ajoute un plan à un lot déjà en route, et l'afficherait
+  `pret` pendant que du code s'écrit ;
+- `archive` ne compte pas ; un plan abandonné **sort du lot** par une ligne datée
+  dans la page maître (sinon il bloque le minimum) ;
+- le pilote rejoue le script et réécrit le `Statut` du maître à chaque événement :
+  ajout, changement de statut d'un plan, clôture.
+
+**Le lot est fermé** quand tous les plans sont au moins `a merger` : le maître vaut
+alors `a merger` tant qu'une PR n'est pas mergée, `execute` quand toutes le sont.
+**Un plan ne s'ajoute qu'à un lot ouvert.** Un plan créé une fois le lot fermé
+n'y entre pas : il ouvre un autre maître (avec un second plan) ou reste seul. Le
+seul cas qui rouvre un lot fermé est le **plan de suite** d'un plan du lot
+(`_partage/plan-de-suite.md`) : né de ce plan, il le rejoint, et le statut du
+maître est recalculé. Un lot qui retombe à un plan (un abandon) reste un maître
+jusqu'à sa fermeture.
+
+**Ajouter un plan en route** : sa préparation se joue seule, jusqu'à `pret`
+(`lecteur`, `enqueteur`, `sondeur` sur ce plan, plus les étapes ci-dessous), puis
+le croisement, l'ordre de merge et les recoupements de fichiers se recalculent
+avec les plans déjà avancés, dont ceux déjà sur `main` ; sans cela le croisement
+ment. La ligne d'ajout est datée dans l'avancement.
+
+**Chaque plan du lot passe par `pret`** : un plan `valide` ne passe pas à
+`en cours` sans que sa préparation (`executer-plan-notion` §2, `ouverture.md`)
+soit faite, son entrée `Ouverture` écrite et `preparation-prete.py` à 0. Le
+pilote prépare les plans du lot avant de lancer la première étape d'aucun :
+l'enquête ci-dessus en est la matière (les fiches du `lecteur` et des `enqueteur`
+nourrissent les puces **Relecture**, **Preuves** et **Répétition** de chaque
+plan). Un plan `pret` attend son tour de vague ; il passe `en cours` quand son
+tour vient, pas avant. La page maître dit dans l'avancement quel plan reste
+`valide` faute de préparation complète, et ce qui lui manque.
 
 ## Lancé par `executer-plan-notion`
 

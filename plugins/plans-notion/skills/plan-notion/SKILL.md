@@ -18,8 +18,8 @@ détaille.
   (« 1. Ne jamais cocher une case… »).
 - **Rien de livré avant `valide`** : ni fichier dans le dépôt, ni commit, ni
   sous-agent d'implémentation (« 2. Ne rien coder de livré… »).
-- **`Statut` sans accents** : `brouillon`, `en revue`, `valide`, `en cours`,
-  `a merger`, `execute`, `archive` (fin de « 2. Ne rien coder… »).
+- **`Statut` sans accents** : `brouillon`, `en revue`, `valide`, `pret`,
+  `en cours`, `a merger`, `execute`, `archive` (fin de « 2. Ne rien coder… »).
 - **Relevé avant d'écrire, recompte après** : cases cochées et textes libres
   relevés avant toute écriture, recomptés après (§4, `_partage/ecrire-dans-notion.md`).
 - **Ce qui est découvert s'écrit dans le plan**, avec sa conséquence sur les
@@ -98,8 +98,8 @@ Une fois le statut à `valide`, l'implémentation ne se fait pas ici : elle rel�
 skill **`executer-plan-notion`** (§8).
 
 ⚠️ Les valeurs réelles de la propriété `Statut` sont **sans accents** :
-`brouillon`, `en revue`, `valide`, `en cours`, `a merger`, `execute`, `archive`.
-Écrire `exécuté` fait échouer l'appel avec une `validation_error`.
+`brouillon`, `en revue`, `valide`, `pret`, `en cours`, `a merger`, `execute`,
+`archive`. Écrire `exécuté` fait échouer l'appel avec une `validation_error`.
 
 ## Quand s'appliquer, quand se taire
 
@@ -224,8 +224,10 @@ chaque URL avant de choisir, plutôt que de prendre la première trouvée.
   qu'une autre session a travaillé ailleurs, et écraser la propriété ferait
   disparaître la seule trace de cet ailleurs.
 
-- Statuts : `brouillon` → `en revue` → `valide` → `en cours` → `a merger` →
-  `execute` (valeurs **sans accents**, cf. la règle en tête).
+- Statuts : `brouillon` → `en revue` → `valide` → `pret` → `en cours` →
+  `a merger` → `execute` (valeurs **sans accents**, cf. la règle en tête).
+  **`pret`** : la préparation de l'exécution est faite et prouvée ; il se pose à
+  l'ouverture (`executer-plan-notion` §2), jamais ici.
 - **`a merger` et `execute` ne disent pas la même chose**, et les confondre fait
   mentir la base :
   - **`a merger`** — le travail est fait, testé et poussé, et sa **PR est

@@ -29,7 +29,13 @@ prennent le même traitement : `Ouverture` au démarrage, `État final` à la cl
 l'existant par étape et en posant les H3 au-dessus, **sans reformuler une ligne**
 (§5), avant d'y ajouter quoi que ce soit.
 
-Sous ce titre, l'entrée porte :
+**L'entrée `Ouverture` a sa forme propre** : neuf puces à clé en gras (`Relecture`,
+`Questions`, `Preuves`, `Répétition`, `Maquette`, `CI`, `Vagues`, `Pilote`,
+`Branche`), lues par `preparation-prete.py` avant `Statut` = `pret`. Le modèle
+et le sens de chaque puce sont dans `ouverture.md`, « La porte du `pret` » ; les
+champs d'étape ci-dessous ne s'y appliquent pas.
+
+Sous ce titre, l'entrée d'une étape porte :
 
 - **ce qui a été fait**, dans le détail — assez pour comprendre sans relire le diff ;
 - les **décisions prises en route**, chacune au format « quoi — pourquoi — ce

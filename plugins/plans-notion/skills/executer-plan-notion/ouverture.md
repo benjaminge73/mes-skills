@@ -7,8 +7,9 @@ Sommaire :
 
 - Remettre le chapitre `Exécution` à jour — toujours
 - La porte des preuves, avant — chaque étape a sa preuve de fin
-- Puis, dans le même tour : maquette, questions orange, `Statut`, worktree,
-  relevé de la CI, vagues
+- Puis, dans le même tour : maquette, questions orange, worktree, relevé de la
+  CI, vagues, pilote
+- La porte du `pret` : l'entrée `Ouverture`, le script, puis `en cours`
 - Une branche, la PR à la clôture
 
 ### Remettre le chapitre `Exécution` à jour — toujours
@@ -76,7 +77,8 @@ python3 "${CLAUDE_PLUGIN_ROOT}/skills/_partage/scripts/preuves-des-etapes.py" <p
 Le script ne juge pas la preuve : il vérifie qu'elle est écrite. C'est le
 pilote qui la jouera (`SKILL.md` §3).
 
-Puis, dans le même tour, avant la première étape :
+Puis, dans le même tour, avant la première étape (`Statut` reste `valide` tant
+que la porte du `pret`, plus bas, n'est pas franchie) :
 
 - **Vérifier le chapitre `Maquette`.** Si une étape au moins a un
   `Impact fonctionnel` autre que « Rien », le chapitre doit porter une
@@ -95,7 +97,6 @@ Puis, dans le même tour, avant la première étape :
   moment précis où l'absence de réponse devient une décision. Si ça reste
   implicite, plus personne ne saura ensuite distinguer ce qui a été choisi par
   accord de ce qui a été choisi faute de réponse.
-- `Statut` = `en cours`, propriété `Branche` renseignée.
 - Créer **la** branche du plan **dans un worktree**, jamais dans le checkout
   principal : nom `type/thème-en-kebab` (`feat/`, `fix/`, `chore/`, `docs/`,
   `refactor/`), nommée d'après le sujet du plan et **dérivée de `main` à
@@ -156,6 +157,74 @@ Puis, dans le même tour, avant la première étape :
   `Ouverture` du journal (§4), à côté des trois réponses sur la CI ci-dessus :
   les deux relevés commandent la suite de la même façon, et se lisent
   ensemble.
+
+### La porte du `pret` — la préparation se prouve avant `en cours`
+
+`valide` dit que Benjamin a accepté le plan ; il ne dit pas que la session a fait
+ce qu'il faut pour l'exécuter sans surprise. **`pret` le dit** : la préparation de
+ce fichier est faite, et chaque geste a laissé sa trace. Parcours d'un plan :
+`valide` → préparation → `pret` → `en cours` → `a merger` → `execute`. Une session
+qui reçoit un « go » sur une page `valide` prépare d'abord ; elle ne saute pas à
+la première étape, et le « go » ne remplace pas la porte.
+
+**1. Écrire l'entrée `Ouverture`** du `Journal d'exécution` (H3 `Ouverture`),
+dans la page et dans le miroir local, une puce à clé en gras par geste. Les neuf
+clés sont obligatoires, dans cet ordre ; une valeur « — », « aucune », « à voir »
+ne compte pas, et `sans objet — <raison>` est recevable, la raison en plus :
+
+```
+### Ouverture
+
+- **Relecture** : chapitre `Exécution` relu le 2026-10-15 ; Q3 et Q5 reprises (étapes 2 et 4), le reste « inchangé »
+- **Questions** : Q1 à Q6 vertes, 6 sur 6 ; 2 `(reco appliquée par défaut)`
+- **Preuves** : `preuves-des-etapes.py --avant` code 0 ; `verifier-preuves.py <miroir> --depot <dépôt> --transcripts` code 0
+- **Répétition** : « État de départ » présent dans `Contraintes techniques vérifiées` (POC compris), `main` inchangé depuis sa date
+- **Maquette** : sans objet — aucune étape à impact fonctionnel
+- **CI** : `push` sans run hors `main` ; pas d'e2e ; `review-required` sans effet ; `merge-auto` actif
+- **Vagues** : vague 1 : étapes 1 et 2 ; vague 2 : étape 3
+- **Pilote** : Sonnet 5.5, high
+- **Branche** : `feat/le-theme`, worktree `~/repos/worktrees/<repo>/feat-le-theme`
+```
+
+Ce que chaque puce porte :
+
+- **Relecture** : la remise à jour du chapitre `Exécution` (début de ce fichier),
+  datée, avec ce qu'elle a changé ou « inchangé ».
+- **Questions** : toutes vertes, décompte recopié de la page. Une question restée
+  🧭 se tranche (reco appliquée par défaut) avant `pret`, jamais après.
+- **Preuves** : les codes de sortie de la porte des preuves ci-dessus et de
+  `verifier-preuves.py` (la preuve de chaque réponse, POC compris) ; un écart
+  se corrige, ou se justifie par une dispense motivée dans la page.
+- **Répétition** : l'« État de départ » de `poc.md` existe dans la page. Si `main`
+  a bougé depuis sa date, on rejoue les gestes 1 et 2 de `poc.md` dans un
+  worktree détaché avant de l'écrire ; un plan sans cette section n'a pas eu sa
+  répétition, et on le dit plutôt que d'écrire `sans objet`.
+- **Maquette**, **CI**, **Vagues**, **Pilote**, **Branche** : le résultat des
+  puces correspondantes ci-dessus.
+
+**2. Jouer la porte :**
+
+```bash
+python3 "${CLAUDE_PLUGIN_ROOT}/skills/_partage/scripts/preparation-prete.py" <page.md>
+```
+
+- **Code 0** : `prêt : …`. `Statut` = `pret`, `Branche` renseignée, en une
+  écriture Notion ; relire le miroir pour confirmer.
+- **Code 1** : un défaut par ligne (question encore ouverte, étape sans preuve de
+  fin, puce absente ou vide). On fait le geste manquant, on écrit sa puce, on
+  rejoue. **Aucune étape ne démarre sur un code 1**, et `pret` ne se pose pas
+  « en attendant ».
+- **Code 2** : page, chapitre ou journal introuvable. On le dit à Benjamin, sans
+  rien commencer.
+
+Le script vérifie que chaque geste a laissé sa trace, pas que le geste est juste :
+la justesse reste à la relecture du pilote.
+
+**3. `Statut` = `en cours`** se pose sur la page `pret`, juste avant la première
+étape, dans le même tour si rien ne l'arrête. Une session qui s'arrête entre les
+deux laisse la page à `pret` ; la suivante passe par la ligne `pret` de la porte
+d'entrée (`SKILL.md`) : relecture de la page, retour à `valide` si Benjamin y a
+répondu depuis, sinon `en cours`. Reprise d'un plan déjà `en cours` : inchangée.
 
 **Une branche, la PR à la clôture.** Un plan garde **une seule branche**, et
 **pas de PR d'étape** : les étapes sont des **commits** sur la branche du plan,

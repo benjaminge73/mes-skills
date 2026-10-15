@@ -171,8 +171,10 @@ Toujours écrire ces noms en code inline, jamais en texte nu.
 ## Rappel de vocabulaire
 
 Les valeurs de la propriété `Statut` sont **sans accents** : `brouillon`,
-`en revue`, `valide`, `en cours`, `a merger`, `execute`, `archive`. Écrire
-`exécuté` fait échouer l'appel avec une `validation_error`.
+`en revue`, `valide`, `pret`, `en cours`, `a merger`, `execute`, `archive`.
+Écrire `exécuté` fait échouer l'appel avec une `validation_error`. `pret` dit
+que la préparation de l'exécution est faite et prouvée (`preparation-prete.py`) :
+elle se pose entre `valide` et `en cours`, jamais à la conception.
 
 `a merger` et `execute` se distinguent par **où vit le travail**. `a merger`
 tant que le code n'est pas sur `main` : il vit sur la branche du plan, et sa PR

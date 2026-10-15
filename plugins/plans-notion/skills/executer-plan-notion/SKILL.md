@@ -15,10 +15,11 @@ détaille.
 - **Après un compactage, ré-invoquer ce skill** (outil `Skill`) avant
   d'écrire dans Notion ou de lancer une étape — le compactage ne garde que le
   début du skill.
-- **Rien avant `valide`** : lire le `Statut` de la page avant toute ligne de
-  code (« La porte d'entrée »).
-- **`Statut` sans accents** : `brouillon`, `en revue`, `valide`, `en cours`,
-  `a merger`, `execute`, `archive` (« La porte d'entrée »).
+- **Rien avant `valide`, aucune étape avant `pret`** : lire le `Statut` de la
+  page avant toute ligne de code ; `valide` → préparation complète (§2) puis
+  `pret` ; `en cours` ne se pose que sur une page `pret` (« La porte d'entrée »).
+- **`Statut` sans accents** : `brouillon`, `en revue`, `valide`, `pret`,
+  `en cours`, `a merger`, `execute`, `archive` (« La porte d'entrée »).
 - **Ne jamais cocher une case** de Benjamin : le seul `- [x]` écrit est celui
   que le relevé portait déjà (§5, `_partage/ecrire-dans-notion.md`).
 - **Relevé avant d'écrire, recompte après** : chaque écriture Notion part du
@@ -61,7 +62,13 @@ protège à partir de la version qui la porte. (Historique : `docs/retex/execute
 
 **Aucune ligne de code avant d'avoir lu le `Statut` de la page du plan.**
 
-- `valide` → on y va.
+- `valide` → **préparer** (§2, `ouverture.md`) : aucune étape ne démarre, même
+  sur un « go » de Benjamin. La préparation finie et prouvée, `Statut` = `pret`.
+- `pret` → la préparation est faite : relire la page et les fils non résolus
+  (§1). Une case, un texte libre ou un commentaire postérieur à l'entrée
+  `Ouverture` du journal renvoie à `valide` et refait la préparation ; sinon
+  `preparation-prete.py <page.md>` rend 0 et `Statut` = `en cours`, première
+  étape.
 - `a merger` ou `execute` → **le travail est déjà fait**, sa PR en attente de
   merge pour le premier, `main` pour le second. S'arrêter et le
   dire : refaire une exécution terminée est le plus coûteux des malentendus.
@@ -74,15 +81,15 @@ protège à partir de la version qui la porte. (Historique : `docs/retex/execute
 - `brouillon`, `en revue` → s'arrêter et le dire. Un plan pas encore validé est
   une proposition, pas une commande : coder dessus, c'est produire un travail que
   Benjamin n'a jamais accepté.
-- `en cours` → une exécution est déjà commencée. Lire le `Journal d'exécution`
+- `en cours` → une exécution est déjà commencée (donc passée par `pret`). Lire le `Journal d'exécution`
   avant tout et reprendre où elle s'est arrêtée, plutôt que de repartir de zéro.
 - Benjamin qui dit « go » ne remplace pas le statut. Il le dit de mémoire, la page
   dit ce qui a été tranché. **En cas de désaccord entre les deux, demander** — ça
   coûte un tour, refaire une implémentation en coûte dix.
 
 ⚠️ Les valeurs de `Statut` sont **sans accents** : `brouillon`, `en revue`,
-`valide`, `en cours`, `a merger`, `execute`, `archive`. Écrire `exécuté` fait
-échouer l'appel avec une `validation_error`.
+`valide`, `pret`, `en cours`, `a merger`, `execute`, `archive`. Écrire `exécuté`
+ou `prêt` fait échouer l'appel (le hook du plugin refuse aussi).
 
 Le connecteur **Notion** est indispensable. S'il manque, le dire immédiatement
 plutôt que de contourner : exécuter sans pouvoir écrire le journal produit un
@@ -110,7 +117,7 @@ disparaît au compactage du contexte.
    le fichier `<releve.json>` sert au recompte du §5 ; le `total : n` part sur
    la sortie d'erreur, à l'écran.
 
-## 2. Ouvrir l'exécution
+## 2. Préparer, puis ouvrir l'exécution
 
 **Le chapitre `Exécution` est presque toujours en retard d'un tour** : Benjamin
 répond dans la page, passe `Statut` à `valide` et enchaîne sur ce skill sans
@@ -132,16 +139,15 @@ Puis, dans le même tour, avant la première étape :
 - **Maquette** : une étape à `Impact fonctionnel` autre que « Rien » exige une
   maquette ou une dispense datée ; sinon s'arrêter et le dire.
 - **Questions restées orange** → vert, `(reco appliquée par défaut)`.
-- `Statut` = `en cours`, propriété `Branche` renseignée.
 - **Créer la branche du plan dans un worktree**
   (`~/repos/worktrees/<repo>/<branche-kebab>`, depuis `origin/main` à jour),
   jamais dans le checkout principal, jamais de travail sur `main`.
 - **Relever ce qui déclenche la CI** (un `push` lance-t-il un run ? des e2e ?
   que fait le label `review-required` ? un job merge-t-il seul ?) et
   **calculer les vagues** (`vagues.py`) ; les deux relevés s'écrivent dans
-  l'entrée `Ouverture` du journal (§4).
-- **Modèle du pilote** : noter dans l'entrée `Ouverture` la ligne
-  `Pilote : <modèle>, <effort>` (p.ex. `Pilote : Sonnet 5.5, high`), d'après ce
+  les puces **CI** et **Vagues** de l'entrée `Ouverture` du journal (§4).
+- **Modèle du pilote** : noter dans l'entrée `Ouverture` la puce
+  `**Pilote** : <modèle>, <effort>` (p.ex. `Sonnet 5.5, high`), d'après ce
   que la session sait de son propre modèle et de son effort. Si ce n'est pas
   Sonnet effort `high`, proposer à Benjamin une ligne : « l'exécution se pilote
   en Sonnet effort `high` : relancer avec `claude --model sonnet --effort high`,
@@ -151,6 +157,16 @@ Puis, dans le même tour, avant la première étape :
   l.132, `.github/workflows/ci.yml` l.435), c'est donc la configuration testée, et
   Sonnet coûte la moitié d'Opus sur chaque poste. La conception (`plan-notion`)
   reste en Opus.
+
+**La porte du `pret`.** Chaque geste ci-dessus (relecture, questions au vert,
+preuves de fin, maquette, répétition à blanc, branche et worktree, relevé de la
+CI, vagues, pilote) laisse sa trace dans une puce de l'entrée `Ouverture` du
+journal (§4, modèle dans `ouverture.md`). Puis `python3
+"${CLAUDE_PLUGIN_ROOT}/skills/_partage/scripts/preparation-prete.py" <page.md>` :
+code 0 → `Statut` = `pret`, `Branche` renseignée ; code 1 → un défaut par ligne,
+on le fait et on rejoue ; **pas de `pret`, donc pas de `en cours`, donc pas
+d'étape**. `Statut` = `en cours` se pose sur la page `pret`, avant la première
+étape.
 
 **Par défaut, un plan = une seule branche, sans PR d'étape** : les étapes sont
 des commits sur la branche du plan, et la PR du plan s'ouvre à la clôture,
@@ -372,8 +388,8 @@ pourrait donc plus appeler `executant` ni `relecteur` — les étapes se
 coderaient dans le pilote, ce que le §3 interdit.
 
 **Chaque plan garde sa porte, sa branche et son worktree.** La porte d'entrée
-se lit plan par plan : un plan dont le `Statut` n'est pas `valide` ne
-démarre pas. La branche, le worktree du plan (§2), le journal (§4) et la
+se lit plan par plan : un plan ne démarre que s'il est `valide`, puis `pret`
+après sa préparation ; jamais `en cours` sans être passé par `pret`. La branche, le worktree du plan (§2), le journal (§4) et la
 clôture (§6) sont ceux de ce plan, jamais partagés avec un autre. Au contrôle
 bloquant de la clôture, `git worktree list` montre aussi les worktrees des
 autres plans encore en cours : ne regarder que ceux du plan qu'on clôt.
@@ -402,8 +418,9 @@ Deux plans qui touchent **le même fichier** ne s'attendent pas : ils donnent un
 plan vit sur sa propre branche, donc rien ne se marche dessus à l'exécution ;
 c'est au moment de remonter sur `main` que l'ordre compte.
 
-**Un plan maître.** Une page Notion sans statut de validation — ce n'est pas
-un plan qu'on valide, et la porte d'entrée n'a rien à y lire. Si `plan-notion`
+**Un plan maître** (au moins deux plans d'une même session). Sa page porte un
+`Statut` hérité des plans, calculé par `statut-maitre.py` — ce n'est pas un plan
+qu'on valide, et la porte d'entrée ne le lit jamais. Si `plan-notion`
 l'a déjà écrite, elle se met à jour ; sinon elle se crée au lancement. Sa forme
 et sa préparation (une lecture Haiku par page, un `enqueteur` par plan, en
 parallèle ; le pilote ne garde que le croisement) vivent dans un seul fichier :
