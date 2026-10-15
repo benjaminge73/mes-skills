@@ -52,6 +52,6 @@ Réponds par un seul objet JSON, de cette forme, sans texte autour :
 
 ---
 
-Origine : la règle de relecture des documents du dépôt hermes-custom, qui
+Origine : la règle `.claude/rules/docs.md` du dépôt `hermes-custom` (relecture des documents), qui
 dit quelles formes de phrase vieillissent après un changement de code. Cette
 grille n'en recopie pas le texte : elle pose la question au juge et le format de sa réponse.

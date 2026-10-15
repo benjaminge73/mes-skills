@@ -89,8 +89,10 @@ ENTETE_HUNK = re.compile(r"^@@ -\d+(?:,\d+)? \+(\d+)(?:,\d+)? @@")
 
 # ``juger`` : le modèle vit en une seule constante, vérifiée dans ``modelUsage`` de chaque réponse.
 MODELE = "claude-haiku-5-5"
-# Seuil le plus haut qui signale les 3 fautes vérifiées du jeu étiqueté ; recalibré par le
-# plan 2 après 14 nuits de veille.
+# Seuil de départ : le plus haut qui signalait les 3 fautes vérifiées du jeu étiqueté lors du
+# POC (prompt minimal). Avec la grille livrée, trois rejeux réels (2026-10-15) en ont signalé
+# 1 à 2 sur 3 : les scores d'un même passage varient de ±0,2 d'un appel à l'autre. Recalibré
+# par le plan 2 après 14 nuits de veille, sur les passages qu'il aura étiquetés.
 SEUIL_DOUTE = 0.45
 VOTES_DEFAUT = 2
 DELAI_JUGE = 120  # secondes par appel de claude
