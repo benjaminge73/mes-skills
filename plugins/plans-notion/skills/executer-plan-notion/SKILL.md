@@ -67,7 +67,7 @@ protège à partir de la version qui la porte. (Historique : `docs/retex/execute
 - `pret` → la préparation est faite : relire la page et les fils non résolus
   (§1). Une case, un texte libre ou un commentaire postérieur à l'entrée
   `Ouverture` du journal renvoie à `valide` et refait la préparation ; sinon
-  `preparation-prete.py <page.md>` rend 0 et `Statut` = `en cours`, première
+  `preparation-prete.py` rend 0 (mêmes arguments) et `Statut` = `en cours`, première
   étape.
 - `a merger` ou `execute` → **le travail est déjà fait**, sa PR en attente de
   merge pour le premier, `main` pour le second. S'arrêter et le
@@ -158,12 +158,14 @@ Puis, dans le même tour, avant la première étape :
   Sonnet coûte la moitié d'Opus sur chaque poste. La conception (`plan-notion`)
   reste en Opus.
 
-**La porte du `pret`.** Chaque geste ci-dessus (relecture, questions au vert,
-preuves de fin, maquette, répétition à blanc, branche et worktree, relevé de la
-CI, vagues, pilote) laisse sa trace dans une puce de l'entrée `Ouverture` du
-journal (§4, modèle dans `ouverture.md`). Puis `python3
-"${CLAUDE_PLUGIN_ROOT}/skills/_partage/scripts/preparation-prete.py" <page.md>` :
-code 0 → `Statut` = `pret`, `Branche` renseignée ; code 1 → un défaut par ligne,
+**La porte du `pret`.** Un plan `pret` a **toutes ses étapes prouvées et
+rejouées à blanc, ses vagues calculées, et, s'il a un plan maître, l'orchestration
+entre les plans écrite**. Chaque geste ci-dessus (relecture, questions au vert,
+preuves, maquette, répétition à blanc, branche et worktree, CI, vagues, pilote,
+orchestration) laisse sa trace dans une puce de l'entrée `Ouverture` du journal,
+plus une puce par étape (§4, modèle dans `ouverture.md`). Puis `python3
+"${CLAUDE_PLUGIN_ROOT}/skills/_partage/scripts/preparation-prete.py" <page.md>
+--depot <dépôt> [--maitre <maitre.md>]` : code 0 → `Statut` = `pret`, `Branche` renseignée ; code 1 → un défaut par ligne,
 on le fait et on rejoue ; **pas de `pret`, donc pas de `en cours`, donc pas
 d'étape**. `Statut` = `en cours` se pose sur la page `pret`, avant la première
 étape.

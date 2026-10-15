@@ -168,9 +168,11 @@ qui reçoit un « go » sur une page `valide` prépare d'abord ; elle ne saute p
 la première étape, et le « go » ne remplace pas la porte.
 
 **1. Écrire l'entrée `Ouverture`** du `Journal d'exécution` (H3 `Ouverture`),
-dans la page et dans le miroir local, une puce à clé en gras par geste. Les neuf
-clés sont obligatoires, dans cet ordre ; une valeur « — », « aucune », « à voir »
-ne compte pas, et `sans objet — <raison>` est recevable, la raison en plus :
+dans la page et dans le miroir local, une puce à clé en gras par geste. Les dix
+clés sont obligatoires, plus **une puce `Preuve de l'étape N` par étape** du
+chapitre `Exécution` (étapes `D` comprises). Une valeur « — », « aucune »,
+« à voir » ne compte pas, et `sans objet — <raison>` est recevable, la raison en
+plus :
 
 ```
 ### Ouverture
@@ -184,6 +186,9 @@ ne compte pas, et `sans objet — <raison>` est recevable, la raison en plus :
 - **Vagues** : vague 1 : étapes 1 et 2 ; vague 2 : étape 3
 - **Pilote** : Sonnet 5.5, high
 - **Branche** : `feat/le-theme`, worktree `~/repos/worktrees/<repo>/feat-le-theme`
+- **Orchestration** : sans objet — aucun plan maître
+- **Preuve de l'étape 1** : `pytest a -q` rejouée à blanc : code 1 attendu (l'étape n'est pas faite), la commande tourne
+- **Preuve de l'étape 2** : `pytest b -q` rejouée à blanc : code 1 attendu, la commande tourne
 ```
 
 Ce que chaque puce porte :
@@ -195,26 +200,51 @@ Ce que chaque puce porte :
 - **Preuves** : les codes de sortie de la porte des preuves ci-dessus et de
   `verifier-preuves.py` (la preuve de chaque réponse, POC compris) ; un écart
   se corrige, ou se justifie par une dispense motivée dans la page.
+- **Preuve de l'étape N** : **toutes les étapes sont prouvées, pas seulement
+  écrites.** La commande de la `Preuve de fin` se joue à blanc, telle quelle, à
+  l'endroit où l'exécution la jouera (geste 1 de `poc.md`), et la puce dit ce
+  qu'elle a rendu : une commande qui sort en code 2 faute d'entrée, ou dont le
+  `--check` exige un zéro impossible à son rang, se corrige ici, pas à l'étape.
+  Une étape qui crée ce qu'elle teste est rouge avant d'être faite : le rouge
+  attendu s'écrit tel quel. Une preuve qui ne se joue pas en commande (lecture,
+  relecture humaine) s'écrit avec sa nature, pas avec un code.
 - **Répétition** : l'« État de départ » de `poc.md` existe dans la page. Si `main`
   a bougé depuis sa date, on rejoue les gestes 1 et 2 de `poc.md` dans un
   worktree détaché avant de l'écrire ; un plan sans cette section n'a pas eu sa
   répétition, et on le dit plutôt que d'écrire `sans objet`.
-- **Maquette**, **CI**, **Vagues**, **Pilote**, **Branche** : le résultat des
-  puces correspondantes ci-dessus.
+- **Vagues** : la liste que `vagues.py` calcule (une ligne par vague), **et** les
+  étapes regroupées dans un seul sous-agent, avec leur raison ; le script compare
+  en plus la colonne « Vague » du tableau de chevauchement au calcul et refuse un
+  écart. La parallélisation est donc prévue et écrite avant la première étape.
+- **Orchestration** : `sans objet — aucun plan maître`, ou, pour un plan couvert
+  par un plan maître, le lien de sa page et la place de ce plan : avec qui il part
+  en parallèle, ce qu'il attend, son rang dans l'ordre de merge, les fichiers qu'il
+  partage avec d'autres plans, son créneau dans la file des actions lourdes. La
+  page maître doit porter ces choses avant que ses plans passent `pret`
+  (`plan-notion/plan-maitre.md`, « Le statut du plan maître et son lot »).
+- **Maquette**, **CI**, **Pilote**, **Branche** : le résultat des puces
+  correspondantes ci-dessus.
 
 **2. Jouer la porte :**
 
 ```bash
-python3 "${CLAUDE_PLUGIN_ROOT}/skills/_partage/scripts/preparation-prete.py" <page.md>
+python3 "${CLAUDE_PLUGIN_ROOT}/skills/_partage/scripts/preparation-prete.py" <page.md> --depot <dépôt> [--maitre <maitre.md>]
 ```
+
+`<page.md>` et `<maitre.md>` sont les miroirs de `notion-fetch` ; `--maitre` est
+obligatoire dès que **Orchestration** cite un plan maître. Le script rejoue pour
+toi la porte des preuves, `verifier-preuves.py` et `vagues.py --comparer` : leurs
+défauts sortent dans le même rapport, préfixés (`preuves :`, `réponses :`,
+`vagues :`).
 
 - **Code 0** : `prêt : …`. `Statut` = `pret`, `Branche` renseignée, en une
   écriture Notion ; relire le miroir pour confirmer.
 - **Code 1** : un défaut par ligne (question encore ouverte, étape sans preuve de
-  fin, puce absente ou vide). On fait le geste manquant, on écrit sa puce, on
+  fin ou sans preuve rejouée, vagues qui ne collent pas au calcul, section de la
+  page maître absente ou vide, puce absente ou vide). On fait le geste manquant, on écrit sa puce, on
   rejoue. **Aucune étape ne démarre sur un code 1**, et `pret` ne se pose pas
   « en attendant ».
-- **Code 2** : page, chapitre ou journal introuvable. On le dit à Benjamin, sans
+- **Code 2** : page, chapitre ou journal introuvable, ou `--depot` manquant. On le dit à Benjamin, sans
   rien commencer.
 
 Le script vérifie que chaque geste a laissé sa trace, pas que le geste est juste :
