@@ -1,0 +1,12 @@
+schema_version: "1.1"
+name: cloture-preuve-doc
+description: >
+  Clôture d'un plan dont la branche renomme une fonction que le README.md cite : la
+  clôture doit lancer qualite-doc.py lecteurs (point 2 bis de cloture.md) et traiter le
+  passage relevé. Le passage est faux après le renommage : il se corrige dans la branche,
+  et « relu, toujours vrai » serait un verdict faux. Juges mécaniques, sans modèle : la
+  commande lancée se lit dans la trace (tool_used, vérifié seulement en passage réel), le
+  README se lit dans l'état final (regex sur fichier, vérifiés au pré-vol sur l'oracle).
+  Panne visée : clore sans relever les passages, ou laisser le README citer l'ancien nom.
+context:
+  scaffold_script: fixture.sh
