@@ -402,15 +402,13 @@ Deux plans qui touchent **le même fichier** ne s'attendent pas : ils donnent un
 plan vit sur sa propre branche, donc rien ne se marche dessus à l'exécution ;
 c'est au moment de remonter sur `main` que l'ordre compte.
 
-**Un plan maître.** Une page Notion créée **au lancement**, sans statut de
-validation — ce n'est pas un plan qu'on valide, et la porte d'entrée n'a rien
-à y lire. Elle porte :
+**Un plan maître.** Une page Notion sans statut de validation — ce n'est pas
+un plan qu'on valide, et la porte d'entrée n'a rien à y lire. Si `plan-notion`
+l'a déjà écrite, elle se met à jour ; sinon elle se crée au lancement. Sa forme
+et sa préparation (une lecture Haiku par page, un `enqueteur` par plan, en
+parallèle ; le pilote ne garde que le croisement) vivent dans un seul fichier :
 
-- **le croisement** : qui part ensemble, qui attend quoi, et pourquoi ;
-- **l'avancement par plan**, avec un lien vers le journal de chacun ;
-- **l'état final consolidé**, posé une fois le dernier plan clos.
-
-Elle s'écrit avec les mêmes précautions que le reste (§5).
+📄 `${CLAUDE_PLUGIN_ROOT}/skills/plan-notion/plan-maitre.md`
 
 ## 8. Ce que ce skill ne fait pas
 
@@ -422,7 +420,7 @@ Elle s'écrit avec les mêmes précautions que le reste (§5).
 - Il ne crée de sa propre initiative que deux sortes de page : le **plan de suite
   `#N+1`** en clôture (§7), qui repart ensuite en `plan-notion` comme n'importe
   quel brouillon, et, quand une session porte plusieurs plans, le **plan maître**
-  du lancement (« Plusieurs plans »).
+  du lancement, s'il n'existe pas déjà (« Plusieurs plans »).
 - Il ne code pas si le statut n'est pas `valide`.
 - Il n'écrit pas lui-même le code des étapes déléguables : ça part en sous-agent
   `plans-notion:executant`, **Haiku par définition** (son frontmatter,
@@ -452,7 +450,8 @@ Elle s'écrit avec les mêmes précautions que le reste (§5).
 - Il ne résout pas les fils de commentaires.
 - Ses fichiers de référence, à côté de ce `SKILL.md`, se lisent à l'endroit où
   le déroulé les cite : `ouverture.md` (§2), `etapes.md` (§3), `journal.md`
-  (§4), `cloture.md` (§6).
+  (§4), `cloture.md` (§6) ; le plan maître se lit dans
+  `${CLAUDE_PLUGIN_ROOT}/skills/plan-notion/plan-maitre.md`.
 - Il ne dépend d'aucun `CLAUDE.md`, d'aucun hook, d'aucun fichier du dépôt de
   travail. Ses compagnons sont les fichiers partagés
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/ecrire-dans-notion.md`,
