@@ -608,7 +608,8 @@ class RegleI_CategoriesDesEvals(Depot):
 
     def evals(self, *cas):
         for nom in cas:
-            _ecrire(self.racine / "evals" / "p" / nom / "prompt.md", "Réponds OK.\n")
+            _ecrire(self.racine / "evals" / "p" / nom / "prompt.md",
+                    "---\nmax_turns: 3\n---\nRéponds OK.\n")
 
     def categories(self, plugin="p", **par_categorie):
         _ecrire(self.racine / "evals" / "categories.json", json.dumps({
@@ -744,6 +745,56 @@ class RegleI_CategoriesDesEvals(Depot):
         limites = json.loads((racine / "scripts" / "limites.json").read_text("utf-8"))
         res = check_skills.controler(racine, limites)
         self.assertEqual([a for a in res.refus if a.regle == "i"], [])
+
+
+class RegleJ_ToursMaximauxDesEvals(Depot):
+    """Chaque cas d'un banc déclare ``max_turns`` : sinon le lanceur impose 10 tours."""
+
+    def setUp(self):
+        super().setUp()
+        self.plugin_conforme()
+
+    def cas(self, nom, prompt=None, case=None):
+        if prompt is not None:
+            _ecrire(self.racine / "evals" / "p" / nom / "prompt.md", prompt)
+        if case is not None:
+            _ecrire(self.racine / "evals" / "p" / nom / "case.yaml", case)
+
+    def refus_j(self):
+        return [a for a in self.controler().refus if a.regle == "j"]
+
+    def test_max_turns_au_frontmatter_de_prompt_md_suffit(self):
+        self.cas("c", prompt="---\nmax_turns: 30\n---\nRéponds OK.\n")
+        self.assertEqual(self.refus_j(), [])
+
+    def test_max_turns_sous_execution_dans_case_yaml_suffit(self):
+        self.cas("c", prompt="Réponds OK.\n", case=(
+            'schema_version: "1.1"\nname: c\n# commentaire\nexecution:\n'
+            "  timeout_seconds: 900\n\n  max_turns: 80\ncontext:\n  scaffold_script: f.sh\n"))
+        self.assertEqual(self.refus_j(), [])
+
+    def test_un_cas_sans_max_turns_est_refuse_et_nomme(self):
+        # Le cas réel du 2026-10-15 : case.yaml + prompt.md, ni l'un ni l'autre ne fixe les tours.
+        self.cas("cloture", prompt="Utilise le skill.\n",
+                 case='schema_version: "1.1"\nname: cloture\ncontext:\n  scaffold_script: f.sh\n')
+        refus = self.refus_j()
+        self.assertEqual([a.cible for a in refus], ["evals/p/cloture"])
+        self.assertIn("10 tours", refus[0].message)
+        self.assertIn("max_turns", refus[0].message)
+
+    def test_max_turns_hors_du_bloc_execution_ne_compte_pas(self):
+        self.cas("c", case=('schema_version: "1.1"\nname: c\nexecution:\n  timeout_seconds: 900\n'
+                            "context:\n  max_turns: 80\n"))
+        self.assertEqual(len(self.refus_j()), 1)
+
+    def test_un_plugin_sans_banc_n_est_pas_concerne(self):
+        self.assertEqual(self.refus_j(), [])
+
+    def test_le_depot_reel_respecte_la_regle(self):
+        racine = Path(__file__).resolve().parents[1]
+        limites = json.loads((racine / "scripts" / "limites.json").read_text("utf-8"))
+        res = check_skills.controler(racine, limites)
+        self.assertEqual([a for a in res.refus if a.regle == "j"], [])
 
 
 class RegistreDuLotB9(unittest.TestCase):

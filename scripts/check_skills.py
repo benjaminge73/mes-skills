@@ -49,6 +49,13 @@ Les règles, et le fait de doc qui fonde chacune (voir ``docs/veille.md``) :
     préfixe ``exerce`` ; sinon le fichier est refusé, nommé, avec la consigne de
     le déclarer dans ``evals/categories.json``. Un nouveau fichier oblige donc à
     dire, dans sa PR, quel cas le teste.
+(j) Pour chaque plugin qui a un banc ``evals/<plugin>/`` : chaque cas déclare son
+    nombre de tours maximal, ``execution.max_turns`` dans ``case.yaml`` ou
+    ``max_turns`` dans le frontmatter de ``prompt.md``. Sans lui, ``claude plugin
+    eval`` applique en silence son défaut de 10 tours (et 300 s) : une session
+    qui en a besoin de 11 finit en erreur, et la fumée entière conclut « non
+    concluant, à relancer ». Payé du 2026-10-14 au 2026-10-15 : quatre fumées
+    perdues par `cloture-ouvre-la-pr`, seul cas sans limite.
 
 Exceptions datées
 -----------------
@@ -483,6 +490,32 @@ def _regle_i(racine: Path, plugin: Path) -> list[Anomalie]:
     return anomalies
 
 
+_MAX_TURNS_EXECUTION = re.compile(r"^execution:[ \t]*\n(?:(?:[ \t]+.*|[ \t]*)\n)*?[ \t]+max_turns:[ \t]*\S", re.M)
+
+
+def _declare_max_turns(cas: Path) -> bool:
+    """Le cas fixe-t-il ses tours : ``max_turns`` dans ``prompt.md`` ou sous ``execution:``
+    dans ``case.yaml`` ? Les deux fichiers fusionnent au lancement : un seul suffit."""
+    prompt = cas / "prompt.md"
+    if prompt.is_file() and lire_frontmatter(prompt.read_text(encoding="utf-8")).get("max_turns"):
+        return True
+    case = cas / "case.yaml"
+    return case.is_file() and bool(_MAX_TURNS_EXECUTION.search(case.read_text(encoding="utf-8") + "\n"))
+
+
+def _regle_j(racine: Path, plugin: Path) -> list[Anomalie]:
+    evals_plugin = racine / "evals" / plugin.name
+    if not evals_plugin.is_dir():
+        return []
+    return [Anomalie("j", f"evals/{plugin.name}/{cas}", (
+        f"le cas `{cas}` ne déclare aucun nombre de tours maximal : `claude plugin eval` lui "
+        "applique alors son défaut de 10 tours, et une session qui en demande plus finit en "
+        "erreur, ce qui rend toute la fumée non concluante. Ajouter `execution: max_turns: <n>` "
+        "à son `case.yaml` (ou `max_turns: <n>` au frontmatter de son `prompt.md`), "
+        "sur le modèle des cas voisins de sa catégorie."))
+        for cas in _dossiers_de_cas(evals_plugin) if not _declare_max_turns(evals_plugin / cas)]
+
+
 # --------------------------------------------------------------------------
 # Contrôle d'ensemble, exceptions, cliquet, registre
 # --------------------------------------------------------------------------
@@ -515,6 +548,7 @@ def controler(racine: Path, limites: dict, sans_exceptions: bool = False) -> Res
         anomalies += _regle_d(racine, plugin)
         anomalies += _regles_e(racine, plugin)
         anomalies += _regle_i(racine, plugin)
+        anomalies += _regle_j(racine, plugin)
     anomalies += _regle_h(racine)
 
     exceptions = [] if sans_exceptions else list(limites.get("exceptions", []))
