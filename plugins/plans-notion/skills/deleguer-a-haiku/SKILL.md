@@ -7,13 +7,12 @@ description: >-
 # Déléguer un plan natif à Haiku
 
 Ce skill sert une session qui a un plan **sans page Notion**, à écrire ou déjà approuvé.
-Il ne lit ni n'écrit aucune page. Le geste tient en quatre temps ; le détail de chaque
-règle reste dans les fichiers qu'il cite, pour ne pas en avoir deux copies.
+Il ne lit ni n'écrit aucune page. Le détail de chaque règle reste dans les fichiers qu'il cite.
 
 ## Avant le plan
 
-Une session lancée en mode plan natif relève de ce skill dès son lancement, avant
-`ExitPlanMode` : lire `${CLAUDE_PLUGIN_ROOT}/skills/_partage/avant-le-plan.md` et suivre ses six temps dans l'ordre.
+Dès le lancement d'une session en mode plan natif, avant `ExitPlanMode` : lire
+`${CLAUDE_PLUGIN_ROOT}/skills/_partage/avant-le-plan.md` et suivre ses six temps.
 
 ## Invariants
 
@@ -29,41 +28,48 @@ Une session lancée en mode plan natif relève de ce skill dès son lancement, a
 bash "${CLAUDE_PLUGIN_ROOT}/skills/_partage/scripts/verifier-version.sh" "${CLAUDE_PLUGIN_ROOT}"
 ```
 
-Code 0 : à jour. Code 1 : la version ou le chemin chargé diffère de l'`installPath` :
-le dire en une ligne, puis lire ce skill depuis cet `installPath`. Code 2 : lecture
-impossible, à dire aussi.
+Code 0 : à jour. Code 1 : version ou chemin différents de l'`installPath` : le dire, puis
+lire ce skill depuis cet `installPath`. Code 2 : lecture impossible, à dire.
 
 ## 1. Envoyer les étapes
 
-- Le brief de chaque étape suit la forme de `${CLAUDE_PLUGIN_ROOT}/skills/executer-plan-notion/etapes.md`,
-  section « Le brief du sous-agent ». Sans recopier la définition de l'`executant`,
-  qui arrive avec lui.
-- **En parallèle** quand les fichiers sont disjoints, en séquence sinon. Le calcul des vagues,
-  l'isolement en worktree et le plafond de concurrence : `${CLAUDE_PLUGIN_ROOT}/skills/_partage/vagues.md`.
+- Brief : la forme de `${CLAUDE_PLUGIN_ROOT}/skills/executer-plan-notion/etapes.md` (« Le brief
+  du sous-agent »), sans recopier la définition de l'`executant`.
+- **En parallèle** si les fichiers sont disjoints, sinon en séquence (`${CLAUDE_PLUGIN_ROOT}/skills/_partage/vagues.md`).
 
 ## 2. Relire et rejouer
 
-- Lire chaque rapport en entier : son état, ses fichiers, ses écarts.
-- **Rejouer soi-même la preuve de fin** de chaque étape. Un écart entre la sortie
-  rejouée et celle du rapport est une information à signaler.
+- Lire chaque rapport en entier : état, fichiers, écarts.
+- **Rejouer soi-même la preuve de fin** de chaque étape. Un écart avec le rapport est à signaler.
 - `NEEDS_CONTEXT` ou `BLOCKED` : le dire à Benjamin, ne pas trancher à sa place.
 
 ## 3. Relecteur, seulement au-delà de cinq fichiers
 
-Si le plan touche **plus de cinq fichiers en tout**, un appel à
-`plans-notion:relecteur` en fin de plan, selon `${CLAUDE_PLUGIN_ROOT}/skills/_partage/revue.md`
-(« Comment l'appeler »). Sans commit, le brief du relecteur désigne la liste des
-fichiers touchés, pas la plage de commits : c'est un écart à écrire dans le
-compte rendu.
+Si le plan touche **plus de cinq fichiers en tout**, un appel à `plans-notion:relecteur` en fin
+de plan, selon `${CLAUDE_PLUGIN_ROOT}/skills/_partage/revue.md`. Sans commit, son brief désigne
+la liste des fichiers : écart à écrire au compte rendu.
 
-## 4. Compte rendu
+## 4. Preuve doc
+
+Après les étapes, sur la branche du plan :
+
+```bash
+python3 "${CLAUDE_PLUGIN_ROOT}/skills/_partage/scripts/qualite-doc.py" lecteurs --base origin/main > <scratchpad>/passages.json
+python3 "${CLAUDE_PLUGIN_ROOT}/skills/_partage/scripts/qualite-doc.py" juger --entree <scratchpad>/passages.json
+```
+
+Chaque passage relevé se traite selon la rubrique « Preuve doc » de
+`${CLAUDE_PLUGIN_ROOT}/skills/_partage/compte-rendu-natif.md`, à lire avant. Bloquant.
+
+## 5. Compte rendu
 
 Avant la réponse finale, lire `${CLAUDE_PLUGIN_ROOT}/skills/_partage/compte-rendu-natif.md` :
-il fixe le texte, dont la commande de preuve de chaque étape et ses trois rubriques.
+il fixe le texte, dont la preuve de chaque étape, la preuve doc et ses quatre rubriques.
 
 Ses compagnons sont les fichiers partagés
 `${CLAUDE_PLUGIN_ROOT}/skills/_partage/avant-le-plan.md`,
 `${CLAUDE_PLUGIN_ROOT}/skills/_partage/vagues.md`,
 `${CLAUDE_PLUGIN_ROOT}/skills/_partage/revue.md`,
-`${CLAUDE_PLUGIN_ROOT}/skills/_partage/lecture-deleguee.md` et
+`${CLAUDE_PLUGIN_ROOT}/skills/_partage/lecture-deleguee.md`,
+`${CLAUDE_PLUGIN_ROOT}/skills/_partage/grille-doc.md` et
 `${CLAUDE_PLUGIN_ROOT}/skills/_partage/compte-rendu-natif.md`.

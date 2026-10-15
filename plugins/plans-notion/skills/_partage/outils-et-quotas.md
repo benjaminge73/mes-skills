@@ -158,6 +158,13 @@ aucun repli connu au 2026-09-29.
   Claude Code.** Elle vit dans le `.env` du dépôt applicatif, qu'une session ne
   lit pas sans l'accord de Benjamin. Une passe Jev prévue dans un plan exécuté
   en autonomie s'arrête donc net, au milieu de l'étape.
+- **2026-10-15 : Jev écarté pour juger de la documentation.** Sur un jeu de
+  100 passages de documentation étiquetés à l'aveugle (95 exacts, 3 fautes,
+  2 indécidables), **AUC de 0,370** contre **0,858** pour Haiku, sur le même
+  jeu. Pour rattraper les 3 fautes, le seuil de Jev doit descendre à 0,32 (la
+  plus basse des trois notes de faute) ; à ce seuil, il signale **88 passages
+  exacts sur 95**, contre **22 sur 95** pour Haiku. Ne pas l'utiliser pour ce
+  terrain : il ne sépare plus les bons passages des fautes.
 
 **Bonne pratique** :
 
@@ -167,7 +174,8 @@ aucun repli connu au 2026-09-29.
   afficher la valeur), ou commandes lancées par Benjamin.
 
 **Repli** : pour la clé absente, faire lancer les commandes Jev par Benjamin.
-Pour le reste, aucun connu au 2026-10-08.
+Pour juger de la documentation, ne pas utiliser Jev (piège du 2026-10-15) :
+`qualite-doc.py juger` passe par Haiku. Pour le reste, aucun connu au 2026-10-08.
 
 ## Fiche — Sessions Claude
 
@@ -198,6 +206,15 @@ Pour le reste, aucun connu au 2026-10-08.
   quand la demande figure dans son message du tour. Depuis le 2026-10-14, la
   clôture ouvre sa PR sans demande dans le tour (`remontee-sur-main.md`) : ce
   refus peut donc tomber à chaque clôture, et pas seulement sur une demande.
+- **2026-10-15 : le coût mesuré de `qualite-doc.py juger`.** Une mesure de
+  3 passages à 2 votes chacun, soit 6 appels, a coûté **0,0118 $** au total,
+  soit environ **0,002 $ par vote**. Pour comparaison, un juge avec outils coûte
+  0,86 $ par fichier relu (fiche « Claude Code (CLI `claude`) »), et un vote
+  avec passage et extrait du diff environ 0,0034 $ (mesure de la preuve de
+  concept, date de lecture non consignée). Le même jour, trois rejeux sur les
+  3 fautes du jeu étiqueté, avec la grille livrée, en ont signalé 1 à 2 au seuil
+  0,45 : la note d'un même passage varie d'environ 0,2 d'un appel à l'autre, le
+  seuil de départ reste donc à recalibrer sur des passages étiquetés.
 
 **Bonne pratique** :
 
@@ -651,6 +668,17 @@ aucun connu au 2026-10-06.
   `--plugin-dir` masque ce dossier : la session charge la copie installée, pas le
   dossier de travail. Une preuve « mon hook de branche tourne » prouve alors la
   mauvaise copie.
+- **2026-10-15 : `claude -p --model haiku` sert Haiku 4.5 hors des réglages
+  utilisateur.** Lancé sans les réglages utilisateur du poste (c'est le cas de
+  `qualite-doc.py juger`, avec `--setting-sources project`), l'alias `haiku` a
+  servi **Haiku 4.5**, relevé dans `modelUsage` de la réponse JSON. Épingler
+  l'identifiant complet `claude-haiku-5-5`, qui sert Haiku 5.5. `qualite-doc.py
+  juger` vérifie le modèle servi dans `modelUsage` et sort en code 5 s'il
+  n'est pas celui demandé.
+- **2026-10-15 : un juge Haiku avec outils coûte 0,86 $ par fichier relu.**
+  Un juge qui lit lui-même les fichiers (outils activés) a coûté **0,86 $**
+  par fichier relu. Un vote sans outils, qui reçoit le passage et l'extrait du
+  diff, coûte nettement moins (fiche « Sessions Claude », même date).
 
 **Bonne pratique** :
 
@@ -660,8 +688,9 @@ aucun connu au 2026-10-06.
 - Prouver, dès l'ouverture d'un plan, que chaque compte qui lancera `claude` le
   trouve : `sudo -u <compte> -i claude --version`.
 - Connecter chaque compte par `/login`. Vérifier par un appel minimal
-  (`claude -p … --model haiku`) sous ce compte, sans jamais lire son fichier
-  d'identifiants.
+  (`claude -p … --model claude-haiku-5-5`, identifiant complet : l'alias `haiku`
+  peut servir une autre version, voir le piège du 2026-10-15) sous ce compte, sans
+  jamais lire son fichier d'identifiants.
 - Jouer un e2e qui appelle `claude` sous le compte qui porte la connexion, pas
   sous `sudo`. Ne charger par `sudo` que les tests qui ont besoin d'un fichier
   de secrets réservé à root.

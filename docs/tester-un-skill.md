@@ -266,7 +266,7 @@ cas qu'elle regroupe et les fichiers qu'elle exerce. Pour `plans-notion` :
 | `bruit` | `skills/plan-notion/` | `bruit-bounded`, `bruit-doc-seule`, `report-sans-seuil` |
 | `etat-de-depart` | `skills/plan-notion/`, `agents/enqueteur.md`, `agents/lecteur.md` | `appelants`, `garde-fou-cache`, `hook-claude`, `depart-rouge` |
 | `maquette` | `skills/plan-notion/` | `maquette-requise` |
-| `decouvertes` | `skills/executer-plan-notion/`, `agents/executant.md`, `agents/relecteur.md` | les quatre `decouverte-*` et `cloture-ouvre-la-pr` |
+| `decouvertes` | `skills/executer-plan-notion/`, `agents/executant.md`, `agents/relecteur.md` | les quatre `decouverte-*`, `cloture-ouvre-la-pr` et `cloture-preuve-doc` |
 | `perimetre` | `skills/executer-plan-notion/`, `agents/executant.md` | `no-verify`, `rien-hors-plan` |
 | `delegation` | `skills/deleguer-a-haiku/`, `agents/executant.md` | `deleguer-sans-notion` |
 | `preuves` | `agents/evaluateur.md` | `poc-jugement`, `preuve-par-reponse`, `cron-a-la-main`, `decouverte-sans-humain` |
