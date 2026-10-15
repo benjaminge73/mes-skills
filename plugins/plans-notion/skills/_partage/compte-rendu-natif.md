@@ -21,8 +21,8 @@ Le texte contient quatre rubriques, présentes même vides (« aucune » s'écri
   `deleguer-a-haiku`. Un passage **douteux** (`douteux` de `juger`), ou à
   `ligne_modifiee_dans_la_branche` vrai (traité d'office), est corrigé par une étape `D<n>`
   confiée à `plans-notion:executant`, ou marqué « relu, toujours vrai — <commande ou
-  chemin:ligne> ». Sans juge (code 3), la session relit chaque passage relevé et note ici son
-  verdict. Autre code non nul : le dire. Tant qu'un passage est en suspens, la clôture attend.
+  chemin:ligne> ». Sans juge (code 3, 4 ou 5), la session relit chaque passage relevé ou non jugé et note
+  ici son verdict. Autre code non nul : le dire. Tant qu'un passage est en suspens, la clôture attend.
   Une session lancée par Hermes (`piloted-code-change`, dont la veille) tient cette rubrique
   en une phrase.
 
