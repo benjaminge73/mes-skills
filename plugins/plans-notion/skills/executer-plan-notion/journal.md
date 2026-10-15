@@ -29,9 +29,10 @@ prennent le même traitement : `Ouverture` au démarrage, `État final` à la cl
 l'existant par étape et en posant les H3 au-dessus, **sans reformuler une ligne**
 (§5), avant d'y ajouter quoi que ce soit.
 
-**L'entrée `Ouverture` a sa forme propre** : neuf puces à clé en gras (`Relecture`,
+**L'entrée `Ouverture` a sa forme propre** : dix puces à clé en gras (`Relecture`,
 `Questions`, `Preuves`, `Répétition`, `Maquette`, `CI`, `Vagues`, `Pilote`,
-`Branche`), lues par `preparation-prete.py` avant `Statut` = `pret`. Le modèle
+`Branche`, `Orchestration`) et une puce `Preuve de l'étape N` par étape, lues par
+`preparation-prete.py` avant `Statut` = `pret`. Le modèle
 et le sens de chaque puce sont dans `ouverture.md`, « La porte du `pret` » ; les
 champs d'étape ci-dessous ne s'y appliquent pas.
 

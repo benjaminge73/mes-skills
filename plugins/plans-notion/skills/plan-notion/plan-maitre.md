@@ -51,6 +51,12 @@ d'être recréée. Elle porte :
   journal de chacun ;
 - **l'état final consolidé**, posé une fois le dernier plan clos.
 
+Les quatre premières sont des **H2 aux titres fixes** — `Plans`, `Croisement`,
+`Ordre de merge`, `File des actions lourdes` — parce que `preparation-prete.py
+--maitre` les cherche, non vides : un plan couvert par ce maître ne passe pas
+`pret` tant qu'une d'elles manque (« Le statut du plan maître et son lot »). Les
+deux autres s'appellent `Avancement` et `État final`.
+
 Elle s'écrit avec les mêmes précautions que le reste
 (`_partage/ecrire-dans-notion.md`), schéma compris (`_partage/schemas.md`).
 
@@ -169,7 +175,12 @@ ment. La ligne d'ajout est datée dans l'avancement.
 
 **Chaque plan du lot passe par `pret`** : un plan `valide` ne passe pas à
 `en cours` sans que sa préparation (`executer-plan-notion` §2, `ouverture.md`)
-soit faite, son entrée `Ouverture` écrite et `preparation-prete.py` à 0. Le
+soit faite, son entrée `Ouverture` écrite et `preparation-prete.py` à 0, avec
+`--maitre` : l'orchestration entre les plans (`Croisement`, `Ordre de merge`,
+`File des actions lourdes`, tableau `Plans`) est donc **écrite sur la page maître
+avant** que le premier plan du lot soit `pret`, et la puce **Orchestration** de
+chaque plan en cite le lien et dit sa place (avec qui il part, ce qu'il attend,
+son rang de merge). Le
 pilote prépare les plans du lot avant de lancer la première étape d'aucun :
 l'enquête ci-dessus en est la matière (les fiches du `lecteur` et des `enqueteur`
 nourrissent les puces **Relecture**, **Preuves** et **Répétition** de chaque
