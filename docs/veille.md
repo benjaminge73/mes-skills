@@ -320,15 +320,34 @@ Une entrée par passe, la plus récente en dernier. Le titre est
 - **Verdict de `scripts/veille_faits.py`** (2026-10-12) : 20 faits vérifiés, 0 citation à
   signaler, 0 page injoignable.
 
-### 2026-10-15 — preuve doc à la clôture, étape 6 du plan « la preuve doc »
+### 2026-10-15 — passe avant la PR « la preuve doc » (plan « mes-skills — La doc suit le plan »)
 
-- **Sources lues** : aucune. Cette entrée n'est pas une passe de veille : aucune page
-  de la partie 1 n'a été relue pour elle, et la passe depuis la dernière entrée
-  (2026-10-12) n'a pas été faite. Si la PR l'exige, elle reste à lancer par `chercheur`.
-- **Ce qui a changé** : rien de relevé, puisqu'aucune source n'a été relue. Ce qui
-  change est dans le dépôt : la preuve doc ajoute un juge
-  Haiku épinglé sur `claude-haiku-5-5` (`MODELE` de `qualite-doc.py`), appelé à la
-  clôture sur chaque passage relevé.
-- **Ce qu'on en fait** : le cas `cloture-preuve-doc` (catégorie `decouvertes`) vérifie
-  que la clôture lance `lecteurs` et corrige le passage. Aucun contrôle de
-  `scripts/veille_faits.py` n'a été joué pour cette entrée.
+- **Sources lues** : toutes celles de la partie 1, depuis la passe du 2026-10-12 : la doc
+  Claude Code (skills, sous-agents, plugins et chargement, hooks, évals, bac à sable,
+  mémoire, réglages, modèles, changelog, résumé hebdomadaire), les blogs d'Anthropic
+  (`claude.dev`, `anthropic.com/engineering`), le dépôt `anthropics/skills`, l'issue
+  amont `sandbox-runtime#74`, la page des tarifs. Les pages de la doc Claude Code ont été
+  lues rendues par `WebFetch` ; les citations de `plugin-evals`, `memory`, `pricing` et
+  `sandboxing` ont en plus été vérifiées mot pour mot dans le texte brut.
+- **Ce qui a changé** : le changelog 2.1.299 et 2.1.300 (14 oct.) n'atteint aucun fait du
+  tableau. À noter : `--tools ""` ne retire pas les outils MCP (« The flag doesn't affect
+  MCP tools »), d'où `--strict-mcp-config` dans l'appel du juge ; l'alias `haiku` se résout
+  selon le fournisseur (« The `opus`, `sonnet`, and `haiku` aliases resolve to the newest
+  version on the Anthropic API and to an earlier version on some other providers »), ce
+  qui explique le Haiku 4.5 servi sur ce poste, où `ANTHROPIC_BASE_URL` est posée ;
+  le plafond de 1 536 caractères d'une description est un défaut, configurable par
+  `skillListingMaxDescChars` (la règle (a) de `check_skills.py` suppose la valeur par
+  défaut) ; le paramètre `effort` de l'outil Agent est désormais documenté (la question
+  laissée ouverte au journal du 2026-10-08 est fermée) ; `onFailure: "block"` existe pour
+  les hooks `command` et `http` (2.1.295), par défaut un hook en échec laisse passer.
+  `modelUsage` n'est nommé que dans le guide du SDK : la doc de `claude -p` ne le promet
+  pas, d'où la vérification en exécution que fait `qualite-doc.py juger` (code 5).
+  Deux corrections de journal : l'article `claude.dev` « field guide » date du 6 oct.
+  (et non du 1ᵉʳ), et `anthropic.com/engineering` a un article du 25 mai 2026 (le journal
+  disait « rien depuis le 2026-04-23 »). Les versions 2.1.295 et 2.1.296 du changelog
+  n'avaient pas été relues depuis le 2026-10-08.
+- **Ce qu'on en fait** : rien ne change au tableau de la partie 2. Le juge de la preuve
+  doc épingle `claude-haiku-5-5` (`MODELE` de `qualite-doc.py`) et vérifie le modèle servi,
+  ce que la doc confirme nécessaire.
+- **Verdict de `scripts/veille_faits.py`** (2026-10-15) : 20 faits vérifiés, 0 citation à
+  signaler, 0 page injoignable.
