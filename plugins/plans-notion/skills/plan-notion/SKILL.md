@@ -162,6 +162,14 @@ répétition à blanc, le registre des outils et le cas du report de décision :
 À lire **avant d'écrire la première question, option ou étape** de la passe — le
 résumé ci-dessus ne suffit pas à les faire bien.
 
+**Plusieurs plans à croiser — le plan maître.** Croiser, remettre à jour ou
+séquencer plusieurs plans, c'est concevoir chacun d'eux : même enquête, plan par
+plan, **en parallèle** (une fiche par page lue par un agent Haiku, un `enqueteur`
+par plan, les comptages au `sondeur`). Le pilote ne garde que le croisement et
+l'écriture. La page, les gestes et la raison :
+
+📄 `${CLAUDE_PLUGIN_ROOT}/skills/plan-notion/plan-maitre.md`
+
 ## 1. Trouver le bon projet
 
 La correspondance repo → page projet vit **dans Notion**, pas dans ce fichier —
@@ -479,9 +487,9 @@ comment de la séance de code.
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/cron-a-la-main.md`,
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/decouvertes.md`,
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/revue.md` et
-  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/bons-tests.md`, ses trois fichiers de
+  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/bons-tests.md`, ses quatre fichiers de
   référence (`enquete.md`, `chapitres-cadrage.md`,
-  `chapitres-questions-execution.md`, dans ce dossier), ainsi que les
+  `chapitres-questions-execution.md` et `plan-maitre.md`, dans ce dossier), ainsi que les
   agents `${CLAUDE_PLUGIN_ROOT}/agents/enqueteur.md` et
   `${CLAUDE_PLUGIN_ROOT}/agents/chercheur.md`, livrés par le plugin
   `plans-notion` — pas par le dépôt de travail, quel qu'il soit.
