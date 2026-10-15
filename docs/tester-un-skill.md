@@ -357,7 +357,14 @@ propre groupe de concurrence (le mode en fait partie) : un `ab` n'annule plus un
 plugin partagent le groupe de concurrence `evals-<plugin>`, avec
 `cancel-in-progress: false` : tous les bancs puisent dans la limite de débit d'un
 même abonnement, et trois bancs simultanés (le 2026-09-30) ont rendu des mesures
-inexploitables. Le second run attend donc la fin du premier, et ne l'annule pas.
+inexploitables. Le second run attend donc la fin du premier, et ne l'annule pas. **Une exception,
+pour les runs d'une même PR** : le job `annuler-perimes` arrête, au démarrage d'un
+run, les runs non finis de la même branche qui portent un autre SHA de tête et un
+identifiant plus petit. Un push rend périmé le run du commit précédent ; avant, sa
+fumée (15 à 18 min) gardait le groupe pendant que celle du nouveau commit attendait
+derrière (14 min d'attente le 2026-10-15). Un run plus récent n'est jamais annulé, ni
+un run du même SHA (un label étranger y recopie le verdict), et deux PR différentes se
+suivent toujours dans la file.
 **Limite de GitHub** : un seul run peut attendre par groupe ; un troisième annule
 celui qui attendait, et le run annulé se relance (il ne vaut pas verdict). Le
 lancement manuel `aa` a un groupe à part, `evals-aa-<plugin>`, pour qu'une mesure
@@ -537,8 +544,25 @@ pour un résultat qui ne peut pas avoir changé coûte pour rien. Chaque catégo
 a donc sa clé, faite de l'empreinte des fichiers qu'elle exerce, de ses cas,
 de son plancher, du modèle, de l'effort, de la version de Claude Code et du
 lanceur. Un push qui ne change aucun fichier exercé reprend le résultat sans
-rejouer ; le résumé du job dit « fumée reprise du cache ». **Seul un vert se sauve** : un rouge n'entre
-jamais dans le cache, pour qu'il puisse se relancer une fois.
+rejouer ; le résumé du job dit « fumée reprise du cache ». **Seul un vert se sauve,
+catégorie par catégorie** : un rouge n'entre jamais dans le cache, pour qu'il puisse
+se relancer une fois, mais une catégorie verte **pour elle-même** (aucune session en
+erreur parmi ses cas, chaque tirage au plancher ou au-dessus) est rangée même quand
+une autre catégorie rend le job rouge (code 1) ou non concluant (code 4). Son score ne
+dépend que de ses cas. Sans cela, un seul cas à la limite de 10 tours rejouait les 19
+cas (2026-10-15) ; maintenant, la relance ne rejoue que la catégorie sans vert.
+`evals_ab.py --garder-vertes <json>` écrit cette liste, et la CI range les verts avec
+`!cancelled()` : un job annulé ne range rien.
+
+**La fumée joue huit sessions en parallèle** (`EVALS_CONCURRENCE: '8'` dans le job
+`fumee`, le maximum de `claude plugin eval -j`), contre cinq pour l'A/B dont les
+planchers et le bruit ont été mesurés. La fumée est une traîne : le 2026-10-15
+(run `38738755670`, 19 cas à 5 sessions), 10 cas étaient finis à 7 min, 17 à 13 min et
+le dernier à 17 min, avec quatre places vides sur cinq à la fin. Les sessions partagent
+une seule limite de débit : si le résumé d'un job montre des sessions en erreur à 8,
+c'est le signal pour redescendre à 5. Le tableau de la fumée donne aussi **la durée de
+chaque cas, du plus long au plus court** : c'est la mesure qui manquait pour savoir quoi
+couper d'une fumée trop longue.
 
 **Un rouge à tort se relance une fois** ; au second rouge, on le signale à
 Benjamin, qui décide de poser `evals` pour trancher par l'A/B. Attention à la file : le groupe `evals-<plugin>` ne

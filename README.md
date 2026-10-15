@@ -318,7 +318,10 @@ seule, en un passage, sur les catégories que ses fichiers exercent, jugée sur
 des planchers par catégorie (`evals/categories.json`), pour 0,54 à 9,2 $ (mesurés le 2026-09-30 sur un banc de 16 cas, qui a grandi depuis : `evals/categories.json` en tient le compte).
 
 Le banc est sobre. Un seul banc tourne par plugin à la fois
-(`concurrency: evals-<plugin>`). Le rapport de la base est repris du cache selon
+(`concurrency: evals-<plugin>`), et un push sur une PR arrête les runs non finis
+de ses commits précédents (job `annuler-perimes`) au lieu de les attendre. La
+fumée joue huit sessions en parallèle et range au cache chaque catégorie verte
+même quand le job est rouge : une relance ne rejoue que les autres. Le rapport de la base est repris du cache selon
 son contenu (`--base-rapport`) au lieu d'être rejoué. Le coût est annoncé avant
 de jouer (`--estimer`), avec un plafond de 45 $ par bras. Des sessions en erreur
 rendent « non concluant » (code 4), jamais un recul. Un label étranger ajouté à
