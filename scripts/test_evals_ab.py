@@ -1590,6 +1590,17 @@ class FumeeEtPlanchers(DepotEtLanceur):
             self.assertNotIn("existant", ligne)  # seule la catégorie fautive est nommée
             self.assertNotIn("depart", ligne)
 
+    def test_garder_vertes_est_refuse_avec_un_rapport_deja_joue(self):
+        # Comme --garder-tete : les vertes sont celles de la fumée qu'on vient de jouer.
+        chemin = self.rapport_sain(
+            {"appelants": 1.0, "existant-jeu-de-questions": 0.9, "maquette-requise": 0.9}
+        )
+        code, sortie, erreur = jouer(
+            self.argv("--fumee", "--tete-rapport", str(chemin),
+                      "--garder-vertes", str(self.racine / "vertes.json")), self.env)
+        self.assertEqual(code, 3, sortie + erreur)
+        self.assertIn("--garder-vertes", erreur)
+
     def test_un_rapport_sain_rend_la_fumee_verte(self):
         chemin = self.rapport_sain(
             {"appelants": 1.0, "existant-jeu-de-questions": 0.9, "maquette-requise": 0.9}
@@ -1744,6 +1755,62 @@ BANC_DE_LA_FUMEE = {
 }
 
 
+class FumeeCategoriesVertes(unittest.TestCase):
+    """``Fumee.vertes()`` : les catégories vertes **pour elles-mêmes**, que la CI range au
+    cache même quand une autre catégorie rend le job rouge ou non concluant."""
+
+    CATEGORIES = {
+        "depart": {"cas": ["appelants"], "plancher": 0.82},
+        "existant": {"cas": ["existant-jeu-de-questions"], "plancher": 0.65},
+        "maquette": {"cas": ["maquette-requise"], "plancher": 0.80},
+    }
+
+    def rapport_session_limite(self) -> dict:
+        return json.loads((FIXTURES / "rapport_tete_session_limite.json").read_text("utf-8"))
+
+    def test_une_categorie_sans_erreur_au_plancher_est_verte_malgre_les_autres_en_panne(self):
+        f = evals_ab.juger_fumee(self.rapport_session_limite(), self.CATEGORIES, [])
+        # Les deux autres ont des sessions en erreur : la fumée est non concluante (code 4),
+        # mais « depart » (1 · 1 · 1, aucune erreur) mérite d'être gardée.
+        self.assertEqual(f.vertes(), ["depart"])
+
+    def test_une_categorie_sous_son_plancher_n_est_pas_verte_meme_sans_erreur(self):
+        r = self.rapport_session_limite()
+        for c in r["cases"]:
+            for passage in c["arms"]["with"]:
+                passage["error"] = None
+                passage["score"] = 0.5 if c["name"] == "maquette-requise" else 1.0
+        f = evals_ab.juger_fumee(r, self.CATEGORIES, [])
+        self.assertEqual(f.vertes(), ["depart", "existant"])  # « maquette » (0,5 < 0,80) en est exclue
+
+    def test_un_seul_tirage_sous_le_plancher_suffit_a_exclure_la_categorie(self):
+        r = self.rapport_session_limite()
+        for c in r["cases"]:
+            for k, passage in enumerate(c["arms"]["with"]):
+                passage["error"] = None
+                passage["score"] = 0.0 if (c["name"] == "appelants" and k == 1) else 1.0
+        f = evals_ab.juger_fumee(r, self.CATEGORIES, [])
+        self.assertNotIn("depart", f.vertes())
+        self.assertIn("existant", f.vertes())
+
+    def test_les_durees_vont_du_cas_le_plus_long_au_plus_court(self):
+        r = self.rapport_session_limite()
+        for c, d in zip(r["cases"], (30, 725, 61)):
+            for passage in c["arms"]["with"]:
+                passage["durationSeconds"] = d
+        f = evals_ab.juger_fumee(r, self.CATEGORIES, [])
+        ligne = evals_ab.lignes_durees(f.durees)[0]
+        noms = [c["name"] for c in r["cases"]]
+        attendu = [noms[1], noms[2], noms[0]]
+        positions = [ligne.index(n) for n in attendu]
+        self.assertEqual(positions, sorted(positions), ligne)
+        self.assertIn("12 min 05 s", ligne)
+        self.assertIn("30 s", ligne)
+
+    def test_sans_aucune_duree_au_rapport_la_ligne_est_omise(self):
+        self.assertEqual(evals_ab.lignes_durees({"a": 0.0, "b": 0.0}), [])
+
+
 class CleDuCacheDeLaFumee(unittest.TestCase):
     """Le pas « Clé du cache de la fumée » de ci.yml, joué pour de bon.
 
@@ -1827,10 +1894,14 @@ class FumeeSauveeSeulementSiVerte(DepotEtLanceur):
         self.temp = self.racine / "runner-temp"
         self.temp.mkdir()
 
-    def pas_jeu(self, scores: dict[str, int], reprises: dict[int, str] | None = None
-                ) -> tuple[subprocess.CompletedProcess, dict]:
+    def pas_jeu(self, scores: dict[str, int], reprises: dict[int, str] | None = None,
+                en_erreur: tuple[str, ...] = ()) -> tuple[subprocess.CompletedProcess, dict]:
         rapport_joue = self.racine / "joue.json"
-        ecrire(rapport_joue, json.dumps(rapport_synthetique({n: [s] for n, s in scores.items()})))
+        rapport = rapport_synthetique({n: [s] for n, s in scores.items()})
+        for c in rapport["cases"]:
+            if c["name"] in en_erreur:
+                c["arms"]["with"][0]["error"] = "exit 1: You've hit your session limit"
+        ecrire(rapport_joue, json.dumps(rapport))
         sortie_cle = self.racine / "sortie-cle.txt"
         sortie_cle.write_text("", "utf-8")
         selection = '{"jouet": {"tout": true}}'
@@ -1862,9 +1933,28 @@ class FumeeSauveeSeulementSiVerte(DepotEtLanceur):
         rapport_beta = json.loads((self.temp / "fumee-cache" / "1" / "rapport.json").read_text("utf-8"))
         self.assertEqual([c["name"] for c in rapport_beta["cases"]], ["beta"])  # la catégorie, rien d'autre
         shutil.rmtree(self.temp / "fumee-cache")
-        # Rouge : « deux » (cas beta) sous son plancher de 0,8.
+        # Rouge : « deux » (cas beta) sous son plancher de 0,8. Elle ne se sauve pas ; « un »,
+        # verte pour elle-même, oui (2026-10-15 : sans cela, la relance rejouait tout).
         r, sorties = self.pas_jeu({"alpha": 1, "beta": 0})
         self.assertEqual(r.returncode, 1, r.stdout + r.stderr)
+        self.assertEqual({k for k in sorties if k.startswith("sauver")}, {"sauver_0"})
+        self.assertEqual([p.parent.name for p in (self.temp / "fumee-cache").rglob("rapport.json")], ["0"])
+
+    def test_une_fumee_non_concluante_sauve_les_categories_sans_erreur_et_pas_les_autres(self):
+        # « deux » a une session en erreur (limite de session) : code 4, jamais rangée.
+        # « un » n'a aucune erreur et passe son plancher : elle est rangée quand même.
+        r, sorties = self.pas_jeu({"alpha": 1, "beta": 1}, en_erreur=("beta",))
+        self.assertEqual(r.returncode, 4, r.stdout + r.stderr)
+        self.assertEqual({k for k in sorties if k.startswith("sauver")}, {"sauver_0"})
+        rapport_un = json.loads((self.temp / "fumee-cache" / "0" / "rapport.json").read_text("utf-8"))
+        self.assertEqual([c["name"] for c in rapport_un["cases"]], ["alpha"])
+        self.assertFalse((self.temp / "fumee-cache" / "1" / "rapport.json").exists())
+
+    def test_une_categorie_en_erreur_n_est_jamais_sauvee_meme_quand_son_score_passe_le_plancher(self):
+        # Témoin du témoin : le score d'un cas en erreur peut rester haut (le rapport garde
+        # le score que les juges ont donné). Seule l'absence d'erreur rend une catégorie verte.
+        r, sorties = self.pas_jeu({"alpha": 1, "beta": 1}, en_erreur=("alpha", "beta"))
+        self.assertEqual(r.returncode, 4, r.stdout + r.stderr)
         self.assertEqual([k for k in sorties if k.startswith("sauver")], [])
         self.assertEqual(list((self.temp / "fumee-cache").rglob("rapport.json")), [])
 

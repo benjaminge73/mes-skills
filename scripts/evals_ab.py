@@ -150,7 +150,11 @@ répète : les rapports sont **recollés** (leurs cas mis bout à bout, un cas d
 est gardé une fois, le premier rapport l'emporte) puis jugés comme un seul — c'est
 ainsi que la CI juge ensemble les catégories reprises de son cache et celles qu'elle
 vient de jouer. ``--garder-tete <json>`` garde, avec ``--fumee`` joué, le rapport de
-la tête (pour que la CI en sauve une part par catégorie). Une catégorie sans
+la tête (pour que la CI en sauve une part par catégorie). ``--garder-vertes <json>``
+écrit, avec ``--fumee`` joué, la liste des catégories vertes **pour elles-mêmes** (aucune
+session en erreur, tirages au plancher ou au-dessus) : la CI en sauve la fumée même
+quand une autre catégorie est rouge ou en panne, pour qu'une relance ne rejoue qu'elles.
+Une catégorie sans
 plancher n'est pas jugée : la fumée la saute et la nomme (stderr et sous le
 tableau), sans plancher implicite à 0 qui la ferait passer en VERT. Un plancher
 **invalide** fait refuser le mode (code 3). Le plancher d'une catégorie est mesuré
@@ -1224,6 +1228,7 @@ class LigneFumee:
     scores: list[float]  # un score par tirage
     plancher: float
     cout: float
+    erreurs: int = 0  # sessions en erreur parmi les cas de la catégorie
 
 
 @dataclass
@@ -1234,9 +1239,23 @@ class Fumee:
     sessions: int
     ignores: list[str]  # cas du rapport qu'aucune catégorie ne porte
     sans_plancher: list[str]  # catégories jouées, écartées du jugement (plancher non mesuré)
+    durees: dict[str, float] = field(default_factory=dict)  # cas -> secondes (le plus long tirage)
 
     def sous_plancher(self, tirage: int) -> list[LigneFumee]:
         return [x for x in self.lignes if x.scores[tirage] < x.plancher - EPSILON]
+
+    def vertes(self) -> list[str]:
+        """Les catégories jugées **vertes pour elles-mêmes** : aucune session en erreur
+        parmi leurs cas, et chaque tirage au plancher ou au-dessus.
+
+        Une autre catégorie rouge, ou en panne, ne change rien à celles-ci : leur score ne
+        dépend que de leurs cas. C'est ce qui permet de garder leur fumée au cache même
+        quand le job est rouge, pour qu'une relance ne rejoue que les autres.
+        """
+        return [
+            x.categorie for x in self.lignes
+            if x.erreurs == 0 and all(v >= x.plancher - EPSILON for v in x.scores)
+        ]
 
 
 def _note_sans_plancher(nom: str) -> str:
@@ -1298,16 +1317,40 @@ def juger_fumee(rapport: dict, categories: dict[str, dict], sans_plancher: list[
             float(p.get("costUsd", 0)) + float(p.get("judgeCostUsd", 0))
             for n in joues for p in par_cas[n]
         )
-        lignes.append(LigneFumee(nom, joues, scores, float(categorie["plancher"]), cout))
+        en_erreur = sum(1 for n in joues for p in par_cas[n] if p.get("error"))
+        lignes.append(LigneFumee(nom, joues, scores, float(categorie["plancher"]), cout, en_erreur))
     if not lignes and not sans_jouees:
         raise ErreurRefus("aucun cas du rapport n'appartient à une catégorie : rien à juger")
     erreurs, total = sessions_en_erreur(rapport)
     par_tirage = [sum(1 for _, k, _ in erreurs if k == t) for t in range(tirages)]
-    return Fumee(lignes, tirages, par_tirage, total, sorted(set(par_cas) - portes), sans_jouees)
+    durees = {
+        n: max((float(p.get("durationSeconds") or 0) for p in passages), default=0.0)
+        for n, passages in par_cas.items()
+    }
+    return Fumee(lignes, tirages, par_tirage, total, sorted(set(par_cas) - portes), sans_jouees,
+                 durees)
 
 
 def _score(x: float) -> str:
     return f"{x:.2f}".replace(".", ",")
+
+
+def _duree(secondes: float) -> str:
+    s = int(round(secondes))
+    return f"{s // 60} min {s % 60:02d} s" if s >= 60 else f"{s} s"
+
+
+def lignes_durees(durees: dict[str, float]) -> list[str]:
+    """Les cas du plus long au plus court, pour voir d'où vient la traîne d'une fumée.
+
+    Le journal du job ne dit pas la durée d'un cas : sans cette ligne, « la fumée est
+    longue » reste une impression (2026-10-15). Rien si le rapport n'a aucune durée.
+    """
+    if not any(durees.values()):
+        return []
+    cas = sorted(durees.items(), key=lambda kv: (-kv[1], kv[0]))
+    return ["Durée des cas, du plus long au plus court : "
+            + ", ".join(f"{n} {_duree(d)}" for n, d in cas) + ".", ""]
 
 
 def tableau_fumee(f: Fumee, etiquette_tete: str, motif_panne_texte: str) -> str:
@@ -1336,6 +1379,7 @@ def tableau_fumee(f: Fumee, etiquette_tete: str, motif_panne_texte: str) -> str:
                 + ", ".join(f"{x.categorie} {_score(x.scores[k])} < {_score(x.plancher)}" for x in sous)
             )
         sortie.append(f"tirage {k + 1} : " + (f"ROUGE — {' ; '.join(raisons)}" if raisons else "VERT"))
+    sortie.extend(lignes_durees(f.durees))
     if f.ignores:
         sortie.append(f"Note : cas sans catégorie, non jugés : {', '.join(f.ignores)}.")
     for nom in f.sans_plancher:
@@ -1471,6 +1515,9 @@ def construire_parseur() -> argparse.ArgumentParser:
                         "recollés puis jugés comme un seul")
     p.add_argument("--garder-tete", metavar="FICHIER",
                    help="avec --fumee joué : copie ici le rapport de la tête (jugé ou non)")
+    p.add_argument("--garder-vertes", metavar="FICHIER",
+                   help="avec --fumee joué : écrit la liste JSON des catégories vertes pour "
+                        "elles-mêmes (sans session en erreur, au plancher ou au-dessus)")
     p.add_argument("--previol-seul", action="store_true",
                    help="ne fait que le pré-vol (gratuit) et s'arrête")
     return p
@@ -1570,6 +1617,8 @@ def _fumee(args, options_lanceur: list[str], depot: Path, plugin: str,
     f = juger_fumee(rapport, categories, sans_plancher)
     for nom in f.sans_plancher:
         print(_note_sans_plancher(nom), file=sys.stderr)
+    if args.garder_vertes:
+        Path(args.garder_vertes).write_text(json.dumps(f.vertes()), "utf-8")
     panne = motif_panne({"tête": rapport})
     print(tableau_fumee(f, etiq, panne))
     if panne:
@@ -1604,6 +1653,8 @@ def _executer(args, options_lanceur: list[str], commande: str) -> int:
         raise ErreurRefus("--tete-rapport ne sert qu'avec --fumee")
     if args.garder_tete and not (args.fumee and not args.tete_rapport):
         raise ErreurRefus("--garder-tete ne sert qu'avec --fumee joué (sans --tete-rapport)")
+    if args.garder_vertes and not (args.fumee and not args.tete_rapport):
+        raise ErreurRefus("--garder-vertes ne sert qu'avec --fumee joué (sans --tete-rapport)")
     if args.fumee and args.tete_rapport:
         return _fumee(args, options_lanceur, depot, plugin, sources, lanceur)
 

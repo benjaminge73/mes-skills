@@ -420,5 +420,50 @@ class LaFumeeAttendDansLeGroupeDesEvals(unittest.TestCase):
         self.assertEqual(annulation, "false")
 
 
+def _texte_du_job(nom: str) -> str:
+    texte = CI.read_text(encoding="utf-8")
+    job = re.search(rf"^  {re.escape(nom)}:\n(.*?)(?=^  [a-z][\w-]*:\n|\Z)", texte,
+                    re.MULTILINE | re.DOTALL)
+    assert job, f"job {nom} introuvable dans ci.yml"
+    return job.group(1)
+
+
+class LaFumeeSeRelanceEtSeFileSansPerdreDeTemps(unittest.TestCase):
+    """Les trois leviers du 2026-10-15 : huit sessions, des verts rangés même sur un job rouge,
+    et les runs périmés d'une PR arrêtés. Chacun tient dans ci.yml, donc se défait d'une ligne."""
+
+    def test_la_fumee_joue_huit_sessions_au_plus_le_maximum_du_cli(self):
+        fumee = _texte_du_job("fumee")
+        m = re.search(r"(?m)^      EVALS_CONCURRENCE: '(\d+)'", fumee)
+        self.assertIsNotNone(m, "EVALS_CONCURRENCE absent du job fumee")
+        self.assertEqual(m.group(1), "8")  # `claude plugin eval -j` accepte 1 à 8
+
+    def test_chaque_sauvegarde_de_la_fumee_tourne_meme_quand_le_pas_jouer_est_rouge(self):
+        fumee = _texte_du_job("fumee")
+        conditions = re.findall(r"(?m)^        if: (.*sauver_\d.*)$", fumee)
+        self.assertEqual(len(conditions), 8)
+        for c in conditions:
+            # Sans `!cancelled()`, le succès implicite saute le pas dès que « Jouer » sort en 1
+            # ou en 4 : les verts des autres catégories ne seraient jamais rangés.
+            self.assertIn("!cancelled()", c)
+            self.assertNotIn("always()", c)  # jamais sur un job annulé
+
+    def test_le_pas_jouer_demande_la_liste_des_categories_vertes(self):
+        fumee = _texte_du_job("fumee")
+        self.assertIn('--garder-vertes "$joue/vertes.json"', fumee)
+
+    def test_les_runs_perimes_sont_arretes_sans_checkout_ni_run_plus_recent(self):
+        job = _texte_du_job("annuler-perimes")
+        self.assertNotIn("actions/checkout", job)  # jamais de code de PR avec `actions: write`
+        self.assertRegex(job, r"(?m)^      actions: write$")
+        self.assertIn("github.event_name == 'pull_request'", job)
+        self.assertIn("head.repo.full_name == github.repository", job)
+        self.assertIn('select(.head_sha != env.SHA)', job)  # pas le même commit (label étranger)
+        self.assertIn('select(.id < (env.RUN_ID | tonumber))', job)  # jamais un run plus récent
+        self.assertIn('-f branch="$BRANCHE"', job)  # la branche passe par l'environnement
+        script = job.split("run: |", 1)[1]
+        self.assertNotIn("${{", script)  # aucune expression GitHub collée dans le script lui-même
+
+
 if __name__ == "__main__":
     unittest.main()

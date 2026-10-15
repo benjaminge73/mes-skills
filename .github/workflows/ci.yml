@@ -115,6 +115,56 @@ jobs:
           VOYAGES_CHROMIUM_SANS_BAC_A_SABLE: "1"
         run: scripts/ci_locale.sh validation
 
+  annuler-perimes:
+    name: Annuler les runs périmés de la PR
+    # Un push sur une PR rend périmé le run du commit précédent, mais rien ne l'arrêtait :
+    # sa fumée (15 à 18 min) gardait le groupe `evals-<plugin>` pendant que celle du nouveau
+    # commit attendait derrière elle (2026-10-15 : 14 min d'attente derrière la fumée du
+    # commit précédent de la même PR, run 38738755670). Ce job arrête donc les runs de la
+    # même branche qui ne sont pas finis, ont un identifiant plus petit (jamais un run plus
+    # récent) et portent un autre SHA de tête (jamais un run du même commit, dont un label
+    # étranger recopie le verdict). Le groupe de concurrence, lui, ne change pas : deux PR
+    # différentes se suivent toujours dans la file, donc aucune limite de débit disputée.
+    #
+    # Aucun checkout et aucun code de la PR ici : le jeton a `actions: write`, il ne doit
+    # jamais exécuter ce que la PR apporte. La branche arrive par l'environnement, jamais
+    # interpolée dans le script. Un échec de l'API est un avertissement, pas un job rouge :
+    # le run périmé finit alors tout seul, comme avant.
+    if: >-
+      github.event_name == 'pull_request'
+      && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: write
+    steps:
+      - name: Annuler les runs non finis des commits précédents
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          BRANCHE: ${{ github.event.pull_request.head.ref }}
+          SHA: ${{ github.event.pull_request.head.sha }}
+          RUN_ID: ${{ github.run_id }}
+        run: |
+          set -uo pipefail
+          if ! perimes=$(gh api -X GET "repos/$REPO/actions/workflows/ci.yml/runs" \
+                -f event=pull_request -f branch="$BRANCHE" -f per_page=50 \
+                --jq '.workflow_runs[] | select(.status != "completed") | select(.head_sha != env.SHA) | select(.id < (env.RUN_ID | tonumber)) | .id'); then
+            echo "::warning title=Runs périmés::La liste des runs de la branche est illisible : rien n'est annulé."
+            exit 0
+          fi
+          if [ -z "$perimes" ]; then
+            echo "Aucun run périmé."
+            exit 0
+          fi
+          for id in $perimes; do
+            if gh api -X POST "repos/$REPO/actions/runs/$id/cancel" >/dev/null; then
+              echo "Run périmé $id annulé."
+            else
+              echo "::warning title=Runs périmés::Le run $id n'a pas pu être annulé (déjà fini ?)."
+            fi
+          done
+
   evals-portee:
     name: Portée des évals
     # Mêmes garde-fous que `merge-auto`, plus « pas depuis un fork » : ce job
@@ -783,13 +833,19 @@ jobs:
         # « aucun » n'est jamais joué : `if` saute le job avant (voir `evals`).
         plugin: ${{ fromJSON(needs.evals-portee.outputs.fumee_plugins || '["aucun"]') }}
     env:
-      # Les mêmes valeurs que le job `evals` : un autre modèle ou un autre effort
-      # changerait les scores, donc les planchers de `evals/categories.json`, qui
-      # ont été mesurés avec ceux-ci.
+      # Le modèle et l'effort sont ceux du job `evals` : un autre modèle ou un autre
+      # effort changerait les scores, donc les planchers de `evals/categories.json`,
+      # qui ont été mesurés avec ceux-ci. La concurrence, elle, ne change pas un score :
+      # 8 sessions en parallèle (le maximum de `claude plugin eval -j`) au lieu de 5, parce
+      # que la fumée est une traîne (2026-10-15, run 38738755670 : 10 cas sur 19 finis à
+      # 7 min, le dernier à 17 min, avec 4 places vides sur 5 pendant la fin). Les sessions
+      # partagent une seule limite de débit : si des sessions tombent en erreur (code 4), on le
+      # voit dans le résumé du job, et c'est le signal pour redescendre à 5. La relance, elle,
+      # ne rejoue que les catégories qui n'ont pas de vert au cache.
       EVALS_MODELE: claude-sonnet-5-5
       EVALS_EFFORT: high
       EVALS_MAX_COUT_USD: '45'
-      EVALS_CONCURRENCE: '5'
+      EVALS_CONCURRENCE: '8'
     steps:
       - name: Vérifier que le jeton est là
         # Premier pas, avant tout coût : sans jeton, on échoue net et on le dit.
@@ -1026,7 +1082,8 @@ jobs:
           code=0
           if [ "$rejouer" = true ]; then
             set +e
-            python3 scripts/evals_ab.py "${args[@]}" --fumee --garder-tete "$joue/rapport.json" -- \
+            python3 scripts/evals_ab.py "${args[@]}" --fumee --garder-tete "$joue/rapport.json" \
+              --garder-vertes "$joue/vertes.json" -- \
               --concurrency "$EVALS_CONCURRENCE" \
               2>&1 >"$sortie/tableau.md" | tee "$journal_log" >&2
             code=${PIPESTATUS[0]}
@@ -1055,14 +1112,23 @@ jobs:
             fi
           } >> "$GITHUB_STEP_SUMMARY"
 
-          # Seul un vert se sauve : un rouge, un non concluant ou un refus ne
-          # laissent aucune sortie `sauver_<n>`, donc les pas de sauvegarde sautent
-          # et la fumée se rejouera au prochain essai. On ne sauve que les catégories
-          # jouées (les autres sont déjà en cache), chacune avec ses seuls cas.
-          if [ "$code" -eq 0 ] && [ "$rejouer" = true ] && [ -s "$joue/rapport.json" ]; then
+          # Seul un vert se sauve, **catégorie par catégorie** : une fumée entièrement verte
+          # (code 0) sauve toutes les catégories jouées ; une fumée rouge (1) ou non
+          # concluante (4) ne sauve que celles que `--garder-vertes` nomme (aucune session en
+          # erreur parmi leurs cas, tirages au plancher ou au-dessus), car leur score ne
+          # dépend pas des autres. Une relance ne rejoue alors que les catégories sans vert
+          # (2026-10-15 : un cas à la limite de 10 tours rejouait les 19). Un refus (3, ...) ou
+          # un rapport absent ne sauvent rien, et ne laissent aucune sortie `sauver_<n>`.
+          # On ne sauve que les catégories jouées (les autres sont déjà en cache), chacune
+          # avec ses seuls cas.
+          if [ "$rejouer" = true ] && [ -s "$joue/rapport.json" ] \
+             && { [ "$code" -eq 0 ] || { { [ "$code" -eq 1 ] || [ "$code" -eq 4 ]; } && [ -s "$joue/vertes.json" ]; }; }; then
             for k in "${!noms_joues[@]}"; do
               slot=${slots_joues[$k]}
               [ "$slot" -ge 0 ] || continue
+              if [ "$code" -ne 0 ] && ! jq -e --arg c "${noms_joues[$k]}" 'index($c) != null' "$joue/vertes.json" >/dev/null; then
+                continue
+              fi
               mkdir -p "$reprise/$slot"
               jq --argjson cas "${cas_json_joues[$k]}" \
                 '.cases |= map(select(.name | IN($cas[])))' "$joue/rapport.json" > "$reprise/$slot/part.json"
@@ -1084,58 +1150,61 @@ jobs:
           exit "$code"
 
       # Une sauvegarde par place, sur la seule sortie du pas « Jouer » : sans vert, pas
-      # de `sauver_<n>`, donc pas de sauvegarde. Aucun `always()` ici, à dessein.
+      # de `sauver_<n>`, donc pas de sauvegarde. `!cancelled()` et non le succès par défaut :
+      # le pas « Jouer » sort en 1 ou 4 quand une autre catégorie est rouge ou en panne, et
+      # les verts de celles qui ont réussi doivent quand même être rangés. Jamais `always()` :
+      # un job annulé (délai de 45 min, ou une fumée périmée) ne range rien.
       - name: Ranger la fumée de la place 0
-        if: steps.jeu.outputs.sauver_0 == 'true'
+        if: ${{ !cancelled() && steps.jeu.outputs.sauver_0 == 'true' }}
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ runner.temp }}/fumee-cache/0/rapport.json
           key: ${{ steps.cle.outputs.cle_0 }}
 
       - name: Ranger la fumée de la place 1
-        if: steps.jeu.outputs.sauver_1 == 'true'
+        if: ${{ !cancelled() && steps.jeu.outputs.sauver_1 == 'true' }}
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ runner.temp }}/fumee-cache/1/rapport.json
           key: ${{ steps.cle.outputs.cle_1 }}
 
       - name: Ranger la fumée de la place 2
-        if: steps.jeu.outputs.sauver_2 == 'true'
+        if: ${{ !cancelled() && steps.jeu.outputs.sauver_2 == 'true' }}
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ runner.temp }}/fumee-cache/2/rapport.json
           key: ${{ steps.cle.outputs.cle_2 }}
 
       - name: Ranger la fumée de la place 3
-        if: steps.jeu.outputs.sauver_3 == 'true'
+        if: ${{ !cancelled() && steps.jeu.outputs.sauver_3 == 'true' }}
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ runner.temp }}/fumee-cache/3/rapport.json
           key: ${{ steps.cle.outputs.cle_3 }}
 
       - name: Ranger la fumée de la place 4
-        if: steps.jeu.outputs.sauver_4 == 'true'
+        if: ${{ !cancelled() && steps.jeu.outputs.sauver_4 == 'true' }}
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ runner.temp }}/fumee-cache/4/rapport.json
           key: ${{ steps.cle.outputs.cle_4 }}
 
       - name: Ranger la fumée de la place 5
-        if: steps.jeu.outputs.sauver_5 == 'true'
+        if: ${{ !cancelled() && steps.jeu.outputs.sauver_5 == 'true' }}
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ runner.temp }}/fumee-cache/5/rapport.json
           key: ${{ steps.cle.outputs.cle_5 }}
 
       - name: Ranger la fumée de la place 6
-        if: steps.jeu.outputs.sauver_6 == 'true'
+        if: ${{ !cancelled() && steps.jeu.outputs.sauver_6 == 'true' }}
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ runner.temp }}/fumee-cache/6/rapport.json
           key: ${{ steps.cle.outputs.cle_6 }}
 
       - name: Ranger la fumée de la place 7
-        if: steps.jeu.outputs.sauver_7 == 'true'
+        if: ${{ !cancelled() && steps.jeu.outputs.sauver_7 == 'true' }}
         uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ${{ runner.temp }}/fumee-cache/7/rapport.json
