@@ -12,6 +12,7 @@ et la façon de la préparer ne vivent qu'ici.
 - La page
 - Le travail préliminaire : les règles d'un plan classique, plan par plan
 - Ce qui reste au pilote
+- Les plans du lot passent par `pret`
 - Lancé par `executer-plan-notion`
 
 ## Pourquoi ce fichier
@@ -121,6 +122,20 @@ déjà rendues ne se relisent pas à cause d'un repli sur une autre.
   reste au pilote »).
 - **Les questions à Benjamin**, groupées sur la page maître en un seul tableau,
   sans remplacer celles des pages.
+
+## Les plans du lot passent par `pret`
+
+La page maître n'a pas de `Statut`, mais chaque plan qu'elle couvre en a un, et
+la colonne `Statut` de son tableau montre où il en est. **Un plan `valide` ne
+passe pas à `en cours` sans être passé par `pret`** : sa préparation
+(`executer-plan-notion` §2, `ouverture.md`) est faite, son entrée `Ouverture`
+écrite et `preparation-prete.py` à 0. Le pilote prépare les plans du lot avant
+de lancer la première étape d'aucun — l'enquête ci-dessus en est la matière :
+les fiches du `lecteur` et des `enqueteur` nourrissent les puces **Relecture**,
+**Preuves** et **Répétition** de chaque plan. Un plan `pret` attend son tour de
+vague ; il passe `en cours` quand son tour vient, pas avant. La page maître
+mentionne dans l'avancement le plan qui reste `valide` faute de préparation
+complète, et ce qui lui manque.
 
 ## Lancé par `executer-plan-notion`
 

@@ -6,6 +6,7 @@ valeur accentuée (« exécuté ») crée une option fantôme dans la base Notio
 Seule une valeur qui, une fois désaccentuée, est une valeur de plan est refusée :
 le hook ne voit que ``page_id``, pas la base de la page, et une autre base peut
 avoir son propre champ « Statut » aux valeurs accentuées (« prête », « à rejouer »).
+Le statut ``pret`` (préparation faite, avant ``en cours``) est une valeur de plan : « prêt » est refusé.
 Refus : code 2, motif et valeurs admises sur stderr. Permis : code 0, sans sortie.
 Entrée illisible : code 0 avec un mot sur stderr (un garde-fou cassé ne bloque rien).
 """
@@ -15,7 +16,7 @@ import json
 import sys
 import unicodedata
 
-ADMISES = ("brouillon", "en revue", "valide", "en cours", "a merger", "execute", "archive")
+ADMISES = ("brouillon", "en revue", "valide", "pret", "en cours", "a merger", "execute", "archive")
 
 
 def _textes(valeur):
