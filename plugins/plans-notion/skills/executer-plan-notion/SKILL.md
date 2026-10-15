@@ -331,6 +331,7 @@ Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard »
   pour celles faites en direct, pourquoi ; il dit aussi que **la PR est ouverte**
   (son URL), prête, ou pourquoi elle est en brouillon, retenue, ou attend la
   réponse de Benjamin sur un trou e2e.
+- **Preuve doc, avant le push** : `qualite-doc.py lecteurs` puis `juger` (`cloture.md`, point 2 bis) ; passages douteux ou marqués d'office traités, sinon la clôture ne s'ouvre pas.
 - **Porte des preuves, avant le push** : `preuves-des-etapes.py <page.md>
   --apres` — code 0, on poursuit ; code 1, des défauts de journal, on corrige
   la page et on rejoue ; code 3, une étape `unverifiable` est nommée, et sa
@@ -480,6 +481,7 @@ parallèle ; le pilote ne garde que le croisement) vivent dans un seul fichier :
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/remontee-sur-main.md`,
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/plan-de-suite.md`,
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/preuve-du-rouge.md`,
+  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/grille-doc.md`,
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/maquettes-html.md`,
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/revue.md`,
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/bons-tests.md`,

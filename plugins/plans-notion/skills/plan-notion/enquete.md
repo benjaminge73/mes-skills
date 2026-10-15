@@ -79,7 +79,10 @@ qui est déjà su.** Six gisements, du moins cher au plus cher :
    **Ce qu'on en fait.** La carte part dans le brief de l'enquêteur. Il la vérifie ligne
    à ligne, appelant par appelant (geste 5 de `agents/enqueteur.md`), et cherche ce que le
    graphe ne voit pas (« Ce que le graphe ne voit pas », sous le geste 6). Une fois
-   vérifiée, elle entre dans `Contraintes techniques vérifiées`.
+   vérifiée, elle entre dans `Contraintes techniques vérifiées`. L'enquêteur relève aussi,
+   dans les `*.md` du dépôt, les passages qui citent chaque fichier et symbole touché
+   (« lecteurs documentaires », sous le geste 9) : ils alimentent le champ « Docs relues »
+   de chaque étape.
 4. **L'historique.** `git log` sur les fichiers concernés, PR mergées, tests
    existants. Un comportement qui a déjà été changé l'a été pour une raison, et
    cette raison contraint le plan.
