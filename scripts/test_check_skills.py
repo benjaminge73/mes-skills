@@ -775,11 +775,12 @@ class RegistreDuLotB9(unittest.TestCase):
         self.assertIn("ci.yml#evals-portee", cellules[3])
         self.assertTrue(cellules[5].startswith("en place"))
 
-    def test_le_verdict_au_nom_fixe_est_au_registre_et_le_ruleset_ne_l_exige_pas_encore(self):
+    def test_le_verdict_au_nom_fixe_est_au_registre_et_exige_par_le_ruleset(self):
         cellules = self.ligne("Verdict des évals au nom fixe")
         self.assertIn("ci.yml#evals-verdict", cellules[3])
         self.assertTrue(cellules[5].startswith("en place"))
-        self.assertIn("pas encore exigé par le ruleset", " ".join(cellules))
+        self.assertIn("exigé par le ruleset", " ".join(cellules))
+        self.assertNotIn("pas encore", " ".join(cellules))
 
 
 class LireFrontmatter(unittest.TestCase):

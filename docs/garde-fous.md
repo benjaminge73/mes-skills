@@ -41,7 +41,7 @@ Le statut dit où en est le garde :
 | Le pilote vérifie le modèle réel du premier executant | qu'une session mise à jour sans rechargement fasse tourner ses executants sur la définition périmée gardée en mémoire (Sonnet au lieu du `model: haiku` installé), sans que rien ne le signale : `modele-sous-agent.py --agent` lit la définition dans la version installée et la compare au `message.model` de la transcription | 2026-10-08, validation de `plans-notion` 0.20.0 sur un plan Vahiny (executant en `claude-sonnet-5-5` avant `/reload-plugins`) | `scripts/test_modele_sous_agent.py` | CI, job `validation`, via `scripts/ci_locale.sh`, et en local | en place |
 | Chaque cas d'éval a sa catégorie | qu'un cas qu'aucune catégorie ne nomme ne soit jamais joué par une PR qui choisit ses catégories, et qu'une catégorie ne pointe pas dans le vide (cas ou chemin inexistant) | 2026-09-30, plan « Chercher, prouver, paralléliser #2 », étape B9 | `scripts/check_skills.py` (règle i), `evals/categories.json` | CI, job `garde` | en place |
 | Plancher des évals | qu'une PR qui choisit ses catégories ne laisse pas un skill ou un agent modifié sans cas joué ; ce qui touche le socle commun (hooks, banc, outillage, CI) rejoue tout ; un fichier de `_partage/` ne rejoue que les catégories qui le déclarent dans `exerce` | 2026-09-30, étape B9 (décision de Benjamin : des évals par catégorie, un plancher tenu par la CI) | `scripts/evals_selection.py`, `ci.yml#evals-portee` | CI, job `evals-portee`, sur les PR | en place |
-| Verdict des évals au nom fixe | qu'un contrôle d'évals puisse être exigé par le verrou de `main` : le nom de `Évals (<plugin>)` change avec la matrice, celui-ci non (rouge si la portée, un bras ou la fumée est rouge ou annulé, vert s'il est sauté ; sur un label étranger il recopie le dernier verdict du SHA) | 2026-09-30, étape B9 | `ci.yml#evals-verdict` | CI, job `Verdict des évals` ; pas encore exigé par le ruleset au 2026-10-14 | en place |
+| Verdict des évals au nom fixe | qu'un contrôle d'évals puisse être exigé par le verrou de `main` : le nom de `Évals (<plugin>)` change avec la matrice, celui-ci non (rouge si la portée, un bras ou la fumée est rouge ou annulé, vert s'il est sauté ; sur un label étranger il recopie le dernier verdict du SHA) | 2026-09-30, étape B9 | `ci.yml#evals-verdict` | CI, job `Verdict des évals` ; exigé par le ruleset `main-verrouillee` depuis le 2026-10-15 | en place |
 | Skill touché : label `evals` ou `Evals: aucun — <raison>` | qu'une PR qui change un skill, un agent, un hook ou un `_partage/` ne passe pas sans avoir dit si les évals se jouent : le silence rendrait le banc (≈ 55 $) payant à chaque PR, ou jamais joué sans que personne l'ait décidé. Sans label ni ligne `aucun` (avec la raison), la portée est refusée ; le label et le corps sont relus par l'API, jamais lus dans l'événement | 2026-10-01, plan « Évals sobres et machine partagée », étape 1 | `scripts/evals_selection.py`, `ci.yml#evals-portee` | CI, job `evals-portee`, sur les PR | en place |
 | Un label étranger ne relance pas le banc | que poser `review-required` (ou tout autre label) sur une PR qui porte déjà `evals` ne paie pas un second banc, et ne rende pas vert un SHA dont le run précédent était rouge : le verdict recopie alors le dernier verdict terminé du SHA | 2026-10-01, étapes 1 et 12 | `scripts/test_evals_selection.py`, `ci.yml#evals-portee`, `ci.yml#evals-verdict` | CI, jobs `evals-portee` et `evals-verdict` | en place |
 | Sortir du brouillon relance la CI | qu'une PR ouverte en brouillon puis sortie du brouillon soit mergée par `merge-auto` une fois verte : ce job saute les brouillons, et sans le type `ready_for_review` dans `on.pull_request.types` la sortie du brouillon ne relançait aucun run, la PR restait verte et ouverte | 2026-10-10, PR #37 (merge fait à la main) | `scripts/test_evals_selection.py` | CI, job `validation`, via `scripts/ci_locale.sh`, et en local | en place |
@@ -71,13 +71,15 @@ Le statut dit où en est le garde :
 ## Le verrou de `main`
 
 Le ruleset `main-verrouillee` interdit de supprimer `main` ou d'y réécrire
-l'historique, impose de passer par une PR, et exige trois contrôles verts :
-`Gardes de distribution`, `Validation des plugins` et `Portée des évals`. Le
-contrôle d'évals n'y figure pas encore, parce que son nom change avec le plugin
-(`Évals (<plugin>)`) : le job au nom fixe `Verdict des évals`
-(`ci.yml#evals-verdict`, étape B9) existe, mais au 2026-10-14 le ruleset ne
-l'exige toujours pas (relevé : `gh api repos/benjaminge73/mes-skills/rulesets/24256838`,
-trois contrôles : `Gardes de distribution`, `Validation des plugins`, `Portée des évals`). Aucun contournement
+l'historique, impose de passer par une PR, et exige quatre contrôles verts :
+`Gardes de distribution`, `Validation des plugins`, `Portée des évals` et
+`Verdict des évals`. Le contrôle d'évals ne pouvait pas y figurer sous son nom
+d'origine, parce que celui-ci change avec le plugin (`Évals (<plugin>)`) : le
+job au nom fixe `Verdict des évals` (`ci.yml#evals-verdict`, étape B9) l'a rendu
+exigeable. Le ruleset l'exige depuis le 2026-10-15, décision de Benjamin
+(relevé : `gh api repos/benjaminge73/mes-skills/rulesets/24256838`, quatre
+contrôles : `Gardes de distribution`, `Validation des plugins`, `Portée des évals`,
+`Verdict des évals`). Aucun contournement
 n'est prévu (`bypass_actors` vide). Retour arrière :
 `gh api -X DELETE repos/benjaminge73/mes-skills/rulesets/24256838`.
 
@@ -104,7 +106,8 @@ n'est prévu (`bypass_actors` vide). Retour arrière :
         "required_status_checks": [
           { "context": "Gardes de distribution", "integration_id": 15368 },
           { "context": "Validation des plugins", "integration_id": 15368 },
-          { "context": "Portée des évals", "integration_id": 15368 } ] } }
+          { "context": "Portée des évals", "integration_id": 15368 },
+          { "context": "Verdict des évals", "integration_id": 15368 } ] } }
   ]
 }
 ```

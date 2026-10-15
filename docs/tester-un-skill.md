@@ -503,6 +503,13 @@ mode `aa`, 3 + 3), tous à 1,00 : le plancher y est donc 0,90. `delegation` est
 mesurée de la même façon le 2026-10-12 (run `38245058146`, 6 tirages sains, tous à
 1,00) : plancher 0,90.
 
+Le plancher de `decouvertes` (0,41) a été mesuré le 2026-10-01 sur ses 4 cas
+`decouverte-*`. `cloture-ouvre-la-pr` est entré dans la catégorie avec la PR #48,
+sans remesure. Décision de Benjamin du 2026-10-15 : le plancher est conservé tel
+quel, parce que la fumée du 2026-10-14 (run `38605985231`, PR #48) a joué les 5 cas
+de la catégorie et est passée. Une remesure en banc `aa` n'est à refaire que si la
+catégorie rougit ou si ses cas changent encore.
+
 Ces valeurs sont l'origine des planchers ; ceux que la CI applique sont dans son
 code. Sur le seul bras cassé mesuré (trois bancs simultanés), les tirages
 tombaient à 0,48 – 0,52 pour 0,73 – 0,78 en bonne santé, avec 21 sessions en
