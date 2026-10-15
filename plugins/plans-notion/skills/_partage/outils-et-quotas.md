@@ -174,7 +174,8 @@ aucun repli connu au 2026-09-29.
   afficher la valeur), ou commandes lancées par Benjamin.
 
 **Repli** : pour la clé absente, faire lancer les commandes Jev par Benjamin.
-Pour le reste, aucun connu au 2026-10-08.
+Pour juger de la documentation, ne pas utiliser Jev (piège du 2026-10-15) :
+`qualite-doc.py juger` passe par Haiku. Pour le reste, aucun connu au 2026-10-08.
 
 ## Fiche — Sessions Claude
 
@@ -210,7 +211,10 @@ Pour le reste, aucun connu au 2026-10-08.
   soit environ **0,002 $ par vote**. Pour comparaison, un juge avec outils coûte
   0,86 $ par fichier relu (fiche « Claude Code (CLI `claude`) »), et un vote
   avec passage et extrait du diff environ 0,0034 $ (mesure de la preuve de
-  concept, date de lecture non consignée).
+  concept, date de lecture non consignée). Le même jour, trois rejeux sur les
+  3 fautes du jeu étiqueté, avec la grille livrée, en ont signalé 1 à 2 au seuil
+  0,45 : la note d'un même passage varie d'environ 0,2 d'un appel à l'autre, le
+  seuil de départ reste donc à recalibrer sur des passages étiquetés.
 
 **Bonne pratique** :
 
@@ -684,8 +688,9 @@ aucun connu au 2026-10-06.
 - Prouver, dès l'ouverture d'un plan, que chaque compte qui lancera `claude` le
   trouve : `sudo -u <compte> -i claude --version`.
 - Connecter chaque compte par `/login`. Vérifier par un appel minimal
-  (`claude -p … --model haiku`) sous ce compte, sans jamais lire son fichier
-  d'identifiants.
+  (`claude -p … --model claude-haiku-5-5`, identifiant complet : l'alias `haiku`
+  peut servir une autre version, voir le piège du 2026-10-15) sous ce compte, sans
+  jamais lire son fichier d'identifiants.
 - Jouer un e2e qui appelle `claude` sous le compte qui porte la connexion, pas
   sous `sudo`. Ne charger par `sudo` que les tests qui ont besoin d'un fichier
   de secrets réservé à root.
