@@ -46,6 +46,22 @@ Usage : qualite-doc.py lecteurs --base <ref> [--racine .] [--exclure <glob>…]
                                 [--max-passages N]
 Code 0 : rapport rendu. Code 2 : erreur d'usage, de git, ou fichier Python
 illisible dans la base ou dans HEAD ; le message nommé part sur la sortie d'erreur.
+
+Sous-commande ``juger`` : pour chaque passage relevé par ``lecteurs``, ``claude``
+(modèle fixé par la constante ``MODELE``) répond si le passage est encore exact
+après le changement, selon ``grille-doc.md`` (à côté de ce dossier, dans
+``_partage/``). Le score de faute d'un vote vaut ``confiance`` si ``exact`` est
+faux, sinon ``1 - confiance`` ; on retient le plus haut des ``--votes`` (le plus
+pessimiste). Un passage est douteux si son score atteint ``--seuil``. Un passage
+qui ne peut être jugé n'est jamais compté exact. L'exécutable ``claude`` se
+désigne par la variable ``QUALITE_DOC_CLAUDE`` (défaut : ``claude`` du PATH).
+
+Usage : qualite-doc.py juger --entree <passages.json> [--votes N] [--seuil S]
+                             [--max-cout D]
+Codes de ``juger`` : 0 ok ; 2 usage ou entrée illisible ; 3 juge indisponible ;
+4 plafond ``--max-cout`` atteint (le JSON partiel part sur la sortie standard, avec
+``passages_non_juges``) ; 5 modèle servi autre que ``MODELE``.
+
 Bibliothèque standard uniquement.
 """
 from __future__ import annotations
@@ -54,9 +70,12 @@ import argparse
 import ast
 import fnmatch
 import json
+import os
 import re
+import shutil
 import subprocess
 import sys
+import tempfile
 from dataclasses import dataclass, field
 from pathlib import Path, PurePosixPath
 
@@ -68,9 +87,32 @@ MAX_PASSAGES = 200
 CONSTANTE = re.compile(r"[A-Z][A-Z0-9_]*")
 ENTETE_HUNK = re.compile(r"^@@ -\d+(?:,\d+)? \+(\d+)(?:,\d+)? @@")
 
+# ``juger`` : le modèle vit en une seule constante, vérifiée dans ``modelUsage`` de chaque réponse.
+MODELE = "claude-haiku-5-5"
+# Seuil le plus haut qui signale les 3 fautes vérifiées du jeu étiqueté ; recalibré par le
+# plan 2 après 14 nuits de veille.
+SEUIL_DOUTE = 0.45
+VOTES_DEFAUT = 2
+DELAI_JUGE = 120  # secondes par appel de claude
+VARIABLE_CLAUDE = "QUALITE_DOC_CLAUDE"
+GRILLE = Path(__file__).resolve().parent.parent / "grille-doc.md"
+CODE_OK = 0
+CODE_USAGE = 2
+CODE_JUGE_INDISPONIBLE = 3
+CODE_PLAFOND_COUT = 4
+CODE_MODELE_INATTENDU = 5
+
 
 class ErreurQualite(Exception):
     """Erreur d'usage, de git ou de lecture : message nommé, code de sortie 2."""
+
+
+class ErreurJuge(Exception):
+    """Juge indisponible (code 3) ou modèle servi inattendu (code 5) : message nommé, pas de trace."""
+
+    def __init__(self, message: str, code: int = CODE_JUGE_INDISPONIBLE):
+        super().__init__(message)
+        self.code = code
 
 
 @dataclass
@@ -282,6 +324,181 @@ def lecteurs(base: str, racine_arg: Path, exclure: list[str], max_passages: int)
     }
 
 
+def lire_grille() -> str:
+    try:
+        return GRILLE.read_text(encoding="utf-8")
+    except OSError as e:
+        raise ErreurQualite(f"grille de relecture illisible : {GRILLE} ({e.strerror})") from e
+
+
+def lire_entree(chemin: Path) -> list[dict]:
+    """Passages de ``juger`` : le rapport de ``lecteurs`` (clé ``passages``) ou une liste nue."""
+    try:
+        donnee = json.loads(chemin.read_text(encoding="utf-8"))
+    except (OSError, UnicodeDecodeError, json.JSONDecodeError) as e:
+        raise ErreurQualite(f"entrée illisible : {chemin} ({e})") from e
+    passages = donnee.get("passages") if isinstance(donnee, dict) else donnee
+    if not isinstance(passages, list) or not all(
+            isinstance(p, dict) and all(k in p for k in ("fichier", "ligne", "texte")) for p in passages):
+        raise ErreurQualite(f"entrée hors format : {chemin} (attendu : un rapport de lecteurs "
+                            "ou une liste de passages)")
+    return passages
+
+
+def trouver_claude() -> str:
+    valeur = os.environ.get(VARIABLE_CLAUDE)
+    if valeur:
+        trouve = shutil.which(valeur)
+        if trouve is None:
+            raise ErreurJuge(f"juge indisponible : {VARIABLE_CLAUDE} désigne {valeur}, "
+                             "qui n'est pas un exécutable")
+    else:
+        trouve = shutil.which("claude")
+        if trouve is None:
+            raise ErreurJuge("juge indisponible : claude est absent du PATH")
+    # Relatif, il serait résolu depuis le dossier temporaire où claude est lancé.
+    return os.path.abspath(trouve)
+
+
+def prompt_du_passage(grille: str, passage: dict) -> str:
+    termes = ", ".join(passage.get("termes") or [])
+    return (f"{grille}\n\n## Passage\n\nFichier : {passage['fichier']}, ligne {passage['ligne']}\n\n"
+            f"{passage['texte']}\n\n## Termes\n\n{termes}\n\n"
+            f"## Extrait du diff\n\n{passage.get('extrait_diff', '')}\n")
+
+
+def appeler_juge(exe: str, prompt: str) -> tuple[str, float]:
+    """Un vote : rend (texte ``result``, coût en dollars). Lancé hors du dépôt, prompt sur stdin."""
+    with tempfile.TemporaryDirectory(prefix="qualite-doc-juge-") as dossier:
+        try:
+            r = subprocess.run(
+                [exe, "-p", "--model", MODELE, "--output-format", "json", "--tools", "",
+                 "--strict-mcp-config", "--setting-sources", "project", "--max-turns", "1"],
+                input=prompt.encode("utf-8"), capture_output=True, cwd=dossier, timeout=DELAI_JUGE)
+        except subprocess.TimeoutExpired as e:
+            raise ErreurJuge(f"juge indisponible : claude n'a pas répondu en {DELAI_JUGE} s") from e
+        except OSError as e:
+            raise ErreurJuge(f"juge indisponible : {exe} ne se lance pas ({e.strerror})") from e
+        if r.returncode != 0:
+            detail = r.stderr.decode("utf-8", "replace").strip()[:500]
+            raise ErreurJuge(f"juge indisponible : claude a rendu le code {r.returncode} ({detail})")
+        try:
+            sortie = json.loads(r.stdout.decode("utf-8", "replace"))
+        except json.JSONDecodeError as e:
+            raise ErreurJuge("juge indisponible : claude a rendu une sortie qui n'est pas du JSON") from e
+    if not isinstance(sortie, dict):
+        raise ErreurJuge("juge indisponible : réponse de claude hors format (pas un objet JSON)")
+    if sortie.get("is_error"):
+        raise ErreurJuge("juge indisponible : claude signale une erreur (is_error)")
+    modeles = sortie.get("modelUsage")
+    servis = set(modeles) if isinstance(modeles, dict) else set()
+    if servis != {MODELE}:
+        raise ErreurJuge(f"modèle servi inattendu : {sorted(servis) or 'aucun'} au lieu de {MODELE}",
+                         CODE_MODELE_INATTENDU)
+    cout = sortie.get("total_cost_usd")
+    if isinstance(cout, bool) or not isinstance(cout, (int, float)):
+        raise ErreurJuge("juge indisponible : réponse de claude sans coût lisible (total_cost_usd)")
+    texte = sortie.get("result")
+    return (texte if isinstance(texte, str) else ""), float(cout)
+
+
+def premier_objet_json(texte: str) -> dict | None:
+    decodeur = json.JSONDecoder()
+    for i, car in enumerate(texte):
+        if car != "{":
+            continue
+        try:
+            objet, _ = decodeur.raw_decode(texte, i)
+        except json.JSONDecodeError:
+            continue
+        if isinstance(objet, dict):
+            return objet
+    return None
+
+
+def vote_de(texte: str) -> dict:
+    """Score de faute d'un vote ; une réponse illisible compte douteuse (1,0), jamais exacte."""
+    objet = premier_objet_json(texte)
+    exact = objet.get("exact") if objet else None
+    confiance = objet.get("confiance") if objet else None
+    valide = (isinstance(exact, bool) and isinstance(confiance, (int, float))
+              and not isinstance(confiance, bool) and 0 <= confiance <= 1)
+    if not valide:
+        return {"score": 1.0, "exact": False, "confiance": None, "raison": "réponse illisible"}
+    confiance = float(confiance)
+    score = confiance if not exact else 1 - confiance
+    return {"score": score, "exact": exact, "confiance": confiance,
+            "raison": str(objet.get("raison", ""))}
+
+
+def juger(passages: list[dict], votes: int, seuil: float, max_cout: float | None) -> tuple[dict, int]:
+    """Fait voter le juge sur chaque passage ; rend (rapport, code de sortie)."""
+    exe = trouver_claude()
+    grille = lire_grille()
+    jugés: list[tuple[dict, list[dict]]] = []
+    cout = 0.0
+    for passage in passages:
+        urnes: list[dict] = []
+        for _ in range(votes):
+            if max_cout is not None and cout >= max_cout:
+                break  # plafond atteint : pas d'appel de plus, ce passage reste non jugé
+            texte, cout_appel = appeler_juge(exe, prompt_du_passage(grille, passage))
+            cout += cout_appel
+            urnes.append(vote_de(texte))
+        if len(urnes) < votes:
+            break
+        jugés.append((passage, urnes))
+    non_juges = len(passages) - len(jugés)
+
+    verdicts = []
+    for passage, urnes in jugés:
+        retenu = max(urnes, key=lambda v: v["score"])  # le plus haut : le plus pessimiste
+        verdicts.append({
+            "fichier": passage["fichier"],
+            "ligne": passage["ligne"],
+            "score": retenu["score"],
+            "exact": retenu["exact"],
+            "raison": retenu["raison"],
+            "votes": [{"score": v["score"], "exact": v["exact"], "confiance": v["confiance"]}
+                      for v in urnes],
+        })
+    douteux = [{"fichier": v["fichier"], "ligne": v["ligne"], "score": v["score"], "raison": v["raison"]}
+               for v in verdicts if v["score"] >= seuil]
+    rapport = {
+        "modele": MODELE,
+        "votes": votes,
+        "seuil": seuil,
+        "verdicts": verdicts,
+        "douteux": douteux,
+        "cout_total": cout,
+        "passages_non_juges": non_juges,
+    }
+    return rapport, (CODE_PLAFOND_COUT if non_juges else CODE_OK)
+
+
+def commande_juger(ap: argparse.ArgumentParser, args: argparse.Namespace) -> int:
+    if args.votes < 1:
+        ap.error("--votes doit être supérieur ou égal à 1")
+    if not 0 <= args.seuil <= 1:
+        ap.error("--seuil doit être compris entre 0 et 1")
+    if args.max_cout is not None and args.max_cout < 0:
+        ap.error("--max-cout doit être supérieur ou égal à 0")
+    try:
+        passages = lire_entree(args.entree)
+        rapport, code = juger(passages, args.votes, args.seuil, args.max_cout)
+    except ErreurJuge as e:
+        print(f"qualite-doc : {e}", file=sys.stderr)
+        return e.code
+    except ErreurQualite as e:
+        print(f"qualite-doc : {e}", file=sys.stderr)
+        return CODE_USAGE
+    if code == CODE_PLAFOND_COUT:
+        print(f"qualite-doc : plafond --max-cout atteint, {rapport['passages_non_juges']} "
+              "passage(s) non jugé(s)", file=sys.stderr)
+    print(json.dumps(rapport, ensure_ascii=False, indent=2))
+    return code
+
+
 def main(argv: list[str]) -> int:
     sys.stdout.reconfigure(encoding="utf-8")
     ap = argparse.ArgumentParser(prog="qualite-doc.py",
@@ -294,16 +511,27 @@ def main(argv: list[str]) -> int:
                      help="glob(s) de *.md à ne pas lire (chemin relatif ou nom de base)")
     lec.add_argument("--max-passages", type=int, default=MAX_PASSAGES, metavar="N",
                      help=f"nombre maximal de passages rendus (défaut : {MAX_PASSAGES})")
+    jug = sous.add_parser("juger", help="fait juger par claude si chaque passage est encore exact")
+    jug.add_argument("--entree", required=True, type=Path, metavar="FICHIER",
+                     help="rapport de lecteurs (JSON) ou liste nue de passages")
+    jug.add_argument("--votes", type=int, default=VOTES_DEFAUT, metavar="N",
+                     help=f"votes par passage (défaut : {VOTES_DEFAUT})")
+    jug.add_argument("--seuil", type=float, default=SEUIL_DOUTE, metavar="S",
+                     help=f"score à partir duquel un passage est douteux (défaut : {SEUIL_DOUTE})")
+    jug.add_argument("--max-cout", type=float, default=None, metavar="D",
+                     help="plafond de coût en dollars (défaut : illimité)")
     args = ap.parse_args(argv)
+    if args.commande == "juger":
+        return commande_juger(ap, args)
     if args.max_passages < 0:
         ap.error("--max-passages doit être supérieur ou égal à 0")
     try:
         rapport = lecteurs(args.base, args.racine, args.exclure, args.max_passages)
     except ErreurQualite as e:
         print(f"qualite-doc : {e}", file=sys.stderr)
-        return 2
+        return CODE_USAGE
     print(json.dumps(rapport, ensure_ascii=False, indent=2))
-    return 0
+    return CODE_OK
 
 
 if __name__ == "__main__":
