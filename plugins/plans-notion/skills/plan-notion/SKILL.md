@@ -444,8 +444,7 @@ Quand Benjamin valide le plan :
    13. chaque cron touché (job Hermes, unité systemd, workflow `schedule:`) a son
        étape `C<n>`, ou la page dit « Aucun cron touché » : `${CLAUDE_PLUGIN_ROOT}/skills/_partage/cron-a-la-main.md`.
    14. chaque étape qui touche un fichier cité par la doc du dépôt porte sa ligne
-       « Docs relues » dans `chapitres-questions-execution.md` (« — » si aucune doc ne le
-       cite) ; une doc qui deviendra fausse figure aussi dans « Fichiers touchés ».
+       « Docs relues » (`chapitres-questions-execution.md`, « Fichiers touchés » compris).
 
    Ce filtre vient de l'enquête sur les plans passés ; il coûte quelques minutes ici
    et évite la découverte en pleine exécution, qui coûte une étape. Les mesures
