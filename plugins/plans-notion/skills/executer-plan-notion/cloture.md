@@ -177,7 +177,8 @@ Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard »
      - **Le juge ne répond pas** : code 3 (juge indisponible) ou code 5 (modèle
        servi autre que celui attendu) : aucun verdict, le pilote relit chaque
        passage relevé et note son verdict au journal. Code 4 (plafond de coût) :
-       les `passages_non_juges` se relisent de la même façon. Le relevé reste
+       `passages_non_juges` n'est qu'un nombre ; les passages à relire sont ceux de
+       `lecteurs.json` absents de `verdicts` (repérés par `fichier` et `ligne`), de la même façon. Le relevé reste
        obligatoire dans les trois cas.
      - **Traitement, bloquant** : chaque passage douteux ou traité d'office est,
        soit corrigé dans la branche (par l'exécutant, en étape `D<n>` si la
