@@ -319,3 +319,16 @@ Une entrée par passe, la plus récente en dernier. Le titre est
   Max » et « ccusage ».
 - **Verdict de `scripts/veille_faits.py`** (2026-10-12) : 20 faits vérifiés, 0 citation à
   signaler, 0 page injoignable.
+
+### 2026-10-15 — preuve doc à la clôture, étape 6 du plan « la preuve doc »
+
+- **Sources lues** : aucune. Cette entrée n'est pas une passe de veille : aucune page
+  de la partie 1 n'a été relue pour elle, et la passe depuis la dernière entrée
+  (2026-10-12) n'a pas été faite. Si la PR l'exige, elle reste à lancer par `chercheur`.
+- **Ce qui a changé** : rien de relevé, puisqu'aucune source n'a été relue. Ce qui
+  change est dans le dépôt : la preuve doc ajoute un juge
+  Haiku épinglé sur `claude-haiku-5-5` (`MODELE` de `qualite-doc.py`), appelé à la
+  clôture sur chaque passage relevé.
+- **Ce qu'on en fait** : le cas `cloture-preuve-doc` (catégorie `decouvertes`) vérifie
+  que la clôture lance `lecteurs` et corrige le passage. Aucun contrôle de
+  `scripts/veille_faits.py` n'a été joué pour cette entrée.

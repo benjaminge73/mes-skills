@@ -66,6 +66,18 @@ Règle conservée : le libellé `découverte — trouvable au plan — sur la pa
 
 Règle conservée : le décompte se vérifie par `grep -c`, jamais de tête.
 
+## Preuve doc à la clôture (`cloture.md`, point 2 bis)
+
+> Un passage `.md` qui cite un nom renommé par la branche reste faux sans que rien
+> ne le signale : aucun test ne lit la doc. Relire tous les Markdown du dépôt pour
+> le voir coûte cher ; d'où le relevé par `qualite-doc.py lecteurs`, limité aux noms
+> touchés, puis le juge (`juger`), épinglé sur `claude-haiku-5-5`. Mis en place le
+> 2026-10-15 (plan « la preuve doc », étape 6).
+
+Règle conservée : à la clôture, après l'allègement et avant la porte, `lecteurs` puis
+`juger` sur la branche ; un passage dont la ligne a été modifiée est traité d'office ;
+sans juge (code 3), le pilote relit chaque passage relevé.
+
 ## PR de clôture (`cloture.md`)
 
 > décision du 2026-09-04, qui revient sur la PR de clôture automatique du
