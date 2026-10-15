@@ -8,5 +8,9 @@ description: >
   commande lancée se lit dans la trace (tool_used, vérifié seulement en passage réel), le
   README se lit dans l'état final (regex sur fichier, vérifiés au pré-vol sur l'oracle).
   Panne visée : clore sans relever les passages, ou laisser le README citer l'ancien nom.
+execution:
+  max_turns: 80
+  timeout_seconds: 900
+  allowed_tools: [Read, Glob, Grep, Skill, Bash, Write, Edit, TodoWrite]
 context:
   scaffold_script: fixture.sh
