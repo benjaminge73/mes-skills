@@ -577,5 +577,84 @@ class ProfilMachine(EtatMachineTestCase):
         self.assertEqual(r.returncode, 0, msg=r.stderr)
 
 
+class SansProc(EtatMachineTestCase):
+    """Sans ``/proc`` (macOS), le jeton et les familles lourdes se lisent par ``ps``.
+
+    ``--proc`` pointe vers un dossier absent, ce que fait un Mac ; un faux ``ps``
+    en tête du ``PATH`` rend ce que le vrai rendrait. Panne attrapée : sur macOS,
+    tout ``prendre`` sortait en code 2 (« le PID n'existe pas »), le jeton ne
+    s'accordait jamais, quel que soit le profil machine.
+    """
+
+    FAUX_PS = """#!/bin/sh
+dossier="$FAUX_PS_DIR"
+pid=""
+liste=""
+while [ $# -gt 0 ]; do
+  case "$1" in
+    -p) pid="$2"; shift ;;
+    -axww) liste=1 ;;
+  esac
+  shift
+done
+if [ -n "$liste" ]; then cat "$dossier/liste"; exit 0; fi
+[ -f "$dossier/pid-$pid" ] || exit 1
+cat "$dossier/pid-$pid"
+"""
+
+    def setUp(self):
+        super().setUp()
+        self.ps = self.base / "ps"
+        self.ps.mkdir()
+        (self.ps / "liste").write_text("")
+        bin_ = self.base / "bin"
+        bin_.mkdir()
+        faux = bin_ / "ps"
+        faux.write_text(self.FAUX_PS)
+        faux.chmod(0o755)
+        self.env = {**self.env, "FAUX_PS_DIR": str(self.ps),
+                    "PATH": f"{bin_}{os.pathsep}{self.env.get('PATH', '')}"}
+        self.absent = type("Absent", (), {"racine": self.base / "absent"})()
+
+    def vivant(self, pid, stat="S", depuis="Fri Oct 16 15:07:12 2026"):
+        (self.ps / f"pid-{pid}").write_text(f"{stat:<4} {depuis}\n")
+
+    def prendre(self, pid):
+        return self.lancer("prendre", "action", "--plan", "p", "--pid", str(pid), proc=self.absent)
+
+    def test_un_pid_vivant_pour_ps_obtient_le_jeton(self):
+        self.vivant(4242)
+        r = self.prendre(4242)
+        self.assertEqual(r.returncode, 0, msg=r.stderr)
+        self.assertIn("accordé", r.stdout)
+
+    def test_un_pid_inconnu_de_ps_est_refuse_code_2(self):
+        r = self.prendre(4243)
+        self.assertEqual(r.returncode, 2, msg=r.stdout)
+        self.assertIn("n'existe pas", r.stderr)
+
+    def test_un_zombie_pour_ps_est_mort_pour_le_jeton(self):
+        self.vivant(4244, stat="Z+")
+        self.assertEqual(self.prendre(4244).returncode, 2)
+
+    def test_un_pid_reutilise_a_une_autre_heure_libere_le_jeton(self):
+        self.vivant(4245)
+        self.assertEqual(self.prendre(4245).returncode, 0)
+        self.vivant(4245, depuis="Fri Oct 16 18:30:00 2026")
+        r = self.lancer("qui", proc=self.absent)
+        self.assertEqual(r.returncode, 0, msg=r.stderr)
+        self.assertEqual(r.stdout.strip(), "libre")
+
+    def test_les_familles_lourdes_se_lisent_par_ps_sans_proc(self):
+        (self.ps / "liste").write_text(
+            "  501     1 /usr/bin/python3 -m pytest tests/\n"
+            "  502   501 /bin/sleep 5\n")
+        r = self.lancer("releve", "--json", proc=self.absent)
+        self.assertEqual(r.returncode, 0, msg=r.stderr)
+        rel = json.loads(r.stdout)
+        self.assertEqual(rel["familles"], ["suite-de-tests"])
+        self.assertEqual(rel["verdict"], "chargée")
+
+
 if __name__ == "__main__":
     unittest.main()

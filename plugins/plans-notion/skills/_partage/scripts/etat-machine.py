@@ -70,7 +70,9 @@ sur toutes les commandes. Clés et exemple : ``machine-partagee.md``.
 des fixtures au lieu de la vraie machine.
 
 Python 3, bibliothèque standard seulement. Lit du Linux générique : en session
-cloud, sans VPS, le script répond simplement sur la machine où il tourne. Une
+cloud, sans VPS, le script répond simplement sur la machine où il tourne. Sans
+``/proc`` (macOS), le jeton et les familles lourdes se lisent par ``ps`` ; les
+pressions CPU et mémoire, elles, ne se lisent pas. Une
 mesure illisible (pas de ``/proc/pressure``, par exemple) est ignorée, jamais
 une erreur : on répond sur ce qu'on lit.
 
@@ -86,6 +88,7 @@ import contextlib
 import fcntl
 import json
 import os
+import subprocess
 import sys
 import time
 from datetime import datetime
@@ -255,9 +258,55 @@ def lire_mem_disponible_ko(proc: Path) -> int | None:
     return None
 
 
+def _ps(*args: str) -> str | None:
+    """La sortie de ``ps`` (``LC_ALL=C`` : dates stables), ``None`` s'il est absent ou refuse."""
+    try:
+        r = subprocess.run(["ps", *args], capture_output=True, text=True, timeout=10,
+                           env={**os.environ, "LC_ALL": "C"})
+    except (OSError, subprocess.SubprocessError):
+        return None
+    return r.stdout if r.returncode == 0 else None
+
+
+def _processus_par_ps() -> dict[int, tuple[int, list[str]]]:
+    """Sans ``/proc`` (macOS) : ``{pid: (ppid, argv)}`` lu dans ``ps``.
+
+    ``ps`` rend la ligne de commande d'un bloc : on la coupe sur les espaces, ce
+    qui suffit à reconnaître un programme par son nom (``python -m pytest``,
+    ``claude plugin eval``) mais perd les arguments qui contiennent des espaces.
+    """
+    sortie = _ps("-axww", "-o", "pid=,ppid=,command=")
+    resultat: dict[int, tuple[int, list[str]]] = {}
+    for ligne in (sortie or "").splitlines():
+        morceaux = ligne.split()
+        if len(morceaux) < 3 or not (morceaux[0].isdigit() and morceaux[1].isdigit()):
+            continue
+        resultat[int(morceaux[0])] = (int(morceaux[1]), morceaux[2:])
+    return resultat
+
+
+def _demarrage_par_ps(pid: int) -> int | None:
+    """Sans ``/proc`` : l'heure de démarrage (secondes, ``lstart``) d'un processus vivant.
+
+    La paire (PID, heure) identifie un processus comme le champ 22 de ``stat`` sous
+    Linux, à la seconde près : un PID recyclé dans la même seconde que son
+    prédécesseur est le seul cas que cette résolution ne distingue pas.
+    """
+    sortie = _ps("-o", "stat=,lstart=", "-p", str(pid))
+    morceaux = (sortie or "").split(None, 1)
+    if len(morceaux) != 2 or morceaux[0].startswith("Z"):
+        return None
+    try:
+        return int(time.mktime(time.strptime(morceaux[1].strip(), "%a %b %d %H:%M:%S %Y")))
+    except ValueError:
+        return None
+
+
 def lire_processus(proc: Path) -> dict[int, tuple[int, list[str]]]:
     """``{pid: (ppid, argv)}`` pour chaque processus lisible ; les threads du noyau sont ignorés."""
     resultat: dict[int, tuple[int, list[str]]] = {}
+    if not proc.is_dir():
+        return _processus_par_ps()
     try:
         entrees = list(proc.iterdir())
     except OSError:
@@ -452,6 +501,8 @@ def lire_demarrage(proc: Path, pid: int) -> int | None:
     Un zombie est mort pour nous. Le couple (PID, heure de démarrage) identifie
     un processus : le noyau recycle les PID, jamais cette paire.
     """
+    if not proc.is_dir():
+        return _demarrage_par_ps(pid)
     texte = _lire(proc / str(pid) / "stat")
     if not texte or ")" not in texte:
         return None
