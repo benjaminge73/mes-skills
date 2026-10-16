@@ -311,9 +311,11 @@ Le banc d'évals a ses propres jobs, et il ne joue plus sur chaque PR : il part
 touche un plugin à évaluer, et ferme la voie aux forks. `evals` (« Évals
 (<plugin>) », **payant**, il tourne sur le runner GitHub) joue les cas du
 dossier `evals/` en A/B (la tête contre sa base), seulement si la PR porte le
-label `evals`. Sans ce label, une PR qui touche un skill, un agent, un hook ou
-un `_partage/` doit porter dans son corps une ligne `Evals: aucun — <raison>`,
-sinon `evals-portee` est rouge. Elle passe alors par le job `fumee` : la tête
+label `evals`. Sans ce label, rien n'est exigé dans le corps de la PR (depuis le
+2026-10-16 : `Eval-cas:`, trailer de commit, est l'unique garde qui tient
+« cette leçon a son cas », pour éviter deux gardes jumelles sur la même
+omission) ; `Evals: aucun — <raison>` reste une façon acceptée de le documenter.
+Elle passe alors par le job `fumee` : la tête
 seule, en un passage, sur les catégories que ses fichiers exercent, jugée sur
 des planchers par catégorie (`evals/categories.json`), pour 0,54 à 9,2 $ (mesurés le 2026-09-30 sur un banc de 16 cas, qui a grandi depuis : `evals/categories.json` en tient le compte).
 

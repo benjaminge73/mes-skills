@@ -19,10 +19,11 @@ pour « une catégorie se cherche dans tous les plugins touchés ») :
 Les attendus sont écrits à la main : « recherche + bruit » = a1, a2, b1.
 
 Les évals se jouent **à la demande** : le script reçoit les labels de la PR
-(``--labels``, un par ligne). Sans le label ``evals``, rien ne se joue, et une PR
-qui touche un skill, un agent, un hook ou ``_partage/`` doit dire ``Evals: aucun —
-<raison>``. Les helpers posent ``labels="evals"`` par défaut : sauf mention, une
-PR de ces tests porte le label.
+(``--labels``, un par ligne). Sans le label ``evals``, rien ne se joue — sélection
+vide, quels que soient les fichiers touchés ; ``Eval-cas:``
+(``scripts/check_lecon_a_son_cas.py``) est la garde qui tient « cette leçon a
+son cas », pas ce script (2026-10-16). Les helpers posent ``labels="evals"`` par
+défaut : sauf mention, une PR de ces tests porte le label.
 """
 from __future__ import annotations
 
@@ -190,25 +191,25 @@ class LigneDuCorpsDePr(Selection):
 class AVotreDemande(Selection):
     """Les évals ne se jouent que si la PR porte le label ``evals``.
 
-    Sans le label : une PR qui touche un skill, un agent, un hook ou ``_partage/``
-    doit porter ``Evals: aucun — <raison>`` ; sinon refus, avec les deux sorties.
+    Sans le label : sélection vide, quels que soient les fichiers touchés —
+    ce script ne refuse plus la PR pour son silence (2026-10-16). C'est
+    ``Eval-cas:`` (``scripts/check_lecon_a_son_cas.py``) qui tient seul la
+    garde « cette leçon a son cas » ; ``Evals: aucun — <raison>`` documente le
+    choix si on le veut, sans y être obligé.
     """
 
-    def test_un_skill_touche_sans_label_ni_ligne_aucun_est_refuse_et_les_deux_sorties_sont_dites(self):
-        code, sortie, erreur = self.jouer([PLAN], corps="Un corps sans la ligne attendue.\n",
-                                          labels="")
-        self.assertEqual(code, 1, erreur)
-        self.assertEqual(sortie.strip(), "")
-        self.assertIn("evals", erreur)            # la sortie « poser le label »
-        self.assertIn("Evals: aucun", erreur)     # la sortie « la ligne aucun »
+    def test_un_skill_touche_sans_label_ni_ligne_aucun_passe_en_silence(self):
+        s = self.selection([PLAN], corps="Un corps sans la ligne attendue.\n", labels="")
+        self.assertFalse(s["tout"])
+        self.assertEqual(s["cas"], [])
 
-    def test_le_skill_du_vrai_plugin_est_refuse_de_meme_sans_label_ni_ligne(self):
+    def test_le_skill_du_vrai_plugin_passe_de_meme_sans_label_ni_ligne(self):
         with tempfile.TemporaryDirectory() as tmp:
-            code, _, erreur = jouer_script(
+            code, sortie, erreur = jouer_script(
                 ["plugins/plans-notion/skills/plan-notion/SKILL.md"], "", "plans-notion",
                 None, tmp, labels="")
-        self.assertEqual(code, 1, erreur)
-        self.assertIn("skills/plan-notion/SKILL.md", erreur)
+        self.assertEqual(code, 0, erreur)
+        self.assertEqual(json.loads(sortie)["cas"], [])
 
     def test_une_ligne_aucun_avec_raison_est_acceptee_et_ne_joue_rien(self):
         s = self.selection([PLAN], corps="Résumé.\n\nEvals: aucun — doc\n", labels="")
@@ -244,24 +245,27 @@ class AVotreDemande(Selection):
     def test_un_autre_label_ne_vaut_pas_le_label_evals(self):
         for labels in ("", "bug", "review-required\nevals-plus", "pas-evals"):
             with self.subTest(labels=labels):
-                code, _, erreur = self.jouer([PLAN], corps="Evals: bruit", labels=labels)
-                self.assertEqual(code, 1, erreur)
+                s = self.selection([PLAN], corps="Evals: bruit", labels=labels)
+                self.assertFalse(s["tout"])
+                self.assertEqual(s["cas"], [])
 
-    def test_sans_label_une_ligne_de_categories_ou_tout_ne_dispense_pas_de_la_ligne_aucun(self):
+    def test_sans_label_une_ligne_de_categories_ou_tout_ne_force_rien_a_jouer(self):
+        # Sans label, le script ignore la ligne (sauf « aucun ») : sélection vide.
         for corps in ("Evals: bruit — essai", "Evals: tout", "Evals:"):
             with self.subTest(corps=corps):
-                code, _, erreur = self.jouer([PLAN], corps=corps, labels="")
-                self.assertEqual(code, 1, erreur)
+                s = self.selection([PLAN], corps=corps, labels="")
+                self.assertFalse(s["tout"])
+                self.assertEqual(s["cas"], [])
 
-    def test_sans_label_chaque_dossier_qui_change_un_comportement_demande_la_ligne_aucun(self):
+    def test_sans_label_chaque_dossier_qui_change_un_comportement_passe_en_silence(self):
         # Un skill, un agent, un hook, un `_partage/` : les quatre changent ce que les
-        # évals mesurent.
+        # évals mesurent, mais aucun ne force plus la ligne « aucun » (2026-10-16).
         for chemin in (EXECUTER, CHERCHEUR, "plugins/jouet/hooks/hooks.json",
                        "plugins/jouet/skills/_partage/regle.md"):
             with self.subTest(fichier=chemin):
-                code, _, erreur = self.jouer([chemin], corps="", labels="")
-                self.assertEqual(code, 1, erreur)
-                self.assertIn(chemin, erreur)
+                s = self.selection([chemin], corps="", labels="")
+                self.assertFalse(s["tout"])
+                self.assertEqual(s["cas"], [])
 
     def test_sans_label_une_pr_qui_ne_touche_aucun_de_ces_dossiers_passe_sans_ligne(self):
         s = self.selection(
