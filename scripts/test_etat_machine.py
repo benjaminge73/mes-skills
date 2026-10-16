@@ -78,7 +78,10 @@ class EtatMachineTestCase(unittest.TestCase):
         self.base = Path(self._tmp.name)
         self.etat = self.base / "etat"
         self.proc = FauxProc(self.base / "proc")
-        self.env = {**os.environ, "XDG_STATE_HOME": str(self.etat)}
+        # Le profil machine du poste ne doit jamais interférer : config jetable, variable retirée.
+        self.env = {**os.environ, "XDG_STATE_HOME": str(self.etat),
+                    "XDG_CONFIG_HOME": str(self.base / "config")}
+        self.env.pop("PLANS_NOTION_MACHINE_PROFIL", None)
 
     def lancer(self, *args, proc=None, env=None):
         racine = (proc or self.proc).racine
@@ -430,6 +433,107 @@ class Jeton(EtatMachineTestCase):
         r = self.prendre("e2e", 4242)
         self.assertEqual(r.returncode, 2)
         self.assertEqual(self.qui(), [])
+
+
+class ProfilMachine(EtatMachineTestCase):
+    """Le profil machine : ``PLANS_NOTION_MACHINE_PROFIL``, ou le fichier par défaut.
+
+    Sans profil, le VPS garde ses valeurs (deux places, seuils d'origine). Avec un
+    profil, ses clés remplacent les constantes du module ; une erreur de profil
+    sort en code 2, sur toutes les commandes, avec un message « profil machine : ».
+    """
+
+    def setUp(self):
+        super().setUp()
+        for pid in (900, 901, 902, 903, 904):
+            self.proc.processus(pid, ["bash", f"session-{pid}.sh"])
+
+    def poser_profil(self, contenu: str) -> Path:
+        """Écrit le profil hors du dépôt et pose la variable qui le désigne."""
+        chemin = self.base / "profil.json"
+        chemin.write_text(contenu)
+        self.env["PLANS_NOTION_MACHINE_PROFIL"] = str(chemin)
+        return chemin
+
+    def prendre(self, pid, plan="Plan A"):
+        return self.lancer("prendre", "e2e", "--plan", plan, "--pid", str(pid))
+
+    def assertProfilRefuse(self, r, chemin):
+        """Code 2, et un message « profil machine : » qui cite le fichier fautif."""
+        self.assertEqual(r.returncode, 2, msg=r.stdout + r.stderr)
+        self.assertIn("profil machine :", r.stderr)
+        self.assertIn(str(chemin), r.stderr)
+
+    def test_sans_profil_le_jeton_garde_deux_places_comme_sur_le_vps(self):
+        self.assertEqual(self.prendre(900).returncode, 0)
+        self.assertEqual(self.prendre(901).returncode, 0)
+        troisieme = self.prendre(902)
+        self.assertEqual(troisieme.returncode, 3, msg=troisieme.stderr)
+
+    def test_profil_places_lourdes_4_accorde_quatre_prises_et_refuse_la_cinquieme(self):
+        # Profil du Mac (POC du 2026-10-16). Le libellé « machine » est une clé valide.
+        self.poser_profil('{"machine": "mac-m1max-64go", "places_lourdes": 4}')
+        for pid in (900, 901, 902, 903):
+            with self.subTest(prise=pid):
+                self.assertEqual(self.prendre(pid).returncode, 0)
+        cinquieme = self.prendre(904)
+        self.assertEqual(cinquieme.returncode, 3, msg=cinquieme.stderr)
+        self.assertIn("(4 sur 4)", cinquieme.stderr)
+
+    def test_seuil_memoire_disponible_du_profil_rend_saturee_une_machine_libre_par_defaut(self):
+        # 5 Go libres : « libre » avec les seuils d'origine (1,5 Go). Le profil relève
+        # le seuil à 6 Go : la même machine devient « saturée », et le détail cite 5,7 Go.
+        self.assertEqual(self.releve()["verdict"], "libre")
+        self.poser_profil('{"seuil_mem_disponible_ko": 6000000}')
+        rel = self.releve()
+        self.assertEqual(rel["verdict"], "saturée")
+        detail = [c["detail"] for c in rel["causes"] if c["code"] == "memoire-disponible"]
+        self.assertEqual(len(detail), 1)
+        self.assertIn("seuil 5.7 Go", detail[0])
+
+    def test_json_invalide_est_une_erreur_code_2_sur_toutes_les_commandes(self):
+        chemin = self.poser_profil('{"places_lourdes": 4,')
+        commandes = {
+            "releve": ["releve"],
+            "prendre": ["prendre", "e2e", "--plan", "Plan A", "--pid", "900"],
+            "rendre": ["rendre", "--pid", "900"],
+            "qui": ["qui"],
+        }
+        for nom, args in commandes.items():
+            with self.subTest(commande=nom):
+                self.assertProfilRefuse(self.lancer(*args), chemin)
+
+    def test_cle_inconnue_est_une_erreur_et_non_une_faute_de_frappe_passee_en_silence(self):
+        chemin = self.poser_profil('{"places_lourd": 4}')
+        self.assertProfilRefuse(self.prendre(900), chemin)
+
+    def test_places_lourdes_zero_est_une_erreur_code_2(self):
+        chemin = self.poser_profil('{"places_lourdes": 0}')
+        self.assertProfilRefuse(self.prendre(900), chemin)
+
+    def test_variable_posee_vers_un_fichier_absent_est_une_erreur_sans_repli(self):
+        absent = self.base / "n-existe-pas.json"
+        self.env["PLANS_NOTION_MACHINE_PROFIL"] = str(absent)
+        self.assertProfilRefuse(self.prendre(900), absent)
+
+    def test_sans_variable_le_profil_par_defaut_sous_xdg_config_home_est_lu(self):
+        # Aucune variable posée : c'est le fichier par défaut qui fait foi.
+        defaut = self.base / "config" / "plans-notion" / "machine.json"
+        defaut.parent.mkdir(parents=True)
+        defaut.write_text('{"places_lourdes": 3}')
+        for pid in (900, 901, 902):
+            with self.subTest(prise=pid):
+                self.assertEqual(self.prendre(pid).returncode, 0)
+        self.assertEqual(self.prendre(903).returncode, 3)
+
+    def test_valeur_de_mauvais_type_est_une_erreur_y_compris_un_booleen(self):
+        # Garde-fou : en Python, ``True`` est un ``int``. Sans contrôle de type,
+        # ``{"places_lourdes": true}`` donnerait une seule place sans rien dire.
+        for contenu in ('{"places_lourdes": true}', '{"places_lourdes": "4"}',
+                        '{"seuil_cpu_some_avg10": "50"}'):
+            with self.subTest(profil=contenu):
+                chemin = self.poser_profil(contenu)
+                self.assertProfilRefuse(self.prendre(900), chemin)
 
 
 if __name__ == "__main__":
