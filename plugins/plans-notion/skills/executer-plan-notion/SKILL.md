@@ -160,8 +160,8 @@ Puis, dans le même tour, avant la première étape :
   ou `/model sonnet` puis `/effort medium` avant de continuer. Un plan à haut enjeu
   (sécurité, données, déploiement) peut monter à `high` ». Le skill ne change pas
   le modèle lui-même : il se choisit au lancement. Pourquoi Sonnet : c'est le modèle
-  du banc d'évals (Sonnet 5.5, `evals/outillage/lancer.sh` l.132). L'effort `medium`
-  n'y est pas mesuré (le banc joue `high`, `docs/tester-un-skill.md` l.125) : il se
+  du banc d'évals (Sonnet 5.5, `EVALS_MODELE` de `evals/outillage/lancer.sh`). L'effort `medium`
+  n'y est pas mesuré (le banc joue `high`, `docs/tester-un-skill.md`, « La CI joue Sonnet ») : il se
   remesure au prochain plan. Sonnet coûte la moitié d'Opus sur chaque poste. La conception (`plan-notion`) reste en Opus.
 
 **La porte du `pret`.** Un plan `pret` a **toutes ses étapes prouvées et
