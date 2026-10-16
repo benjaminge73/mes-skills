@@ -304,7 +304,7 @@ demande de Benjamin, et seulement pour deux cas :
 Une reformulation, une doc, un renvoi corrigé ou un exemple ne méritent pas
 l'A/B. **Le coût est annoncé avant de poser le label** : environ 55 $ pour tout
 le banc, 3 à 14 $ par catégorie (base et tête), contre 0,54 à 2,38 $ par
-catégorie pour la fumée (chiffres mesurés le 2026-09-30 sur un banc de 16 cas, voir la fiche « claude plugin eval » de `plugins/plans-notion/skills/_partage/outils-et-quotas.md`). L'A/B reste le seul juge d'un recul fin ; on ne le
+catégorie pour la fumée. Ces chiffres sont mesurés le 2026-09-30 sur un banc de 16 cas, non remesurés : le banc compte 24 cas au 2026-10-16 (voir la fiche « claude plugin eval » de `plugins/plans-notion/skills/_partage/outils-et-quotas.md`). L'A/B reste le seul juge d'un recul fin ; on ne le
 supprime pas, on le garde pour ce qui le justifie.
 
 **Le label est lu par l'API, et le poser lance la CI.** `evals-portee` relit les
@@ -436,7 +436,7 @@ en cache, c'est `--estimer` (bras de tête seul, lu dans le rapport de la base).
 Sans base en cache, aucun rapport ne dit les coûts, et la CI annonce le pire :
 au plus 90 $, soit deux bras au plafond. **Le plafond est de 45 $ par bras**
 (`EVALS_MAX_COUT_USD`, passé à `claude plugin eval --max-cost-usd`) ; un bras
-complet coûtait 27,53 $ sur Sonnet (mesure du 2026-09-30 sur 16 cas, non remesurée : le banc en compte 23 le 2026-10-15, soit ~39,6 $ au même coût par cas, d'où le relèvement). Un bras qui dépasse est
+complet coûtait 27,53 $ sur Sonnet (mesure du 2026-09-30 sur 16 cas, non remesurée : le banc compte 24 cas au 2026-10-16). Le plafond de 45 $ a été fixé sur une extrapolation, pas sur une mesure : 23 cas le 2026-10-15, soit ~39,6 $ au coût par cas du 2026-09-30, d'où le relèvement. Aucune nouvelle extrapolation n'est faite. Un bras qui dépasse est
 rendu partiel et refusé (code 3), et la facture s'arrête là.
 
 ## Lancer une évaluation
@@ -452,9 +452,9 @@ d'un skill si une session se trompe encore de geste.
    python3 scripts/evals_ab.py --plugin <p> --estimer --cas …
    ```
    Le script l'établit d'après le coût par cas des derniers rapports. Une A/B
-   joue deux bras (base et tête), un bras complet coûtait 27,53 $ sur Sonnet (mesure du 2026-09-30 sur 16 cas, non remesurée),
+   joue deux bras (base et tête), un bras complet coûtait 27,53 $ sur Sonnet (mesure du 2026-09-30 sur 16 cas, non remesurée ; le banc compte 24 cas au 2026-10-16),
    et une catégorie 1,61 $ à 7,13 $ par bras (tableau de la fiche
-   `claude plugin eval` de `outils-et-quotas.md`, mesuré aussi sur 16 cas). **Annoncer ce coût à
+   `claude plugin eval` de `outils-et-quotas.md`, mesuré le 2026-09-30 sur 16 cas ; pour `decouvertes`, voir sa mesure du 2026-10-16 plus bas, 18,68 $ pour deux bras). **Annoncer ce coût à
    Benjamin avant de lancer.** Le plafond est de 45 $ par bras
    (`EVALS_MAX_COUT_USD=45`) ; il valait 120 $ avant le 2026-10-01, puis 35 $
    jusqu'au 2026-10-15. Le 120 $ n'a jamais été atteint.
@@ -484,8 +484,8 @@ label `evals`, la CI joue une **fumée** : la tête seule, en **un passage**, su
 Sonnet, sur les catégories que les fichiers touchés exercent. Ces catégories
 sont **calculées** par `scripts/evals_selection.py`, pas choisies ; tout le banc
 part pour les hooks et pour un fichier qu'aucune catégorie n'exerce. Mesurée le 2026-09-30 sur un banc de 16 cas, elle coûtait 0,54 $ à 2,38 $ par
-catégorie et environ 9,2 $ pour tout le banc ; le banc compte 24 cas depuis
-(23 pour `plans-notion`, 1 pour `voyages`) et ce total n'a pas été remesuré : le
+catégorie et environ 9,2 $ pour tout le banc ; le banc compte 25 cas au 2026-10-16
+(24 pour `plans-notion`, 1 pour `voyages`) et ce total n'a pas été remesuré : le
 job annonce son coût avant de jouer. La fumée ne remplace pas l'A/B : c'est le label `evals`
 qui remplace la fumée par l'A/B.
 
