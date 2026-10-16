@@ -9,8 +9,9 @@ sans sauter d'étape :
 
 1. **Classer la demande** : Spike, Bounded ou Architectural, selon `methode-de-travail:brainstorming`
    (« Three Paths »). Le classement règle la profondeur de l'enquête.
-2. **Dresser la carte de voisinage** par `codebase-memory`, sur `main`. Les outils sont
-   différés : un `ToolSearch` d'abord ; le paramètre `project` se copie de `list_projects`.
+2. **Dresser la carte de voisinage** par `codebase-memory`, sur `main`, **après avoir
+   réindexé le dépôt** (`index_repository`, 2 à 15 s : un index périmé donne une carte fausse).
+   Les outils sont différés : un `ToolSearch` d'abord ; le paramètre `project` se copie de `list_projects`.
    Le geste est dans `${CLAUDE_PLUGIN_ROOT}/skills/plan-notion/enquete.md`, gisement 3
    (« Le code »), section « La carte de voisinage ». Si la carte est omise, sa dispense
    `Pas de carte — <raison>` s'écrit dans le plan.

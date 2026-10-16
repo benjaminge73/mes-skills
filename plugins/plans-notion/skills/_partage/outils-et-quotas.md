@@ -739,6 +739,10 @@ annoncés pour un plan court. Le coût grandit avec le nombre d'étapes cartées
   la 0.11.0 ne le résout plus : un appelant chargé par `importlib` sort de
   `trace_path`. La version en service se relit avant de conclure « aucun
   appelant ».
+- **2026-10-16 : la 0.12.0 ne le résout pas non plus.** Mesuré sur trois fichiers
+  (une fonction, un appelant par import statique, un appelant qui charge le module par
+  `importlib.util.spec_from_file_location` puis appelle `module.f()`) : 2 appelants en
+  0.10.8, 1 en 0.11.0 et en 0.12.0. Ticket ouvert : `DeusData/codebase-memory-mcp#2659`.
 - **2026-10-09 : une seule version à la fois sur la machine.** Une autre version
   refuse de démarrer (« conflicting CBM process is active »), même avec un
   `HOME` et un dossier de cache isolés. Pour en tester une, il faut un
@@ -750,7 +754,8 @@ annoncés pour un plan court. Le coût grandit avec le nombre d'étapes cartées
 **Bonne pratique** :
 
 - Les outils sont différés dans une session Claude Code : un `ToolSearch`
-  d'abord, puis `list_projects`.
+  d'abord, puis `index_repository` sur le dépôt (2 à 15 s) avant la carte, puis
+  `list_projects`.
 - Avant toute affirmation négative (« aucun appelant », « aucun test »),
   `check_index_coverage` sur chaque chemin cité.
 - Pour les appelants : `trace_path` avec `direction: "inbound"` et
