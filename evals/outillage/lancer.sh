@@ -10,7 +10,8 @@
 # Mode :
 #   - sur un runner GitHub (GITHUB_ACTIONS=true) : Bash accordé, tous les cas ;
 #     ni contrôle `gh`, ni jeton machine (le runner n'est pas le VPS) ;
-#   - sinon (poste local / VPS) : pas de Bash (il ne tourne pas dans le bac à
+#   - sinon (poste local / VPS) : **refus d'office sans EVALS_DEMANDE_PAR_BENJAMIN=1**
+#     (voir plus bas), puis pas de Bash (il ne tourne pas dans le bac à
 #     sable ici), seulement les cas marqués `tags: [lecture]`. Deux gardes
 #     précèdent alors `claude plugin eval`, parce que les bancs partagent la
 #     limite de débit de l'abonnement (mesuré le 2026-09-30 : un A/B local lancé
@@ -23,7 +24,13 @@
 #     Sans réponse de `gh` (absent, hors ligne, non authentifié), le lanceur
 #     refuse aussi : sans contrôle, on ne sait pas si un banc tourne.
 #
-# Environnement (optionnel) :
+# Environnement :
+#   EVALS_DEMANDE_PAR_BENJAMIN  OBLIGATOIRE hors CI, valeur 1 : toute éval coûte des jetons
+#                        et du temps, elle ne se joue qu'à la demande explicite de Benjamin,
+#                        dans son message courant (décision du 2026-10-16). Une session ne
+#                        pose jamais cette variable de sa propre initiative : c'est un
+#                        panneau « stop », pas un verrou. Sans elle : code 64, rien n'est joué.
+# Optionnel :
 #   EVALS_MODELE         modèle des cas (défaut : claude-sonnet-5-5)
 #   EVALS_EFFORT         effort de réflexion du modèle (défaut : high) ; exporté en
 #                        CLAUDE_CODE_EFFORT_LEVEL, la variable que `claude plugin eval`
@@ -45,7 +52,8 @@
 # --threshold 0 : c'est scripts/evals_ab.py qui juge, pas le seuil de l'outil.
 # Code de sortie : celui de `claude plugin eval` (2 = résultat partiel) ; en local,
 # 75 si un banc tourne en CI ou si le jeton machine est refusé (tenu, machine
-# saturée), 69 si `gh` ne répond pas, 64 pour un usage invalide.
+# saturée), 69 si `gh` ne répond pas, 64 pour un usage invalide ou une éval non
+# demandée (EVALS_DEMANDE_PAR_BENJAMIN absent).
 # Jamais de `set -x` et aucune variable d'environnement affichée : en CI, le jeton
 # (CLAUDE_CODE_OAUTH_TOKEN) vit dans l'environnement.
 set -euo pipefail
@@ -60,6 +68,13 @@ sortie=$2
 shift 2
 
 if [ "${GITHUB_ACTIONS:-}" != "true" ]; then
+  # --- Garde 0 : Benjamin a-t-il demandé cette éval ? ---------------------------
+  if [ "${EVALS_DEMANDE_PAR_BENJAMIN:-}" != "1" ]; then
+    echo "refus : une éval coûte des jetons et du temps, elle ne se joue qu'à la demande explicite de Benjamin." >&2
+    echo "        S'il l'a demandée dans son message courant : EVALS_DEMANDE_PAR_BENJAMIN=1 devant la commande." >&2
+    exit 64
+  fi
+
   # --- Garde 1 : un banc d'évals tourne-t-il en CI ? ---------------------------
   if [ "${EVALS_FORCER:-}" = "1" ]; then
     echo "EVALS_FORCER=1 : contrôle des bancs de CI ignoré — les mesures peuvent être faussées si un banc tourne." >&2

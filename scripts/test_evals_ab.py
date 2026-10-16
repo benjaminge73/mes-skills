@@ -1110,6 +1110,7 @@ class LanceurModeleEtEffort(unittest.TestCase):
         env["TMPDIR"] = str(self.racine / "traces")
         env["XDG_STATE_HOME"] = str(self.racine / "etat")
         env["CLAUDE_CODE_OAUTH_TOKEN"] = self.JETON
+        env["EVALS_DEMANDE_PAR_BENJAMIN"] = "1"  # sinon le lanceur refuse (code 64)
         env.update(env_extra)
         r = subprocess.run(
             ["bash", str(self.LANCEUR), str(self.racine / "plugin"), str(self.racine / "sortie.json")],

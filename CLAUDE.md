@@ -146,6 +146,12 @@ La CI appelle ce même script, avec la **dernière** CLI Claude Code publiée, n
 la CLI du poste ne valide pas encore, et un job rouge sans changement dans la PR
 peut signaler une dérive du format en amont plutôt qu'une régression locale.
 
+**Aucune éval sans demande explicite de Benjamin, dans son message courant** (décision du
+2026-10-16 : trop de jetons et de temps). Ni `claude plugin eval`, ni `evals_ab.py`, ni
+`lancer.sh`, ni `gh workflow run ci.yml`, ni « pour vérifier » : un cas d'éval **s'écrit**
+sans se jouer. Hors CI, `lancer.sh` refuse sans `EVALS_DEMANDE_PAR_BENJAMIN=1`, à ne poser
+que sur cette demande. Détail, exception de la fumée CI : [docs/tester-un-skill.md](docs/tester-un-skill.md).
+
 **Toute leçon ajoutée à un skill, un agent ou un `_partage/` arrive avec son
 cas d'évaluation** dans `evals/<plugin>/`, prouvé par un oracle qui passe et un
 témoin nul qui échoue. Une consigne changée se compare à l'ancienne en A/B avec
