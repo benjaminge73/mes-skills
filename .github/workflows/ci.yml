@@ -315,9 +315,11 @@ jobs:
           # de la PR dans PR_BODY ; en lancement manuel il n'y en a pas, donc
           # « tout ». Un refus (code 1) ou une panne (code 2) rend le job rouge :
           # `evals` est alors sauté, et `evals-verdict` le voit.
-          # Sans le label `evals`, rien ne se joue, mais le script tourne quand même
-          # pour chaque plugin dont un skill, un agent ou un hook change : il refuse
-          # la PR qui n'a ni label ni ligne « Evals: aucun — <raison> ».
+          # Sans le label `evals`, rien ne se joue ; le script tourne quand même pour
+          # chaque plugin dont un skill, un agent ou un hook change, mais ne refuse
+          # plus la PR pour son silence (2026-10-16) : `Eval-cas:`
+          # (scripts/check_lecon_a_son_cas.py) est l'unique garde contraignante,
+          # `Evals: aucun — <raison>` reste une documentation acceptée.
           if grep -qixF evals <<<"$LABELS"; then
             a_le_label=1
             a_verifier=("${choisis[@]}")
@@ -331,9 +333,9 @@ jobs:
           # --- label ajouté (début)
           # Un `labeled` dont le label n'est pas `evals` (`review-required` posé sur
           # une PR qui porte déjà `evals`) ne doit pas relancer le banc payant : on
-          # ne joue rien. Le contrôle « label ou aucun » ci-dessous, lui, tourne
-          # quand même : le sauter rendrait vert, sur ce SHA, un run que le
-          # précédent avait rendu rouge (le trou de `edited`, décrit en tête).
+          # ne joue rien. La boucle ci-dessous tourne quand même, pour calculer
+          # `selection` et `touche` ; depuis 2026-10-16, elle ne peut plus refuser
+          # la PR (voir plus haut).
           joue=1
           label_etranger=0
           if [ -n "${LABEL_AJOUTE-}" ] && [ "${LABEL_AJOUTE,,}" != "evals" ]; then

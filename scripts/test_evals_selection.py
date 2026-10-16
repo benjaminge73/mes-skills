@@ -1026,11 +1026,11 @@ class PorteeDuLabelAjoute(unittest.TestCase):
         self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
         self.assertEqual(sorties["touche"], "true")
 
-    def test_un_label_etranger_ne_dispense_pas_du_controle_label_ou_aucun(self):
-        # Sans ce contrôle, un `labeled` étranger rendrait vert un SHA que le run
-        # précédent avait rendu rouge (le trou de `edited`).
+    def test_un_label_etranger_et_un_corps_vide_ne_bloquent_plus_le_pas(self):
+        # evals_selection.py ne refuse plus une PR pour son silence (2026-10-16) :
+        # un label étranger sans ligne « Evals: » ne fait plus échouer ce pas.
         r, sorties = self.jouer("review-required", "review-required", corps="")
-        self.assertNotEqual(r.returncode, 0)
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
         self.assertEqual(sorties["touche"], "false")
 
     def test_sans_label_evals_une_pr_qui_touche_un_skill_part_en_fumee_et_le_label_la_remplace(self):
