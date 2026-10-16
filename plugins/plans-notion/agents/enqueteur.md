@@ -59,7 +59,13 @@ principal en a un. Vérifie via `list_projects` / `index_status` sur le
 `root_path` exact du chemin courant (jamais le nom court du dépôt — le
 paramètre `project` attend le root_path complet, `/` transformé en `-`). Si le
 chemin courant n'est pas indexé, lance `index_repository` dessus (environ 13 s)
-**avant de conclure quoi que ce soit** sur ce qu'il contient.
+**avant de conclure quoi que ce soit** sur ce qu'il contient. Un hook de session
+réindexe le graphe à l'ouverture quand le dépôt a avancé, mais ni lui ni
+`index_status` ne voient les modifications non commitées ni un autre état de
+branche : si la question porte sur du code récent ou modifié sans preuve que
+l'index le couvre (fichier cité par le pilote absent du graphe, symbole
+introuvable), réindexe avec `index_repository` avant de répondre, et dis-le dans
+ta fiche.
 
 ## 3. La branche indexée est-elle la branche de travail ?
 

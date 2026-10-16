@@ -175,7 +175,11 @@ Le serveur `codebase-memory` te donne cinq outils, et seulement ceux-là :
 - **Serveur absent, dépôt non indexé ou réponse vide : `grep`**, et tu le dis
   dans le rapport, pièce 4.
 - **Tu n'as pas `index_repository`, et ce n'est pas ton rôle.** Si le graphe te
-  semble périmé, dis-le ; ne réindexe pas.
+  semble périmé, dis-le ; ne réindexe pas. Un hook de session réindexe le graphe
+  à l'ouverture quand le dépôt a avancé, mais il ne voit ni les modifications
+  non commitées ni un worktree sans index : un index peut donc rester en retard.
+  Si le graphe répond de façon incohérente avec le code que tu lis, signale-le
+  au pilote au lieu de conclure.
 
 ## Le rapport, cinq pièces dans cet ordre
 
