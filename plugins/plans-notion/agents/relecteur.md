@@ -50,7 +50,11 @@ et il prend le pas sur `grep` pour trouver les appelants :
 - serveur absent ou dépôt non indexé : `grep`, et une ligne le dit avant le
   verdict, sans compter comme remarque ;
 - tu n'appelles jamais `mcp__codebase-memory__index_repository` : réindexer n'est
-  pas ton rôle.
+  pas ton rôle. Un hook de session réindexe le graphe à l'ouverture quand le dépôt
+  a avancé, mais il ne voit ni les modifications non commitées ni un worktree sans
+  index : si le graphe répond de façon incohérente avec le code que tu lis, signale-le
+  au pilote en une ligne avant le verdict, sans la compter comme remarque, au lieu
+  de conclure.
 
 ## Les quatre catégories, et rien d'autre
 
