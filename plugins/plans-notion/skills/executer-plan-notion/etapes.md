@@ -124,14 +124,14 @@ plan au statut `valide`. Il n'y a pas à la redemander à Benjamin étape par é
 **Une étape d'exécution part toujours à `plans-notion:executant`, jamais à un
 `general-purpose`, et un POC non plus.** Un POC part au `plans-notion:sondeur`
 (mécanique) ou à `plans-notion:evaluateur` (jugement), jamais à un
-`general-purpose`, et sans paramètre `model` à l'appel : la définition de l'agent
-le porte, et un `model` passé à l'appel l'emporte sur elle (« Qui joue le POC »
+`general-purpose`, et sans paramètre `model` à l'appel (sauf une montée de l'escalade
+bornée, plus bas) : la définition de l'agent le porte, et un `model` passé à l'appel l'emporte sur elle (« Qui joue le POC »
 dans `${CLAUDE_PLUGIN_ROOT}/skills/_partage/poc.md`). Raison mesurée : 443
 `general-purpose` en Sonnet sur 14 jours, 12,1 % du coût, souvent pour des
 étapes. Un `general-purpose` sans `model` hérite du modèle de la session, et
 c'est ce coût-là qu'on retire.
 
-Le pilote tourne en **Sonnet effort high** : il lit le plan, découpe,
+Le pilote tourne en **Sonnet effort medium** : il lit le plan, découpe,
 brief, vérifie, écrit dans Notion. **Il n'écrit pas lui-même le code des
 étapes déléguables.** Chaque étape part dans un sous-agent **Haiku**, par
 l'alias (voir `executant.md`) : **en séquence par défaut** — les étapes d'un plan sont couplées, et deux sous-agents
@@ -160,7 +160,7 @@ Agent({
 })
 ```
 
-**Aucun paramètre `model` ni `effort` ici, et c'est voulu : seule la correction `D<n>` d'une boucle de cron passe `model: "sonnet"` (jamais `effort`, renvoi plus bas).** L'agent
+**Aucun paramètre `model` ni `effort` ici, et c'est voulu : seule la correction `D<n>` d'une boucle de cron passe `model: "sonnet"` (jamais `effort`, renvoi plus bas), et seule une montée de l'escalade bornée (plus bas) passe les deux.** L'agent
 `executant` porte `model: haiku` et `effort: high` dans son propre fichier de
 définition :
 
@@ -187,6 +187,42 @@ l'autre : le périmètre fermé, l'interdiction de commiter, le diagnostic plut�
 que le correctif devant une preuve rouge, le format de rapport. Le brief
 ci-dessous porte ce qui change à chaque étape. Les deux arrivent au sous-agent ;
 il est donc inutile de recopier dans le brief ce que la définition dit déjà.
+
+### L'escalade bornée
+
+Une étape qui échoue ne repart pas au hasard : on monte d'un palier, une fois, et si
+ça ne suffit pas, Benjamin revoit. Le pilote ne reprend jamais le code lui-même.
+
+1. **D'abord la cause.** Avant toute montée, chercher pourquoi le rapport est
+   `NEEDS_CONTEXT`, `BLOCKED` ou une preuve rouge sans cause de code : brief incomplet
+   (un fichier, une commande ou un critère manque), environnement (outil absent,
+   service coupé), permission refusée. Corriger la cause, puis relancer **au même
+   palier** : ce n'est pas une montée, et la relance ne compte pas dans la règle 4.
+2. **Sinon, une montée par étape, vers le palier au-dessus.**
+   - Un agent Haiku (`executant`, `sondeur`, `enqueteur`, `chercheur`, `lecteur`) : le
+     même agent, appelé à nouveau avec `model: "sonnet"` et `effort: "medium"`.
+   - Un agent Sonnet qui ne fait pas qu'exécuter (`evaluateur`) : le même agent, appelé
+     à nouveau avec `model: "opus"` et `effort: "medium"`.
+   - `relecteur` est déjà en Opus : il n'a pas de palier au-dessus, son échec va
+     directement à la revue humaine.
+
+   Dans les deux cas, le brief du nouvel appel reprend le rapport du palier précédent :
+   ce qui a été tenté, la sortie de la preuve, l'écart constaté. Le frontmatter ne
+   change pas ; l'appel le surcharge pour cette fois seulement.
+3. **Si ça échoue encore : revue humaine.** L'étape passe à `A revoir` dans le journal,
+   avec le dernier rapport et les paliers essayés. Les étapes indépendantes continuent ;
+   une étape qui dépend de celle-là attend son retour. Pas de troisième version.
+4. **Un essai par palier, jamais deux au même.** Pas de plafond de montées par plan :
+   la règle d'arrêt est la revue humaine, pas un compte.
+5. **Le contrôle de modèle suit la montée.** Après une montée, le modèle vu n'est plus
+   celui du frontmatter : le contrôle « Au premier `executant` » plus haut, qui compare
+   au frontmatter, ne s'applique pas tel quel. On lit alors les modèles vus, sans
+   `--agent` ni `--definition` (`modele-sous-agent.py <agentId>` imprime « n × modèle »,
+   code 0), et on vérifie que le modèle vu est celui demandé à l'appel.
+6. **Un arrêt par `maxTurns` n'est pas un échec.** Le sous-agent rend alors un résultat
+   partiel, marqué comme tel. On le reprend sans repartir de zéro, au même palier :
+   soit SendMessage à la même instance, soit un nouvel appel avec le résultat partiel
+   dans le brief. Ce n'est pas une montée, et ça ne compte pas dans la règle 4.
 
 ### Le brief du sous-agent
 

@@ -7,7 +7,7 @@ seul endroit pour que le skill garde sa taille : la règle ne se duplique pas,
 elle se référence.
 
 Il ne dit pas *ce que* le relecteur cherche — ça vit dans
-`${CLAUDE_PLUGIN_ROOT}/agents/relecteur.md`, les trois catégories et le
+`${CLAUDE_PLUGIN_ROOT}/agents/relecteur.md`, les quatre catégories et le
 format de remarque. Il dit *quand* l'appeler, *comment* le brief, et *comment*
 boucler jusqu'à un verdict propre.
 
@@ -56,7 +56,7 @@ exactement celui du 2026-09-23 ; seul le second est nouveau.
 Un appel `Agent` avec `subagent_type: "plans-notion:relecteur"` — nom
 qualifié, le nom court ne résout pas, comme pour `plans-notion:executant`
 (§3 du skill). **Sans paramètre `model`** : le frontmatter de l'agent porte
-`opus` et `effort: low`, et c'est le même principe que pour l'exécutant — le
+`opus` et `effort: high`, et c'est le même principe que pour l'exécutant — le
 modèle garanti par construction plutôt que par une discipline d'appel.
 
 Le brief du relecteur, et rien de plus :
@@ -91,12 +91,22 @@ Le relecteur rend `RIEN À SIGNALER` ou `REMARQUES (n)`. Pour chaque remarque :
    découverte », et suit le traitement de `executer-plan-notion` §4 (question à
    Benjamin, jamais de correctif seul).
 
+Une remarque `Découverte hors plan` (quatrième catégorie du relecteur) passe par
+la même vérification (point 1). Elle n'est **pas** corrigée dans l'étape relue :
+c'est un défaut réel que l'étape n'a pas causé et que son objectif ne demande
+pas. Elle suit `_partage/decouvertes.md` : une étape `D<n>` si elle est
+réversible, hors sécurité et petite ; une question à Benjamin sinon. Le
+garde-fou « trois tours » ci-dessous ne change pas pour elle. Écartée de
+l'étape, elle entre dans le brief des tours suivants avec sa raison, comme les
+autres remarques écartées.
+
 Puis nouvel appel au relecteur, brief réduit aux seuls correctifs (nouvelle
 plage de commits) plus les remarques écartées et leurs raisons. Le relecteur
 prend position sur chacune — maintenue avec un argument nouveau, ou
 abandonnée (`relecteur.md`, « Aux tours suivants »). On recommence jusqu'à
 `RIEN À SIGNALER`. **Aucun tour de cette boucle n'ouvre de plan de suite** :
-une remarque de revue se règle dans l'étape, pas dans une page à part.
+une remarque de revue se règle dans l'étape, pas dans une page à part (sauf la
+`Découverte hors plan` ci-dessus : étape `D<n>` du même plan, ou question).
 
 ## Garde-fou
 
@@ -130,12 +140,16 @@ Revue — N tour(s)
   Verdict final : RIEN À SIGNALER
 ```
 
-Une ligne par remarque, quel que soit le tour où elle est apparue.
+Une ligne par remarque, quel que soit le tour où elle est apparue. Une remarque
+`Découverte hors plan` s'y écrit « traitée en découverte », comme une remarque
+`Sécurité (hors diff)` : elle ne se corrige pas dans l'étape.
 
 ## Coût assumé
 
-Un appel Opus effort low par étape marquée `étape` et par lot, plus un par
-tour de correction — décisions de Benjamin du 2026-09-23 et du 2026-09-30.
+Un appel Opus effort `high` par étape marquée `étape` et par lot, plus un par
+tour de correction — décisions de Benjamin du 2026-09-23 et du 2026-09-30 pour
+le régime, et du 2026-10-16 pour l'effort `high` (il remplace le `low` posé le
+2026-09-23).
 Avant ce fichier, le pilote ne rejouait que des tests, jamais un
 regard neuf sur le diff : c'est exactement la dérive que superpowers
 `executing-plans` met en garde — « Do not skip it, and do not replace it with

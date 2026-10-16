@@ -99,6 +99,8 @@ pas au fond). Un fait qu'on ne retrouve pas sur la page n'entre pas au tableau.
 | Un `CLAUDE.md` vise moins de 200 lignes | « target under 200 lines per CLAUDE.md file » | https://code.claude.com/docs/en/memory.md | 2026-10-12 | `scripts/test_taille_claude_md.py` (plafond de `taille-claude-md.py`, joué par `scripts/ci_locale.sh`, section `garde`) |
 | Pour alléger un `CLAUDE.md`, on sort la consigne vers un skill ou une règle à portée de chemin | « move it to a [skill](/docs/en/skills) or a [path-scoped rule](#organize-rules-with-claude/rules/) instead » | https://code.claude.com/docs/en/memory.md | 2026-10-12 | `scripts/test_taille_claude_md.py` (le guide `_partage/ranger-claude-md.md` reprend cette consigne) |
 | Sur Opus 5.5 et Sonnet 5.5, une lecture de cache coûte 0,05 × le prix d'entrée (0,20 $ et 0,10 $) | « On Claude Opus 5.5 and Claude Sonnet 5.5, a cache hit costs 5% of the standard input price ($0.20 USD per million tokens on Claude Opus 5.5, $0.10 USD on Claude Sonnet 5.5). » | https://platform.claude.com/docs/en/about-claude/pricing.md | 2026-10-12 | `scripts/test_cout_plan.py` (classe `GrilleReelle`, lit `plugins/plans-notion/skills/_partage/scripts/grille-tarifs.json`) |
+| `maxTurns` arrête un sous-agent et marque sa sortie partielle | « Maximum number of agentic turns before the subagent stops. » | https://code.claude.com/docs/en/sub-agents.md | 2026-10-16 | `evals/plans-notion/escalade-bornee/case.yaml` (le cas qui joue l'escalade après l'arrêt d'un exécutant ; `maxTurns: 90` est posé dans `plugins/plans-notion/agents/executant.md`, aucun script ne lit ce champ) |
+| Les skills réattachés après compaction se partagent 25 000 jetons | « Re-attached skills share a combined budget of 25,000 tokens. » | https://code.claude.com/docs/en/skills.md | 2026-10-16 | `scripts/check_skills.py` règle c (même mécanisme que les 5 000 premiers jetons ; c'est la raison de « ré-invoquer le skill après un compactage ») |
 
 ## 3. Le journal des passes
 
@@ -351,3 +353,42 @@ Une entrée par passe, la plus récente en dernier. Le titre est
   ce que la doc confirme nécessaire.
 - **Verdict de `scripts/veille_faits.py`** (2026-10-15) : 20 faits vérifiés, 0 citation à
   signaler, 0 page injoignable.
+
+### 2026-10-16 — passe avant le plan « mes-skills — Relecteur Opus high, retours hors plan en autonomie, escalade bornée et brainstorming cadré »
+
+- **Sources lues** : quatre pages, téléchargées par le pilote et lues depuis ce téléchargement :
+  la doc des sous-agents (`https://code.claude.com/docs/en/sub-agents.md`), la doc des skills
+  (`https://code.claude.com/docs/en/skills.md`), la doc de Claude Code Review
+  (`https://code.claude.com/docs/en/code-review.md`) et le guide de prompts
+  (`https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices.md`).
+  Chaque citation a été retrouvée sur sa page par `grep`. Seuls deux faits entrent au tableau (`maxTurns`, budget de 25 000 jetons) : `scripts/test_veille_faits.py` exige qu'un fait cite un script, un cas d'éval ou un job de CI comme contrôle, et la revue hébergée, la délégation d'Opus 5 et le « si dans le doute » n'en ont aucun ; ils restent lus et écrits ici.
+  **Non lu** : le guide `prompting-claude-opus-5`, que le guide de prompts renvoie pour le détail
+  propre à Opus 5 (contrôle des sous-agents, verbosité, dépassement de portée).
+- **Ce qui a changé** :
+  - **`maxTurns`** (sous-agents) : champ de frontmatter. À la limite, Claude Code rend la sortie
+    marquée « partielle » et Claude peut reprendre le sous-agent (`SendMessage`). Le marquage
+    exige Claude Code v2.1.246 ou plus.
+  - **Skills** : `SKILL.md` sous 500 lignes ; `description` et `when_to_use` tronqués à 1 536
+    caractères (`when_to_use` compte dans ce plafond). Après compaction, les 5 000 premiers
+    jetons de chaque skill sont gardés, et les skills réattachés se partagent un budget commun
+    de 25 000 jetons. Le `model` d'un skill vaut pour le reste du tour en cours ; la durée de
+    son `effort` n'est pas dite par la page (« when this skill is active »).
+  - **Guide de prompts, Opus 4.5 et 4.6** : il faut baisser le ton des consignes agressives (la
+    page le dit pour Opus 4.5 et 4.6). La section Opus 4.6 écrit « Remove over-prompting. » et
+    donne l'exemple « If in doubt, use [tool] », qui « will cause overtriggering ». Le guide
+    dit aussi, en général, qu'expliquer la raison d'une consigne aide le modèle.
+  - **Guide de prompts, Opus 5** : Opus 5 « delegates to subagents more readily than prior
+    models ». Le détail (contrôle de la délégation) est dans le guide `prompting-claude-opus-5`,
+    non lu.
+  - **Claude Code Review** : service hébergé sur l'infrastructure d'Anthropic, pour les plans
+    Team et Enterprise, sur dépôts GitHub. Il commente en ligne, avec un résumé et un check run,
+    et « a review never approves or blocks the pull request ». Il ne remplace pas le `relecteur`.
+    Tarif et quota : non lus.
+- **Ce qu'on en fait** : `maxTurns: 90` est posé sur l'`executant` (le fichier le porte déjà). La
+  mesure qui le justifie, relevée sur 14 jours et rapportée par le pilote, porte sur 676
+  exécutants : médiane 27 tours, 95e centile 73, maximum 158. Le relecteur reste en Opus, effort
+  `high`. Rien d'autre ne change au tableau de la partie 2 hors les deux lignes ajoutées. Le
+  registre `docs/garde-fous.md` reçoit une ligne par règle posée (quatre : la porte `pret` a déjà la sienne),
+  dont deux « en place » (cas `revue-hors-plan` et `escalade-bornee`) et deux « manquant » (`maxTurns`, citation d'une case cochée).
+- **Verdict de `scripts/veille_faits.py`** (2026-10-16) : 22 faits vérifiés, 0 citation à
+  signaler, 0 page injoignable (code 0).

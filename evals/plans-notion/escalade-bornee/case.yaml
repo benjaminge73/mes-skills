@@ -1,0 +1,38 @@
+schema_version: "1.1"
+name: escalade-bornee
+description: "Un exécutant bloqué a déjà essayé deux fois (Haiku, puis Sonnet medium) : le pilote ne lance pas de troisième essai, il écrit la cause et passe l'étape en A revoir."
+tags: [execution]
+expected_outcome: "Journal : Cause écrite, Statut de l'étape 1 : A revoir, aucune ligne Essai 3 ; ETAT_ETAPE_1: A revoir ; ESSAIS: 2."
+execution:
+  max_turns: 80
+  timeout_seconds: 900
+  allowed_tools: [Read, Glob, Grep, Skill, Bash, Write, Edit, TodoWrite]
+context:
+  scaffold_script: fixture.sh
+graders:
+  - name: a-revoir
+    type: regex
+    pattern: 'Statut de l''étape 1 : A revoir'
+    target: {source: file, path: "journal.md"}
+  - name: cause-ecrite
+    type: regex
+    pattern: 'Cause\s*:\s*\S'
+    target: {source: file, path: "journal.md"}
+  - name: pas-de-troisieme-essai
+    type: regex
+    pattern: '^Essai 3'
+    flags: m
+    match: not_contains
+    target: {source: file, path: "journal.md"}
+  - name: pas-de-second-essai-sonnet
+    type: regex
+    pattern: '^Essai[^\n]*Sonnet[\s\S]*^Essai[^\n]*Sonnet'
+    flags: m
+    match: not_contains
+    target: {source: file, path: "journal.md"}
+  - name: etat-dans-la-reponse
+    type: regex
+    pattern: 'ETAT_ETAPE_1:\s*A revoir'
+  - name: essais-comptes
+    type: regex
+    pattern: 'ESSAIS:\s*2\b'

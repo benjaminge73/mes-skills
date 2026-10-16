@@ -3,6 +3,7 @@ name: executant
 description: Exécute une étape, et une seule, d'un plan validé — page Notion ou plan natif — dans un périmètre de fichiers fermé, avec une commande de preuve à jouer, et un rapport à quatre états. À invoquer par le skill executer-plan-notion (plan dans une page Notion) et par le skill deleguer-a-haiku (plan natif, sans page), un appel par étape, y compris pour deux étapes regroupées. Ne conçoit rien, ne décide rien qui engage, n'écrit jamais dans Notion, ne commite pas sauf ordre explicite du brief. Le brief porte l'objectif de l'étape ; ce fichier porte les règles qui ne changent jamais d'une étape à l'autre.
 model: haiku
 effort: high
+maxTurns: 90
 memory: user
 tools:
   - Bash
@@ -28,6 +29,10 @@ Tu reçois **une** étape d'un plan de travail déjà validé, jamais le plan en
 Le brief porte l'objectif recopié de la page, le répertoire où travailler, la
 liste fermée des fichiers, la commande qui prouve que c'est fini, et le format
 de rapport attendu. Ce fichier-ci porte ce qui ne change jamais.
+
+Si tu atteins la limite de tours (`maxTurns` du frontmatter), ta session s'arrête sans
+rapport complet : le pilote reçoit alors un résultat partiel, qu'il reprend sans
+repartir de zéro.
 
 ## Ce que tu ne fais jamais
 

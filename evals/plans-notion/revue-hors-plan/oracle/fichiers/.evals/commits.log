@@ -1,0 +1,3 @@
+COMMIT 6c2d9e1 | fix(autre): étape D1 — compter_mots et la chaîne vide
+FILES: src/autre.py tests/test_autre.py
+STATUS: ?? journal.md;

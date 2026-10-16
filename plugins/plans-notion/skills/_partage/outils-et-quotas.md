@@ -375,14 +375,14 @@ commune pour comparer les postes.
 
 - **Un passage est une session complète.** Chaque cas est joué 3 fois par bras.
   Le 2026-09-30, le banc comptait 16 cas : 16 × 3 = 48 sessions par bras. Il
-  compte 24 cas au 2026-10-16, soit 24 × 3 = 72 sessions par bras. Une A/B joue
+  compte 26 cas au 2026-10-16, soit 26 × 3 = 78 sessions par bras. Une A/B joue
   deux bras (la base et la tête) : tout est à doubler. Le modèle joué est Sonnet,
   effort `high` ; la correction se fait par expressions régulières, sans
   modèle-juge, donc sans coût de juge.
 - **Un bras complet coûtait 27,53 $ le 2026-09-30, sur 16 cas.** Un cas coûtait
   entre 0,98 $ et 3,57 $ à la même date. Une A/B sur tout le banc coûtait donc
   environ 55 $, et une A/B ciblée sur une catégorie 3 à 14 $ (chiffres du
-  2026-09-30). Le coût d'un bras à 24 cas n'a pas été remesuré.
+  2026-09-30). Le coût d'un bras à 26 cas n'a pas été remesuré.
 - **Par catégorie**, pour un bras de 3 passages, puis pour un seul passage (le
   coût d'une fumée), mesuré le 2026-09-30. La colonne « Cas au 2026-10-16 »
   donne le nombre de cas que chaque catégorie compte aujourd'hui :
@@ -397,13 +397,16 @@ commune pour comparer les postes.
 | `perimetre` | 2 | 2 | 2,56 $ | 0,85 $ |
 | `delegation` | 1 | — | non mesuré | non mesuré |
 | `preuves` | 4 | — | non mesuré | non mesuré |
-| **tout le banc** | 24 | 16 | 27,53 $ | ≈ 9,2 $ |
+| `revue-hors-plan` | 1 | — | non mesuré | non mesuré |
+| `escalade-bornee` | 1 | — | non mesuré | non mesuré |
+| **tout le banc** | 26 | 16 | 27,53 $ | ≈ 9,2 $ |
 
 Les coûts datent du 2026-09-30 et ne sont extrapolés à aucune catégorie. Les
 catégories `existant` et `decouvertes` ont gagné des cas depuis : elles coûtent
-plus que leur ligne. `delegation` et `preuves` ne figuraient pas dans la mesure,
-et leur coût n'a jamais été mesuré. `tout le banc` désigne le banc de
-`plans-notion` ; `voyages` en compte un de plus (`billet`), soit 25 cas au total.
+plus que leur ligne. `delegation`, `preuves`, `revue-hors-plan` et `escalade-bornee`
+ne figuraient pas dans la mesure, et leur coût n'a jamais été mesuré. `tout le banc`
+désigne le banc de `plans-notion` ; `voyages` en compte un de plus (`billet`), soit
+27 cas au total.
 
 Mesure postérieure pour `decouvertes` : la PR #60 (run `38881638080`, le
 2026-10-16), à bras identiques puisqu'elle ne changeait aucun fichier du plugin.
@@ -420,7 +423,7 @@ bras ensemble (montant brut, non divisé par deux).
 - **Le plafond par appel** (`EVALS_MAX_COUT_USD`) vaut 45 $ par bras. Il a été
   fixé sur une extrapolation, pas sur une mesure : le 2026-10-15, un bras de 23
   cas à ~39,6 $ (23 × le coût par cas mesuré le 2026-09-30), plus une marge
-  d'environ 14 %. Le banc compte 24 cas au 2026-10-16 ; aucune
+  d'environ 14 %. Le banc compte 26 cas au 2026-10-16 ; aucune
   nouvelle extrapolation n'est faite. Il valait 120 $ avant le 2026-10-01, puis
   35 $ du 2026-10-01 au 2026-10-15 : trop bas pour un passage complet du banc à
   23 cas, alors. Le 120 $ n'a jamais été atteint : il ne protégeait de rien.
@@ -780,3 +783,57 @@ refus arrivent en 429 (limite de débit) ou 503.
 
 **Repli** : relancer la mesure plus tard, le cache garde ce qui est déjà
 téléchargé (reprise gratuite). Aucun autre connu au 2026-10-09.
+
+## Fiche — maxTurns (limite de tours d'un sous-agent)
+
+**Quota ou coût** : aucun quota. `maxTurns` est un plafond de tours posé dans le
+frontmatter d'un sous-agent (doc lue le 2026-10-16,
+`https://code.claude.com/docs/en/sub-agents.md`). Mesure rapportée par le pilote, le
+2026-10-16, sur 14 jours d'exécutants : 676 exécutants, médiane 27 tours, 95e centile
+73, maximum 158.
+
+**Pièges datés** :
+
+- **2026-10-16 : la marque « partielle » exige Claude Code v2.1.246 ou plus.** À la
+  limite, la sortie d'un sous-agent est rendue marquée partielle ; sur une version plus
+  ancienne, cette marque n'est pas posée.
+- **2026-10-16 : un arrêt par la limite de tours n'est pas un échec.** La sortie
+  partielle est reprenable. `executer-plan-notion` la reprend au même palier, soit par
+  `SendMessage` à la même instance, soit par un nouvel appel dont le brief reprend le
+  résultat partiel (`etapes.md`, « L'escalade bornée », règle 6). Ce n'est pas une montée.
+
+**Bonne pratique** :
+
+- Poser `maxTurns` dans le frontmatter de l'agent, sur une valeur mesurée sur ses sessions
+  réelles (ici `90` pour `executant`), jamais sur une valeur devinée.
+- Lire une sortie marquée partielle comme un arrêt à reprendre, pas comme une étape
+  terminée.
+
+**Repli** : reprendre le sous-agent par son nom ou son ID (`SendMessage`) pour qu'il
+continue là où il s'est arrêté. Sur une version de Claude Code antérieure à la v2.1.246,
+la marque « partielle » n'est pas posée : vérifier la version avant de s'y fier.
+
+## Fiche — Claude Code Review (service hébergé)
+
+**Quota ou coût** : **non lu.** Le tarif et le quota de Code Review n'ont pas été relus
+au 2026-10-16 ; la page a une section tarif (ancre `#pricing`) qui ne figure pas dans ce
+relevé. Plans : Team et Enterprise, sur dépôts GitHub (page lue le 2026-10-16,
+`https://code.claude.com/docs/en/code-review.md`).
+
+**Pièges datés** :
+
+- **2026-10-16 : une revue ne bloque ni n'approuve la PR.** Les constats arrivent en
+  commentaires en ligne, classés par gravité, avec un résumé et un check run ; la décision
+  de merge reste à l'équipe. Un avis vert de Code Review n'est donc pas une approbation.
+- **2026-10-16 : le service tourne sur l'infrastructure d'Anthropic**, et non sur le poste
+  ni sur le VPS (colonne « Où il tourne » du tableau de la page).
+
+**Bonne pratique** :
+
+- Traiter ses constats comme des avis à lire ; la décision de merge reste humaine (la page
+  le dit).
+- Ne pas le tenir pour le `relecteur` de `plans-notion` : la page ne dit pas que Code Review
+  reçoit l'objectif d'une étape, ce que le `relecteur` fait.
+
+**Repli** : le `relecteur` de `plans-notion` (agent Opus, effort `high`), qui ne dépend pas
+de ce service.

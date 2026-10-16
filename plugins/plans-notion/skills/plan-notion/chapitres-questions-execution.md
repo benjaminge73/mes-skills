@@ -34,10 +34,11 @@ un accord.
 
 Contenu de l'encadré :
 
-- Des cases à cocher, **toutes laissées vides**, la reco marquée `(reco)` en
+- Des cases à cocher, **toutes laissées vides** (sauf l'exception ci-dessous), la reco marquée `(reco)` en
   premier. **Ne jamais précocher, pas même la reco** : une case cochée par moi
   est indistinguable d'une case cochée par Benjamin à la passe suivante, et fait
-  passer une proposition pour une décision.
+  passer une proposition pour une décision. Seule exception : la question née
+  verte d'un choix validé, décrite juste après, dont la case est cochée et citée.
 - Dernière case toujours libre : `Autre / complément →`.
 - **Sans réponse, la reco s'applique.** Benjamin ne répond qu'aux désaccords.
 - **À chaque passe, relire le texte EN FACE de chaque case cochée**, et pas
@@ -53,8 +54,26 @@ Contenu de l'encadré :
 
 L'encadré ✅ porte sa ligne `Preuve :` **au moment où la question passe au vert**,
 y compris quand la reco s'applique par défaut : elle est prouvée elle aussi. Une
-question née verte porte sa preuve de `lecture` ou de `commande` dès sa création.
+question née verte porte sa preuve de `lecture`, de `commande` ou de `dispense` dès sa création.
 Format et types : `${CLAUDE_PLUGIN_ROOT}/skills/_partage/poc.md`, « La preuve de chaque réponse ».
+
+**La question née verte d'un choix validé.** Un choix que Benjamin valide **en
+toutes lettres** dans la session (« oui, on prend X », « je valide l'option B »)
+ne reste pas une reco : il s'écrit comme une question née verte, **la case de son
+choix cochée**, et sa ligne de preuve cite son message mot pour mot :
+
+`Preuve : dispense — parce que choix de gouvernance de Benjamin, <date> : « <citation> »`
+
+- **Citation exacte, date du message.** Recopiée du fil, sans paraphrase : une
+  citation reformulée ne prouve rien. Le brainstorming, à la remise, liste ces
+  choix avec leur citation ; c'est la liste à écrire ici.
+- **Sans citation, pas de case.** Un « oui » au design ne vaut pas choix validé
+  en toutes lettres : c'est l'option écartée, faire valoir ce « oui » pour `valide`.
+  Sans ligne citée, la case reste vide et la question reste orange.
+- **Une reco non contestée reste orange** tant que la réponse n'est pas écrite,
+  sans case cochée (règle de la reco plus haut).
+- L'encadré passe au vert avec `(choix validé par Benjamin)` à la place de
+  `(reco appliquée par défaut)`, et le H3 passe à `✅ Q<n> — …` dans le même geste.
 
 ### Le chapitre `Exécution`
 

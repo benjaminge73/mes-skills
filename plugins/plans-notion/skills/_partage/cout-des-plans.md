@@ -20,7 +20,7 @@ Un plan coûte en deux temps, et les deux ne se lisent pas de la même façon :
 
 - **Le coût de conception** : le pilote est en Opus (`plan-notion`), qui écrit le
   plan dans la page. C'est la ligne « Coût estimé » du chapitre `Exécution`.
-- **Le coût d'exécution** : le pilote est en Sonnet effort `high`
+- **Le coût d'exécution** : le pilote est en Sonnet effort `medium`
   (`executer-plan-notion`, décision Q9 du plan), les sous-agents `executant` sont
   en Haiku, et le `relecteur` en Opus. C'est la ligne « Coût réel » de l'entrée
   `État final`, mesurée par `cout-plan.py`.

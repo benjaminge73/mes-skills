@@ -21,6 +21,10 @@ l'efface sans prévenir, parce que recréer un bloc `to-do` le rend vierge.
 1. **Relever avant d'écrire.** Recharger la page et noter, question par question :
    quelles cases sont cochées, et le texte libre exact que Benjamin a ajouté —
    après `Autre / complément →`, dans un encadré, ou en paragraphe isolé.
+   Le relevé ne change pas quand une passe écrit une question née verte d'un
+   choix validé : elle s'écrit avec sa case déjà cochée **et** sa ligne
+   `Preuve : dispense — parce que choix de gouvernance de Benjamin, <date> : « <citation> »`
+   (`chapitres-questions-execution.md`). Jamais une case cochée sans cette citation.
 2. **Éditer de façon ciblée par défaut.** `update_content` sur le bloc concerné
    laisse les autres blocs — et leur état coché — intacts.
 3. **Si une refonte de section est nécessaire**, la réécriture doit **remettre
@@ -32,7 +36,8 @@ l'efface sans prévenir, parce que recréer un bloc `to-do` le rend vierge.
    à côté, pas à la place.
 5. **Vérifier après coup, en comptant.** Relire la page et **recompter les
    cases cochées** : le total doit être **exactement** celui du relevé de
-   l'étape 1, et chaque texte libre encore présent. Un total **supérieur** dit
+   l'étape 1, **plus une** par question née verte d'un choix validé écrite à
+   cette passe, et chaque texte libre encore présent. Un total **supérieur** dit
    qu'une case a été cochée en passant — c'est le pire dégât possible ici, parce
    qu'il fait passer une proposition pour une décision de Benjamin sans que rien
    ne permette ensuite de les distinguer. Un total **inférieur** dit qu'une
