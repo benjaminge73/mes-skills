@@ -35,7 +35,8 @@ sont exclus d'office, sans qu'il faille les nommer.
 Le jeton des actions lourdes
 ----------------------------
 Une action lourde (suite complète, e2e, évals locales, rejeu, build…) ne part
-qu'avec le jeton : ``PLACES_LOURDES`` places, deux aujourd'hui.
+qu'avec le jeton : ``PLACES_LOURDES`` places, deux sur le VPS (le profil machine
+peut en donner un autre).
 
 * ``prendre <action> --plan <titre>`` pose le jeton et écrit dans
   ``${XDG_STATE_HOME:-~/.local/state}/plans-notion/lourd.lock`` le PID de chaque
@@ -57,6 +58,14 @@ suivante. Le PID doit exister au moment de la prise.
 
 Le fichier d'état vit hors des dépôts et ne se commite jamais.
 
+Le profil machine
+-----------------
+``PLANS_NOTION_MACHINE_PROFIL`` désigne un fichier JSON hors dépôt ; sans elle,
+``${XDG_CONFIG_HOME:-~/.config}/plans-notion/machine.json`` est lu s'il existe.
+Il donne ``places_lourdes`` et les trois seuils de cette machine ; sans profil,
+ce sont les constantes du module (le VPS). Une erreur de profil sort en code 2
+sur toutes les commandes. Clés et exemple : ``machine-partagee.md``.
+
 ``--proc`` change la racine de ``/proc`` : c'est ce qui permet aux tests de lire
 des fixtures au lieu de la vraie machine.
 
@@ -67,7 +76,8 @@ une erreur : on répond sur ce qu'on lit.
 
 Codes de sortie : 0 relevé rendu / jeton accordé / jeton rendu / réponse de
 ``qui`` ; 2 usage (dont un PID inexistant) ; 3 ``prendre`` refusé, jeton
-occupé ; 4 ``prendre`` refusé, machine saturée.
+occupé ; 4 ``prendre`` refusé, machine saturée. Code 2 aussi pour un profil
+machine invalide.
 """
 from __future__ import annotations
 
@@ -287,10 +297,81 @@ def descendants(processus: dict[int, tuple[int, list[str]]], racines: set[int]) 
     return ensemble
 
 
+# --- Le profil machine -------------------------------------------------------
+
+PROFIL_VARIABLE = "PLANS_NOTION_MACHINE_PROFIL"
+
+# Clé permise -> (vérification de la valeur, ce qu'elle doit être, pour le message).
+# ``type(v) is int`` et non ``isinstance`` : ``True`` est un int pour Python.
+_CLES_PROFIL = {
+    "machine": (lambda v: isinstance(v, str), "une chaîne"),
+    "places_lourdes": (lambda v: type(v) is int and v >= 1, "un entier ≥ 1"),
+    "seuil_mem_full_avg60": (lambda v: type(v) in (int, float), "un nombre"),
+    "seuil_mem_disponible_ko": (lambda v: type(v) is int and v >= 0, "un entier ≥ 0"),
+    "seuil_cpu_some_avg10": (lambda v: type(v) in (int, float), "un nombre"),
+}
+
+
+class ProfilErreur(Exception):
+    """Profil machine illisible ou invalide ; le message cite le fichier fautif."""
+
+
+def _refuse_constante(nom: str):
+    # json accepte NaN et Infinity ; un seuil NaN ne déclencherait jamais.
+    raise ValueError(f"constante interdite : {nom}")
+
+
+def profil_par_defaut() -> Path:
+    base = os.environ.get("XDG_CONFIG_HOME") or os.path.join(os.path.expanduser("~"), ".config")
+    return Path(base) / "plans-notion" / "machine.json"
+
+
+def charger_profil() -> dict:
+    """Les clés du profil machine ; ``{}`` si aucun profil n'est désigné.
+
+    Variable posée : le fichier doit exister, sans repli silencieux. Variable
+    absente : le fichier par défaut est lu s'il existe, sinon rien.
+    """
+    if PROFIL_VARIABLE in os.environ:
+        chemin = Path(os.environ[PROFIL_VARIABLE])
+        if not chemin.is_file():
+            raise ProfilErreur(f"{chemin} : fichier absent (désigné par {PROFIL_VARIABLE})")
+    else:
+        chemin = profil_par_defaut()
+        if not chemin.is_file():
+            return {}
+    try:
+        brut = chemin.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError) as e:
+        raise ProfilErreur(f"{chemin} : lecture impossible ({e})") from e
+    try:
+        donnees = json.loads(brut, parse_constant=_refuse_constante)
+    except ValueError as e:
+        raise ProfilErreur(f"{chemin} : JSON invalide ({e})") from e
+    if not isinstance(donnees, dict):
+        raise ProfilErreur(f"{chemin} : le contenu doit être un objet JSON")
+    for cle, valeur in donnees.items():
+        if cle not in _CLES_PROFIL:
+            raise ProfilErreur(f"{chemin} : clé inconnue « {cle} » "
+                               f"(clés permises : {', '.join(_CLES_PROFIL)})")
+        verifie, attendu = _CLES_PROFIL[cle]
+        if not verifie(valeur):
+            raise ProfilErreur(f"{chemin} : « {cle} » doit être {attendu}")
+    return donnees
+
+
 # --- Le relevé ----------------------------------------------------------------
 
-def releve(proc: Path | str = "/proc", hors_pid: set[int] | None = None) -> dict:
-    """Relevé complet : ``verdict``, ``causes``, ``familles``, ``mesures``."""
+def releve(proc: Path | str = "/proc", hors_pid: set[int] | None = None,
+           profil: dict | None = None) -> dict:
+    """Relevé complet : ``verdict``, ``causes``, ``familles``, ``mesures``.
+
+    Les seuils viennent du profil machine quand il les donne, sinon des constantes.
+    """
+    profil = profil or {}
+    seuil_mem_full = profil.get("seuil_mem_full_avg60", SEUIL_MEM_FULL_AVG60)
+    seuil_mem_dispo = profil.get("seuil_mem_disponible_ko", SEUIL_MEM_DISPONIBLE_KO)
+    seuil_cpu = profil.get("seuil_cpu_some_avg10", SEUIL_CPU_SOME_AVG10)
     proc = Path(proc)
     charge = lire_charge(proc)
     cpus = lire_cpus(proc)
@@ -309,18 +390,18 @@ def releve(proc: Path | str = "/proc", hors_pid: set[int] | None = None) -> dict
                 familles.append(f)
 
     causes: list[dict] = []
-    if mem_full is not None and mem_full >= SEUIL_MEM_FULL_AVG60:
+    if mem_full is not None and mem_full >= seuil_mem_full:
         causes.append({"code": "pression-memoire", "decisive": True, "detail": (
-            f"pression mémoire « full » sur 60 s à {mem_full:g} (seuil {SEUIL_MEM_FULL_AVG60:g})")})
-    if mem_dispo is not None and mem_dispo < SEUIL_MEM_DISPONIBLE_KO:
+            f"pression mémoire « full » sur 60 s à {mem_full:g} (seuil {seuil_mem_full:g})")})
+    if mem_dispo is not None and mem_dispo < seuil_mem_dispo:
         causes.append({"code": "memoire-disponible", "decisive": True, "detail": (
             f"{mem_dispo / 1024 / 1024:.1f} Go disponibles "
-            f"(seuil {SEUIL_MEM_DISPONIBLE_KO / 1024 / 1024:.1f} Go)")})
+            f"(seuil {seuil_mem_dispo / 1024 / 1024:.1f} Go)")})
     saturee = bool(causes)
 
-    if cpu_some is not None and cpu_some >= SEUIL_CPU_SOME_AVG10:
+    if cpu_some is not None and cpu_some >= seuil_cpu:
         causes.append({"code": "pression-cpu", "decisive": True, "detail": (
-            f"pression CPU « some » sur 10 s à {cpu_some:g} (seuil {SEUIL_CPU_SOME_AVG10:g})")})
+            f"pression CPU « some » sur 10 s à {cpu_some:g} (seuil {seuil_cpu:g})")})
     for f in familles:
         causes.append({"code": f"famille-{f}", "decisive": True,
                        "detail": f"famille lourde active hors du détenteur du jeton : {f}"})
@@ -431,7 +512,10 @@ def detenteurs_vivants(proc: Path) -> list[dict]:
         return [d for d in lire_detenteurs(fd) if est_vivant(proc, d)]
 
 
-def prendre(proc: Path, action: str, plan: str, pid: int, attendre: float) -> int:
+def prendre(proc: Path, action: str, plan: str, pid: int, attendre: float,
+            profil: dict | None = None) -> int:
+    profil = profil or {}
+    places = profil.get("places_lourdes", PLACES_LOURDES)
     demarrage = lire_demarrage(proc, pid)
     if demarrage is None:
         print(f"prendre : le PID {pid} n'existe pas — le jeton se prend pour un processus vivant.",
@@ -448,10 +532,10 @@ def prendre(proc: Path, action: str, plan: str, pid: int, attendre: float) -> in
                 ecrire_detenteurs(fd, vivants)
                 print(f"accordé\njeton déjà tenu par le PID {pid}")
                 return SORTIE_OK
-            if len(vivants) >= PLACES_LOURDES:
+            if len(vivants) >= places:
                 tenus_par = vivants
             else:
-                rel = releve(proc, {d["pid"] for d in vivants})
+                rel = releve(proc, {d["pid"] for d in vivants}, profil)
                 if rel["verdict"] == VERDICT_SATUREE:
                     print("refusé : machine saturée", file=sys.stderr)
                     print(formater(rel), file=sys.stderr)
@@ -467,7 +551,7 @@ def prendre(proc: Path, action: str, plan: str, pid: int, attendre: float) -> in
             detail = " ; ".join(
                 f"PID {d['pid']} — {d.get('action')} ({d.get('plan')}) depuis {d.get('depuis')}"
                 for d in tenus_par)
-            print(f"refusé : toutes les places sont tenues ({len(tenus_par)} sur {PLACES_LOURDES}) "
+            print(f"refusé : toutes les places sont tenues ({len(tenus_par)} sur {places}) "
                   f"— {detail}", file=sys.stderr)
             return SORTIE_OCCUPE
         time.sleep(min(PAS_D_ATTENTE_S, reste))
@@ -521,16 +605,21 @@ def _parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> int:
     args = _parser().parse_args(argv)
     proc = Path(args.proc)
+    try:
+        profil = charger_profil()
+    except ProfilErreur as e:
+        print(f"profil machine : {e}", file=sys.stderr)
+        return SORTIE_USAGE
     if args.commande == "releve":
         # Ce que lance un détenteur du jeton ne compte pas contre lui-même.
         hors = set(args.hors_pid) | {d["pid"] for d in detenteurs_vivants(proc)}
-        rel = releve(proc, hors)
+        rel = releve(proc, hors, profil)
         print(json.dumps(rel, ensure_ascii=False, indent=2) if args.json else formater(rel))
         return SORTIE_OK
     pid = getattr(args, "pid", None)
     pid = os.getppid() if pid is None else pid
     if args.commande == "prendre":
-        return prendre(proc, args.action, args.plan, pid, args.attendre)
+        return prendre(proc, args.action, args.plan, pid, args.attendre, profil)
     if args.commande == "rendre":
         return rendre(proc, pid)
     if args.commande == "qui":
