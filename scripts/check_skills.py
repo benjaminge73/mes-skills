@@ -69,6 +69,13 @@ Les règles, et le fait de doc qui fonde chacune (voir ``docs/veille.md``) :
     le 2026-10-16 : le tableau comptait 16 cas pour un banc de 24 (avant la PR #63),
     qui l'a porté à 26, sans qu'aucune garde ne rougisse. Les coûts de ce tableau
     restent des mesures datées, que la règle ne contrôle pas.
+(m) Chaque agent de ``agents/`` fixe ``model`` **et** ``effort`` dans son frontmatter,
+    et, si un plugin a un agent ``preparateur``, ``skills/executer-plan-notion/ouverture.md``
+    le nomme (``plans-notion:preparateur``) et interdit le ``general-purpose`` pour la
+    préparation. Un agent sans ``model`` hérite du modèle de la session (Opus, Sonnet
+    ou autre selon le poste), un appel qui ne nomme aucun agent aussi : le 2026-10-16, la
+    préparation d'un plan Vahiny (§2) est partie à un sous-agent écrit à la main, sur le
+    modèle de la session, faute d'agent ni de règle qui la couvre.
 
 Exceptions datées
 -----------------
@@ -568,6 +575,34 @@ def _regle_k(racine: Path, plugin: Path) -> list[Anomalie]:
     return anomalies
 
 
+PHRASE_PREPARATEUR = "plans-notion:preparateur"
+PHRASE_PAS_DE_GENERAL_PURPOSE = "jamais un `general-purpose`"
+
+
+def _regle_m(racine: Path, plugin: Path) -> list[Anomalie]:
+    """Chaque agent fixe ``model`` et ``effort`` ; ``ouverture.md`` nomme le ``preparateur``."""
+    anomalies = []
+    for agent in sorted(plugin.glob("agents/*.md")):
+        champs = lire_frontmatter(agent.read_text(encoding="utf-8"))
+        manquants = [c for c in ("model", "effort") if not _texte(champs, c).strip()]
+        if manquants:
+            anomalies.append(Anomalie("m", _rel(racine, agent), (
+                "cet agent ne fixe pas " + " ni ".join(f"`{c}`" for c in manquants)
+                + " dans son frontmatter : appelé sans paramètre, il hérite du modèle (et de "
+                "l'effort) de la session, Opus ou Sonnet selon le poste. Les fixer.")))
+    if (plugin / "agents" / "preparateur.md").is_file():
+        ouverture = plugin / "skills" / "executer-plan-notion" / "ouverture.md"
+        if ouverture.is_file():
+            texte = ouverture.read_text(encoding="utf-8")
+            if PHRASE_PREPARATEUR not in texte or PHRASE_PAS_DE_GENERAL_PURPOSE not in texte:
+                anomalies.append(Anomalie("m", _rel(racine, ouverture), (
+                    f"`ouverture.md` doit nommer `{PHRASE_PREPARATEUR}` et dire « "
+                    f"{PHRASE_PAS_DE_GENERAL_PURPOSE} » pour la préparation : sans cette règle, "
+                    "un pilote délègue le §2 à un sous-agent écrit à la main, sur le modèle de "
+                    "la session.")))
+    return anomalies
+
+
 _FICHE_EVALS = "## Fiche — claude plugin eval"
 
 
@@ -716,6 +751,7 @@ def controler(racine: Path, limites: dict, sans_exceptions: bool = False) -> Res
         anomalies += _regle_j(racine, plugin)
         anomalies += _regle_k(racine, plugin)
         anomalies += _regle_l(racine, plugin)
+        anomalies += _regle_m(racine, plugin)
     anomalies += _regle_h(racine)
 
     exceptions = [] if sans_exceptions else list(limites.get("exceptions", []))
