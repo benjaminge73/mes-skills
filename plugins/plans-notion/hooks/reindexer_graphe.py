@@ -93,13 +93,24 @@ def bin_js() -> Path:
     return Path(defini) if defini else Path.home() / ".npm-global/lib/node_modules/codebase-memory-mcp/bin.js"
 
 
-def nom_du_projet(racine: str) -> str:
-    """Chemin absolu : « / » et espaces en « - », tirets consécutifs réduits, « - » initial retiré.
+def _morceau_du_serveur(car: str) -> str:
+    """Un point de code du chemin, tel que le serveur l'écrit dans le nom du .db."""
+    if re.fullmatch(r"[A-Za-z0-9._-]", car):
+        return car
+    if car.isascii():
+        return "-"
+    return car.encode("utf-8").hex()  # hex UTF-8 en minuscules, sans séparateur
 
-    Mesuré sur le serveur : « /a/-b/c » donne « a-b-c », pas « a--b-c » ;
-    l'espace se remplace comme le « / ».
+
+def nom_du_projet(racine: str) -> str:
+    """Nom du .db créé par le serveur pour ce chemin (règle mesurée avec le binaire 0.10.8).
+
+    Par point de code : [A-Za-z0-9._-] gardés, autre ASCII en « - », non ASCII en hex UTF-8.
+    Puis tirets consécutifs réduits à un, et « - » initial retiré.
+    Mesuré : « /a/-b/c » -> « a-b-c » ; « …/proj-é ü#x%y » -> « …proj-c3a9-c3bc-x-y ».
+    « n », « e » puis U+0301 (NFD) -> « n-ecc81x » : le serveur ne normalise pas.
     """
-    return re.sub(r"-+", "-", re.sub(r"[/ ]", "-", racine)).removeprefix("-")
+    return re.sub(r"-+", "-", "".join(_morceau_du_serveur(c) for c in racine)).removeprefix("-")
 
 
 def lire_head(chemin: Path) -> str | None:
