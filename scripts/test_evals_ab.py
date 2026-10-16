@@ -50,6 +50,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import evals_ab  # noqa: E402
+from bash_moderne import BASH4, sauter_sans_bash4  # noqa: E402
 
 FIXTURES = Path(__file__).resolve().parent / "fixtures_evals_ab"
 MODELE = "claude-sonnet-5-5"  # le modèle joué par défaut (étape B9)
@@ -1373,7 +1374,7 @@ class CleDuCacheDeLaBase(unittest.TestCase):
         e.update(PLUGIN="jouet", BASE_SHA=sha, SELECTION=selection, GITHUB_OUTPUT=str(sortie),
                  EVALS_MODELE=MODELE, EVALS_EFFORT="high", EVALS_RUNS="3")
         e.update(env)
-        r = subprocess.run(["bash", "-c", corps], cwd=self.depot, env=e, capture_output=True, text=True)
+        r = subprocess.run([BASH4 or "bash", "-c", corps], cwd=self.depot, env=e, capture_output=True, text=True)
         self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
         return dict(l.split("=", 1) for l in sortie.read_text("utf-8").splitlines() if "=" in l)
 
@@ -1743,7 +1744,7 @@ def corps_du_pas(nom: str) -> str:
 def jouer_le_pas(corps: str, depot: Path, env: dict) -> subprocess.CompletedProcess:
     e = {k: v for k, v in os.environ.items() if not k.startswith(("EVALS_", "GITHUB_", "RUNNER_"))}
     e.update(env)
-    return subprocess.run(["bash", "-c", corps], cwd=depot, env=e, capture_output=True, text=True)
+    return subprocess.run([BASH4 or "bash", "-c", corps], cwd=depot, env=e, capture_output=True, text=True)
 
 
 def lire_sorties(chemin: Path) -> dict:
@@ -1812,6 +1813,7 @@ class FumeeCategoriesVertes(unittest.TestCase):
         self.assertEqual(evals_ab.lignes_durees({"a": 0.0, "b": 0.0}), [])
 
 
+@sauter_sans_bash4
 class CleDuCacheDeLaFumee(unittest.TestCase):
     """Le pas « Clé du cache de la fumée » de ci.yml, joué pour de bon.
 
@@ -1868,6 +1870,7 @@ class CleDuCacheDeLaFumee(unittest.TestCase):
         self.assertEqual(apres["deux"], avant["deux"])
 
 
+@sauter_sans_bash4
 class FumeeSauveeSeulementSiVerte(DepotEtLanceur):
     """Le pas « Jouer la fumée, juger les catégories » de ci.yml, joué pour de bon.
 

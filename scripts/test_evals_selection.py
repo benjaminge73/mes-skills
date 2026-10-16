@@ -37,6 +37,10 @@ import tempfile
 import unittest
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from bash_moderne import BASH4, sauter_sans_bash4  # noqa: E402
+
 RACINE = Path(__file__).resolve().parents[1]
 SCRIPT = RACINE / "scripts" / "evals_selection.py"
 CI = RACINE / ".github" / "workflows" / "ci.yml"
@@ -937,6 +941,7 @@ class CiYml(unittest.TestCase):
         self.assertEqual(doc["jobs"]["evals-verdict"]["permissions"], {"checks": "read"})
 
 
+@sauter_sans_bash4
 class PorteeDuLabelAjoute(unittest.TestCase):
     """Un ``labeled`` dont le label ajouté n'est pas ``evals`` ne relance pas le banc.
 
@@ -998,7 +1003,7 @@ class PorteeDuLabelAjoute(unittest.TestCase):
             PR_BASE_SHA=self.base, PR_HEAD_SHA=self.tete, RUNNER_TEMP=str(d),
             GITHUB_OUTPUT=str(sortie), GITHUB_STEP_SUMMARY=str(d / "resume.md"),
             FAUX_LABELS=labels, FAUX_BODY=corps, LABEL_AJOUTE=label_ajoute)
-        r = subprocess.run(["bash", "-c", self._pas_portee()], cwd=d, env=env,
+        r = subprocess.run([BASH4 or "bash", "-c", self._pas_portee()], cwd=d, env=env,
                            capture_output=True, text=True)
         sorties = dict(l.split("=", 1) for l in sortie.read_text("utf-8").splitlines() if "=" in l)
         return r, sorties
@@ -1083,7 +1088,7 @@ class VerdictDUnLabelEtranger(unittest.TestCase):
                        GH_TOKEN="x", REPO="proprietaire/depot", SHA="abc123")
             env.update(env_en_plus)
             run = _job(CI.read_text(encoding="utf-8"), "evals-verdict").split("        run: |\n", 1)[1]
-            r = subprocess.run(["bash", "-c", textwrap.dedent(run)], cwd=d, env=env,
+            r = subprocess.run([BASH4 or "bash", "-c", textwrap.dedent(run)], cwd=d, env=env,
                                capture_output=True, text=True)
             return r.returncode, r.stdout + r.stderr
 
