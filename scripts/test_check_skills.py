@@ -67,6 +67,9 @@ def _regles(resultat) -> list[str]:
     return [a.regle for a in resultat.refus]
 
 
+PHRASE_K = "6. **Un arrêt par `maxTurns` n'est pas un échec.** Reprise au même palier.\n"
+
+
 class Depot(unittest.TestCase):
     def setUp(self):
         self._tmp = tempfile.TemporaryDirectory()
@@ -797,6 +800,51 @@ class RegleJ_ToursMaximauxDesEvals(Depot):
         self.assertEqual([a for a in res.refus if a.regle == "j"], [])
 
 
+class RegleK_MaxTurnsDeLExecutant(Depot):
+    """L'``executant`` fixe ``maxTurns`` et ``etapes.md`` garde la règle de la sortie partielle."""
+
+    def setUp(self):
+        super().setUp()
+        self.plugin_conforme()
+
+    def executant(self, frontmatter="maxTurns: 90\n", etapes=PHRASE_K):
+        _ecrire(self.racine / "plugins" / "p" / "agents" / "executant.md",
+                f"---\nname: executant\ndescription: Exécute une étape.\n{frontmatter}---\nCorps.\n")
+        if etapes is not None:
+            _ecrire(self.racine / "plugins" / "p" / "skills" / "executer-plan-notion" / "etapes.md", etapes)
+
+    def refus_k(self):
+        return [a for a in self.controler().refus if a.regle == "k"]
+
+    def test_un_plugin_sans_executant_n_est_pas_concerne(self):
+        self.assertEqual(self.refus_k(), [])
+
+    def test_executant_avec_max_turns_et_la_regle_est_conforme(self):
+        self.executant()
+        self.assertEqual(self.refus_k(), [])
+
+    def test_executant_sans_max_turns_est_refuse_et_nomme(self):
+        self.executant(frontmatter="")
+        refus = self.refus_k()
+        self.assertEqual([a.cible for a in refus], ["plugins/p/agents/executant.md"])
+        self.assertIn("maxTurns", refus[0].message)
+
+    def test_max_turns_non_numerique_est_refuse(self):
+        self.executant(frontmatter="maxTurns: beaucoup\n")
+        self.assertEqual(len(self.refus_k()), 1)
+
+    def test_la_regle_d_etapes_md_disparue_est_refusee(self):
+        self.executant(etapes="6. Un arrêt par la limite est un échec.\n")
+        refus = self.refus_k()
+        self.assertEqual([a.cible for a in refus], ["plugins/p/skills/executer-plan-notion/etapes.md"])
+
+    def test_le_depot_reel_respecte_la_regle(self):
+        racine = Path(__file__).resolve().parents[1]
+        limites = json.loads((racine / "scripts" / "limites.json").read_text("utf-8"))
+        res = check_skills.controler(racine, limites)
+        self.assertEqual([a for a in res.refus if a.regle == "k"], [])
+
+
 ENTETE_FICHE = "| Catégorie | Cas au 2026-10-16 | Cas mesurés le 2026-09-30 | Un bras, 3 passages | Un passage |"
 SEPARATEUR_FICHE = "|---|---|---|---|---|"
 LIGNES_CONFORMES = (
@@ -806,7 +854,7 @@ LIGNES_CONFORMES = (
 )
 
 
-class RegleK_ComptesDuTableauDeCouts(Depot):
+class RegleL_ComptesDuTableauDeCouts(Depot):
     """Le tableau « Cas au … » de la fiche « claude plugin eval » compte les cas de
     chaque catégorie de evals/categories.json, et sa ligne « tout le banc » leur total
     distinct. Un tableau resté à 16 cas pour un banc qui en compte davantage ne doit plus passer."""
@@ -831,16 +879,16 @@ class RegleK_ComptesDuTableauDeCouts(Depot):
             + "\n".join([entete, SEPARATEUR_FICHE, *lignes])
             + "\n\nLa suite.\n"))
 
-    def refus_k(self):
-        return [a for a in self.controler().refus if a.regle == "k"]
+    def refus_l(self):
+        return [a for a in self.controler().refus if a.regle == "l"]
 
     def test_une_fiche_conforme_est_acceptee(self):
         self.fiche(*LIGNES_CONFORMES)
-        self.assertEqual(self.refus_k(), [])
+        self.assertEqual(self.refus_l(), [])
 
     def test_un_compte_faux_est_refuse_et_nomme_avec_le_lu_et_l_attendu(self):
         self.fiche("| `un` | 7 | 1 $ | 1 $ | 0,3 $ |", LIGNES_CONFORMES[1], LIGNES_CONFORMES[2])
-        refus = self.refus_k()
+        refus = self.refus_l()
         self.assertEqual(len(refus), 1)
         self.assertIn("`un`", refus[0].message)
         self.assertIn("compte 7 cas", refus[0].message)
@@ -848,68 +896,68 @@ class RegleK_ComptesDuTableauDeCouts(Depot):
 
     def test_une_categorie_sans_ligne_est_refusee_et_nommee(self):
         self.fiche(LIGNES_CONFORMES[0], LIGNES_CONFORMES[2])
-        refus = self.refus_k()
+        refus = self.refus_l()
         self.assertEqual(len(refus), 1)
         self.assertIn("`deux`", refus[0].message)
 
     def test_une_ligne_de_categorie_inconnue_est_refusee_et_nommee(self):
         self.fiche(LIGNES_CONFORMES[0], LIGNES_CONFORMES[1],
                    "| `fantome` | 0 | 0 | 0 $ | 0 $ |", LIGNES_CONFORMES[2])
-        refus = self.refus_k()
+        refus = self.refus_l()
         self.assertEqual(len(refus), 1)
         self.assertIn("`fantome`", refus[0].message)
 
     def test_un_total_qui_additionne_les_cas_au_lieu_de_les_dedoublonner_est_refuse(self):
         # c1 est dans « un » et dans « deux » : 1 + 2 = 3 lignes, 2 cas distincts.
         self.fiche(LIGNES_CONFORMES[0], LIGNES_CONFORMES[1], "| **tout le banc** | 3 | 2 | 3 $ | 0,9 $ |")
-        refus = self.refus_k()
+        refus = self.refus_l()
         self.assertEqual(len(refus), 1)
         self.assertIn("donne 3 cas", refus[0].message)
         self.assertIn("en compte 2 distincts", refus[0].message)
 
     def test_une_ligne_tout_le_banc_absente_est_refusee(self):
         self.fiche(LIGNES_CONFORMES[0], LIGNES_CONFORMES[1])
-        refus = self.refus_k()
+        refus = self.refus_l()
         self.assertEqual(len(refus), 1)
         self.assertIn("tout le banc", refus[0].message)
 
     def test_un_compte_non_entier_est_refuse_sans_planter(self):
         self.fiche("| `un` | environ 1 | 1 $ | 1 $ | 0,3 $ |", LIGNES_CONFORMES[1], LIGNES_CONFORMES[2])
-        refus = self.refus_k()
+        refus = self.refus_l()
         self.assertEqual(len(refus), 1)
         self.assertIn("`un`", refus[0].message)
 
     def test_une_colonne_cas_au_absente_est_refusee(self):
         self.fiche(*LIGNES_CONFORMES, entete="| Catégorie | Cas mesurés le 2026-09-30 | Un passage |")
-        refus = self.refus_k()
+        refus = self.refus_l()
         self.assertEqual(len(refus), 1)
         self.assertIn("Cas au", refus[0].message)
 
     def test_une_fiche_sans_section_ni_tableau_est_refusee(self):
         _ecrire(self.racine / "plugins" / "p" / "skills" / "_partage" / "outils-et-quotas.md",
                 "# Outils\n\nRien de chiffré.\n")
-        refus = self.refus_k()
+        refus = self.refus_l()
         self.assertEqual(len(refus), 1)
         self.assertIn("tableau", refus[0].message)
 
     def test_un_plugin_sans_fiche_n_est_pas_controle(self):
-        self.assertEqual(self.refus_k(), [])
+        self.assertEqual(self.refus_l(), [])
 
     def test_des_categories_illisibles_sont_signalees_par_i_seule(self):
         # La panne de categories.json relève de la règle (i) : (k) ne la double pas.
         self.fiche(*LIGNES_CONFORMES)
         _ecrire(self.racine / "evals" / "categories.json", "{ pas du json")
-        self.assertEqual(self.refus_k(), [])
+        self.assertEqual(self.refus_l(), [])
         self.assertEqual(len([a for a in self.controler().refus if a.regle == "i"]), 1)
 
     def test_le_depot_reel_respecte_la_regle(self):
         racine = Path(__file__).resolve().parents[1]
         limites = json.loads((racine / "scripts" / "limites.json").read_text("utf-8"))
         res = check_skills.controler(racine, limites)
-        self.assertEqual([a for a in res.refus if a.regle == "k"], [])
+        self.assertEqual([a for a in res.refus if a.regle == "l"], [])
 
 
-class RegistreDeLaRegleK(unittest.TestCase):
+class RegistreDeLaRegleL(unittest.TestCase):
     """La ligne du registre qui dit que le tableau de coûts des évals suit le banc."""
 
     RACINE = Path(__file__).resolve().parents[1]
@@ -921,10 +969,10 @@ class RegistreDeLaRegleK(unittest.TestCase):
         self.assertEqual(len(trouvees), 1, f"une ligne « {debut}… » attendue au registre")
         return [c.strip() for c in trouvees[0].strip().strip("|").split("|")]
 
-    def test_la_regle_k_est_au_registre_et_en_place(self):
+    def test_la_regle_l_est_au_registre_et_en_place(self):
         cellules = self.ligne("Le tableau de coûts des évals suit le banc")
         self.assertIn("scripts/check_skills.py", cellules[3])
-        self.assertIn("(règle k)", cellules[3])
+        self.assertIn("(règle l)", cellules[3])
         self.assertTrue(cellules[5].startswith("en place"))
 
 

@@ -76,6 +76,9 @@ relevée sur la page réelle (jamais de mémoire), son URL, la date de vérifica
 le contrôle qui en dépend. `scripts/veille_faits.py` relit chaque page et vérifie
 que la citation y figure toujours (comparaison tolérante aux espaces et à la casse,
 pas au fond). Un fait qu'on ne retrouve pas sur la page n'entre pas au tableau.
+**Un contrôle est un script, un cas d'éval ou un job de la CI** : la dernière colonne
+cite un fichier de `scripts/`, `evals/` ou `.github/`, jamais une consigne en prose, et
+`scripts/test_veille_faits.py` (`test_le_tableau_reel_est_lisible_et_ses_controles_existent`) refuse un fait dont le contrôle n'en cite aucun.
 
 | Fait | Citation | URL | Vérifié le | Contrôle qui en dépend |
 | --- | --- | --- | --- | --- |

@@ -56,7 +56,12 @@ Les règles, et le fait de doc qui fonde chacune (voir ``docs/veille.md``) :
     qui en a besoin de 11 finit en erreur, et la fumée entière conclut « non
     concluant, à relancer ». Payé du 2026-10-14 au 2026-10-15 : quatre fumées
     perdues par `cloture-ouvre-la-pr`, seul cas sans limite.
-(k) Pour chaque plugin qui a un banc ``evals/<plugin>/`` et une fiche
+(k) Si un plugin a un agent ``executant`` : son frontmatter fixe ``maxTurns``
+    (entier positif) et ``skills/executer-plan-notion/etapes.md`` garde la règle
+    « Un arrêt par `maxTurns` n'est pas un échec ». Sans l'un, la limite n'existe pas ;
+    sans l'autre, un arrêt par la limite est lu comme un échec au lieu d'une sortie
+    partielle reprenable (plan du 2026-10-16, escalade bornée).
+(l) Pour chaque plugin qui a un banc ``evals/<plugin>/`` et une fiche
     ``skills/_partage/outils-et-quotas.md`` : le tableau de la section « Fiche —
     claude plugin eval » compte les cas de chaque catégorie de
     ``evals/categories.json`` (colonne « Cas au … », une ligne par catégorie, et
@@ -440,7 +445,7 @@ def _categories_du_plugin(racine: Path, plugin: Path) -> tuple[dict | None, list
 
     Rend ``(categories, [])`` quand le fichier se lit et porte une entrée
     exploitable pour le plugin, ``(None, [anomalie])`` sinon. L'anomalie est
-    celle de la règle (i) : la règle (k), qui lit le même fichier, s'en remet à
+    celle de la règle (i) : la règle (l), qui lit le même fichier, s'en remet à
     celle-ci et ne la double pas.
     """
     fichier = racine / "evals" / "categories.json"
@@ -539,6 +544,30 @@ def _regle_j(racine: Path, plugin: Path) -> list[Anomalie]:
         for cas in _dossiers_de_cas(evals_plugin) if not _declare_max_turns(evals_plugin / cas)]
 
 
+PHRASE_MAX_TURNS = "Un arrêt par `maxTurns` n'est pas un échec"
+
+
+def _regle_k(racine: Path, plugin: Path) -> list[Anomalie]:
+    """L'``executant`` fixe ``maxTurns`` et ``etapes.md`` dit qu'un arrêt par la limite n'est pas un échec."""
+    agent = plugin / "agents" / "executant.md"
+    if not agent.is_file():
+        return []
+    anomalies = []
+    cible = _rel(racine, agent)
+    valeur = str(lire_frontmatter(agent.read_text(encoding="utf-8")).get("maxTurns", "")).strip()
+    if not re.fullmatch(r"[1-9]\d*", valeur):
+        anomalies.append(Anomalie("k", cible, (
+            "l'`executant` ne fixe pas `maxTurns` (entier positif) dans son frontmatter : sans lui, "
+            "un sous-agent bavard n'a pas de limite, et la règle « un arrêt par `maxTurns` n'est pas "
+            "un échec » d'`etapes.md` ne s'applique à rien.")))
+    etapes = plugin / "skills" / "executer-plan-notion" / "etapes.md"
+    if etapes.is_file() and PHRASE_MAX_TURNS not in etapes.read_text(encoding="utf-8"):
+        anomalies.append(Anomalie("k", _rel(racine, etapes), (
+            f"la règle « {PHRASE_MAX_TURNS} » a disparu : un arrêt par la limite de tours serait "
+            "lu comme un échec au lieu d'une sortie partielle reprenable.")))
+    return anomalies
+
+
 _FICHE_EVALS = "## Fiche — claude plugin eval"
 
 
@@ -571,7 +600,7 @@ def _tableau_de_la_fiche(texte: str) -> list[list[str]] | None:
     return tableau or None
 
 
-def _regle_k(racine: Path, plugin: Path) -> list[Anomalie]:
+def _regle_l(racine: Path, plugin: Path) -> list[Anomalie]:
     if not (racine / "evals" / plugin.name).is_dir():
         return []
     fiche = plugin / "skills" / "_partage" / "outils-et-quotas.md"
@@ -584,14 +613,14 @@ def _regle_k(racine: Path, plugin: Path) -> list[Anomalie]:
 
     tableau = _tableau_de_la_fiche(fiche.read_text(encoding="utf-8"))
     if tableau is None:
-        return [Anomalie("k", cible, (
+        return [Anomalie("l", cible, (
             f"la section « {_FICHE_EVALS[3:]} » ne contient pas de tableau : y écrire le "
             "tableau des comptes de cas (une ligne par catégorie de `evals/categories.json`, "
             "puis « tout le banc »)."))]
     entete = tableau[0]
     colonne = next((i for i, c in enumerate(entete) if c.startswith("Cas au")), None)
     if colonne is None:
-        return [Anomalie("k", cible, (
+        return [Anomalie("l", cible, (
             "le tableau de la fiche n'a pas de colonne dont l'en-tête commence par « Cas au » : "
             "la rétablir, c'est elle que la règle compare à `evals/categories.json`."))]
 
@@ -606,14 +635,14 @@ def _regle_k(racine: Path, plugin: Path) -> list[Anomalie]:
             continue
         noms = re.findall(r"`([^`]+)`", premiere)
         if not noms:
-            anomalies.append(Anomalie("k", cible, (
+            anomalies.append(Anomalie("l", cible, (
                 f"la ligne « {premiere} » ne nomme aucune catégorie entre backticks : écrire "
                 "le nom de la catégorie de `evals/categories.json` entre backticks, ou "
                 "retirer la ligne.")))
             continue
         nom = noms[0]
         if nom not in categories:
-            anomalies.append(Anomalie("k", cible, (
+            anomalies.append(Anomalie("l", cible, (
                 f"la fiche a une ligne pour la catégorie `{nom}`, qui n'existe pas dans "
                 "`evals/categories.json` : corriger le nom, ou retirer la ligne.")))
             continue
@@ -621,32 +650,32 @@ def _regle_k(racine: Path, plugin: Path) -> list[Anomalie]:
         attendu = len(categories[nom]["cas"])
         lu = _lire_compte(compte)
         if lu is None:
-            anomalies.append(Anomalie("k", cible, (
+            anomalies.append(Anomalie("l", cible, (
                 f"la ligne de `{nom}` n'a pas un compte entier dans la colonne « {entete[colonne]} » "
                 f"(« {compte} ») : y écrire le nombre de cas de la catégorie.")))
         elif lu != attendu:
-            anomalies.append(Anomalie("k", cible, (
+            anomalies.append(Anomalie("l", cible, (
                 f"la catégorie `{nom}` compte {lu} cas dans la colonne « {entete[colonne]} » "
                 f"de la fiche, et {attendu} dans `evals/categories.json` : corriger la cellule.")))
 
     for nom in sorted(set(categories) - vues):
-        anomalies.append(Anomalie("k", cible, (
+        anomalies.append(Anomalie("l", cible, (
             f"la catégorie `{nom}` n'a pas de ligne dans le tableau de la fiche : l'ajouter, "
             "avec son nombre de cas.")))
 
     distincts = len({c for cat in categories.values() for c in cat["cas"]})
     if total is None:
-        anomalies.append(Anomalie("k", cible, (
+        anomalies.append(Anomalie("l", cible, (
             "le tableau de la fiche n'a pas de ligne « **tout le banc** » : l'ajouter, avec "
             f"le nombre de cas distincts du plugin ({distincts}).")))
     else:
         lu = _lire_compte(total)
         if lu is None:
-            anomalies.append(Anomalie("k", cible, (
+            anomalies.append(Anomalie("l", cible, (
                 f"la ligne « tout le banc » n'a pas un compte entier (« {total} ») : y écrire "
                 f"le nombre de cas distincts du plugin ({distincts}).")))
         elif lu != distincts:
-            anomalies.append(Anomalie("k", cible, (
+            anomalies.append(Anomalie("l", cible, (
                 f"la ligne « tout le banc » donne {lu} cas, et le plugin en compte {distincts} "
                 "distincts dans `evals/categories.json` : corriger la cellule.")))
     return anomalies
@@ -686,6 +715,7 @@ def controler(racine: Path, limites: dict, sans_exceptions: bool = False) -> Res
         anomalies += _regle_i(racine, plugin)
         anomalies += _regle_j(racine, plugin)
         anomalies += _regle_k(racine, plugin)
+        anomalies += _regle_l(racine, plugin)
     anomalies += _regle_h(racine)
 
     exceptions = [] if sans_exceptions else list(limites.get("exceptions", []))
