@@ -174,6 +174,9 @@ class _LancementLocal:
         self.env["XDG_STATE_HOME"] = str(self.etat)
         self.env["TMPDIR"] = str(self.tmp / "traces")
         self.env["EVALS_ATTENDRE"] = "1"
+        # Les tests existants simulent une éval demandée par Benjamin ; le refus
+        # sans demande a sa classe (LancerLocalRefuseSansDemandeExplicite).
+        self.env["EVALS_DEMANDE_PAR_BENJAMIN"] = "1"
 
     def lancer(self, **env_en_plus: str) -> subprocess.CompletedProcess:
         return subprocess.run(
@@ -206,6 +209,38 @@ def _ignorer_si_machine_saturee(cas: unittest.TestCase) -> None:
 
 
 JOB_EVALS = "Évals (plans-notion)\nTests\n"
+
+
+class LancerLocalRefuseSansDemandeExplicite(unittest.TestCase):
+    """Hors CI, aucune éval ne part sans EVALS_DEMANDE_PAR_BENJAMIN=1."""
+
+    def _refus(self, valeur: str | None) -> None:
+        lancement = _LancementLocal(self)
+        del lancement.env["EVALS_DEMANDE_PAR_BENJAMIN"]
+        extra = {} if valeur is None else {"EVALS_DEMANDE_PAR_BENJAMIN": valeur}
+        resultat = lancement.lancer(**extra)
+        self.assertEqual(resultat.returncode, 64, resultat.stderr)
+        self.assertIn("demande explicite de Benjamin", resultat.stderr)
+        self.assertEqual(lancement.lancements_de_claude(), [], "claude a été lancé sans demande")
+        self.assertEqual(lancement.appels_de_gh(), [], "le refus doit précéder tout appel réseau")
+
+    def test_variable_absente_refuse_sans_lancer_claude(self):
+        self._refus(None)
+
+    def test_variable_autre_que_1_refuse(self):
+        self._refus("0")
+
+    def test_variable_vide_refuse(self):
+        self._refus("")
+
+    def test_en_ci_la_variable_n_est_pas_exigee(self):
+        # La CI joue ses évals par ses propres jobs (label, lancement manuel) : le
+        # lanceur n'y ajoute pas de garde, comme pour les autres gardes locales.
+        lancement = _LancementLocal(self)
+        del lancement.env["EVALS_DEMANDE_PAR_BENJAMIN"]
+        resultat = lancement.lancer(GITHUB_ACTIONS="true")
+        self.assertEqual(resultat.returncode, 0, resultat.stderr)
+        self.assertEqual(len(lancement.lancements_de_claude()), 1)
 
 
 class LancerLocalRefuseSiUnBancTourneEnCi(unittest.TestCase):

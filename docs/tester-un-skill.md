@@ -6,6 +6,14 @@ publication »). La CI vérifie des manifestes, des renvois et un numéro de
 version ; elle ne dit **rien de la justesse d'une consigne**. Ce document dit
 comment on la prouve.
 
+> ⚠️ **Rien de ce qui suit ne se lance sans demande explicite de Benjamin** dans son
+> message courant (décision du 2026-10-16) : une éval coûte des jetons et du temps.
+> Hors CI, `evals/outillage/lancer.sh` refuse (code 64) sans `EVALS_DEMANDE_PAR_BENJAMIN=1`,
+> variable à ne poser que sur cette demande. Le pré-vol et `--estimer` sont gratuits.
+> En CI, le banc (A/B) ne part que sur le label `evals` ou en lancement manuel ; la **fumée**
+> (la tête seule, quelques dollars) part sans label sur une PR qui touche un skill : seul
+> départ automatique restant, conservé par choix de Benjamin le 2026-10-16.
+
 La règle vit ici, à la racine, et non dans un plugin : elle concerne qui
 **modifie** un skill de ce dépôt, pas qui s'en sert ailleurs. Un fichier
 `_partage/` l'aurait envoyée chez tous les utilisateurs et aurait exigé une
