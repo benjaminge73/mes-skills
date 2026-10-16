@@ -389,6 +389,6 @@ Une entrée par passe, la plus récente en dernier. Le titre est
   exécutants : médiane 27 tours, 95e centile 73, maximum 158. Le relecteur reste en Opus, effort
   `high`. Rien d'autre ne change au tableau de la partie 2 hors les deux lignes ajoutées. Le
   registre `docs/garde-fous.md` reçoit une ligne par règle posée (quatre : la porte `pret` a déjà la sienne),
-  dont deux restent « prévu — étape 7 » et deux « manquant » (`maxTurns`, citation d'une case cochée).
+  dont deux « en place » (cas `revue-hors-plan` et `escalade-bornee`) et deux « manquant » (`maxTurns`, citation d'une case cochée).
 - **Verdict de `scripts/veille_faits.py`** (2026-10-16) : 22 faits vérifiés, 0 citation à
   signaler, 0 page injoignable (code 0).

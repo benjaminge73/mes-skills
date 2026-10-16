@@ -21,7 +21,7 @@ détaille.
 - **`Statut` sans accents** : `brouillon`, `en revue`, `valide`, `pret`,
   `en cours`, `a merger`, `execute`, `archive` (« La porte d'entrée »).
 - **Ne jamais cocher une case** de Benjamin : le seul `- [x]` écrit est celui
-  que le relevé portait déjà (§5, `_partage/ecrire-dans-notion.md`).
+  que le relevé portait déjà, ou une question née verte citée (§5, `ecrire-dans-notion.md`).
 - **Relevé avant d'écrire, recompte après** : chaque écriture Notion part du
   relevé du §1 et se vérifie en recomptant (§5).
 - **Jamais `--no-verify`**, ni check désactivé, ni test rendu tolérant : une

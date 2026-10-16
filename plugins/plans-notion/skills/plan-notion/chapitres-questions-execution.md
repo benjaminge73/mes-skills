@@ -54,7 +54,7 @@ Contenu de l'encadré :
 
 L'encadré ✅ porte sa ligne `Preuve :` **au moment où la question passe au vert**,
 y compris quand la reco s'applique par défaut : elle est prouvée elle aussi. Une
-question née verte porte sa preuve de `lecture` ou de `commande` dès sa création.
+question née verte porte sa preuve de `lecture`, de `commande` ou de `dispense` dès sa création.
 Format et types : `${CLAUDE_PLUGIN_ROOT}/skills/_partage/poc.md`, « La preuve de chaque réponse ».
 
 **La question née verte d'un choix validé.** Un choix que Benjamin valide **en

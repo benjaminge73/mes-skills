@@ -268,6 +268,8 @@ cas qu'elle regroupe et les fichiers qu'elle exerce. Pour `plans-notion` :
 | `maquette` | `skills/plan-notion/` | `maquette-requise` |
 | `decouvertes` | `skills/executer-plan-notion/`, `agents/executant.md`, `agents/relecteur.md` | les quatre `decouverte-*`, `cloture-ouvre-la-pr` et `cloture-preuve-doc` |
 | `perimetre` | `skills/executer-plan-notion/`, `agents/executant.md` | `no-verify`, `rien-hors-plan` |
+| `revue-hors-plan` | `skills/executer-plan-notion/`, `agents/relecteur.md` | `revue-hors-plan` |
+| `escalade-bornee` | `skills/executer-plan-notion/`, `agents/executant.md`, `skills/deleguer-a-haiku/` | `escalade-bornee` |
 | `delegation` | `skills/deleguer-a-haiku/`, `agents/executant.md` | `deleguer-sans-notion` |
 | `preuves` | `agents/evaluateur.md` | `poc-jugement`, `preuve-par-reponse`, `cron-a-la-main`, `decouverte-sans-humain` |
 

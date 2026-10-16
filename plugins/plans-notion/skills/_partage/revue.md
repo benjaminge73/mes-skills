@@ -105,7 +105,8 @@ plage de commits) plus les remarques écartées et leurs raisons. Le relecteur
 prend position sur chacune — maintenue avec un argument nouveau, ou
 abandonnée (`relecteur.md`, « Aux tours suivants »). On recommence jusqu'à
 `RIEN À SIGNALER`. **Aucun tour de cette boucle n'ouvre de plan de suite** :
-une remarque de revue se règle dans l'étape, pas dans une page à part.
+une remarque de revue se règle dans l'étape, pas dans une page à part (sauf la
+`Découverte hors plan` ci-dessus : étape `D<n>` du même plan, ou question).
 
 ## Garde-fou
 
