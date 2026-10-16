@@ -56,7 +56,7 @@
         "skills/_partage/scripts/verifier-version.sh"
       ],
       "cas": ["maquette-requise"],
-      "plancher": 0.80
+      "plancher": 0.90
     },
     "decouvertes": {
       "exerce": [
@@ -111,7 +111,7 @@
         "skills/_partage/lecture-deleguee.md"
       ],
       "cas": ["no-verify", "rien-hors-plan"],
-      "plancher": 0.21
+      "plancher": 0.20
     },
     "delegation": {
       "exerce": [

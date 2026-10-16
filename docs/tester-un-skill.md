@@ -511,9 +511,9 @@ moins 0,10 (15 tirages sains sur Sonnet et Opus, 2026-10-01 ; `decouvertes` reme
 | `existant` | 0,75 – 0,92 | 0,65 |
 | `bruit` | 0,80 – 0,92 | 0,70 |
 | `etat-de-depart` | 0,92 – 1,00 | 0,82 |
-| `maquette` | 0,90 – 1,00 | 0,80 |
+| `maquette` | 1,00 – 1,00 | 0,90 |
 | `decouvertes` | 0,58 – 0,70 | 0,47 |
-| `perimetre` | 0,31 – 0,45 | 0,21 |
+| `perimetre` | 0,31 – 0,45 | 0,20 |
 | `delegation` | 1,00 – 1,00 | 0,90 |
 | `billet` (plugin `voyages`) | 1,00 – 1,00 | 0,90 |
 
@@ -535,6 +535,19 @@ inférieur, donne 0,47 (le tableau affiche 0,58, valeur arrondie). La même A/B 
 « recul » sur `cloture-preuve-doc` (100 % → 78 %) entre deux bras identiques : un cas bruité
 de plus que le seuil par cas de ± 10 pts, pas une régression. Une nouvelle remesure n'est à
 faire que si la catégorie rougit ou si ses cas changent encore.
+
+Les planchers de `existant`, `etat-de-depart`, `maquette` et `perimetre` ont été remesurés le
+2026-10-16 sur décision de Benjamin : ils dataient du socle du 2026-10-01 et plusieurs fichiers
+de leur périmètre avaient bougé depuis. La mesure est l'A/B de la PR #71 (run `38913789188`),
+jouée à bras identiques : Sonnet, effort `high`, 10 cas × 3 passages × 2 bras, **53,43 $**
+(24,12 $ la base, 29,32 $ la tête ; annoncé : environ 31 $). Deux sessions de la base
+(`existant-jeu-de-donnees`) ont dépassé les 600 s : le verdict de l'A/B est « non concluant »,
+et les trois tirages d'`existant` qui les contiennent ne sont pas sains. Tirages sains retenus :
+`etat-de-depart` 6 (0,92 – 0,96, plancher inchangé à 0,82), `maquette` 6 (tous à 1,00, plancher
+0,80 → 0,90), `perimetre` 6 (0,3095 – 0,4524, plancher 0,21 → 0,20 : le plus bas, 0,3095, moins
+0,10, arrondi au centième inférieur). `existant` n'a que 4 tirages sains (0,83 – 0,94) : la règle
+donnerait 0,73, mais quatre tirages ne valent pas six et un plancher trop haut rougit des PR sans
+régression ; il reste à 0,65 jusqu'à une remesure complète.
 
 Pour rejouer cette mesure, un fichier du banc (par exemple `evals/bruit-plans-notion.json`)
 doit changer dans la PR, pour que la portée de la CI déclenche le plugin ; la ligne
