@@ -12,10 +12,12 @@ dépassé garde l'ancien SHA, donc la session suivante réessaie.
 Contrat : sortie standard toujours vide (la sortie d'un hook SessionStart entre
 dans le contexte de la session), code de sortie toujours 0. Les problèmes vont
 sur stderr en une ligne, ou nulle part. Un verrou ``<projet>.lock`` évite deux
-indexations simultanées quand deux sessions s'ouvrent ensemble.
+indexations simultanées quand deux sessions s'ouvrent ensemble. Un SIGTERM ou un
+SIGHUP pendant l'indexation tue l'indexeur, retire le verrou, puis sort 0.
 """
 from __future__ import annotations
 
+import contextlib
 import json
 import os
 import re
@@ -29,6 +31,11 @@ NODE = "/opt/homebrew/opt/node@24/bin/node"
 DELAI_GIT = 10
 DELAI_INDEXATION = 180
 AGE_VERROU_PERIME = 10 * 60
+SIGNAUX_D_ARRET = (signal.SIGTERM, signal.SIGHUP)
+
+# État lu par le gestionnaire de signal : groupe du processus en attente, verrou posé ici.
+_GROUPE: int | None = None
+_VERROU: Path | None = None
 
 
 def executer(cmd: list[str], timeout: float) -> tuple[int, str]:
@@ -37,18 +44,33 @@ def executer(cmd: list[str], timeout: float) -> tuple[int, str]:
     Code -1 si introuvable ou délai dépassé. Au délai, tout le groupe est tué : bin.js
     lance l'indexeur natif en enfant, et un simple kill du pid de tête le laisserait vivre.
     """
+    global _GROUPE
     try:
         proc = subprocess.Popen(cmd, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
                                 stderr=subprocess.DEVNULL, encoding="utf-8", errors="replace",
                                 start_new_session=True)
     except OSError:
         return -1, ""
+    _GROUPE = proc.pid
     try:
         sortie, _ = proc.communicate(timeout=timeout)
     except subprocess.TimeoutExpired:
         _tuer_le_groupe(proc)
         return -1, ""
+    finally:
+        _GROUPE = None
     return proc.returncode, sortie.strip()
+
+
+def _sur_signal(signum: int, cadre) -> None:
+    """SIGTERM ou SIGHUP pendant l'attente : tue le groupe, retire le verrou, sort 0."""
+    if _GROUPE is not None:
+        with contextlib.suppress(OSError):  # le groupe a pu disparaître entre-temps
+            os.killpg(_GROUPE, signal.SIGKILL)
+    if _VERROU is not None:
+        with contextlib.suppress(OSError):
+            _VERROU.unlink(missing_ok=True)
+    sys.exit(0)
 
 
 def _tuer_le_groupe(proc: subprocess.Popen) -> None:
@@ -109,6 +131,17 @@ def indexer(racine: str, script: Path) -> bool:
 
 
 def main() -> int:
+    anciens = {signal_: signal.signal(signal_, _sur_signal) for signal_ in SIGNAUX_D_ARRET}
+    try:
+        return _reindexer_la_session()
+    finally:
+        for signal_, ancien in anciens.items():
+            if ancien is not None:
+                signal.signal(signal_, ancien)
+
+
+def _reindexer_la_session() -> int:
+    global _VERROU
     try:
         donnees = json.load(sys.stdin)
         cwd = donnees.get("cwd") if isinstance(donnees, dict) else None
@@ -131,10 +164,12 @@ def main() -> int:
         verrou = cache / f"{projet}.lock"
         if not prendre_verrou(verrou):
             return 0  # une autre session indexe déjà
+        _VERROU = verrou
         try:
             reussi = indexer(racine, script)
         finally:
             verrou.unlink(missing_ok=True)
+            _VERROU = None
         if reussi:
             (cache / f"{projet}.head").write_text(head + "\n", encoding="utf-8")
         else:
