@@ -72,11 +72,12 @@ def bin_js() -> Path:
 
 
 def nom_du_projet(racine: str) -> str:
-    """Chemin absolu, « / » en « - », tirets consécutifs réduits à un, sans « - » initial.
+    """Chemin absolu : « / » et espaces en « - », tirets consécutifs réduits, « - » initial retiré.
 
-    Mesuré sur le serveur : « /a/-b/c » donne « a-b-c », pas « a--b-c ».
+    Mesuré sur le serveur : « /a/-b/c » donne « a-b-c », pas « a--b-c » ;
+    l'espace se remplace comme le « / ».
     """
-    return re.sub(r"-+", "-", racine.replace("/", "-")).removeprefix("-")
+    return re.sub(r"-+", "-", re.sub(r"[/ ]", "-", racine)).removeprefix("-")
 
 
 def lire_head(chemin: Path) -> str | None:
