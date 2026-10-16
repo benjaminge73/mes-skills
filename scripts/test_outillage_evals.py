@@ -65,7 +65,11 @@ class _FauxBinaires:
 
 
 def _environnement(faux: _FauxBinaires, github_actions: str | None) -> dict[str, str]:
-    """Environnement d'exécution : PATH préfixé des faux binaires, sans jeton ni profil machine."""
+    """Environnement d'exécution : PATH préfixé des faux binaires, sans jeton ni profil machine.
+
+    Le profil par défaut se lit sous ``XDG_CONFIG_HOME`` : on le pointe vers un dossier
+    jetable inexistant, sans quoi le profil du poste (``~/.config``) serait lu.
+    """
     assert github_actions != "true", (
         "interdit : lancer un script d'outillage avec GITHUB_ACTIONS=true "
         "ferait un vrai sudo sur cette machine"
@@ -75,6 +79,7 @@ def _environnement(faux: _FauxBinaires, github_actions: str | None) -> dict[str,
         for k, v in os.environ.items()
         if k not in ("GITHUB_ACTIONS", "CLAUDE_CODE_OAUTH_TOKEN", "PLANS_NOTION_MACHINE_PROFIL")
     }
+    env["XDG_CONFIG_HOME"] = str(Path(faux.dossier).parent / "config")
     env["PATH"] = f"{faux.dossier}{os.pathsep}{env.get('PATH', '')}"
     if github_actions is not None:
         env["GITHUB_ACTIONS"] = github_actions
