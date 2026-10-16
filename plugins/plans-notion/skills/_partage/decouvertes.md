@@ -62,6 +62,15 @@ et il est **listé au compte rendu** : jamais en silence.
   ses propres commits, est relue (`_partage/revue.md`), et se journalise sous
   `Étape D<n> — …` avec sa propre ligne `**Découvertes** :`.
 
+Le relecteur est une source de découvertes comme le rapport de l'exécutant : sa
+catégorie **« Découverte hors plan »** (`_partage/revue.md`, « La boucle ») est
+un défaut réel que l'étape n'a pas causé et que son objectif ne demande pas. Son
+traitement est celui de ce fichier : d'abord le §1, question à Benjamin si la
+remarque touche une décision, la sécurité, l'irréversible ou une dépense ; sinon
+le §2, étape `D<n>`. **Le nombre d'étapes `D<n>` n'est pas plafonné** (décision
+de Benjamin du 2026-10-16) : la règle d'arrêt est la question à Benjamin (§1),
+pas un compteur.
+
 ## 3. Variante sans humain
 
 Quand la session est lancée par Hermes (l'automate qui démarre des sessions sans
