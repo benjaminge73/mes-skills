@@ -15,6 +15,7 @@ import os
 import subprocess
 import sys
 import tempfile
+import time
 import unittest
 from pathlib import Path
 
@@ -243,6 +244,20 @@ sys.stdout.write(reponses[n % len(reponses)])
 """
 
 
+# Faux ``claude`` sûr en parallèle : la réponse dépend du numéro de ligne du passage lu dans le prompt
+# (confiance = ligne / 10, exact faux) ; les premières lignes dorment le plus longtemps, pour que
+# les réponses arrivent dans l'ordre inverse de l'entrée.
+FAUX_CLAUDE_PARALLELE = """#!{python}
+import json, re, sys, time
+prompt = sys.stdin.buffer.read().decode("utf-8")
+ligne = int(re.search(r"ligne (\\d+)", prompt).group(1))
+time.sleep(0.2 * (5 - ligne))
+texte = json.dumps({{"exact": False, "confiance": ligne / 10, "raison": "l%d" % ligne}})
+print(json.dumps({{"type": "result", "is_error": False, "result": texte, "total_cost_usd": 0.01,
+                  "modelUsage": {{{modele!r}: {{"costUSD": 0.01}}}}}}))
+"""
+
+
 def sortie_juge(texte, cout=0.01, modeles=(MODELE,), erreur=False) -> str:
     """Sortie brute de ``claude -p --output-format json`` : un objet JSON, rendu en texte."""
     return json.dumps({
@@ -293,6 +308,9 @@ class Juger(unittest.TestCase):
         fichier = self.dossier / "entree.json"
         fichier.write_text(json.dumps(entree, ensure_ascii=False), encoding="utf-8")
         env = {**os.environ, "QUALITE_DOC_CLAUDE": str(exe)}
+        # Le faux claude consomme des réponses dans l'ordre d'arrivée : un par un, sauf demande contraire.
+        if "--parallele" not in extra:
+            extra = (*extra, "--parallele", "1")
         r = subprocess.run(
             [sys.executable, str(SCRIPT), "juger", "--entree", str(fichier), *extra],
             capture_output=True, text=True, encoding="utf-8", env=env)
@@ -348,6 +366,29 @@ class Juger(unittest.TestCase):
         rapport = json.loads(sortie)
         self.assertEqual(rapport["passages_non_juges"], 1)
         self.assertEqual(len(rapport["verdicts"]), 2)
+
+    def test_les_passages_sont_juges_en_parallele_et_rendus_dans_l_ordre_de_l_entree(self):
+        exe = self.dossier / "claude-parallele"
+        exe.write_text(FAUX_CLAUDE_PARALLELE.format(python=sys.executable, modele=MODELE),
+                       encoding="utf-8")
+        exe.chmod(0o755)
+        debut = time.monotonic()
+        code, sortie, erreur = self.juger([passage(n) for n in (1, 2, 3, 4)], exe,
+                                          "--votes", "1", "--parallele", "4")
+        duree = time.monotonic() - debut
+        self.assertEqual(code, 0, erreur)
+        rapport = json.loads(sortie)
+        self.assertEqual([v["ligne"] for v in rapport["verdicts"]], [1, 2, 3, 4])
+        self.assertEqual([round(v["score"], 1) for v in rapport["verdicts"]], [0.1, 0.2, 0.3, 0.4])
+        self.assertEqual(rapport["passages_non_juges"], 0)
+        self.assertIn("4/4 passages jugés", erreur)
+        # Un par un, les dodos font 0,8 + 0,6 + 0,4 + 0,2 = 2,0 s au moins ; en parallèle, 0,8 s.
+        self.assertLess(duree, 1.8)
+
+    def test_parallele_zero_est_refuse(self):
+        faux = FauxClaude(self.dossier, [sortie_juge(verdict(True, 0.9))])
+        code, sortie, erreur = self.juger([passage()], faux.exe, "--parallele", "0")
+        self.assertEqual(code, 2, erreur)
 
     def test_une_liste_nue_de_passages_est_acceptee(self):
         faux = FauxClaude(self.dossier, [sortie_juge(verdict(True, 0.9))])

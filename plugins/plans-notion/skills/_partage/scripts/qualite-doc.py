@@ -56,8 +56,15 @@ pessimiste). Un passage est douteux si son score atteint ``--seuil``. Un passage
 qui ne peut être jugé n'est jamais compté exact. L'exécutable ``claude`` se
 désigne par la variable ``QUALITE_DOC_CLAUDE`` (défaut : ``claude`` du PATH).
 
+Les passages sont jugés en parallèle (``--parallele N``, défaut 8 ; 1 = un par un) : un
+passage = ses ``--votes`` appels à la suite, plusieurs passages à la fois. Chaque appel ne
+voit qu'un passage, donc sa taille ne dépend pas du nombre de passages et ne dépasse pas
+quelques milliers de jetons. L'ordre des verdicts reste celui de l'entrée ; l'avancement
+(``n/total``) part sur la sortie d'erreur. Avec ``--max-cout``, le plafond est testé avant
+chaque nouveau passage : il peut être dépassé d'au plus N passages déjà en vol.
+
 Usage : qualite-doc.py juger --entree <passages.json> [--votes N] [--seuil S]
-                             [--max-cout D]
+                             [--max-cout D] [--parallele N]
 Codes de ``juger`` : 0 ok ; 2 usage ou entrée illisible ; 3 juge indisponible ;
 4 plafond ``--max-cout`` atteint (le JSON partiel part sur la sortie standard, avec
 ``passages_non_juges``) ; 5 modèle servi autre que ``MODELE``.
@@ -76,6 +83,8 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import threading
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from pathlib import Path, PurePosixPath
 
@@ -95,6 +104,7 @@ MODELE = "claude-haiku-5-5"
 # par le plan 2 après 14 nuits de veille, sur les passages qu'il aura étiquetés.
 SEUIL_DOUTE = 0.45
 VOTES_DEFAUT = 2
+PARALLELE_DEFAUT = 8
 DELAI_JUGE = 120  # secondes par appel de claude
 VARIABLE_CLAUDE = "QUALITE_DOC_CLAUDE"
 GRILLE = Path(__file__).resolve().parent.parent / "grille-doc.md"
@@ -433,23 +443,41 @@ def vote_de(texte: str) -> dict:
             "raison": str(objet.get("raison", ""))}
 
 
-def juger(passages: list[dict], votes: int, seuil: float, max_cout: float | None) -> tuple[dict, int]:
+def juger(passages: list[dict], votes: int, seuil: float, max_cout: float | None,
+          parallele: int = PARALLELE_DEFAUT) -> tuple[dict, int]:
     """Fait voter le juge sur chaque passage ; rend (rapport, code de sortie)."""
     exe = trouver_claude()
     grille = lire_grille()
-    jugés: list[tuple[dict, list[dict]]] = []
-    cout = 0.0
-    for passage in passages:
+    verrou = threading.Lock()
+    etat = {"cout": 0.0, "faits": 0}
+
+    def juger_un(passage: dict) -> list[dict] | None:
+        """Les votes d'un passage, ou None si le plafond de coût est déjà atteint."""
         urnes: list[dict] = []
         for _ in range(votes):
-            if max_cout is not None and cout >= max_cout:
-                break  # plafond atteint : pas d'appel de plus, ce passage reste non jugé
+            with verrou:
+                if max_cout is not None and etat["cout"] >= max_cout:
+                    return None  # plafond atteint : pas d'appel de plus, ce passage reste non jugé
             texte, cout_appel = appeler_juge(exe, prompt_du_passage(grille, passage))
-            cout += cout_appel
+            with verrou:
+                etat["cout"] += cout_appel
             urnes.append(vote_de(texte))
-        if len(urnes) < votes:
-            break
-        jugés.append((passage, urnes))
+        with verrou:
+            etat["faits"] += 1
+            print(f"qualite-doc : {etat['faits']}/{len(passages)} passages jugés",
+                  file=sys.stderr, flush=True)
+        return urnes
+
+    with ThreadPoolExecutor(max_workers=max(1, parallele)) as pool:
+        futurs = [pool.submit(juger_un, p) for p in passages]
+        try:
+            resultats = [f.result() for f in futurs]  # dans l'ordre de l'entrée
+        except BaseException:
+            for f in futurs:
+                f.cancel()
+            raise
+    cout = etat["cout"]
+    jugés = [(p, r) for p, r in zip(passages, resultats) if r is not None]
     non_juges = len(passages) - len(jugés)
 
     verdicts = []
@@ -485,9 +513,11 @@ def commande_juger(ap: argparse.ArgumentParser, args: argparse.Namespace) -> int
         ap.error("--seuil doit être compris entre 0 et 1")
     if args.max_cout is not None and args.max_cout < 0:
         ap.error("--max-cout doit être supérieur ou égal à 0")
+    if args.parallele < 1:
+        ap.error("--parallele doit être supérieur ou égal à 1")
     try:
         passages = lire_entree(args.entree)
-        rapport, code = juger(passages, args.votes, args.seuil, args.max_cout)
+        rapport, code = juger(passages, args.votes, args.seuil, args.max_cout, args.parallele)
     except ErreurJuge as e:
         print(f"qualite-doc : {e}", file=sys.stderr)
         return e.code
@@ -522,6 +552,8 @@ def main(argv: list[str]) -> int:
                      help=f"score à partir duquel un passage est douteux (défaut : {SEUIL_DOUTE})")
     jug.add_argument("--max-cout", type=float, default=None, metavar="D",
                      help="plafond de coût en dollars (défaut : illimité)")
+    jug.add_argument("--parallele", type=int, default=PARALLELE_DEFAUT, metavar="N",
+                     help=f"passages jugés en même temps (défaut : {PARALLELE_DEFAUT} ; 1 = un par un)")
     args = ap.parse_args(argv)
     if args.commande == "juger":
         return commande_juger(ap, args)
