@@ -536,8 +536,8 @@ class ProfilMachine(EtatMachineTestCase):
                 self.assertProfilRefuse(self.prendre(900), chemin)
 
     def test_seuil_de_pression_infini_par_1e999_est_une_erreur_code_2(self):
-        # json.loads lit 1e999 comme inf sans passer par parse_constant : seul un
-        # contrôle de finitude le refuse. Un seuil infini ne serait jamais atteint.
+        # json.loads lit 1e999 comme inf sans passer par parse_constant : seul le
+        # contrôle de plage (0 à 100) le refuse. Un seuil infini ne serait jamais atteint.
         chemin = self.poser_profil('{"seuil_cpu_some_avg10": 1e999}')
         r = self.prendre(900)
         self.assertProfilRefuse(r, chemin)
