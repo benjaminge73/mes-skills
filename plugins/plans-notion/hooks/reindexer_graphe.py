@@ -19,6 +19,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import signal
 import subprocess
 import sys
 import time
@@ -31,14 +32,33 @@ AGE_VERROU_PERIME = 10 * 60
 
 
 def executer(cmd: list[str], timeout: float) -> tuple[int, str]:
-    """Lance une commande ; renvoie (code, stdout). Code -1 si introuvable ou délai dépassé."""
+    """Lance une commande dans son propre groupe ; renvoie (code, stdout).
+
+    Code -1 si introuvable ou délai dépassé. Au délai, tout le groupe est tué : bin.js
+    lance l'indexeur natif en enfant, et un simple kill du pid de tête le laisserait vivre.
+    """
     try:
-        r = subprocess.run(cmd, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
-                           stderr=subprocess.DEVNULL, encoding="utf-8", errors="replace",
-                           timeout=timeout)
-    except (OSError, subprocess.SubprocessError):
+        proc = subprocess.Popen(cmd, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
+                                stderr=subprocess.DEVNULL, encoding="utf-8", errors="replace",
+                                start_new_session=True)
+    except OSError:
         return -1, ""
-    return r.returncode, r.stdout.strip()
+    try:
+        sortie, _ = proc.communicate(timeout=timeout)
+    except subprocess.TimeoutExpired:
+        _tuer_le_groupe(proc)
+        return -1, ""
+    return proc.returncode, sortie.strip()
+
+
+def _tuer_le_groupe(proc: subprocess.Popen) -> None:
+    try:
+        os.killpg(proc.pid, signal.SIGKILL)  # pgid = pid grâce à start_new_session
+    except OSError:
+        pass  # le groupe a déjà disparu
+    proc.wait()
+    if proc.stdout:
+        proc.stdout.close()
 
 
 def dossier_cache() -> Path:
