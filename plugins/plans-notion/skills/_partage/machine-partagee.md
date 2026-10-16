@@ -89,9 +89,11 @@ instance avec quatre en parallèle, aucun échec nouveau ; sonde
 {"machine": "mac-m1max-64go", "places_lourdes": 4}
 ```
 
-Limite à garder en tête : sur macOS, `/proc` n'existe pas, donc le relevé ne lit
-presque rien et rend `libre` quelle que soit la charge réelle. Le profil du Mac
-règle le **nombre de places** du jeton, pas la mesure de charge.
+Sur macOS, `/proc` n'existe pas : le jeton (heure de démarrage du détenteur) et les
+familles lourdes (suite de tests, `claude plugin eval`…) se lisent par `ps`. Limite à
+garder en tête : la pression CPU et la mémoire ne se lisent pas, donc le relevé ne
+rend jamais `saturée` et ne rend `chargée` que sur une famille lourde active. Le
+profil du Mac règle le **nombre de places** du jeton, pas la mesure de charge.
 
 ## Machine `chargée`
 
