@@ -44,6 +44,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest import mock
 from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 
@@ -1106,10 +1107,13 @@ class LanceurModeleEtEffort(unittest.TestCase):
         assert "GITHUB_ACTIONS" not in env_extra, "jamais de GITHUB_ACTIONS=true dans un test"
         env = {k: v for k, v in os.environ.items()
                if k not in ("GITHUB_ACTIONS", "EVALS_MODELE", "EVALS_EFFORT",
-                            "EVALS_MAX_COUT_USD", "CLAUDE_CODE_EFFORT_LEVEL", "TMPDIR")}
+                            "EVALS_MAX_COUT_USD", "CLAUDE_CODE_EFFORT_LEVEL", "TMPDIR",
+                            "PLANS_NOTION_MACHINE_PROFIL")}
         env["PATH"] = f"{self.bin}{os.pathsep}{env.get('PATH', '')}"
         env["TMPDIR"] = str(self.racine / "traces")
         env["XDG_STATE_HOME"] = str(self.racine / "etat")
+        # Le profil par défaut se lit sous XDG_CONFIG_HOME : un dossier jetable, jamais celui du poste.
+        env["XDG_CONFIG_HOME"] = str(self.racine / "config")
         env["CLAUDE_CODE_OAUTH_TOKEN"] = self.JETON
         env["EVALS_DEMANDE_PAR_BENJAMIN"] = "1"  # sinon le lanceur refuse (code 64)
         env.update(env_extra)
@@ -1136,6 +1140,12 @@ class LanceurModeleEtEffort(unittest.TestCase):
         # environnement : la mesure ne doit pas en dépendre.
         _, trace = self._lancer(CLAUDE_CODE_EFFORT_LEVEL="low")
         self.assertIn("effort=high\n", trace)
+
+    def test_le_profil_machine_du_poste_n_influe_pas_sur_le_lanceur(self):
+        # Le vrai etat-machine.py lit PLANS_NOTION_MACHINE_PROFIL puis ~/.config :
+        # un profil du poste (même cassé) ne doit pas faire échouer ces tests.
+        with mock.patch.dict(os.environ, {"PLANS_NOTION_MACHINE_PROFIL": str(self.racine / "absent.json")}):
+            self._lancer()
 
     def test_le_modele_par_defaut_du_lanceur_est_claude_sonnet_5_5(self):
         _, trace = self._lancer()
