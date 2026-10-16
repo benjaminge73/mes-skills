@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import subprocess
 import sys
 import time
@@ -51,8 +52,11 @@ def bin_js() -> Path:
 
 
 def nom_du_projet(racine: str) -> str:
-    """Chemin absolu avec « / » remplacés par « - », sans le « - » initial."""
-    return racine.replace("/", "-").removeprefix("-")
+    """Chemin absolu, « / » en « - », tirets consécutifs réduits à un, sans « - » initial.
+
+    Mesuré sur le serveur : « /a/-b/c » donne « a-b-c », pas « a--b-c ».
+    """
+    return re.sub(r"-+", "-", racine.replace("/", "-")).removeprefix("-")
 
 
 def lire_head(chemin: Path) -> str | None:
