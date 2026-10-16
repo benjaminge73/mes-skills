@@ -50,6 +50,18 @@ qui est déjà su.** Six gisements, du moins cher au plus cher :
    point de départ. Elle se dresse sur `main` : un plan s'écrit avant toute branche.
    - **Outils différés.** Les outils `codebase-memory` ne sont pas chargés au départ :
      un `ToolSearch` est nécessaire avant le premier appel.
+   - **Index rafraîchi d'abord.** Avant `list_projects`, deux gestes, dans cet ordre.
+     D'abord `git fetch`, puis comparer `main` à `origin/main` : un dépôt sorti sur une
+     autre branche, en retard ou sale ne se corrige pas en silence (rien ne se force),
+     le pilote le dit dans la carte. Ensuite `index_repository` sur le dépôt
+     (`repo_path` absolu), dans son mode : `moderate` par défaut, `full` quand le plan
+     touche `scripts/` ou `docs/`, que `moderate` n'indexe pas. Aucun test de péremption
+     à écrire : réindexer prend de 2 à 15 s (mesuré le 2026-10-16 sur deux dépôts) et
+     `index_status` rapporte la branche indexée (`agents/enqueteur.md`, geste 3), sans
+     rien promettre sur le commit. Le pilote relève `status` et le nombre de nœuds dans
+     la carte. Si l'indexation échoue, la carte s'omet par la dispense `Pas de carte —
+     dépôt non indexé` (ci-dessous) : jamais une carte lue sur un index qu'on n'a pas
+     pu rafraîchir.
    - **Nom de projet exact.** `list_projects`, puis copier le `name` rendu dans le
      paramètre `project` : ce n'est pas le nom court du dépôt, on ne le devine pas.
    - **Couverture.** `check_index_coverage` sur chaque dossier que le plan touche. En
