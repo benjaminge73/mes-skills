@@ -87,11 +87,11 @@ protège à partir de la version qui la porte. (Historique : `docs/retex/execute
 - Benjamin qui dit « go » ne remplace pas le statut. Il le dit de mémoire, la page
   dit ce qui a été tranché. **En cas de désaccord entre les deux, demander** — ça
   coûte un tour, refaire une implémentation en coûte dix.
-- **Un « go » sur un plan `valide` suffit à lancer l'exécution** : la session ne
-  s'arrête que sur un choix de sécurité majeur, financier ou irréversible que
-  Benjamin n'a pas déjà validé, qu'elle lui pose en question (Benjamin, 2026-10-16 :
-  « sauf choix de sécu majeur, financier ou irréversible que je n'aurais pas déjà
-  validé »). Le « go » enchaîne sur le `Statut` et la préparation prouvée.
+- **Un « go » sur un plan `valide` suffit à lancer l'exécution** : il ne se redemande pas,
+  il enchaîne sur le `Statut` et la préparation prouvée. Outre les arrêts prévus dans ce skill
+  (maquette, connecteur Notion, statut), la session s'arrête sur un choix de sécurité majeur,
+  financier ou irréversible non validé par Benjamin, et le lui pose (Benjamin, 2026-10-16 :
+  « sauf choix de sécu majeur, financier ou irréversible que je n'aurais pas déjà validé »).
 
 ⚠️ Les valeurs de `Statut` sont **sans accents** : `brouillon`, `en revue`,
 `valide`, `pret`, `en cours`, `a merger`, `execute`, `archive`. Écrire `exécuté`
@@ -159,10 +159,10 @@ Puis, dans le même tour, avant la première étape :
   en Sonnet effort `medium` : relancer avec `claude --model sonnet --effort medium`,
   ou `/model sonnet` puis `/effort medium` avant de continuer. Un plan à haut enjeu
   (sécurité, données, déploiement) peut monter à `high` ». Le skill ne change pas
-  le modèle lui-même : il se choisit au lancement. Pourquoi Sonnet : le banc
-  d'évals joue déjà ses cas en Sonnet 5.5 (`evals/outillage/lancer.sh` l.132,
-  `.github/workflows/ci.yml` l.435), c'est donc la configuration testée ; Sonnet
-  coûte la moitié d'Opus sur chaque poste. La conception (`plan-notion`) reste en Opus.
+  le modèle lui-même : il se choisit au lancement. Pourquoi Sonnet : c'est le modèle
+  du banc d'évals (Sonnet 5.5, `evals/outillage/lancer.sh` l.132). L'effort `medium`
+  n'y est pas mesuré (le banc joue `high`, `docs/tester-un-skill.md` l.125) : il se
+  remesure au prochain plan. Sonnet coûte la moitié d'Opus sur chaque poste. La conception (`plan-notion`) reste en Opus.
 
 **La porte du `pret`.** Un plan `pret` a **toutes ses étapes prouvées et
 rejouées à blanc, ses vagues calculées, et, s'il a un plan maître, l'orchestration

@@ -131,7 +131,7 @@ dans `${CLAUDE_PLUGIN_ROOT}/skills/_partage/poc.md`). Raison mesurée : 443
 étapes. Un `general-purpose` sans `model` hérite du modèle de la session, et
 c'est ce coût-là qu'on retire.
 
-Le pilote tourne en **Sonnet effort high** : il lit le plan, découpe,
+Le pilote tourne en **Sonnet effort medium** : il lit le plan, découpe,
 brief, vérifie, écrit dans Notion. **Il n'écrit pas lui-même le code des
 étapes déléguables.** Chaque étape part dans un sous-agent **Haiku**, par
 l'alias (voir `executant.md`) : **en séquence par défaut** — les étapes d'un plan sont couplées, et deux sous-agents
