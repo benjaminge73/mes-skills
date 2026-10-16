@@ -165,6 +165,13 @@ aucun repli connu au 2026-09-29.
   plus basse des trois notes de faute) ; à ce seuil, il signale **88 passages
   exacts sur 95**, contre **22 sur 95** pour Haiku. Ne pas l'utiliser pour ce
   terrain : il ne sépare plus les bons passages des fautes.
+- **2026-10-16 : Jev juge bien la conformité d'une source à une règle.** Sur
+  40 fiches de sources construites (20 à adopter, 20 à refuser, dont 14
+  d'injection ou de piège), la moyenne de deux passes sépare parfaitement les
+  bonnes des mauvaises (**AUC de 1,0**, seuil fixe 0,5), avec 2 bonnes sources
+  sous le seuil. Le piège du 2026-10-15 ne vaut donc pas pour tout usage :
+  Jev juge ici la **conformité**, pas la **qualité d'un texte**. Une réponse
+  hors schéma ou une panne compte comme un refus.
 
 **Bonne pratique** :
 
@@ -700,6 +707,23 @@ aucun connu au 2026-10-06.
   Un juge qui lit lui-même les fichiers (outils activés) a coûté **0,86 $**
   par fichier relu. Un vote sans outils, qui reçoit le passage et l'extrait du
   diff, coûte nettement moins (fiche « Sessions Claude », même date).
+- **2026-10-16 : les connecteurs claude.ai du compte gonflent le contexte
+  d'un appel `claude -p`.** Un appel Haiku sans outil, lancé sans
+  `--strict-mcp-config`, a chargé **186 651 jetons** de contexte (1,51 $
+  affichés) ; avec `--strict-mcp-config` (et `--setting-sources ""`), **8 984
+  jetons** (0,023 $ affichés).
+- **2026-10-16 : `claude -p` lit l'entrée standard et reste bloqué sans
+  `< /dev/null`.** Lancé depuis un script ou un outil qui n'ouvre pas
+  l'entrée standard, l'appel attend indéfiniment.
+- **2026-10-16 : le coût affiché de `claude-haiku-5-5` n'est pas son tarif**
+  (version 2.1.292, sur un compte de service : le modèle n'est pas reconnu par
+  la table de prix de la CLI). Chiffrer un lot en **jetons lus × grille**, pas
+  d'après `total_cost_usd`.
+- **2026-10-16 : `sudo` ne transmet pas les variables d'environnement du
+  pilote.** Un lanceur passé sous `sudo` perd, par exemple, un drapeau posé
+  juste avant ; un lot a ainsi rejoué sa première passe à la place de la
+  seconde. Le lanceur lit lui-même ce dont il a besoin, ou la variable est
+  posée dans la commande sous `sudo`.
 
 **Bonne pratique** :
 
@@ -719,6 +743,11 @@ aucun connu au 2026-10-06.
   (nom différent de celui qui est installé), jamais avec le dossier de travail sous
   son nom d'origine : la copie renommée n'entre pas en collision avec le plugin
   installé, donc rien ne la masque.
+- Pour un appel de lot sans outil (jury, notation) : `--strict-mcp-config
+  --setting-sources "" --no-session-persistence --max-budget-usd <plafond>
+  --output-format json`, `--json-schema` pour une sortie contrainte, et
+  `< /dev/null`. Ces options sont mesurées fonctionnelles au 2026-10-16
+  (`--effort` aussi). Le plafond tient lieu de garde de dépense.
 
 **Repli** : mise à jour à la main, `sudo apt update && sudo apt upgrade
 claude-code`, en attendant qu'une origine autorisée ou un veilleur s'en charge.
@@ -842,3 +871,30 @@ relevé. Plans : Team et Enterprise, sur dépôts GitHub (page lue le 2026-10-16
 
 **Repli** : le `relecteur` de `plans-notion` (agent Opus, effort `high`), qui ne dépend pas
 de ce service.
+
+## Fiche — inspect_ai (banc d'évaluation Python)
+
+**Quota ou coût** (relevé au 2026-10-16) : la bibliothèque est libre et ne
+coûte rien par elle-même ; le coût est celui des appels de modèle qu'elle
+lance. Version lue : 0.3.281.
+
+**Pièges datés** :
+
+- **2026-10-16 : un fournisseur de modèle maison (`@modelapi`) qui garde un
+  client HTTP ne survit pas à une seconde évaluation.** Deux évaluations
+  successives dans le même processus tournent chacune dans une boucle
+  d'événements neuve ; un client créé pour la première échoue sur la seconde
+  (`Event loop is closed`). Il faut construire le client **par boucle
+  d'événements**.
+- **2026-10-16 : `uv` absent du poste.** L'installation passe par `pip` dans un
+  environnement virtuel à usage unique ; la version posée peut différer d'un cran
+  de celle que la doc cite.
+
+**Bonne pratique** : écrire les jeux et leurs étiquettes avant tout appel, en
+poser les empreintes (`sha256`) dans un fichier, tenir un journal par appel
+(modèle, jetons, coût grille, latence) et ne dépouiller qu'avec des définitions
+de réussite fixées avant de lire les résultats. Supprimer l'environnement et les
+journaux d'`inspect` à la fin ; garder jeux, empreintes et résultats.
+
+**Repli** : un script direct qui appelle chaque modèle, sans `inspect_ai`, quand
+le banc n'a qu'un jeu et deux juges.
