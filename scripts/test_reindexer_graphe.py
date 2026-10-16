@@ -46,14 +46,15 @@ def charger_hook():
 class Executeur:
     """Remplace ``executer`` : répond à git comme un dépôt à ``head``, compte les lancements."""
 
-    def __init__(self, head: str, code_indexation: int = 0):
+    def __init__(self, head: str, code_indexation: int = 0, racine: str = RACINE):
         self.head = head
         self.code_indexation = code_indexation
+        self.racine = racine
         self.lancements: list[list[str]] = []
 
     def __call__(self, cmd, timeout):
         if "--show-toplevel" in cmd:
-            return 0, RACINE
+            return 0, self.racine
         if cmd[-1] == "HEAD":
             return 0, self.head
         self.lancements.append(list(cmd))
@@ -86,8 +87,8 @@ class ReindexerGraphe(unittest.TestCase):
         if head_indexe is not None:
             (self.cache / f"{PROJET}.head").write_text(head_indexe + "\n", encoding="utf-8")
 
-    def lire_head(self) -> str:
-        return (self.cache / f"{PROJET}.head").read_text(encoding="utf-8").strip()
+    def lire_head(self, projet: str = PROJET) -> str:
+        return (self.cache / f"{projet}.head").read_text(encoding="utf-8").strip()
 
     def lancer(self, executeur: Executeur, entree: str | None = None):
         if entree is None:
@@ -135,6 +136,16 @@ class ReindexerGraphe(unittest.TestCase):
                 self.assertEqual(code, 0)
                 self.assertEqual(len(executeur.lancements), 1)
                 self.assertEqual(self.lire_head(), ANCIEN_SHA)
+
+    def test_tirets_consecutifs_du_chemin_sont_reduits_pour_retrouver_le_db(self):
+        # Panne non couverte jusqu'ici : le chemin /a/-b/c donne « a--b-c » (deux tirets),
+        # alors que le serveur écrit « a-b-c ». Sans réduction, le .db n'est jamais trouvé.
+        (self.cache / "a-b-c.db").write_bytes(b"")
+        executeur = Executeur(head=NOUVEAU_SHA, racine="/a/-b/c")
+        code, _, _ = self.lancer(executeur)
+        self.assertEqual(code, 0)
+        self.assertEqual(len(executeur.lancements), 1)
+        self.assertEqual(self.lire_head("a-b-c"), NOUVEAU_SHA)
 
     def test_depot_non_suivi_ne_lance_rien_et_ne_cree_rien_dans_le_cache(self):
         (self.cache / "autre-depot.db").write_bytes(b"")
