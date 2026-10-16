@@ -85,6 +85,7 @@ import argparse
 import contextlib
 import fcntl
 import json
+import math
 import os
 import sys
 import time
@@ -306,9 +307,14 @@ PROFIL_VARIABLE = "PLANS_NOTION_MACHINE_PROFIL"
 _CLES_PROFIL = {
     "machine": (lambda v: isinstance(v, str), "une chaîne"),
     "places_lourdes": (lambda v: type(v) is int and v >= 1, "un entier ≥ 1"),
-    "seuil_mem_full_avg60": (lambda v: type(v) in (int, float), "un nombre"),
+    # Les deux seuils de pression sont des pourcentages PSI : fini, entre 0 et 100.
+    "seuil_mem_full_avg60": (
+        lambda v: type(v) in (int, float) and math.isfinite(v) and 0 <= v <= 100,
+        "un nombre entre 0 et 100"),
     "seuil_mem_disponible_ko": (lambda v: type(v) is int and v >= 0, "un entier ≥ 0"),
-    "seuil_cpu_some_avg10": (lambda v: type(v) in (int, float), "un nombre"),
+    "seuil_cpu_some_avg10": (
+        lambda v: type(v) in (int, float) and math.isfinite(v) and 0 <= v <= 100,
+        "un nombre entre 0 et 100"),
 }
 
 
