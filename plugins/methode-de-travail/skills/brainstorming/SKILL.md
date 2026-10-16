@@ -189,10 +189,8 @@ in-chat design are the whole process.
 
 ## After the Design
 
-Once the design is approved, **invoke `plan-notion`**, sized to the path just
-classified: the lightweight chapters for Bounded, the full page for Architectural
-(see "Où va la sortie" above). Invoke it explicitly: a skill never loads another
-one by itself, so without that call the design stays trapped in the conversation.
+Once the design is approved, **invoke `plan-notion`**, sized to the path just classified
+(see "Où va la sortie" above). Invoke it explicitly, or the design stays in the conversation.
 
 In native plan mode, stop here instead: that plan is authoritative.
 
@@ -206,6 +204,8 @@ cheap enough for Bounded):
 3. **Scope**: one plan, or does it need decomposition?
 4. **Ambiguity**: could a requirement be read two ways? Pick one and make it
    explicit.
+5. **Validated choices**: each one the user approved in full letters, quoted verbatim
+   (an uncontested recommendation is not one); `plan-notion` writes each as a question born green.
 
 ## Process Flow
 

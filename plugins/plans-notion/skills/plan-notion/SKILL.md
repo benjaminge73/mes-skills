@@ -14,8 +14,8 @@ détaille.
 - **Après un compactage, ré-invoquer ce skill** (outil `Skill`) avant
   d'écrire dans Notion ou de reprendre une passe — le compactage ne garde que
   le début du skill.
-- **Ne jamais cocher une case** à la place de Benjamin, pas même la reco
-  (« 1. Ne jamais cocher une case… »).
+- **Ne jamais cocher une case** à la place de Benjamin, pas même la reco — sauf une question née verte dont la case reflète un choix validé en toutes lettres et cité : `Preuve : dispense — parce que choix de gouvernance de Benjamin, <date> : « <citation> »`
+  (« 1. Ne jamais cocher… »).
 - **Rien de livré avant `valide`** : ni fichier dans le dépôt, ni commit, ni
   sous-agent d'implémentation (« 2. Ne rien coder de livré… »).
 - **`Statut` sans accents** : `brouillon`, `en revue`, `valide`, `pret`,
@@ -49,7 +49,7 @@ préviendra jamais — elle protège à partir de la version qui la porte.
 
 ### 1. Ne jamais cocher une case à la place de Benjamin
 
-**Aucune case n'est cochée par moi. Jamais. Pas même la reco.** Une case cochée
+**Aucune case n'est cochée par moi. Jamais. Pas même la reco** (sauf la question née verte, ci-dessous). Une case cochée
 est une décision de Benjamin, et c'est souvent la *seule* trace de cette
 décision — le fil de discussion ne la contient pas, et il disparaît au
 compactage.
@@ -68,8 +68,8 @@ Trois formes du même geste, toutes interdites :
 - recréer un encadré en y remettant des `- [x]` **au-delà** de ce que le relevé
   préalable portait (§4).
 
-Le seul `- [x]` que j'écris est celui que je **restitue** lors d'une refonte,
-relevé en main, à l'identique de ce qui était coché avant. Aucun autre.
+Les seuls `- [x]` que j'écris : ceux que je **restitue** lors d'une refonte, relevé en main, à l'identique ; et la case d'une question née verte d'un choix validé, citée
+(`Preuve : dispense — …`, voir `chapitres-questions-execution.md`). Aucun autre.
 
 ⚠️ Cette règle est répétée au §3 avec le détail des encadrés. Elle est ici parce
 qu'elle a été enfouie et oubliée.
@@ -279,7 +279,7 @@ d'écrire ou de remettre à jour** le chapitre concerné, pas de mémoire :
 
   📄 `${CLAUDE_PLUGIN_ROOT}/skills/plan-notion/chapitres-cadrage.md`
 
-- `Questions ouvertes` (un H3 et un encadré par question, cases toutes vides, couleur
+- `Questions ouvertes` (un H3 et un encadré par question, cases vides sauf question née verte de choix validé, couleur
   = état), `Exécution` (tableau de tête, un H3 par étape, champs obligatoires de
   chaque étape, modifications datées) et `Journal d'exécution` (un H3 par entrée,
   repris du chapitre `Exécution`) :
