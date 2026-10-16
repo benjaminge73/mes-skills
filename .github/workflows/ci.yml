@@ -896,9 +896,9 @@ jobs:
             echo "::error title=Fumée sans catégorie::Aucune catégorie pour « $PLUGIN » dans evals/categories.json : rien à juger."
             exit 1
           fi
-          # Huit places de cache par plugin (un pas de restauration et un de sauvegarde
+          # Dix places de cache par plugin (un pas de restauration et un de sauvegarde
           # par place, dans ce fichier) : au-delà, la catégorie est jouée à chaque fois.
-          places=8
+          places=10
           if [ "${#noms[@]}" -gt "$places" ]; then
             echo "::warning title=Cache de la fumée::${#noms[@]} catégories pour $places places de cache : les suivantes sont toujours jouées."
           fi
@@ -995,6 +995,20 @@ jobs:
         with:
           path: ${{ runner.temp }}/fumee-cache/7/rapport.json
           key: ${{ steps.cle.outputs.cle_7 }}
+
+      - name: Reprendre la fumée de la place 8
+        if: steps.cle.outputs.cle_8 != ''
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/fumee-cache/8/rapport.json
+          key: ${{ steps.cle.outputs.cle_8 }}
+
+      - name: Reprendre la fumée de la place 9
+        if: steps.cle.outputs.cle_9 != ''
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/fumee-cache/9/rapport.json
+          key: ${{ steps.cle.outputs.cle_9 }}
 
       - name: Jouer la fumée, juger les catégories
         id: jeu
@@ -1211,6 +1225,20 @@ jobs:
         with:
           path: ${{ runner.temp }}/fumee-cache/7/rapport.json
           key: ${{ steps.cle.outputs.cle_7 }}
+
+      - name: Ranger la fumée de la place 8
+        if: ${{ !cancelled() && steps.jeu.outputs.sauver_8 == 'true' }}
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/fumee-cache/8/rapport.json
+          key: ${{ steps.cle.outputs.cle_8 }}
+
+      - name: Ranger la fumée de la place 9
+        if: ${{ !cancelled() && steps.jeu.outputs.sauver_9 == 'true' }}
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/fumee-cache/9/rapport.json
+          key: ${{ steps.cle.outputs.cle_9 }}
 
       - name: Téléverser le tableau
         if: always()
