@@ -17,6 +17,7 @@ import io
 import json
 import os
 import shutil
+import signal
 import subprocess
 import sys
 import tempfile
@@ -257,6 +258,86 @@ class DelaiDepasse(unittest.TestCase):
             subprocess.run(["pkill", "-f", self.MOTIF_SURVIVANT])  # nettoyage avant l'échec
         self.assertEqual(survivants, [], "le petit-enfant a survécu au délai")
         self.assertEqual((code, sortie), (-1, ""))
+
+
+NODE_PATH = Path("/opt/homebrew/opt/node@24/bin/node")
+
+
+@unittest.skipUnless(NODE_PATH.is_file(), "node absent : le hook ne lance alors aucune indexation")
+class ArretParSignal(unittest.TestCase):
+    # Marqueur propre à ce processus de test (voir DelaiDepasse) : pgrep ancré sur le sleep seul.
+    MARQUEUR = f"sleep 48.{os.getpid()}"
+    MOTIF_SURVIVANT = f"^sleep 48\\.{os.getpid()}$"
+
+    @staticmethod
+    def _processus_sleep() -> list[str]:
+        return subprocess.run(["pgrep", "-f", ArretParSignal.MOTIF_SURVIVANT],
+                              capture_output=True, text=True).stdout.split()
+
+    def test_un_sigterm_pendant_l_indexation_tue_l_indexeur_et_retire_le_verrou(self):
+        # Panne : start_new_session sort l'indexeur du groupe du hook. Sans gestionnaire de
+        # signal, un SIGTERM tue le seul Python : ni le finally ni le kill du groupe ne
+        # tournent, l'indexeur survit et le verrou reste 10 minutes. Le faux bin.js lance
+        # « sleep » en enfant, comme le vrai bin.js lance l'indexeur natif (spawnSync).
+        with tempfile.TemporaryDirectory() as dossier:
+            base = Path(dossier)
+            cache = base / "cache"
+            cache.mkdir()
+            depot = base / "depot"
+            depot.mkdir()
+            faux_bin = base / "bin.js"
+            faux_bin.write_text(
+                'const { spawnSync } = require("child_process");\n'
+                f'spawnSync("sleep", ["48.{os.getpid()}"]);\n', encoding="utf-8")
+            identite = ["-c", "user.name=test", "-c", "user.email=test@example.com",
+                        "-c", "commit.gpgsign=false"]
+            subprocess.run(["git", "init", "-q", str(depot)], check=True, capture_output=True)
+            subprocess.run(["git", *identite, "commit", "-q", "--allow-empty", "-m", "init"],
+                           cwd=depot, check=True, capture_output=True)
+            racine = subprocess.run(["git", "-C", str(depot), "rev-parse", "--show-toplevel"],
+                                    capture_output=True, text=True, check=True).stdout.strip()
+            projet = charger_hook().nom_du_projet(racine)
+            (cache / f"{projet}.db").write_bytes(b"")
+            verrou = cache / f"{projet}.lock"
+            env = {**os.environ, "CBM_CACHE_DIR": str(cache), "CBM_BIN_JS": str(faux_bin)}
+
+            entree = base / "entree.json"
+            entree.write_text(json.dumps({"cwd": str(depot)}), encoding="utf-8")
+            code, sortie, lance, verrou_pose = None, "", False, False
+            survivants, verrou_restant = [], False
+            with entree.open("rb") as flux:
+                hook = subprocess.Popen([sys.executable, str(CHEMIN_HOOK)], stdin=flux,
+                                        stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                                        text=True, env=env)
+            try:
+                for _ in range(100):  # jusqu'à 10 s pour que l'indexeur simulé démarre
+                    if self._processus_sleep():
+                        lance = True
+                        break
+                    time.sleep(0.1)
+                verrou_pose = verrou.exists()
+                hook.send_signal(signal.SIGTERM)
+                try:
+                    sortie, _ = hook.communicate(timeout=15)
+                    code = hook.returncode
+                except subprocess.TimeoutExpired:
+                    pass  # le hook ne s'arrête pas : le finally le tue
+                time.sleep(1)
+                survivants = self._processus_sleep()
+                verrou_restant = verrou.exists()
+            finally:
+                if hook.poll() is None:
+                    hook.kill()
+                    hook.communicate()
+                if self._processus_sleep():
+                    subprocess.run(["pkill", "-f", self.MOTIF_SURVIVANT])  # nettoyage avant l'échec
+
+        self.assertTrue(lance, "l'indexeur simulé n'a pas démarré : le test ne prouve rien")
+        self.assertTrue(verrou_pose, "le hook doit poser le verrou pendant l'indexation")
+        self.assertEqual(survivants, [], "l'indexeur a survécu au SIGTERM du hook")
+        self.assertFalse(verrou_restant, "le verrou doit être retiré après le SIGTERM")
+        self.assertEqual(code, 0)
+        self.assertEqual(sortie, "")
 
 
 class HooksJson(unittest.TestCase):
