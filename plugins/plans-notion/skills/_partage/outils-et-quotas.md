@@ -762,3 +762,57 @@ refus arrivent en 429 (limite de débit) ou 503.
 
 **Repli** : relancer la mesure plus tard, le cache garde ce qui est déjà
 téléchargé (reprise gratuite). Aucun autre connu au 2026-10-09.
+
+## Fiche — maxTurns (limite de tours d'un sous-agent)
+
+**Quota ou coût** : aucun quota. `maxTurns` est un plafond de tours posé dans le
+frontmatter d'un sous-agent (doc lue le 2026-10-16,
+`https://code.claude.com/docs/en/sub-agents.md`). Mesure rapportée par le pilote, le
+2026-10-16, sur 14 jours d'exécutants : 676 exécutants, médiane 27 tours, 95e centile
+73, maximum 158.
+
+**Pièges datés** :
+
+- **2026-10-16 : la marque « partielle » exige Claude Code v2.1.246 ou plus.** À la
+  limite, la sortie d'un sous-agent est rendue marquée partielle ; sur une version plus
+  ancienne, cette marque n'est pas posée.
+- **2026-10-16 : un arrêt par la limite de tours n'est pas un échec.** La sortie
+  partielle est reprenable. `executer-plan-notion` la reprend au même palier, soit par
+  `SendMessage` à la même instance, soit par un nouvel appel dont le brief reprend le
+  résultat partiel (`etapes.md`, « L'escalade bornée », règle 6). Ce n'est pas une montée.
+
+**Bonne pratique** :
+
+- Poser `maxTurns` dans le frontmatter de l'agent, sur une valeur mesurée sur ses sessions
+  réelles (ici `90` pour `executant`), jamais sur une valeur devinée.
+- Lire une sortie marquée partielle comme un arrêt à reprendre, pas comme une étape
+  terminée.
+
+**Repli** : reprendre le sous-agent par son nom ou son ID (`SendMessage`) pour qu'il
+continue là où il s'est arrêté. Sur une version de Claude Code antérieure à la v2.1.246,
+la marque « partielle » n'est pas posée : vérifier la version avant de s'y fier.
+
+## Fiche — Claude Code Review (service hébergé)
+
+**Quota ou coût** : **non lu.** Le tarif et le quota de Code Review n'ont pas été relus
+au 2026-10-16 ; la page a une section tarif (ancre `#pricing`) qui ne figure pas dans ce
+relevé. Plans : Team et Enterprise, sur dépôts GitHub (page lue le 2026-10-16,
+`https://code.claude.com/docs/en/code-review.md`).
+
+**Pièges datés** :
+
+- **2026-10-16 : une revue ne bloque ni n'approuve la PR.** Les constats arrivent en
+  commentaires en ligne, classés par gravité, avec un résumé et un check run ; la décision
+  de merge reste à l'équipe. Un avis vert de Code Review n'est donc pas une approbation.
+- **2026-10-16 : le service tourne sur l'infrastructure d'Anthropic**, et non sur le poste
+  ni sur le VPS (colonne « Où il tourne » du tableau de la page).
+
+**Bonne pratique** :
+
+- Traiter ses constats comme des avis à lire ; la décision de merge reste humaine (la page
+  le dit).
+- Ne pas le tenir pour le `relecteur` de `plans-notion` : la page ne dit pas que Code Review
+  reçoit l'objectif d'une étape, ce que le `relecteur` fait.
+
+**Repli** : le `relecteur` de `plans-notion` (agent Opus, effort `high`), qui ne dépend pas
+de ce service.

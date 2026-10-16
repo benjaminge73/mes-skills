@@ -127,6 +127,23 @@
     "preuves": {
       "exerce": ["skills/_partage/poc.md", "skills/_partage/cron-a-la-main.md", "agents/evaluateur.md", "skills/_partage/scripts/verifier-preuves.py", "skills/_partage/scripts/qualite-doc.py", "skills/_partage/grille-doc.md"],
       "cas": ["poc-jugement", "preuve-par-reponse", "cron-a-la-main", "decouverte-sans-humain"]
+    },
+    "revue-hors-plan": {
+      "exerce": [
+        "skills/executer-plan-notion/",
+        "agents/relecteur.md",
+        "skills/_partage/revue.md",
+        "skills/_partage/decouvertes.md"
+      ],
+      "cas": ["revue-hors-plan"]
+    },
+    "escalade-bornee": {
+      "exerce": [
+        "skills/executer-plan-notion/",
+        "agents/executant.md",
+        "skills/deleguer-a-haiku/"
+      ],
+      "cas": ["escalade-bornee"]
     }
   },
   "voyages": {

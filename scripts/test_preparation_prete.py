@@ -38,7 +38,7 @@ PUCES_OK = {
     "Maquette": "sans objet — aucune étape à impact fonctionnel",
     "CI": "push sans run, pas d'e2e, `review-required` sans effet, `merge-auto` actif",
     "Vagues": "vague 1 : étapes 1 et 2 (fichiers disjoints)",
-    "Pilote": "Sonnet 5.5, high",
+    "Pilote": "Sonnet 5.5, medium",
     "Branche": "`feat/le-theme`, worktree `~/repos/worktrees/depot/feat-le-theme`",
     "Orchestration": "sans objet — aucun plan maître",
     "Preuve de l'étape 1": "`pytest a -q` rejouée à blanc : code 1 attendu (étape à faire)",

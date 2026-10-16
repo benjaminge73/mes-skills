@@ -7,7 +7,7 @@ description: >-
 # Déléguer un plan natif à Haiku
 
 Ce skill sert une session qui a un plan **sans page Notion**, à écrire ou déjà approuvé.
-Il ne lit ni n'écrit aucune page. Le détail de chaque règle reste dans les fichiers qu'il cite.
+Il ne lit ni n'écrit aucune page.
 
 ## Avant le plan
 
@@ -17,8 +17,8 @@ Dès le lancement d'une session en mode plan natif, avant `ExitPlanMode` : lire
 ## Invariants
 
 - **Une étape = un appel `Agent` à `plans-notion:executant`**, nom qualifié, sans
-  paramètre `model` (son frontmatter le fixe). Jamais `general-purpose` pour une
-  étape d'exécution : `${CLAUDE_PLUGIN_ROOT}/skills/executer-plan-notion/etapes.md`,
+  `model` (son frontmatter le fixe, sauf montée de l'escalade bornée, `etapes.md`).
+  Jamais `general-purpose` pour une étape d'exécution : `${CLAUDE_PLUGIN_ROOT}/skills/executer-plan-notion/etapes.md`,
   section « La délégation est la règle, pas une faveur ».
 - **Diagnostic, pas correctif** : voir `${CLAUDE_PLUGIN_ROOT}/skills/_partage/compte-rendu-natif.md`.
 

@@ -190,7 +190,7 @@ tour vient, pas avant. La page maître dit dans l'avancement quel plan reste
 
 ## Lancé par `executer-plan-notion`
 
-À l'exécution, le pilote (Sonnet effort `high`, `executer-plan-notion` §2)
+À l'exécution, le pilote (Sonnet effort `medium`, `executer-plan-notion` §2)
 cherche d'abord une page maître qui couvre ces plans : s'il y en a une, il la
 met à jour (avancement, ordre de merge revu) au lieu d'en créer une seconde ;
 sinon il la crée au lancement, par les mêmes gestes. Chaque plan garde ensuite

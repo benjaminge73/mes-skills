@@ -1,0 +1,46 @@
+schema_version: "1.1"
+name: revue-hors-plan
+description: "Le relecteur signale un défaut voisin, hors de l'étape déjà commitée : une étape D1, en commits séparés, sans question à Benjamin."
+tags: [execution]
+expected_outcome: "Un commit D1 sur src/autre.py seul ; l'étape 1 n'est pas réouverte ; la découverte figure au journal et au bloc final ; QUESTION_A_BENJAMIN: aucune."
+execution:
+  max_turns: 80
+  timeout_seconds: 900
+  allowed_tools: [Read, Glob, Grep, Skill, Bash, Write, Edit, TodoWrite]
+context:
+  scaffold_script: fixture.sh
+# Les commits sont jugés sur .evals/commits.log, écrit par un hook post-commit
+# posé par fixture.sh (voir son en-tête) : l'état réel, pas le récit de l'agent.
+graders:
+  - name: d1-commit-sur-autre
+    type: regex
+    pattern: '^COMMIT [0-9a-f]+ \| [^\n]*\bD1\b[^\n]*\nFILES:[^\n]*src/autre\.py'
+    flags: m
+    target: {source: file, path: ".evals/commits.log"}
+  - name: d1-sans-le-code-de-l-etape
+    type: regex
+    pattern: '^COMMIT [0-9a-f]+ \| [^\n]*\bD1\b[^\n]*\nFILES:[^\n]*src/textes\.py'
+    flags: m
+    match: not_contains
+    target: {source: file, path: ".evals/commits.log"}
+  - name: autre-hors-du-commit-de-l-etape-1
+    type: regex
+    pattern: '^COMMIT [0-9a-f]+ \| (?![^\n]*\bD1\b)[^\n]*\nFILES:[^\n]*src/autre\.py'
+    flags: m
+    match: not_contains
+    target: {source: file, path: ".evals/commits.log"}
+  - name: journal-decouverte
+    type: regex
+    pattern: '^Découvertes[^\n]*compter_mots[^\n]*(trouvable au plan|pas trouvable)'
+    flags: m
+    target: {source: file, path: "journal.md"}
+  - name: decouverte-au-bloc
+    type: regex
+    pattern: 'DECOUVERTES:[\s\S]*compter_mots'
+  - name: pas-de-question
+    type: regex
+    pattern: 'QUESTION_A_BENJAMIN:\s*aucune'
+    flags: i
+  - name: bloc-verifications
+    type: regex
+    pattern: 'VERIFICATIONS:\s*\n\s*- [^\n]+ -> [^\n]+'

@@ -377,7 +377,7 @@ class FormatReel(_Dossier):
             "## Journal d'exécution\n"
             "Se remplit à l'implémentation.\n"
             "### Ouverture\n"
-            "- **Date** : 2026-10-14. **Pilote** : Sonnet 5.5, high.\n"
+            "- **Date** : 2026-10-14. **Pilote** : Sonnet 5.5, medium.\n"
             "### Étape 1 — Les dépôts suivis\n"
             "- **Fait** : `config/docs-veille.json` créé.\n"
             "- **Preuve** (rejouée par le pilote) : rouge `845c2b1`, vert `a97b3a2` → 24 passés.\n"
