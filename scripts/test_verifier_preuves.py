@@ -206,6 +206,25 @@ class VerifierPreuves(unittest.TestCase):
         code, sortie, _ = jouer(p, "--depot", depot)
         self.assertEqual(code, 0, sortie)
 
+    def test_un_choix_de_gouvernance_sans_citation_est_refuse(self):
+        # La case cochée d'une question née verte passe pour une décision de Benjamin : la date
+        # et la phrase citée sont exigées, ensemble.
+        for preuve in ("Preuve : dispense — parce que choix de gouvernance de Benjamin, 2026-10-16",
+                       "Preuve : dispense — parce que choix de gouvernance de Benjamin : « oui, on prend B »",
+                       "Preuve : dispense — parce que choix de gouvernance de Benjamin, 2026-10-16 : «  »"):
+            with self.subTest(preuve=preuve):
+                p = self.ecrire("p.md", plan(question(1, preuve)))
+                code, sortie, _ = jouer(p)
+                self.assertEqual(code, 1, sortie)
+                self.assertIn("sans date ou sans citation", sortie)
+
+    def test_un_choix_de_gouvernance_avec_date_et_citation_est_accepte(self):
+        p = self.ecrire("p.md", plan(question(1, (
+            "Preuve : dispense — parce que choix de gouvernance de Benjamin, 2026-10-16 : "
+            "« oui, on prend l'option B »"))))
+        code, sortie, _ = jouer(p)
+        self.assertEqual(code, 0, sortie)
+
     def test_dispense_avec_elision_de_parce_que(self):
         # « parce qu'aucun » (élision) vaut « parce que » suivi d'un mot, avec l'apostrophe
         # droite comme avec l'apostrophe typographique.
