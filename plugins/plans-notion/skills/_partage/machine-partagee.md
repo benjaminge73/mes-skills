@@ -10,12 +10,13 @@ Il part d'une mesure. Le POC du 2026-10-01 (VPS, 6 cœurs) a vu deux actions
 lourdes lancées ensemble faire tomber une e2e sur un timeout et allonger la
 suite de 32 %. Plusieurs sessions Claude Code partagent la même machine ;
 aucune ne voit ce que fait l'autre. D'où un **jeton à places** pour les actions
-lourdes, et un geste pour le prendre. Il y a **deux places** depuis le POC du
-2026-10-12 : la suite de hermes-custom seule prend 677 s, 727 s et 720 s avec
+lourdes, et un geste pour le prendre. Il y a **deux places** sur le VPS depuis le
+POC du 2026-10-12 : la suite de hermes-custom seule prend 677 s, 727 s et 720 s avec
 l'e2e de vahiny en parallèle, sans aucun échec sur les deux passages ; le
 relevé disait « chargée » pendant l'e2e seul, jamais « saturée ». Le POC du
 2026-10-01 avait vu l'échec, celui du 2026-10-12 ne l'a pas reproduit : la
-deuxième place est une décision mesurée, pas une garantie.
+deuxième place est une décision mesurée, pas une garantie. Une autre machine
+déclare son nombre de places dans son profil (§ « Le profil machine »).
 
 ## Ce qui est lourd
 
@@ -62,6 +63,36 @@ paliers est plus bas.
 lourde, une ligne `Machine : <verdict> — attente <n> min` (verdict du relevé au
 moment de la prise, durée réellement attendue ; `0` si aucune).
 
+## Le profil machine
+
+Le nombre de places et les seuils ne sont pas les mêmes partout : une machine les
+déclare dans un **profil**, fichier JSON hors dépôt. Il est désigné par la variable
+`PLANS_NOTION_MACHINE_PROFIL` ; sans elle, `${XDG_CONFIG_HOME:-~/.config}/plans-notion/machine.json`
+est lu s'il existe. Ni l'un ni l'autre : pas de profil, et ce sont les valeurs du VPS.
+
+Clés, toutes optionnelles :
+
+- `machine` : libellé libre ;
+- `places_lourdes` : entier ≥ 1 (VPS : 2) ;
+- `seuil_mem_full_avg60`, `seuil_cpu_some_avg10` : nombres (VPS : 40 et 50) ;
+- `seuil_mem_disponible_ko` : entier ≥ 0 (VPS : 1 572 864, soit 1,5 Go).
+
+Une clé inconnue, une valeur du mauvais type, un JSON invalide, ou une variable
+qui pointe vers un fichier absent : erreur, code 2, sur toutes les commandes, avec
+un message `profil machine : <fichier> : …`. Pas de repli silencieux.
+
+Exemple, le Mac (POC du 2026-10-16 : suite pytest lourde, 52 s seule, 214 s par
+instance avec quatre en parallèle, aucun échec nouveau ; sonde
+`plans-notion:sondeur` a25e4515bc8cecb21) :
+
+```json
+{"machine": "mac-m1max-64go", "places_lourdes": 4}
+```
+
+Limite à garder en tête : sur macOS, `/proc` n'existe pas, donc le relevé ne lit
+presque rien et rend `libre` quelle que soit la charge réelle. Le profil du Mac
+règle le **nombre de places** du jeton, pas la mesure de charge.
+
 ## Machine `chargée`
 
 Le jeton est pris, ou on l'attend, mais **quelqu'un d'autre fait déjà
@@ -88,6 +119,6 @@ suite (verdict et causes du relevé), noter au journal, continuer le léger.
 
 Le plan maître porte une section **« File des actions lourdes »**. Le pilote y
 range les suites, e2e et évals de **tous** les plans et les prend dans l'ordre
-de la file, chacune avec son jeton : **deux au plus** tiennent les deux places
-à la fois. Le parallèle reste la règle pour tout le reste :
+de la file, chacune avec son jeton : **au plus autant** qu'il y a de places (deux
+sur le VPS) tiennent le jeton à la fois. Le parallèle reste la règle pour tout le reste :
 la file ne concerne que ce qui est lourd.
