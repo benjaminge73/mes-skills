@@ -56,7 +56,7 @@ echo
 # --- Workflows CI : ce qu'ils refusent se lit dans leurs jobs, on nomme les fichiers.
 wf=""
 if [ -d "$racine/.github/workflows" ]; then
-  wf="$(find "$racine/.github/workflows" -maxdepth 1 -type f \( -name '*.yml' -o -name '*.yaml' \) -printf '%f\n' | sort | joindre)"
+  wf="$(find "$racine/.github/workflows" -maxdepth 1 -type f \( -name '*.yml' -o -name '*.yaml' \) -exec basename {} \; | sort | joindre)"
 fi
 echo "- Workflows CI : $(ou_aucun "$wf")"
 
@@ -69,7 +69,7 @@ if [ -n "$hookspath" ]; then
   actifs=""
   if [ -d "$dossier" ]; then
     # Seuls les exécutables s'appliquent : git ignore un hook sans droit d'exécution.
-    actifs="$(find "$dossier" -maxdepth 1 -type f -perm /111 ! -name '*.sample' -printf '%f\n' | sort | joindre)"
+    actifs="$(find "$dossier" -maxdepth 1 -type f \( -perm -100 -o -perm -010 -o -perm -001 \) ! -name '*.sample' -exec basename {} \; | sort | joindre)"
   fi
   echo "- core.hooksPath : $hookspath — hooks : $(ou_aucun "$actifs")"
 else
@@ -86,9 +86,9 @@ if [ -n "$est_git" ]; then
   commun="$(git -C "$racine" rev-parse --git-common-dir)"
   case "$commun" in /*) ;; *) commun="$racine/$commun" ;; esac
   if [ -d "$commun/hooks" ]; then
-    git_hooks="$(find "$commun/hooks" -maxdepth 1 -type f ! -name '*.sample' -printf '%f\n' | sort | joindre)"
-    hooks_actifs="$(find "$commun/hooks" -maxdepth 1 -type f -perm /111 ! -name '*.sample' -printf '%f\n' | sort | joindre)"
-    hooks_inertes="$(find "$commun/hooks" -maxdepth 1 -type f ! -perm /111 ! -name '*.sample' -printf '%f\n' | sort | joindre)"
+    git_hooks="$(find "$commun/hooks" -maxdepth 1 -type f ! -name '*.sample' -exec basename {} \; | sort | joindre)"
+    hooks_actifs="$(find "$commun/hooks" -maxdepth 1 -type f \( -perm -100 -o -perm -010 -o -perm -001 \) ! -name '*.sample' -exec basename {} \; | sort | joindre)"
+    hooks_inertes="$(find "$commun/hooks" -maxdepth 1 -type f ! \( -perm -100 -o -perm -010 -o -perm -001 \) ! -name '*.sample' -exec basename {} \; | sort | joindre)"
   fi
 fi
 if [ -n "$hookspath" ] && [ -n "$git_hooks" ]; then
@@ -113,7 +113,7 @@ echo "- pre-commit : $(ou_aucun "$precommit")"
 # --- husky : un fichier par hook Git, hors dossier interne `_`.
 husky=""
 if [ -d "$racine/.husky" ]; then
-  husky="$(find "$racine/.husky" -maxdepth 1 -type f ! -name 'husky.sh' ! -name '.*' -printf '%f\n' | sort | joindre)"
+  husky="$(find "$racine/.husky" -maxdepth 1 -type f ! -name 'husky.sh' ! -name '.*' -exec basename {} \; | sort | joindre)"
   husky=".husky/ — hooks : $(ou_aucun "$husky")"
 fi
 echo "- husky : $(ou_aucun "$husky")"

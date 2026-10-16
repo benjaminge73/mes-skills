@@ -44,12 +44,14 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest import mock
 from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import evals_ab  # noqa: E402
+from bash_moderne import BASH4, sauter_sans_bash4  # noqa: E402
 
 FIXTURES = Path(__file__).resolve().parent / "fixtures_evals_ab"
 MODELE = "claude-sonnet-5-5"  # le modèle joué par défaut (étape B9)
@@ -1105,10 +1107,13 @@ class LanceurModeleEtEffort(unittest.TestCase):
         assert "GITHUB_ACTIONS" not in env_extra, "jamais de GITHUB_ACTIONS=true dans un test"
         env = {k: v for k, v in os.environ.items()
                if k not in ("GITHUB_ACTIONS", "EVALS_MODELE", "EVALS_EFFORT",
-                            "EVALS_MAX_COUT_USD", "CLAUDE_CODE_EFFORT_LEVEL", "TMPDIR")}
+                            "EVALS_MAX_COUT_USD", "CLAUDE_CODE_EFFORT_LEVEL", "TMPDIR",
+                            "PLANS_NOTION_MACHINE_PROFIL")}
         env["PATH"] = f"{self.bin}{os.pathsep}{env.get('PATH', '')}"
         env["TMPDIR"] = str(self.racine / "traces")
         env["XDG_STATE_HOME"] = str(self.racine / "etat")
+        # Le profil par défaut se lit sous XDG_CONFIG_HOME : un dossier jetable, jamais celui du poste.
+        env["XDG_CONFIG_HOME"] = str(self.racine / "config")
         env["CLAUDE_CODE_OAUTH_TOKEN"] = self.JETON
         env["EVALS_DEMANDE_PAR_BENJAMIN"] = "1"  # sinon le lanceur refuse (code 64)
         env.update(env_extra)
@@ -1135,6 +1140,12 @@ class LanceurModeleEtEffort(unittest.TestCase):
         # environnement : la mesure ne doit pas en dépendre.
         _, trace = self._lancer(CLAUDE_CODE_EFFORT_LEVEL="low")
         self.assertIn("effort=high\n", trace)
+
+    def test_le_profil_machine_du_poste_n_influe_pas_sur_le_lanceur(self):
+        # Le vrai etat-machine.py lit PLANS_NOTION_MACHINE_PROFIL puis ~/.config :
+        # un profil du poste (même cassé) ne doit pas faire échouer ces tests.
+        with mock.patch.dict(os.environ, {"PLANS_NOTION_MACHINE_PROFIL": str(self.racine / "absent.json")}):
+            self._lancer()
 
     def test_le_modele_par_defaut_du_lanceur_est_claude_sonnet_5_5(self):
         _, trace = self._lancer()
@@ -1373,7 +1384,7 @@ class CleDuCacheDeLaBase(unittest.TestCase):
         e.update(PLUGIN="jouet", BASE_SHA=sha, SELECTION=selection, GITHUB_OUTPUT=str(sortie),
                  EVALS_MODELE=MODELE, EVALS_EFFORT="high", EVALS_RUNS="3")
         e.update(env)
-        r = subprocess.run(["bash", "-c", corps], cwd=self.depot, env=e, capture_output=True, text=True)
+        r = subprocess.run([BASH4 or "bash", "-c", corps], cwd=self.depot, env=e, capture_output=True, text=True)
         self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
         return dict(l.split("=", 1) for l in sortie.read_text("utf-8").splitlines() if "=" in l)
 
@@ -1743,7 +1754,7 @@ def corps_du_pas(nom: str) -> str:
 def jouer_le_pas(corps: str, depot: Path, env: dict) -> subprocess.CompletedProcess:
     e = {k: v for k, v in os.environ.items() if not k.startswith(("EVALS_", "GITHUB_", "RUNNER_"))}
     e.update(env)
-    return subprocess.run(["bash", "-c", corps], cwd=depot, env=e, capture_output=True, text=True)
+    return subprocess.run([BASH4 or "bash", "-c", corps], cwd=depot, env=e, capture_output=True, text=True)
 
 
 def lire_sorties(chemin: Path) -> dict:
@@ -1812,6 +1823,7 @@ class FumeeCategoriesVertes(unittest.TestCase):
         self.assertEqual(evals_ab.lignes_durees({"a": 0.0, "b": 0.0}), [])
 
 
+@sauter_sans_bash4
 class CleDuCacheDeLaFumee(unittest.TestCase):
     """Le pas « Clé du cache de la fumée » de ci.yml, joué pour de bon.
 
@@ -1868,6 +1880,7 @@ class CleDuCacheDeLaFumee(unittest.TestCase):
         self.assertEqual(apres["deux"], avant["deux"])
 
 
+@sauter_sans_bash4
 class FumeeSauveeSeulementSiVerte(DepotEtLanceur):
     """Le pas « Jouer la fumée, juger les catégories » de ci.yml, joué pour de bon.
 
