@@ -205,8 +205,8 @@ pas pour raconter l'avancement, qui va dans `Journal d'exécution` (§4).
 - **La délégation est la règle** : charger ce skill vaut demande de déléguer.
   Pilote en Sonnet effort `medium`, **un appel `Agent` par étape**
   (`subagent_type: "plans-notion:executant"`, nom qualifié, aucun paramètre
-  `model` ni `effort`, seule la correction `D<n>` d'une boucle de cron passe
-  `model: "sonnet"` (jamais `effort`), voir
+  `model` ni `effort`, sauf l'escalade bornée (`etapes.md`) et la correction
+  `D<n>` de cron (`model: "sonnet"`), voir
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/cron-a-la-main.md` : l'agent porte
   `haiku` et `effort: high`), en séquence
   par défaut, en parallèle par
