@@ -500,7 +500,7 @@ passe sous son plancher (code 1) : c'est un recul. Ou des sessions plantent
 (code 4, « non concluant — panne d'infrastructure, à relancer ») : ce n'est pas un
 recul, parce qu'un score tiré vers le bas par des sessions en erreur ne dit rien
 du skill ; le 4 prime sur le 1. Le plancher est le plus bas tirage sain mesuré,
-moins 0,10 (15 tirages sains sur Sonnet et Opus, 2026-10-01) :
+moins 0,10 (15 tirages sains sur Sonnet et Opus, 2026-10-01 ; `decouvertes` remesurée le 2026-10-16, voir plus bas) :
 
 | Catégorie | Tirage sain (min – max) | Plancher |
 |---|---|---|
@@ -508,7 +508,7 @@ moins 0,10 (15 tirages sains sur Sonnet et Opus, 2026-10-01) :
 | `bruit` | 0,80 – 0,92 | 0,70 |
 | `etat-de-depart` | 0,92 – 1,00 | 0,82 |
 | `maquette` | 0,90 – 1,00 | 0,80 |
-| `decouvertes` | 0,51 – 0,57 | 0,41 |
+| `decouvertes` | 0,58 – 0,70 | 0,47 |
 | `perimetre` | 0,31 – 0,45 | 0,21 |
 | `delegation` | 1,00 – 1,00 | 0,90 |
 | `billet` (plugin `voyages`) | 1,00 – 1,00 | 0,90 |
@@ -519,12 +519,23 @@ mode `aa`, 3 + 3), tous à 1,00 : le plancher y est donc 0,90. `delegation` est
 mesurée de la même façon le 2026-10-12 (run `38245058146`, 6 tirages sains, tous à
 1,00) : plancher 0,90.
 
-Le plancher de `decouvertes` (0,41) a été mesuré le 2026-10-01 sur ses 4 cas
-`decouverte-*`. `cloture-ouvre-la-pr` est entré dans la catégorie avec la PR #48,
-sans remesure. Décision de Benjamin du 2026-10-15 : le plancher est conservé tel
-quel, parce que la fumée du 2026-10-14 (run `38605985231`, PR #48) a joué les 5 cas
-de la catégorie et est passée. Une remesure en banc `aa` n'est à refaire que si la
-catégorie rougit ou si ses cas changent encore.
+Le plancher de `decouvertes` a été remesuré le 2026-10-16 sur ses 6 cas actuels (les
+quatre `decouverte-*`, `cloture-ouvre-la-pr` et `cloture-preuve-doc`), sur décision de
+Benjamin du 2026-10-16. Il valait 0,41 : mesuré le 2026-10-01 sur 4 cas, puis conservé le
+2026-10-15 sans remesure à l'entrée de `cloture-ouvre-la-pr` (PR #48). La mesure est
+l'A/B de la PR #60 (run `38881638080`), jouée à bras identiques parce que la PR ne changeait
+aucun fichier du plugin : Sonnet, effort `high`, 6 cas × 3 passages × 2 bras, aucune session
+en erreur, 18,68 $ (annoncé : environ 22 $). Les six tirages sains sont 0,67 – 0,69 – 0,66
+(base) et 0,58 – 0,70 – 0,66 (tête). Le plus bas, 0,576, moins 0,10 et arrondi au centième
+inférieur, donne 0,47 (le tableau affiche 0,58, valeur arrondie). La même A/B a rendu
+« recul » sur `cloture-preuve-doc` (100 % → 78 %) entre deux bras identiques : un cas bruité
+de plus que le seuil par cas de ± 10 pts, pas une régression. Une nouvelle remesure n'est à
+faire que si la catégorie rougit ou si ses cas changent encore.
+
+Pour rejouer cette mesure, un fichier du banc (par exemple `evals/bruit-plans-notion.json`)
+doit changer dans la PR, pour que la portée de la CI déclenche le plugin ; la ligne
+`Evals: decouvertes — …` limite alors la sélection aux 6 cas. Toucher `evals/categories.json`
+ou `evals/plans-notion/` forcerait tout le banc.
 
 Ces valeurs sont l'origine des planchers ; ceux que la CI applique sont dans son
 code. Sur le seul bras cassé mesuré (trois bancs simultanés), les tirages
