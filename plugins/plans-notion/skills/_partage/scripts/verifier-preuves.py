@@ -199,6 +199,11 @@ class Verificateur:
             # « parce qu'aucun » (élision, apostrophe droite ou typographique) = « parce que » + mot.
             if not re.search(r"parce (?:que\s+\w|qu['’]\w)", apres_tiret(reste), re.IGNORECASE):
                 return [f"{rep.ident} : dispense sans raison"]
+            # Un choix de gouvernance de Benjamin cite sa date et sa phrase : sans elles, une
+            # proposition du plan passerait pour une décision de Benjamin.
+            if re.search(r"choix de gouvernance de Benjamin", reste, re.IGNORECASE) and not (
+                    re.search(r"\d{4}-\d{2}-\d{2}", reste) and re.search(r"«[^»\w]*\w[^»]*»", reste)):
+                return [f"{rep.ident} : choix de gouvernance sans date ou sans citation « … »"]
             return []
         if typ == "commande":
             return [] if apres_tiret(reste) else [f"{rep.ident} : commande sans détail"]

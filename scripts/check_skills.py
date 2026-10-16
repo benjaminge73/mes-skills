@@ -56,6 +56,11 @@ Les règles, et le fait de doc qui fonde chacune (voir ``docs/veille.md``) :
     qui en a besoin de 11 finit en erreur, et la fumée entière conclut « non
     concluant, à relancer ». Payé du 2026-10-14 au 2026-10-15 : quatre fumées
     perdues par `cloture-ouvre-la-pr`, seul cas sans limite.
+(k) Si un plugin a un agent ``executant`` : son frontmatter fixe ``maxTurns``
+    (entier positif) et ``skills/executer-plan-notion/etapes.md`` garde la règle
+    « Un arrêt par `maxTurns` n'est pas un échec ». Sans l'un, la limite n'existe pas ;
+    sans l'autre, un arrêt par la limite est lu comme un échec au lieu d'une sortie
+    partielle reprenable (plan du 2026-10-16, escalade bornée).
 
 Exceptions datées
 -----------------
@@ -516,6 +521,30 @@ def _regle_j(racine: Path, plugin: Path) -> list[Anomalie]:
         for cas in _dossiers_de_cas(evals_plugin) if not _declare_max_turns(evals_plugin / cas)]
 
 
+PHRASE_MAX_TURNS = "Un arrêt par `maxTurns` n'est pas un échec"
+
+
+def _regle_k(racine: Path, plugin: Path) -> list[Anomalie]:
+    """L'``executant`` fixe ``maxTurns`` et ``etapes.md`` dit qu'un arrêt par la limite n'est pas un échec."""
+    agent = plugin / "agents" / "executant.md"
+    if not agent.is_file():
+        return []
+    anomalies = []
+    cible = _rel(racine, agent)
+    valeur = str(lire_frontmatter(agent.read_text(encoding="utf-8")).get("maxTurns", "")).strip()
+    if not re.fullmatch(r"[1-9]\d*", valeur):
+        anomalies.append(Anomalie("k", cible, (
+            "l'`executant` ne fixe pas `maxTurns` (entier positif) dans son frontmatter : sans lui, "
+            "un sous-agent bavard n'a pas de limite, et la règle « un arrêt par `maxTurns` n'est pas "
+            "un échec » d'`etapes.md` ne s'applique à rien.")))
+    etapes = plugin / "skills" / "executer-plan-notion" / "etapes.md"
+    if etapes.is_file() and PHRASE_MAX_TURNS not in etapes.read_text(encoding="utf-8"):
+        anomalies.append(Anomalie("k", _rel(racine, etapes), (
+            f"la règle « {PHRASE_MAX_TURNS} » a disparu : un arrêt par la limite de tours serait "
+            "lu comme un échec au lieu d'une sortie partielle reprenable.")))
+    return anomalies
+
+
 # --------------------------------------------------------------------------
 # Contrôle d'ensemble, exceptions, cliquet, registre
 # --------------------------------------------------------------------------
@@ -549,6 +578,7 @@ def controler(racine: Path, limites: dict, sans_exceptions: bool = False) -> Res
         anomalies += _regles_e(racine, plugin)
         anomalies += _regle_i(racine, plugin)
         anomalies += _regle_j(racine, plugin)
+        anomalies += _regle_k(racine, plugin)
     anomalies += _regle_h(racine)
 
     exceptions = [] if sans_exceptions else list(limites.get("exceptions", []))

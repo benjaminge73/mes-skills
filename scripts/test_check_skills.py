@@ -67,6 +67,9 @@ def _regles(resultat) -> list[str]:
     return [a.regle for a in resultat.refus]
 
 
+PHRASE_K = "6. **Un arrêt par `maxTurns` n'est pas un échec.** Reprise au même palier.\n"
+
+
 class Depot(unittest.TestCase):
     def setUp(self):
         self._tmp = tempfile.TemporaryDirectory()
@@ -795,6 +798,51 @@ class RegleJ_ToursMaximauxDesEvals(Depot):
         limites = json.loads((racine / "scripts" / "limites.json").read_text("utf-8"))
         res = check_skills.controler(racine, limites)
         self.assertEqual([a for a in res.refus if a.regle == "j"], [])
+
+
+class RegleK_MaxTurnsDeLExecutant(Depot):
+    """L'``executant`` fixe ``maxTurns`` et ``etapes.md`` garde la règle de la sortie partielle."""
+
+    def setUp(self):
+        super().setUp()
+        self.plugin_conforme()
+
+    def executant(self, frontmatter="maxTurns: 90\n", etapes=PHRASE_K):
+        _ecrire(self.racine / "plugins" / "p" / "agents" / "executant.md",
+                f"---\nname: executant\ndescription: Exécute une étape.\n{frontmatter}---\nCorps.\n")
+        if etapes is not None:
+            _ecrire(self.racine / "plugins" / "p" / "skills" / "executer-plan-notion" / "etapes.md", etapes)
+
+    def refus_k(self):
+        return [a for a in self.controler().refus if a.regle == "k"]
+
+    def test_un_plugin_sans_executant_n_est_pas_concerne(self):
+        self.assertEqual(self.refus_k(), [])
+
+    def test_executant_avec_max_turns_et_la_regle_est_conforme(self):
+        self.executant()
+        self.assertEqual(self.refus_k(), [])
+
+    def test_executant_sans_max_turns_est_refuse_et_nomme(self):
+        self.executant(frontmatter="")
+        refus = self.refus_k()
+        self.assertEqual([a.cible for a in refus], ["plugins/p/agents/executant.md"])
+        self.assertIn("maxTurns", refus[0].message)
+
+    def test_max_turns_non_numerique_est_refuse(self):
+        self.executant(frontmatter="maxTurns: beaucoup\n")
+        self.assertEqual(len(self.refus_k()), 1)
+
+    def test_la_regle_d_etapes_md_disparue_est_refusee(self):
+        self.executant(etapes="6. Un arrêt par la limite est un échec.\n")
+        refus = self.refus_k()
+        self.assertEqual([a.cible for a in refus], ["plugins/p/skills/executer-plan-notion/etapes.md"])
+
+    def test_le_depot_reel_respecte_la_regle(self):
+        racine = Path(__file__).resolve().parents[1]
+        limites = json.loads((racine / "scripts" / "limites.json").read_text("utf-8"))
+        res = check_skills.controler(racine, limites)
+        self.assertEqual([a for a in res.refus if a.regle == "k"], [])
 
 
 class RegistreDuLotB9(unittest.TestCase):
