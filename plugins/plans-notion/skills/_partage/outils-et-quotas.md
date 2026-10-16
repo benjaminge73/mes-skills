@@ -373,26 +373,45 @@ de CI ; fiche écrite le 2026-10-01). Les montants sont l'équivalent au tarif d
 l'API : l'abonnement ne facture pas en dollars, mais le dollar est la règle
 commune pour comparer les postes.
 
-- **Un passage est une session complète.** Chaque cas est joué 3 fois par bras,
-  donc 16 cas × 3 passages = 48 sessions par bras. Une A/B joue deux bras (la
-  base et la tête) : tout est à doubler. Le modèle joué est Sonnet, effort
-  `high` ; la correction se fait par expressions régulières, sans modèle-juge,
-  donc sans coût de juge.
-- **Un bras complet coûte 27,53 $.** Un cas coûte entre 0,98 $ et 3,57 $. Une
-  A/B sur tout le banc coûte donc environ 55 $, et une A/B ciblée sur une
-  catégorie 3 à 14 $.
+- **Un passage est une session complète.** Chaque cas est joué 3 fois par bras.
+  Le 2026-09-30, le banc comptait 16 cas : 16 × 3 = 48 sessions par bras. Il
+  compte 26 cas au 2026-10-16, soit 26 × 3 = 78 sessions par bras. Une A/B joue
+  deux bras (la base et la tête) : tout est à doubler. Le modèle joué est Sonnet,
+  effort `high` ; la correction se fait par expressions régulières, sans
+  modèle-juge, donc sans coût de juge.
+- **Un bras complet coûtait 27,53 $ le 2026-09-30, sur 16 cas.** Un cas coûtait
+  entre 0,98 $ et 3,57 $ à la même date. Une A/B sur tout le banc coûtait donc
+  environ 55 $, et une A/B ciblée sur une catégorie 3 à 14 $ (chiffres du
+  2026-09-30). Le coût d'un bras à 26 cas n'a pas été remesuré.
 - **Par catégorie**, pour un bras de 3 passages, puis pour un seul passage (le
-  coût d'une fumée) :
+  coût d'une fumée), mesuré le 2026-09-30. La colonne « Cas au 2026-10-16 »
+  donne le nombre de cas que chaque catégorie compte aujourd'hui :
 
-| Catégorie | Cas | Un bras, 3 passages | Un passage |
-|---|---|---|---|
-| `existant` | 2 | 6,43 $ | 2,14 $ |
-| `bruit` | 3 | 4,81 $ | 1,60 $ |
-| `etat-de-depart` | 4 | 7,13 $ | 2,38 $ |
-| `maquette` | 1 | 1,61 $ | 0,54 $ |
-| `decouvertes` | 4 | 4,98 $ | 1,66 $ |
-| `perimetre` | 2 | 2,56 $ | 0,85 $ |
-| **tout le banc** | 16 | 27,53 $ | ≈ 9,2 $ |
+| Catégorie | Cas au 2026-10-16 | Cas mesurés le 2026-09-30 | Un bras, 3 passages | Un passage |
+|---|---|---|---|---|
+| `existant` | 3 | 2 | 6,43 $ | 2,14 $ |
+| `bruit` | 3 | 3 | 4,81 $ | 1,60 $ |
+| `etat-de-depart` | 4 | 4 | 7,13 $ | 2,38 $ |
+| `maquette` | 1 | 1 | 1,61 $ | 0,54 $ |
+| `decouvertes` | 6 | 4 | 4,98 $ | 1,66 $ |
+| `perimetre` | 2 | 2 | 2,56 $ | 0,85 $ |
+| `delegation` | 1 | — | non mesuré | non mesuré |
+| `preuves` | 4 | — | non mesuré | non mesuré |
+| `revue-hors-plan` | 1 | — | non mesuré | non mesuré |
+| `escalade-bornee` | 1 | — | non mesuré | non mesuré |
+| **tout le banc** | 26 | 16 | 27,53 $ | ≈ 9,2 $ |
+
+Les coûts datent du 2026-09-30 et ne sont extrapolés à aucune catégorie. Les
+catégories `existant` et `decouvertes` ont gagné des cas depuis : elles coûtent
+plus que leur ligne. `delegation`, `preuves`, `revue-hors-plan` et `escalade-bornee`
+ne figuraient pas dans la mesure, et leur coût n'a jamais été mesuré. `tout le banc`
+désigne le banc de `plans-notion` ; `voyages` en compte un de plus (`billet`), soit
+27 cas au total.
+
+Mesure postérieure pour `decouvertes` : la PR #60 (run `38881638080`, le
+2026-10-16), à bras identiques puisqu'elle ne changeait aucun fichier du plugin.
+6 cas × 3 passages × 2 bras, aucune session en erreur, 18,68 $ pour les deux
+bras ensemble (montant brut, non divisé par deux).
 
 - **Une A/A sur Opus** a coûté 53,14 $ : un bras de Sonnet coûte la moitié.
 - **Une fumée reprise du cache ne coûte rien** (depuis le 2026-10-08). Le job
@@ -401,11 +420,13 @@ commune pour comparer les postes.
   change pas, la catégorie n'est pas rejouée, soit 0 $ au lieu de 0,54 à 2,38 $ pour
   elle. Seul un vert est gardé : un rouge se rejoue à chaque push. Le résumé du job
   dit « fumée reprise du cache ».
-- **Le plafond par appel** (`EVALS_MAX_COUT_USD`) vaut 45 $ par bras, soit un
-  bras de 23 cas (~39,6 $ au coût par cas mesuré) plus une marge d'environ 14 %.
-  Il valait 120 $ avant le 2026-10-01, puis 35 $ du 2026-10-01 au 2026-10-15 :
-  trop bas pour un passage complet du banc à 23 cas. Le 120 $ n'a jamais été
-  atteint : il ne protégeait de rien.
+- **Le plafond par appel** (`EVALS_MAX_COUT_USD`) vaut 45 $ par bras. Il a été
+  fixé sur une extrapolation, pas sur une mesure : le 2026-10-15, un bras de 23
+  cas à ~39,6 $ (23 × le coût par cas mesuré le 2026-09-30), plus une marge
+  d'environ 14 %. Le banc compte 26 cas au 2026-10-16 ; aucune
+  nouvelle extrapolation n'est faite. Il valait 120 $ avant le 2026-10-01, puis
+  35 $ du 2026-10-01 au 2026-10-15 : trop bas pour un passage complet du banc à
+  23 cas, alors. Le 120 $ n'a jamais été atteint : il ne protégeait de rien.
 - **Les sessions d'un appel partagent une seule limite de débit**, celle du
   compte qui les paie. La doc de l'outil le dit pour l'option `-j` (nombre de
   runs en parallèle) : *« Each run is a full claude child on your own
