@@ -65,7 +65,7 @@ class _FauxBinaires:
 
 
 def _environnement(faux: _FauxBinaires, github_actions: str | None) -> dict[str, str]:
-    """Environnement d'exécution : PATH préfixé des faux binaires, sans jeton."""
+    """Environnement d'exécution : PATH préfixé des faux binaires, sans jeton ni profil machine."""
     assert github_actions != "true", (
         "interdit : lancer un script d'outillage avec GITHUB_ACTIONS=true "
         "ferait un vrai sudo sur cette machine"
@@ -73,7 +73,7 @@ def _environnement(faux: _FauxBinaires, github_actions: str | None) -> dict[str,
     env = {
         k: v
         for k, v in os.environ.items()
-        if k not in ("GITHUB_ACTIONS", "CLAUDE_CODE_OAUTH_TOKEN")
+        if k not in ("GITHUB_ACTIONS", "CLAUDE_CODE_OAUTH_TOKEN", "PLANS_NOTION_MACHINE_PROFIL")
     }
     env["PATH"] = f"{faux.dossier}{os.pathsep}{env.get('PATH', '')}"
     if github_actions is not None:
@@ -476,7 +476,7 @@ class LaFumeeSeRelanceEtSeFileSansPerdreDeTemps(unittest.TestCase):
     def test_chaque_sauvegarde_de_la_fumee_tourne_meme_quand_le_pas_jouer_est_rouge(self):
         fumee = _texte_du_job("fumee")
         conditions = re.findall(r"(?m)^        if: (.*sauver_\d.*)$", fumee)
-        self.assertEqual(len(conditions), 8)
+        self.assertEqual(len(conditions), 10)
         for c in conditions:
             # Sans `!cancelled()`, le succès implicite saute le pas dès que « Jouer » sort en 1
             # ou en 4 : les verts des autres catégories ne seraient jamais rangés.
