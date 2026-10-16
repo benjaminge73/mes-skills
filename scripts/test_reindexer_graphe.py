@@ -158,6 +158,64 @@ class ReindexerGraphe(unittest.TestCase):
         self.assertEqual(len(executeur.lancements), 1)
         self.assertEqual(self.lire_head("a-x-y-b"), NOUVEAU_SHA)
 
+    # Noms mesurés avec le vrai binaire 0.10.8 (dépôts jetables, HOME et cache isolés).
+    # Le préfixe fixe du dossier de mesure, « private-tmp-claude-501-…-scratchpad-mesure-cases- »,
+    # est retiré des noms : seul le suffixe, qui seul compte pour la règle, est repris ici.
+
+    def _db_trouve_par_le_hook(self, racine: str, nom: str) -> int:
+        (self.cache / f"{nom}.db").write_bytes(b"")
+        executeur = Executeur(head=NOUVEAU_SHA, racine=racine)
+        self.lancer(executeur)
+        return len(executeur.lancements)
+
+    def test_caracteres_ascii_hors_lettres_et_chiffres_deviennent_des_tirets(self):
+        # Panne : le serveur remplace par « - » tout caractère ASCII hors [A-Za-z0-9._-]
+        # (espace, ~, +, @, virgule, parenthèses, apostrophe, deux-points, =, #, %).
+        # Mesuré : « a.b_c d~e+f@g,h(i)j'k:l=m » -> « a.b_c-d-e-f-g-h-i-j-k-l-m » ;
+        # le dossier iCloud « Library/Mobile Documents/com~apple~CloudDocs/depot » -> « …-depot ».
+        cas = {
+            "/Users/exemple/a.b_c d~e+f@g,h(i)j'k:l=m": "Users-exemple-a.b_c-d-e-f-g-h-i-j-k-l-m",
+            "/Users/exemple/Library/Mobile Documents/com~apple~CloudDocs/depot":
+                "Users-exemple-Library-Mobile-Documents-com-apple-CloudDocs-depot",
+        }
+        for racine, nom in cas.items():
+            with self.subTest(racine=racine):
+                self.assertEqual(self._db_trouve_par_le_hook(racine, nom), 1)
+
+    def test_un_accent_devient_son_hex_utf8_minuscule_sans_separateur(self):
+        # Panne : chaque point de code non ASCII est écrit en hexadécimal de ses octets UTF-8,
+        # en minuscules, collé au caractère voisin. Mesuré : « éa » -> « c3a9a » ; « éü » ->
+        # « c3a9c3bc » ; « é » en fin de nom -> « c3a9 » ; « É » -> « c389 » ; « é ü » -> « c3a9-c3bc ».
+        cas = {
+            "/Users/exemple/pa-éa": "Users-exemple-pa-c3a9a",
+            "/Users/exemple/k-éü": "Users-exemple-k-c3a9c3bc",
+            "/Users/exemple/q-é": "Users-exemple-q-c3a9",
+            "/Users/exemple/é-x": "Users-exemple-c3a9-x",
+            "/Users/exemple/E-Éx": "Users-exemple-E-c389x",
+            "/Users/exemple/proj-é ü#x%y": "Users-exemple-proj-c3a9-c3bc-x-y",
+        }
+        for racine, nom in cas.items():
+            with self.subTest(racine=racine):
+                self.assertEqual(self._db_trouve_par_le_hook(racine, nom), 1)
+
+    def test_un_caractere_de_3_ou_4_octets_devient_son_hex_utf8(self):
+        # Panne : le symbole euro (3 octets UTF-8) et l'emoji (4 octets) suivent la même règle.
+        # Mesuré : « e-€x » -> « e-e282acx » ; « e-😀x » -> « e-f09f9880x ».
+        cas = {
+            "/Users/exemple/e-€x": "Users-exemple-e-e282acx",
+            "/Users/exemple/e-😀x": "Users-exemple-e-f09f9880x",
+        }
+        for racine, nom in cas.items():
+            with self.subTest(racine=racine):
+                self.assertEqual(self._db_trouve_par_le_hook(racine, nom), 1)
+
+    def test_un_nom_decompose_nfd_garde_la_lettre_et_hexa_seulement_le_combinant(self):
+        # Panne : un nom stocké en NFD (« e » suivi de U+0301) n'est pas normalisé par le serveur :
+        # le « e » ASCII reste, seul le combinant devient hex. Mesuré : « n-éx » -> « n-ecc81x ».
+        # Un hook qui normaliserait en NFC chercherait « n-c3a9x » et ne trouverait rien.
+        self.assertEqual(self._db_trouve_par_le_hook("/Users/exemple/n-éx",
+                                                     "Users-exemple-n-ecc81x"), 1)
+
     def test_depot_non_suivi_ne_lance_rien_et_ne_cree_rien_dans_le_cache(self):
         (self.cache / "autre-depot.db").write_bytes(b"")
         avant = sorted(p.name for p in self.cache.iterdir())
