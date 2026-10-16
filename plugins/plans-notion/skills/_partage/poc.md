@@ -257,6 +257,11 @@ pose) porte la preuve de ce qui l'a tranchée : une `lecture` ou une `commande`
 le plus souvent, un `POC` si la réponse venait d'une mesure. Une question verte
 n'a jamais été ouverte, donc personne n'a regardé d'où venait sa réponse.
 
+Un choix que Benjamin valide en toutes lettres dans la session naît lui aussi vert :
+sa preuve est une `dispense` qui cite sa phrase mot pour mot, avec sa date (voir
+`plan-notion/chapitres-questions-execution.md`, « La question née verte d'un choix validé »).
+La règle de fréquence reste telle quelle : une dispense qui recopie une phrase de Benjamin n'est pas un contournement.
+
 Non rétroactif : la règle vaut pour tout passage à `valide` à partir de la
 version 0.26.0 du plugin. Un plan déjà `valide` n'est pas recontrôlé : on ne
 réécrit pas une décision au regard d'une règle qui n'existait pas quand elle a
@@ -289,7 +294,7 @@ de la question.
   contient la grille écrite **avant** la mesure. L'agent porte Sonnet et
   l'effort high dans sa définition : `${CLAUDE_PLUGIN_ROOT}/agents/evaluateur.md`.
 
-Pour les deux agents, **aucun paramètre `model` ni `effort` à l'appel, jamais.**
+Pour les deux agents, **aucun paramètre `model` ni `effort` à l'appel, sauf une montée de l'escalade bornée** (`executer-plan-notion/etapes.md`, « L'escalade bornée »).
 Le paramètre `model` de l'appel l'emporte sur le frontmatter de l'agent, qui
 passe avant la variable `CLAUDE_CODE_SUBAGENT_MODEL` et le modèle de la session :
 un paramètre ajouté écrase donc le modèle que la définition fixe. À l'inverse,
