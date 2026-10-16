@@ -56,6 +56,14 @@ Les règles, et le fait de doc qui fonde chacune (voir ``docs/veille.md``) :
     qui en a besoin de 11 finit en erreur, et la fumée entière conclut « non
     concluant, à relancer ». Payé du 2026-10-14 au 2026-10-15 : quatre fumées
     perdues par `cloture-ouvre-la-pr`, seul cas sans limite.
+(k) Pour chaque plugin qui a un banc ``evals/<plugin>/`` et une fiche
+    ``skills/_partage/outils-et-quotas.md`` : le tableau de la section « Fiche —
+    claude plugin eval » compte les cas de chaque catégorie de
+    ``evals/categories.json`` (colonne « Cas au … », une ligne par catégorie, et
+    une ligne « tout le banc » égale au nombre de cas distincts du plugin). Écrit
+    le 2026-10-16 : le tableau comptait 16 cas pour un banc de 24, sans qu'aucune
+    garde ne rougisse. Les coûts de ce tableau restent des mesures datées, que la
+    règle ne contrôle pas.
 
 Exceptions datées
 -----------------
@@ -427,15 +435,19 @@ def _fichiers_a_exercer(plugin: Path) -> list[str]:
     return trouves
 
 
-def _regle_i(racine: Path, plugin: Path) -> list[Anomalie]:
-    evals_plugin = racine / "evals" / plugin.name
-    if not evals_plugin.is_dir():
-        return []
+def _categories_du_plugin(racine: Path, plugin: Path) -> tuple[dict | None, list[Anomalie]]:
+    """Les catégories de ``evals/categories.json`` pour ``plugin``, ou la panne.
+
+    Rend ``(categories, [])`` quand le fichier se lit et porte une entrée
+    exploitable pour le plugin, ``(None, [anomalie])`` sinon. L'anomalie est
+    celle de la règle (i) : la règle (k), qui lit le même fichier, s'en remet à
+    celle-ci et ne la double pas.
+    """
     fichier = racine / "evals" / "categories.json"
     cible = _rel(racine, fichier)
     qui = f"le plugin `{plugin.name}` a un banc `evals/{plugin.name}/`"
     if not fichier.is_file():
-        return [Anomalie("i", cible, (
+        return None, [Anomalie("i", cible, (
             f"{qui} mais `evals/categories.json` n'existe pas : le créer, avec une entrée "
             f"`\"{plugin.name}\"` qui classe chaque cas dans au moins une catégorie."))]
     try:
@@ -446,11 +458,22 @@ def _regle_i(racine: Path, plugin: Path) -> list[Anomalie]:
                 and isinstance(c.get("exerce"), list) for c in categories.values()):
             raise TypeError("catégories mal formées")
     except (OSError, json.JSONDecodeError):
-        return [Anomalie("i", cible, "`evals/categories.json` n'est pas du JSON lisible : le corriger.")]
+        return None, [Anomalie("i", cible, "`evals/categories.json` n'est pas du JSON lisible : le corriger.")]
     except (KeyError, TypeError):
-        return [Anomalie("i", cible, (
+        return None, [Anomalie("i", cible, (
             f"{qui} mais `evals/categories.json` n'a pas d'entrée exploitable `\"{plugin.name}\"` : "
             "un objet {catégorie: {\"exerce\": [chemins], \"cas\": [noms]}}."))]
+    return categories, []
+
+
+def _regle_i(racine: Path, plugin: Path) -> list[Anomalie]:
+    evals_plugin = racine / "evals" / plugin.name
+    if not evals_plugin.is_dir():
+        return []
+    categories, pannes = _categories_du_plugin(racine, plugin)
+    if categories is None:
+        return pannes
+    cible = _rel(racine, racine / "evals" / "categories.json")
 
     anomalies: list[Anomalie] = []
     cas_du_banc = _dossiers_de_cas(evals_plugin)
@@ -516,6 +539,119 @@ def _regle_j(racine: Path, plugin: Path) -> list[Anomalie]:
         for cas in _dossiers_de_cas(evals_plugin) if not _declare_max_turns(evals_plugin / cas)]
 
 
+_FICHE_EVALS = "## Fiche — claude plugin eval"
+
+
+def _lire_compte(texte: str) -> int | None:
+    """Un compte de cas écrit en chiffres seuls ; ``None`` pour tout autre texte."""
+    return int(texte.strip()) if re.fullmatch(r"\d+", texte.strip()) else None
+
+
+def _tableau_de_la_fiche(texte: str) -> list[list[str]] | None:
+    """Les lignes du premier tableau de la section « Fiche — claude plugin eval ».
+
+    Chaque ligne rend ses cellules découpées, séparateur d'en-tête exclu. ``None``
+    si la section n'existe pas ou ne contient aucun tableau.
+    """
+    lignes = texte.splitlines()
+    debut = next((i for i, ligne in enumerate(lignes) if ligne.strip() == _FICHE_EVALS), None)
+    if debut is None:
+        return None
+    tableau: list[list[str]] = []
+    for ligne in lignes[debut + 1:]:
+        if ligne.startswith("## "):
+            break
+        if ligne.lstrip().startswith("|"):
+            cellules = [c.strip() for c in ligne.strip().strip("|").split("|")]
+            if set("".join(cellules)) <= set("-: "):
+                continue
+            tableau.append(cellules)
+        elif tableau:
+            break
+    return tableau or None
+
+
+def _regle_k(racine: Path, plugin: Path) -> list[Anomalie]:
+    if not (racine / "evals" / plugin.name).is_dir():
+        return []
+    fiche = plugin / "skills" / "_partage" / "outils-et-quotas.md"
+    if not fiche.is_file():
+        return []
+    categories, _ = _categories_du_plugin(racine, plugin)
+    if categories is None:
+        return []
+    cible = _rel(racine, fiche)
+
+    tableau = _tableau_de_la_fiche(fiche.read_text(encoding="utf-8"))
+    if tableau is None:
+        return [Anomalie("k", cible, (
+            f"la section « {_FICHE_EVALS[3:]} » ne contient pas de tableau : y écrire le "
+            "tableau des comptes de cas (une ligne par catégorie de `evals/categories.json`, "
+            "puis « tout le banc »)."))]
+    entete = tableau[0]
+    colonne = next((i for i, c in enumerate(entete) if c.startswith("Cas au")), None)
+    if colonne is None:
+        return [Anomalie("k", cible, (
+            "le tableau de la fiche n'a pas de colonne dont l'en-tête commence par « Cas au » : "
+            "la rétablir, c'est elle que la règle compare à `evals/categories.json`."))]
+
+    anomalies: list[Anomalie] = []
+    vues: set[str] = set()
+    total: str | None = None
+    for cellules in tableau[1:]:
+        premiere = cellules[0]
+        compte = cellules[colonne] if colonne < len(cellules) else ""
+        if re.sub(r"\*", "", premiere).strip() == "tout le banc":
+            total = compte
+            continue
+        noms = re.findall(r"`([^`]+)`", premiere)
+        if not noms:
+            anomalies.append(Anomalie("k", cible, (
+                f"la ligne « {premiere} » ne nomme aucune catégorie entre backticks : écrire "
+                "le nom de la catégorie de `evals/categories.json` entre backticks, ou "
+                "retirer la ligne.")))
+            continue
+        nom = noms[0]
+        if nom not in categories:
+            anomalies.append(Anomalie("k", cible, (
+                f"la fiche a une ligne pour la catégorie `{nom}`, qui n'existe pas dans "
+                "`evals/categories.json` : corriger le nom, ou retirer la ligne.")))
+            continue
+        vues.add(nom)
+        attendu = len(categories[nom]["cas"])
+        lu = _lire_compte(compte)
+        if lu is None:
+            anomalies.append(Anomalie("k", cible, (
+                f"la ligne de `{nom}` n'a pas un compte entier dans la colonne « {entete[colonne]} » "
+                f"(« {compte} ») : y écrire le nombre de cas de la catégorie.")))
+        elif lu != attendu:
+            anomalies.append(Anomalie("k", cible, (
+                f"la catégorie `{nom}` compte {lu} cas dans la colonne « {entete[colonne]} » "
+                f"de la fiche, et {attendu} dans `evals/categories.json` : corriger la cellule.")))
+
+    for nom in sorted(set(categories) - vues):
+        anomalies.append(Anomalie("k", cible, (
+            f"la catégorie `{nom}` n'a pas de ligne dans le tableau de la fiche : l'ajouter, "
+            "avec son nombre de cas.")))
+
+    distincts = len({c for cat in categories.values() for c in cat["cas"]})
+    if total is None:
+        anomalies.append(Anomalie("k", cible, (
+            "le tableau de la fiche n'a pas de ligne « **tout le banc** » : l'ajouter, avec "
+            f"le nombre de cas distincts du plugin ({distincts}).")))
+    else:
+        lu = _lire_compte(total)
+        if lu is None:
+            anomalies.append(Anomalie("k", cible, (
+                f"la ligne « tout le banc » n'a pas un compte entier (« {total} ») : y écrire "
+                f"le nombre de cas distincts du plugin ({distincts}).")))
+        elif lu != distincts:
+            anomalies.append(Anomalie("k", cible, (
+                f"la ligne « tout le banc » donne {lu} cas, et le plugin en compte {distincts} "
+                "distincts dans `evals/categories.json` : corriger la cellule.")))
+    return anomalies
+
+
 # --------------------------------------------------------------------------
 # Contrôle d'ensemble, exceptions, cliquet, registre
 # --------------------------------------------------------------------------
@@ -549,6 +685,7 @@ def controler(racine: Path, limites: dict, sans_exceptions: bool = False) -> Res
         anomalies += _regles_e(racine, plugin)
         anomalies += _regle_i(racine, plugin)
         anomalies += _regle_j(racine, plugin)
+        anomalies += _regle_k(racine, plugin)
     anomalies += _regle_h(racine)
 
     exceptions = [] if sans_exceptions else list(limites.get("exceptions", []))
