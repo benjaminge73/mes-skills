@@ -535,6 +535,36 @@ class ProfilMachine(EtatMachineTestCase):
                 chemin = self.poser_profil(contenu)
                 self.assertProfilRefuse(self.prendre(900), chemin)
 
+    def test_seuil_de_pression_infini_par_1e999_est_une_erreur_code_2(self):
+        # json.loads lit 1e999 comme inf sans passer par parse_constant : seul un
+        # contrôle de finitude le refuse. Un seuil infini ne serait jamais atteint.
+        chemin = self.poser_profil('{"seuil_cpu_some_avg10": 1e999}')
+        r = self.prendre(900)
+        self.assertProfilRefuse(r, chemin)
+        self.assertIn("entre 0 et 100", r.stderr)
+
+    def test_seuil_de_pression_negatif_est_une_erreur_code_2(self):
+        chemin = self.poser_profil('{"seuil_mem_full_avg60": -1}')
+        r = self.prendre(900)
+        self.assertProfilRefuse(r, chemin)
+        self.assertIn("entre 0 et 100", r.stderr)
+
+    def test_seuil_de_pression_au_dessus_de_100_est_une_erreur_code_2(self):
+        # Une pression PSI est un pourcentage : au-delà de 100, le seuil ne peut plus
+        # être atteint, c'est une faute de saisie.
+        chemin = self.poser_profil('{"seuil_cpu_some_avg10": 101}')
+        r = self.prendre(900)
+        self.assertProfilRefuse(r, chemin)
+        self.assertIn("entre 0 et 100", r.stderr)
+
+    def test_seuils_de_pression_aux_bornes_0_et_100_sont_acceptes(self):
+        # Contrôle : les bornes restent permises. ``releve`` renvoie toujours 0 (le
+        # verdict est dans le JSON), donc seul le message d'erreur de profil compte.
+        self.poser_profil('{"seuil_mem_full_avg60": 0, "seuil_cpu_some_avg10": 100}')
+        r = self.lancer("releve", "--json")
+        self.assertNotIn("profil machine", r.stderr)
+        self.assertEqual(r.returncode, 0, msg=r.stderr)
+
 
 if __name__ == "__main__":
     unittest.main()
