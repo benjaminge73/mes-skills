@@ -37,7 +37,10 @@ def _skill(racine: Path, plugin: str, nom: str, description: str = "Un skill.",
     )
 
 
-def _agent(racine: Path, plugin: str, nom: str, champs: str = "") -> Path:
+def _agent(racine: Path, plugin: str, nom: str, champs: str = "", fixe: bool = True) -> Path:
+    """Un agent ; ``fixe`` lui pose ``model`` et ``effort``, que la règle (m) exige de tous."""
+    if fixe:
+        champs = "model: haiku\neffort: high\n" + champs
     return _ecrire(
         racine / "plugins" / plugin / "agents" / f"{nom}.md",
         f"---\nname: {nom}\ndescription: Un agent.\n{champs}---\nCorps.\n",
@@ -124,7 +127,7 @@ class RegleA_DescriptionTropLongue(Depot):
     def test_un_agent_trop_long_est_refuse_aussi(self):
         _manifeste(self.racine, "p")
         _ecrire(self.racine / "plugins/p/agents/a.md",
-                "---\nname: a\ndescription: " + "z" * 1600 + "\n---\nCorps.\n")
+                "---\nname: a\ndescription: " + "z" * 1600 + "\nmodel: haiku\neffort: high\n---\nCorps.\n")
         res = self.controler()
         self.assertEqual([a.regle for a in res.refus if a.cible.endswith("a.md")], ["a"])
 
@@ -341,7 +344,7 @@ class RegleE_Compagnons(Depot):
         self.partage("a")
         _skill(self.racine, "p", "s")
         _ecrire(self.racine / "plugins/p/agents/ag.md",
-                f"---\nname: ag\ndescription: d\n---\n📄 `{self.renvoi('a')}`\n")
+                f"---\nname: ag\ndescription: d\nmodel: haiku\neffort: high\n---\n📄 `{self.renvoi('a')}`\n")
         self.assertEqual(self.controler().refus, [])
 
     def test_un_compagnon_cite_dans_le_corps_mais_absent_de_la_liste_est_refuse(self):
@@ -843,6 +846,65 @@ class RegleK_MaxTurnsDeLExecutant(Depot):
         limites = json.loads((racine / "scripts" / "limites.json").read_text("utf-8"))
         res = check_skills.controler(racine, limites)
         self.assertEqual([a for a in res.refus if a.regle == "k"], [])
+
+
+class RegleM_ModeleEtEffortDesAgents(Depot):
+    """Chaque agent fixe ``model`` et ``effort`` ; ``ouverture.md`` nomme le ``preparateur``."""
+
+    def setUp(self):
+        super().setUp()
+        self.plugin_conforme()
+
+    def refus_m(self):
+        return [a for a in self.controler().refus if a.regle == "m"]
+
+    def ouverture(self, texte):
+        _ecrire(self.racine / "plugins" / "p" / "skills" / "executer-plan-notion" / "ouverture.md", texte)
+
+    def test_un_agent_qui_fixe_model_et_effort_est_conforme(self):
+        _agent(self.racine, "p", "a", "model: sonnet\neffort: medium\n", fixe=False)
+        self.assertEqual(self.refus_m(), [])
+
+    def test_un_agent_sans_model_est_refuse_et_nomme(self):
+        _agent(self.racine, "p", "a", "effort: high\n", fixe=False)
+        refus = self.refus_m()
+        self.assertEqual([a.cible for a in refus], ["plugins/p/agents/a.md"])
+        self.assertIn("`model`", refus[0].message)
+        self.assertNotIn("`effort`", refus[0].message)
+
+    def test_un_agent_sans_effort_est_refuse(self):
+        _agent(self.racine, "p", "a", "model: haiku\n", fixe=False)
+        refus = self.refus_m()
+        self.assertEqual(len(refus), 1)
+        self.assertIn("`effort`", refus[0].message)
+
+    def test_un_agent_sans_aucun_des_deux_les_nomme_tous_les_deux(self):
+        _agent(self.racine, "p", "a", fixe=False)
+        message = self.refus_m()[0].message
+        self.assertIn("`model`", message)
+        self.assertIn("`effort`", message)
+
+    def test_preparateur_cite_dans_ouverture_md_est_conforme(self):
+        _agent(self.racine, "p", "preparateur", "model: sonnet\neffort: medium\n", fixe=False)
+        self.ouverture("Appeler `plans-notion:preparateur`, jamais un `general-purpose`.\n")
+        self.assertEqual(self.refus_m(), [])
+
+    def test_preparateur_absent_d_ouverture_md_est_refuse(self):
+        _agent(self.racine, "p", "preparateur", "model: sonnet\neffort: medium\n", fixe=False)
+        self.ouverture("Préparer le plan.\n")
+        refus = self.refus_m()
+        self.assertEqual([a.cible for a in refus], ["plugins/p/skills/executer-plan-notion/ouverture.md"])
+
+    def test_la_regle_du_general_purpose_disparue_est_refusee(self):
+        _agent(self.racine, "p", "preparateur", "model: sonnet\neffort: medium\n", fixe=False)
+        self.ouverture("Appeler `plans-notion:preparateur`.\n")
+        self.assertEqual(len(self.refus_m()), 1)
+
+    def test_le_depot_reel_respecte_la_regle(self):
+        racine = Path(__file__).resolve().parents[1]
+        limites = json.loads((racine / "scripts" / "limites.json").read_text("utf-8"))
+        res = check_skills.controler(racine, limites)
+        self.assertEqual([a for a in res.refus if a.regle == "m"], [])
 
 
 ENTETE_FICHE = "| Catégorie | Cas au 2026-10-16 | Cas mesurés le 2026-09-30 | Un bras, 3 passages | Un passage |"

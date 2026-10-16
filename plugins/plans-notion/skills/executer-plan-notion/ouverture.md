@@ -5,12 +5,36 @@ lire (à l'ouverture, avant la première étape). Le détail vit ici.
 
 Sommaire :
 
+- Qui prépare : le pilote, ou le `preparateur`
 - Remettre le chapitre `Exécution` à jour — toujours
 - La porte des preuves, avant — chaque étape a sa preuve de fin
 - Puis, dans le même tour : maquette, questions orange, worktree, relevé de la
   CI, vagues, pilote
 - La porte du `pret` : l'entrée `Ouverture`, le script, puis `en cours`
 - Une branche, la PR à la clôture
+
+### Qui prépare : le pilote, ou le `preparateur`
+
+La préparation est le travail du pilote. Il la joue lui-même pour un plan ; pour
+plusieurs plans, ou pour garder son contexte propre, il la **délègue, un appel par
+plan**, à `plans-notion:preparateur` (`subagent_type`, nom qualifié, **aucun paramètre
+`model` ni `effort`** : l'agent porte Sonnet `medium` dans son frontmatter, et un
+paramètre ajouté écraserait cette définition), et **jamais un `general-purpose` écrit à la
+main** : sans agent nommé, le sous-agent hérite du modèle et de l'effort de la session,
+et personne n'a choisi lequel (constaté le 2026-10-16 sur la préparation d'un plan
+Vahiny). Définition : `${CLAUDE_PLUGIN_ROOT}/agents/preparateur.md`.
+
+- **Le brief** porte la page du plan, le dépôt, la page du plan maître s'il y en a un
+  et **le modèle et l'effort du pilote** : la puce **Pilote** de l'entrée `Ouverture`
+  dit le pilote, pas le sous-agent, qui ne sait pas lequel c'est.
+- **Il lit la page et joue les commandes lui-même** : un sous-agent ne peut pas en
+  lancer d'autres, donc pas de `lecteur` ni de `sondeur` dans la préparation qu'on lui
+  confie. Il s'arrête à `pret` ; `en cours` reste au pilote.
+- **Le pilote ne le croit pas sur parole** : il relit le miroir, rejoue
+  `preparation-prete.py` (code 0), vérifie le modèle réellement servi par
+  `modele-sous-agent.py` (`_partage/poc.md`, « La preuve de chaque réponse »), puis pose
+  `en cours`. Un arrêt par `maxTurns` laisse un résultat partiel : la page garde ce qui
+  est écrit, le pilote relance le `preparateur` sur la même page.
 
 ### Remettre le chapitre `Exécution` à jour — toujours
 
