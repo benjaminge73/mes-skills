@@ -163,9 +163,12 @@ que la porte du `pret`, plus bas, n'est pas franchie) :
 `valide` dit que Benjamin a accepté le plan ; il ne dit pas que la session a fait
 ce qu'il faut pour l'exécuter sans surprise. **`pret` le dit** : la préparation de
 ce fichier est faite, et chaque geste a laissé sa trace. Parcours d'un plan :
-`valide` → préparation → `pret` → `en cours` → `a merger` → `execute`. Une session
-qui reçoit un « go » sur une page `valide` prépare d'abord ; elle ne saute pas à
-la première étape, et le « go » ne remplace pas la porte.
+`valide` → préparation → `pret` → `en cours` → `a merger` → `execute`. Le parcours
+se fait dans la même séance : un « go » sur une page `valide` lance la préparation,
+puis `pret`, puis `en cours`, sans attendre un nouveau « go ». La règle du « go »
+et sa raison sont dans `SKILL.md`, « La porte d'entrée » ; elle ne se répète pas
+ici. Une session ne saute pas à la première étape pour autant, et le « go » ne
+remplace pas la porte.
 
 **1. Écrire l'entrée `Ouverture`** du `Journal d'exécution` (H3 `Ouverture`),
 dans la page et dans le miroir local, une puce à clé en gras par geste. Les dix
@@ -184,7 +187,7 @@ plus :
 - **Maquette** : sans objet — aucune étape à impact fonctionnel
 - **CI** : `push` sans run hors `main` ; pas d'e2e ; `review-required` sans effet ; `merge-auto` actif
 - **Vagues** : vague 1 : étapes 1 et 2 ; vague 2 : étape 3
-- **Pilote** : Sonnet 5.5, high
+- **Pilote** : Sonnet 5.5, medium
 - **Branche** : `feat/le-theme`, worktree `~/repos/worktrees/<repo>/feat-le-theme`
 - **Orchestration** : sans objet — aucun plan maître
 - **Preuve de l'étape 1** : `pytest a -q` rejouée à blanc : code 1 attendu (l'étape n'est pas faite), la commande tourne

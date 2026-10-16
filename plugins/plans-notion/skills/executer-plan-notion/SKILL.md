@@ -63,7 +63,8 @@ protège à partir de la version qui la porte. (Historique : `docs/retex/execute
 **Aucune ligne de code avant d'avoir lu le `Statut` de la page du plan.**
 
 - `valide` → **préparer** (§2, `ouverture.md`) : aucune étape ne démarre, même
-  sur un « go » de Benjamin. La préparation finie et prouvée, `Statut` = `pret`.
+  sur un « go » de Benjamin. La préparation finie et prouvée, `Statut` = `pret`,
+  puis `en cours` dans la même séance (règle du « go », plus bas).
 - `pret` → la préparation est faite : relire la page et les fils non résolus
   (§1). Une case, un texte libre ou un commentaire postérieur à l'entrée
   `Ouverture` du journal renvoie à `valide` et refait la préparation ; sinon
@@ -86,6 +87,11 @@ protège à partir de la version qui la porte. (Historique : `docs/retex/execute
 - Benjamin qui dit « go » ne remplace pas le statut. Il le dit de mémoire, la page
   dit ce qui a été tranché. **En cas de désaccord entre les deux, demander** — ça
   coûte un tour, refaire une implémentation en coûte dix.
+- **Un « go » sur un plan `valide` suffit à lancer l'exécution** : la session ne
+  s'arrête que sur un choix de sécurité majeur, financier ou irréversible que
+  Benjamin n'a pas déjà validé, qu'elle lui pose en question (Benjamin, 2026-10-16 :
+  « sauf choix de sécu majeur, financier ou irréversible que je n'aurais pas déjà
+  validé »). Le « go » enchaîne sur le `Statut` et la préparation prouvée.
 
 ⚠️ Les valeurs de `Statut` sont **sans accents** : `brouillon`, `en revue`,
 `valide`, `pret`, `en cours`, `a merger`, `execute`, `archive`. Écrire `exécuté`
@@ -147,16 +153,16 @@ Puis, dans le même tour, avant la première étape :
   **calculer les vagues** (`vagues.py`) ; les deux relevés s'écrivent dans
   les puces **CI** et **Vagues** de l'entrée `Ouverture` du journal (§4).
 - **Modèle du pilote** : noter dans l'entrée `Ouverture` la puce
-  `**Pilote** : <modèle>, <effort>` (p.ex. `Sonnet 5.5, high`), d'après ce
+  `**Pilote** : <modèle>, <effort>` (p.ex. `Sonnet 5.5, medium`), d'après ce
   que la session sait de son propre modèle et de son effort. Si ce n'est pas
-  Sonnet effort `high`, proposer à Benjamin une ligne : « l'exécution se pilote
-  en Sonnet effort `high` : relancer avec `claude --model sonnet --effort high`,
-  ou `/model sonnet` puis `/effort high` avant de continuer ». Le skill ne change pas le modèle
-  lui-même : il se choisit au lancement de la session. Pourquoi Sonnet : le banc
-  d'évals joue déjà tous ses cas en Sonnet 5.5 (`evals/outillage/lancer.sh`
-  l.132, `.github/workflows/ci.yml` l.435), c'est donc la configuration testée, et
-  Sonnet coûte la moitié d'Opus sur chaque poste. La conception (`plan-notion`)
-  reste en Opus.
+  Sonnet effort `medium`, proposer à Benjamin une ligne : « l'exécution se pilote
+  en Sonnet effort `medium` : relancer avec `claude --model sonnet --effort medium`,
+  ou `/model sonnet` puis `/effort medium` avant de continuer. Un plan à haut enjeu
+  (sécurité, données, déploiement) peut monter à `high` ». Le skill ne change pas
+  le modèle lui-même : il se choisit au lancement. Pourquoi Sonnet : le banc
+  d'évals joue déjà ses cas en Sonnet 5.5 (`evals/outillage/lancer.sh` l.132,
+  `.github/workflows/ci.yml` l.435), c'est donc la configuration testée ; Sonnet
+  coûte la moitié d'Opus sur chaque poste. La conception (`plan-notion`) reste en Opus.
 
 **La porte du `pret`.** Un plan `pret` a **toutes ses étapes prouvées et
 rejouées à blanc, ses vagues calculées, et, s'il a un plan maître, l'orchestration
@@ -197,7 +203,7 @@ pas pour raconter l'avancement, qui va dans `Journal d'exécution` (§4).
   part à l'arbitrage de Benjamin, sur une branche de côté `-etape-N-en-echec`.
   Étape qui écrit du code testé : deux commits, rouge puis vert.
 - **La délégation est la règle** : charger ce skill vaut demande de déléguer.
-  Pilote en Sonnet effort `high`, **un appel `Agent` par étape**
+  Pilote en Sonnet effort `medium`, **un appel `Agent` par étape**
   (`subagent_type: "plans-notion:executant"`, nom qualifié, aucun paramètre
   `model` ni `effort`, seule la correction `D<n>` d'une boucle de cron passe
   `model: "sonnet"` (jamais `effort`), voir
