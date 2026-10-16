@@ -14,7 +14,7 @@
         "skills/_partage/scripts/verifier-version.sh"
       ],
       "cas": ["existant-jeu-de-donnees", "existant-jeu-de-questions", "poc-mecanique"],
-      "plancher": 0.65
+      "plancher": 0.77
     },
     "bruit": {
       "exerce": [

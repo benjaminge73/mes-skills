@@ -508,7 +508,7 @@ moins 0,10 (15 tirages sains sur Sonnet et Opus, 2026-10-01 ; `decouvertes` reme
 
 | Catégorie | Tirage sain (min – max) | Plancher |
 |---|---|---|
-| `existant` | 0,75 – 0,92 | 0,65 |
+| `existant` | 0,88 – 0,94 | 0,77 |
 | `bruit` | 0,80 – 0,92 | 0,70 |
 | `etat-de-depart` | 0,92 – 1,00 | 0,82 |
 | `maquette` | 1,00 – 1,00 | 0,90 |
@@ -545,9 +545,15 @@ jouée à bras identiques : Sonnet, effort `high`, 10 cas × 3 passages × 2 bra
 et les trois tirages d'`existant` qui les contiennent ne sont pas sains. Tirages sains retenus :
 `etat-de-depart` 6 (0,92 – 0,96, plancher inchangé à 0,82), `maquette` 6 (tous à 1,00, plancher
 0,80 → 0,90), `perimetre` 6 (0,3095 – 0,4524, plancher 0,21 → 0,20 : le plus bas, 0,3095, moins
-0,10, arrondi au centième inférieur). `existant` n'a que 4 tirages sains (0,83 – 0,94) : la règle
-donnerait 0,73, mais quatre tirages ne valent pas six et un plancher trop haut rougit des PR sans
-régression ; il reste à 0,65 jusqu'à une remesure complète.
+0,10, arrondi au centième inférieur). `existant` n'avait que 4 tirages sains (0,83 – 0,94) : le plancher était resté à 0,65.
+
+Le plancher d'`existant` a été remesuré à part le 2026-10-16, sur décision de Benjamin
+(« lance la remesure »). La mesure est l'A/B de la PR #72 (run `38926856208`), jouée à bras
+identiques : Sonnet, effort `high`, 3 cas (`existant-jeu-de-donnees`, `existant-jeu-de-questions`,
+`poc-mecanique`) × 3 passages × 2 bras, aucune session en erreur, **19,15 $** (annoncé : 16 à 25 $).
+Les six tirages sains, moyenne des trois cas par passage, sont 0,94 – 0,88 – 0,94 (base) et
+0,89 – 0,94 – 0,94 (tête). Le plus bas, 0,8778, moins 0,10 et arrondi au centième inférieur,
+donne 0,77 (0,65 avant).
 
 Pour rejouer cette mesure, un fichier du banc (par exemple `evals/bruit-plans-notion.json`)
 doit changer dans la PR, pour que la portée de la CI déclenche le plugin ; la ligne
