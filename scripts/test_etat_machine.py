@@ -557,6 +557,17 @@ class ProfilMachine(EtatMachineTestCase):
         self.assertProfilRefuse(r, chemin)
         self.assertIn("entre 0 et 100", r.stderr)
 
+    def test_seuil_de_pression_entier_geant_est_une_erreur_code_2_sans_traceback(self):
+        # Un entier de 401 chiffres : float() dans la comparaison de finitude levait
+        # OverflowError, sortie en traceback (rc 1) au lieu du code 2 promis.
+        for cle in ("seuil_cpu_some_avg10", "seuil_mem_full_avg60"):
+            with self.subTest(cle=cle):
+                chemin = self.poser_profil('{"%s": %s}' % (cle, "1" + "0" * 400))
+                r = self.prendre(900)
+                self.assertProfilRefuse(r, chemin)
+                self.assertIn("entre 0 et 100", r.stderr)
+                self.assertNotIn("Traceback", r.stderr)
+
     def test_seuils_de_pression_aux_bornes_0_et_100_sont_acceptes(self):
         # Contrôle : les bornes restent permises. ``releve`` renvoie toujours 0 (le
         # verdict est dans le JSON), donc seul le message d'erreur de profil compte.
