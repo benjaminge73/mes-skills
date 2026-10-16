@@ -22,9 +22,12 @@ import threading
 import unittest
 from pathlib import Path
 
-import pymupdf
-import zxingcpp
-from PIL import Image
+try:
+    import pymupdf
+    import zxingcpp
+    from PIL import Image
+except ImportError as e:  # dépendances de tests non installées : `pip install -r plugins/voyages/tests/requirements.txt`
+    raise unittest.SkipTest(f"dépendance absente ({e.name}) : pip install -r plugins/voyages/tests/requirements.txt")
 
 TESTS = Path(__file__).resolve().parent
 SCRIPT = (TESTS.parent / "skills" / "organiser-voyage" / "scripts" / "recuperer_billet.py")

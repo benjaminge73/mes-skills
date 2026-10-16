@@ -511,7 +511,8 @@ def _traiter(chemin: Path, jeton: str, destinataires: dict[str, str], maintenant
 # --- Ligne de commande ----------------------------------------------------
 
 def _instant(texte: str) -> datetime:
-    instant = datetime.fromisoformat(texte)
+    # Avant Python 3.11, fromisoformat refuse le suffixe « Z » (UTC).
+    instant = datetime.fromisoformat(texte[:-1] + "+00:00" if texte.endswith(("Z", "z")) else texte)
     return instant.replace(tzinfo=timezone.utc) if instant.tzinfo is None else instant
 
 
