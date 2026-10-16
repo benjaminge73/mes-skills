@@ -809,7 +809,7 @@ LIGNES_CONFORMES = (
 class RegleK_ComptesDuTableauDeCouts(Depot):
     """Le tableau « Cas au … » de la fiche « claude plugin eval » compte les cas de
     chaque catégorie de evals/categories.json, et sa ligne « tout le banc » leur total
-    distinct. Un tableau à 16 cas pour un banc de 24 ne doit plus passer."""
+    distinct. Un tableau resté à 16 cas pour un banc qui en compte davantage ne doit plus passer."""
 
     def setUp(self):
         super().setUp()

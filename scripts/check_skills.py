@@ -61,9 +61,9 @@ Les règles, et le fait de doc qui fonde chacune (voir ``docs/veille.md``) :
     claude plugin eval » compte les cas de chaque catégorie de
     ``evals/categories.json`` (colonne « Cas au … », une ligne par catégorie, et
     une ligne « tout le banc » égale au nombre de cas distincts du plugin). Écrit
-    le 2026-10-16 : le tableau comptait 16 cas pour un banc de 24, sans qu'aucune
-    garde ne rougisse. Les coûts de ce tableau restent des mesures datées, que la
-    règle ne contrôle pas.
+    le 2026-10-16 : le tableau comptait 16 cas pour un banc de 24 (avant la PR #63),
+    qui l'a porté à 26, sans qu'aucune garde ne rougisse. Les coûts de ce tableau
+    restent des mesures datées, que la règle ne contrôle pas.
 
 Exceptions datées
 -----------------
