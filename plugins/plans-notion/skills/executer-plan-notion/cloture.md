@@ -170,6 +170,8 @@ Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard »
      python3 "${CLAUDE_PLUGIN_ROOT}/skills/_partage/scripts/qualite-doc.py" lecteurs --base origin/main > <scratchpad>/lecteurs.json
      python3 "${CLAUDE_PLUGIN_ROOT}/skills/_partage/scripts/qualite-doc.py" juger --entree <scratchpad>/lecteurs.json
      ```
+     `juger` juge les passages en parallèle (`--parallele`, 8 par défaut) et
+     écrit son avancement sur la sortie d'erreur : l'attendre sans le tuer.
      - **Le juge répond (code 0)** : `douteux` liste les passages dont le score
        atteint le seuil. Un passage dont `ligne_modifiee_dans_la_branche` est
        vrai dans `lecteurs.json` est **traité d'office**, douteux ou non : `juger`
