@@ -226,6 +226,29 @@ class ReindexerGraphe(unittest.TestCase):
         self.assertEqual(r.stdout, "")
 
 
+class DelaiDepasse(unittest.TestCase):
+    # Marqueur propre à ce processus de test : une autre session lance le même test avec
+    # « sleep 47.123 ». Un marqueur commun ferait compter, ou tuer, le sleep de l'autre.
+    MARQUEUR = f"sleep 47.{os.getpid()}"
+    # Ancré : ne matche que le processus « sleep » lui-même, pas le shell qui le lance
+    # ni le shell d'une autre session dont la ligne de commande contient le même texte.
+    MOTIF_SURVIVANT = f"^sleep 47\\.{os.getpid()}$"
+
+    def test_un_delai_depasse_tue_aussi_les_petits_enfants(self):
+        # Panne : bin.js lance l'indexeur natif en enfant de node. Si le délai ne tue que
+        # le pid de tête, l'enfant survit, écrit encore dans le .db, et le verrou est retiré
+        # à tort. Ici, « sh » est la tête et « sleep » son petit-enfant.
+        hook = charger_hook()
+        code, sortie = hook.executer(["sh", "-c", f"{self.MARQUEUR} & wait"], 1)
+        time.sleep(1)
+        survivants = subprocess.run(["pgrep", "-f", self.MOTIF_SURVIVANT],
+                                    capture_output=True, text=True).stdout.split()
+        if survivants:
+            subprocess.run(["pkill", "-f", self.MOTIF_SURVIVANT])  # nettoyage avant l'échec
+        self.assertEqual(survivants, [], "le petit-enfant a survécu au délai")
+        self.assertEqual((code, sortie), (-1, ""))
+
+
 class HooksJson(unittest.TestCase):
     def test_hooks_json_reste_valide_et_reindexer_est_declare_asynchrone_au_session_start(self):
         donnees = json.loads(HOOKS_JSON.read_text(encoding="utf-8"))
