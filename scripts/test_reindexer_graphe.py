@@ -147,6 +147,16 @@ class ReindexerGraphe(unittest.TestCase):
         self.assertEqual(len(executeur.lancements), 1)
         self.assertEqual(self.lire_head("a-b-c"), NOUVEAU_SHA)
 
+    def test_espace_du_chemin_est_remplace_comme_un_slash_pour_retrouver_le_db(self):
+        # Panne : le serveur remplace aussi l'espace par « - » (mesuré avec le vrai binaire).
+        # Le chemin « /a/-x y/b » donne « a-x-y-b », pas « a--x y-b » ni « a--x-y-b ».
+        (self.cache / "a-x-y-b.db").write_bytes(b"")
+        executeur = Executeur(head=NOUVEAU_SHA, racine="/a/-x y/b")
+        code, _, _ = self.lancer(executeur)
+        self.assertEqual(code, 0)
+        self.assertEqual(len(executeur.lancements), 1)
+        self.assertEqual(self.lire_head("a-x-y-b"), NOUVEAU_SHA)
+
     def test_depot_non_suivi_ne_lance_rien_et_ne_cree_rien_dans_le_cache(self):
         (self.cache / "autre-depot.db").write_bytes(b"")
         avant = sorted(p.name for p in self.cache.iterdir())
