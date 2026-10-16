@@ -287,10 +287,12 @@ La colonne ne nomme que les skills et les agents. Les fichiers de `skills/_parta
 « Une catégorie sans plancher est écartée, et nommée » plus bas.
 
 **Les évals se jouent à la demande, et l'A/B est l'exception.** La CI ne joue
-l'A/B que si la PR porte le label `evals`. Une PR qui touche un skill, un agent,
-un hook ou `_partage/` sans ce label doit dire pourquoi : `Evals: aucun — <raison>`
-dans son corps, sinon la CI est rouge, le refus n'étant jamais silencieux.
-Choisir des catégories implique donc le label ; `aucun` ne le pose pas.
+l'A/B que si la PR porte le label `evals`. Sans ce label, rien ne se joue (hors
+fumée) quels que soient les fichiers touchés : `evals_selection.py` ne refuse
+plus une PR pour son silence (2026-10-16), pour ne pas tomber à deux reprises sur
+la même omission avec « Une leçon a son cas » (`Eval-cas:`, voir plus bas), qui
+elle reste contraignante. `Evals: aucun — <raison>` documente le choix si on le
+veut. Choisir des catégories implique le label ; `aucun` ne le pose pas.
 
 **Le défaut est `Evals: aucun — la fumée suffit`.** La [fumée](#la-fumée--ce-quelle-voit-ce-quelle-ne-voit-pas)
 tourne de toute façon sur les catégories touchées, pour quelques dollars, et voit

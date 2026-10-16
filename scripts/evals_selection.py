@@ -9,9 +9,13 @@ plancher** : ce script est ce plancher.
 **À la demande** (plan « Évals sobres et machine partagée », étape 1) : le banc
 coûte ~55 $ en entier, il ne se joue plus sans qu'on le demande. La CI ne joue
 les évals que si la PR porte le label ``evals``. Une PR qui touche un skill, un
-agent, un hook ou un ``_partage/`` **sans** ce label doit porter ``Evals: aucun
-— <raison>`` dans son corps, sinon elle est refusée (code 1) : le silence n'est
-plus une réponse. Il est joué par le job ``evals-portee``
+agent, un hook ou un ``_partage/`` **sans** ce label n'est plus refusée ici pour
+son silence (2026-10-16) : deux gardes presque jumelles qui tombaient ensemble
+sur la même omission faisaient plus de mal que de bien (diagnostic CI du
+2026-10-16). ``scripts/check_lecon_a_son_cas.py`` (trailer ``Eval-cas:``) est
+désormais l'unique garde contraignante pour « cette leçon a son cas » ;
+``Evals: aucun — <raison>`` reste une façon acceptée de documenter le choix dans
+le corps de la PR, jamais obligatoire. Il est joué par le job ``evals-portee``
 de ``ci.yml`` et n'est jamais du bash dans le workflow, pour être testé
 (``scripts/test_evals_selection.py``).
 
@@ -53,13 +57,13 @@ propres catégories.
 
 Les règles, dans l'ordre
 ------------------------
-0. **Sans le label ``evals``** : rien ne se joue. ``Evals: aucun — <raison>`` est
-   accepté (sélection vide) ; ``aucun`` sans raison, ou combiné à une catégorie,
-   est refusé. Sans ligne ``aucun``, une PR qui touche ``plugins/<p>/skills/``
-   (``_partage/`` compris), ``agents/`` ou ``hooks/`` est refusée, avec les deux
-   sorties dans le message (poser le label, ou écrire la ligne) ; une PR qui n'en
-   touche aucun passe, sélection vide. **Avec** le label, ``aucun`` est refusé
-   (contradiction) et les règles suivantes s'appliquent.
+0. **Sans le label ``evals``** : rien ne se joue, sélection vide, quels que
+   soient les fichiers touchés — ce script ne refuse plus une PR pour son
+   silence (``Eval-cas:`` de ``check_lecon_a_son_cas.py`` est l'unique garde qui
+   le fait). ``Evals: aucun — <raison>`` documente ce choix si on le veut
+   (``aucun`` sans raison, ou combiné à une catégorie, reste refusé). **Avec**
+   le label, ``aucun`` est refusé (contradiction) et les règles suivantes
+   s'appliquent.
 1. Une catégorie que **aucun** plugin ne déclare : refus (code 1), avec la liste
    des catégories connues — même si autre chose force déjà « tout » : une faute
    de frappe se dit tout de suite.
@@ -227,7 +231,11 @@ def _rien_a_jouer(plugin: str, raison: str) -> dict:
 
 
 def _sans_label(plugin: str, fichiers: list[str], noms: list[str], raison: str) -> dict:
-    """Sans le label ``evals`` : rien ne se joue, mais le silence n'est pas permis."""
+    """Sans le label ``evals`` : rien ne se joue. Le silence n'est plus refusé ici
+    (2026-10-16) : ``Eval-cas:`` (``scripts/check_lecon_a_son_cas.py``) est l'unique
+    garde contraignante pour une leçon sans cas ; ``Evals: aucun — <raison>`` reste
+    une documentation acceptée, jamais obligatoire. ``fichiers`` n'est donc plus lu
+    ici ; l'argument reste pour que l'appel ne change pas d'un côté à l'autre."""
     if "aucun" in noms:
         if len(noms) > 1:
             raise Refus("« aucun » ne se combine pas avec une catégorie : « Evals: aucun — "
@@ -235,17 +243,6 @@ def _sans_label(plugin: str, fichiers: list[str], noms: list[str], raison: str) 
         if not raison:
             raise Refus("« Evals: aucun » demande une raison : écrire « Evals: aucun — "
                         f"<raison> ». {SUITE}.")
-        return _rien_a_jouer(plugin, raison)
-    racine = f"plugins/{plugin}/"
-    changent = [f for f in fichiers
-                if any(f.startswith(racine + d) for d in DOSSIERS_QUI_CHANGENT_UN_COMPORTEMENT)]
-    if changent:
-        raise Refus(
-            f"cette PR touche {', '.join(changent)} sans label « {LABEL_EVALS} » ni ligne "
-            "« Evals: aucun — <raison> » dans son corps. Deux sorties : poser le label "
-            f"« {LABEL_EVALS} » sur la PR (les évals se jouent alors, et le run repart "
-            "seul), ou écrire « Evals: aucun — <raison> » dans le corps de la PR, puis "
-            "relancer le run (Re-run all jobs) ou pousser un commit.")
     return _rien_a_jouer(plugin, raison)
 
 

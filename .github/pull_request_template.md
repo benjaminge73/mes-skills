@@ -17,8 +17,9 @@ justifie en une ligne.
         Evals: existant, bruit — la PR ne touche que la recherche de l'existant
   2. Ne pas les jouer : écrire « aucun » et la raison (obligatoire), sans label.
         Evals: aucun — doc seule, aucun comportement ne change
-Une PR qui touche un skill, un agent, un hook ou un `_partage/` sans label `evals` et sans
-la ligne `Evals: aucun — <raison>` rend la CI rouge. -->
+Sans label et sans cette ligne, rien ne se joue (hors fumée) : cette ligne documente le
+choix, elle ne rend plus la CI rouge à elle seule (voir `Eval-cas:` plus bas, qui lui,
+bloque). -->
 Evals: 
 
 ## Avant de merger
