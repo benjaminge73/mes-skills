@@ -24,11 +24,14 @@ on:
   # run sans rien pousser. Les labels sont relus par l'API comme le corps, jamais
   # lus dans l'événement : un « Re-run » rejoue le payload d'origine, dont les
   # labels sont périmés (même trou que `edited`, fermé de la même façon). Sans le
-  # label, une PR qui touche un skill, un agent, un hook ou un `_partage/` doit
-  # porter `Evals: aucun — <raison>` dans son corps, sinon `evals-portee` est
-  # rouge et le verdict avec lui. Elle passe alors par le job `fumee` : la tête
-  # seule, un passage, sur les catégories que les fichiers touchés exercent. Le
-  # label `evals` la remplace par l'A/B complet.
+  # label, rien ne se joue et le silence n'est plus refusé (2026-10-16) :
+  # `Eval-cas:` (scripts/check_lecon_a_son_cas.py) est l'unique garde
+  # contraignante. Une ligne `Evals: aucun — <raison>` reste une documentation
+  # acceptée ; seule une ligne `aucun` mal formée (sans raison, ou avec une
+  # catégorie) rend `evals-portee` rouge. Une PR qui touche un skill, un agent,
+  # un hook ou un `_partage/` passe alors par le job `fumee` : la tête seule, un
+  # passage, sur les catégories que les fichiers touchés exercent. Le label
+  # `evals` la remplace par l'A/B complet.
   #
   # `ready_for_review` est indispensable : `merge-auto` saute une PR en brouillon,
   # et sans ce type, sortir la PR du brouillon ne relance aucun run — elle reste
