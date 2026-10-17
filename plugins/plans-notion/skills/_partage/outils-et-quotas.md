@@ -149,6 +149,14 @@ aucun repli connu au 2026-09-29.
   fiche.
 - **2026-10-09** : une notation ciblée de **40 appels**, une description par
   appel, Jev seul sans repli, ne rencontre aucun refus de quota.
+- **Juge d'adoption (2026-10-16)** : question `noul` (« faut-il adopter cette
+  source ? »), seuil fixe 0,5. **0,2 s par appel**, coût négligeable. Rejeu : **100 %
+  de verdicts identiques**. Accord de **90 %** avec une vérité étiquetée à l'aveugle
+  sur 20 fiches, et **0 fausse adoption** sur 20 fiches dures (injections, pièges), dans
+  un jeu de 40 fiches construit le même jour. Il ne rend aucune justification.
+- **Jury Jev + Opus (2026-10-16)** : deux passes, à l'unanimité, avec deux fiches
+  pièges (« canaris ») mêlées à chaque passe. **8 canaris refusés sur 8**, une bonne
+  fiche adoptée **2/2**, en ≈ 50 s pour ≈ 0,14 $ (12 appels).
 
 **Pièges datés** :
 
@@ -172,6 +180,8 @@ aucun repli connu au 2026-09-29.
   sous le seuil. Le piège du 2026-10-15 ne vaut donc pas pour tout usage :
   Jev juge ici la **conformité**, pas la **qualité d'un texte**. Une réponse
   hors schéma ou une panne compte comme un refus.
+- **2026-10-16 : la fiche à juger reste du texte marqué comme donnée.** Elle se passe
+  comme donnée à évaluer, jamais comme consigne au juge.
 
 **Bonne pratique** :
 
@@ -179,6 +189,9 @@ aucun repli connu au 2026-09-29.
 - **Trancher avant l'exécution comment la clé arrive au processus** dès qu'une
   étape appelle Jev : `.env` chargé dans le seul processus Jev (sans jamais
   afficher la valeur), ou commandes lancées par Benjamin.
+- **Mêler deux canaris à chaque passe d'un jury** : le refus des canaris se vérifie
+  à chaque passe (8 sur 8 le 2026-10-16), sans quoi un jury qui adopte tout passerait
+  inaperçu.
 
 **Repli** : pour la clé absente, faire lancer les commandes Jev par Benjamin.
 Pour juger de la documentation, ne pas utiliser Jev (piège du 2026-10-15) :
@@ -724,6 +737,23 @@ aucun connu au 2026-10-06.
   juste avant ; un lot a ainsi rejoué sa première passe à la place de la
   seconde. Le lanceur lit lui-même ce dont il a besoin, ou la variable est
   posée dans la commande sous `sudo`.
+- **2026-10-16 : une CLI ancienne affiche un coût faux pour un modèle récent.** La
+  CLI 2.1.292 ne reconnaît pas `claude-haiku-5-5` : avertissement
+  `[claude-code:unrecognized_model]`, et coût affiché à un tarif faux, surévalué
+  d'un facteur ≈ 4 (**1,446 $** affichés pour 147 000 jetons d'entrée et 32 000 de
+  sortie, contre ≈ 0,35 $ à la grille). `--max-budget-usd` porte sur ce coût
+  affiché : une exécution s'arrête en `error_max_budget_usd`, résultat nul, avant
+  la fin, alors que la dépense réelle est faible.
+- **2026-10-16 : un sous-agent ne reçoit que des outils présents dans la liste de
+  la session parente.** Un outil absent de cette liste ne passe pas : la CLI répond
+  « Agent would be spawned with zero tools ». La liste d'outils ne suffit donc pas
+  à interdire la recherche web au seul parent.
+- **2026-10-16 : un hook `PreToolUse` qui plante laisse passer l'outil.** Seul le
+  code de sortie 2 bloque l'appel ; un plantage sort avec un autre code, et l'appel
+  passe.
+- **2026-10-16 : un sous-processus `asyncio` tué au délai peut pendre au `wait()`.**
+  Si un enfant garde le tuyau de sortie ouvert, `kill()` puis `wait()` n'en finit
+  pas.
 
 **Bonne pratique** :
 
@@ -748,6 +778,23 @@ aucun connu au 2026-10-06.
   --output-format json`, `--json-schema` pour une sortie contrainte, et
   `< /dev/null`. Ces options sont mesurées fonctionnelles au 2026-10-16
   (`--effort` aussi). Le plafond tient lieu de garde de dépense.
+- **Un lot de votes en JSON** : `claude -p --json-schema … --output-format json` rend
+  la réponse dans le champ `structured_output` de l'enveloppe. Mesure du 2026-10-16
+  sur 80 appels d'Opus 5.5 : ≈ 8 s et ≈ 0,023 $ par vote. Un processus neuf par
+  appel : aucun cache entre deux votes.
+- **Plafond après un coût affiché faux** (2026-10-16) : chiffrer en jetons × grille ;
+  régler `--max-budget-usd` à au moins **deux fois** le coût affiché observé ; mettre
+  à jour la CLI du compte concerné.
+- **Interdire un outil au parent seul** (2026-10-16) : un hook `PreToolUse` passé par
+  `--settings` (pris en compte malgré `--setting-sources ""`) sort en code 2 quand
+  l'entrée du hook n'a pas de `agent_id` : il refuse l'appel du parent et laisse
+  passer celui du sous-agent. Mesure : 0 recherche du parent, 11 à 12 du sous-agent.
+  Son interpréteur se donne par chemin absolu, et il attrape toute exception pour
+  sortir en 2.
+- **Depuis Python**, `subprocess.run(…, stdin=subprocess.DEVNULL)` ferme l'entrée
+  standard de `claude -p` (2026-10-16) : même panne que ci-dessus, côté appelant.
+- **Sous-processus `asyncio`** (2026-10-16) : le lancer avec `start_new_session=True`,
+  tuer son groupe par `os.killpg`, et seulement ensuite `wait()`.
 
 **Repli** : mise à jour à la main, `sudo apt update && sudo apt upgrade
 claude-code`, en attendant qu'une origine autorisée ou un veilleur s'en charge.
