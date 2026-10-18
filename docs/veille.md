@@ -92,8 +92,8 @@ cite un fichier de `scripts/`, `evals/` ou `.github/`, jamais une consigne en pr
 | La mémoire d'agent locale vit sous `.claude/agent-memory-local/` | « `.claude/agent-memory-local/<name-of-agent>/` » | https://code.claude.com/docs/en/sub-agents.md | 2026-09-30 | `scripts/check_skills.py` règle h |
 | La mise à jour compare la version, pas le contenu | « compute the version again and don't replace the cached copy when it matches what `installed_plugins.json` records » | https://code.claude.com/docs/en/plugins/loading.md | 2026-10-06 | `scripts/plugin_version_guard.py` |
 | Le champ `version` du manifeste prime | « The `version` field in the plugin's manifest comes first » | https://code.claude.com/docs/en/plugins/loading.md | 2026-09-30 | `scripts/plugin_version_guard.py` |
-| Sans `--no-publish`, le rapport d'éval sort de la machine | « Keep the HTML report local. » | https://code.claude.com/docs/en/plugin-evals.md | 2026-09-30 | `scripts/evals_ab.py` |
-| `--ablation none` joue un seul bras | « `none` runs one arm; `with-without` adds the no-plugin baseline » | https://code.claude.com/docs/en/plugin-evals.md | 2026-09-30 | `scripts/evals_ab.py` |
+| Sans `--no-publish`, le rapport d'éval sort de la machine | « Keep the HTML report local. » | https://code.claude.com/docs/en/plugin-evals.md | 2026-09-30 | `evals/outillage/lancer.sh` |
+| `--ablation none` joue un seul bras | « `none` runs one arm; `with-without` adds the no-plugin baseline » | https://code.claude.com/docs/en/plugin-evals.md | 2026-09-30 | `evals/outillage/lancer.sh` |
 | Bash dans une éval exige un bac à sable | « If you grant Bash or PowerShell on a machine with no sandbox backend, Claude Code refuses each run rather than running it unconfined » | https://code.claude.com/docs/en/plugin-evals.md | 2026-09-30 | `evals/outillage/preparer-runner.sh` |
 | Le bac à sable échoue sur Ubuntu 24.04+ (AppArmor) | « bwrap fails on Ubuntu 24.04+ due to AppArmor userns restrictions » | https://github.com/anthropics/sandbox-runtime/issues/74 | 2026-09-30 | `evals/outillage/preparer-runner.sh` |
 | L'effort d'un frontmatter (skill ou sous-agent) l'emporte sur l'effort de session, pas sur `CLAUDE_CODE_EFFORT_LEVEL` | « Frontmatter effort applies when that skill or subagent is active, overriding the session level but not the environment variable. » | https://code.claude.com/docs/en/model-config.md | 2026-10-08 | `evals/outillage/lancer.sh` |
@@ -255,7 +255,7 @@ Une entrée par passe, la plus récente en dernier. Le titre est
 - **Ce qui a changé** : rien de cassé. L'ordre de résolution du modèle d'un sous-agent
   (paramètre `model` de l'appel, puis `model` du frontmatter, puis
   `CLAUDE_CODE_SUBAGENT_MODEL`, puis le modèle principal) est inchangé ; il est déjà écrit
-  à la ligne 98. Le paramètre `effort` de l'outil Agent (2.1.292, noté le 2026-10-08) a été
+  au tableau de la partie 2 (ligne sur `CLAUDE_CODE_SUBAGENT_MODEL`). Le paramètre `effort` de l'outil Agent (2.1.292, noté le 2026-10-08) a été
   **utilisé** le 2026-10-09 par le pilote, dans le POC P1 : `model` et `effort: "high"` à
   l'appel, sans erreur. Ce n'est qu'un essai, pas une documentation : la priorité de cet
   effort face au `effort:` d'un frontmatter reste à mesurer, comme l'entrée précédente
