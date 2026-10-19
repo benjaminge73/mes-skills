@@ -280,9 +280,8 @@ d'écrire ou de remettre à jour** le chapitre concerné, pas de mémoire :
   📄 `${CLAUDE_PLUGIN_ROOT}/skills/plan-notion/chapitres-cadrage.md`
 
 - `Questions ouvertes` (un H3 et un encadré par question, cases vides sauf question née verte de choix validé, couleur
-  = état), `Exécution` (tableau de tête, un H3 par étape, champs obligatoires de
-  chaque étape, modifications datées) et `Journal d'exécution` (un H3 par entrée,
-  repris du chapitre `Exécution`) :
+  = état), `La suite` (un élément n'y reste que si un autre plan le porte ou s'il attend un événement : sinon étape du plan, ou plan à part s'il est gros), `Exécution` (tableau de tête, un H3 par étape, champs
+  obligatoires, modifications datées) et `Journal d'exécution` (un H3 par entrée) :
 
   📄 `${CLAUDE_PLUGIN_ROOT}/skills/plan-notion/chapitres-questions-execution.md`
 
