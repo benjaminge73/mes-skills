@@ -5,6 +5,7 @@ lire (à l'ouverture, avant la première étape). Le détail vit ici.
 
 Sommaire :
 
+- Le réglage du pilote : Sonnet `medium`, sinon une sous-session
 - Qui prépare : le pilote, ou le `preparateur`
 - Remettre le chapitre `Exécution` à jour — toujours
 - La porte des preuves, avant — chaque étape a sa preuve de fin
@@ -12,6 +13,47 @@ Sommaire :
   CI, vagues, pilote
 - La porte du `pret` : l'entrée `Ouverture`, le script, puis `en cours`
 - Une branche, la PR à la clôture
+
+### Le réglage du pilote : Sonnet `medium`, sinon une sous-session
+
+**Le pilote d'un plan tourne en Sonnet 5.5, effort `medium`** (décision de Benjamin du
+2026-10-19). La vérification vient **avant tout geste du §2**, la relecture comprise : la
+préparation est le travail du pilote, elle se joue donc déjà à ce réglage.
+
+- **La session est à ce réglage** → elle continue, et la puce **Pilote** de l'entrée
+  `Ouverture` dit `Sonnet 5.5, medium`.
+- **Sinon, elle ne prépare ni ne code.** Elle lance une **sous-session** à ce réglage,
+  depuis le dépôt du plan, et lui confie le plan entier (préparation et étapes) :
+
+  ```bash
+  claude -p --model claude-sonnet-5-5 --effort medium --output-format json \
+    --permission-mode <celui de la session> "<brief>" < /dev/null
+  ```
+
+  - **L'identifiant complet**, pas l'alias `sonnet` : un alias lancé hors des réglages
+    de l'utilisateur a servi une autre version (`_partage/outils-et-quotas.md`,
+    2026-10-15). `< /dev/null` : sans lui l'appel attend l'entrée standard pour toujours.
+  - **Les réglages et les connecteurs du compte restent chargés** (ni
+    `--setting-sources ""` ni `--strict-mcp-config`) : la sous-session a besoin de
+    Notion et du plugin.
+  - **Le brief** porte l'URL de la page, « exécute ce plan avec `executer-plan-notion` »,
+    la page du plan maître s'il y en a une, la branche si elle existe déjà, et que
+    personne ne répondra en cours de route : la variante sans humain de
+    `_partage/decouvertes.md` §3 s'applique, les questions partent dans le compte rendu.
+  - **La commande se lance en arrière-plan** ; la session mère attend sa fin, ne touche
+    ni la page ni le dépôt entre-temps, puis **relaie** le compte rendu à Benjamin.
+  - **Le modèle réellement servi se vérifie** : `modelUsage` de la réponse JSON doit
+    nommer `claude-sonnet-5-5`. Un autre nom est un échec, pas un succès.
+- **`claude` introuvable ou non connecté** (`sudo` et `HOME`, même fiche) → la session
+  s'arrête avant tout geste et donne à Benjamin la ligne de relance : `claude --model
+  sonnet --effort medium`, ou `/model sonnet` puis `/effort medium`.
+- **Un plan maître a un seul pilote** : une seule sous-session conduit tout le lot.
+- **Seul Benjamin déroge**, dans son message courant (un plan à haut enjeu qu'il veut
+  piloter plus haut, par exemple). La puce dit alors `<modèle>, <effort> — dérogation de
+  Benjamin, <date> : « <citation> »`. Sans cette citation, `preparation-prete.py` refuse
+  `pret` pour tout réglage autre que Sonnet `medium`.
+- La règle vise le **pilote**. Les agents nommés (`preparateur`, `executant`, `relecteur`…)
+  portent leur propre modèle dans leur frontmatter.
 
 ### Qui prépare : le pilote, ou le `preparateur`
 
