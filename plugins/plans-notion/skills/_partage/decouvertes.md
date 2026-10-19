@@ -55,7 +55,9 @@ sans question. Le plan reste `valide`. L'ajout est tracé dans le chapitre
 et il est **listé au compte rendu** : jamais en silence.
 
 - **À la conception ou à l'ouverture** : c'est une retouche du chapitre `Exécution`.
-  Ce n'est **pas** une étape `D`, rien n'a encore été exécuté.
+  Ce n'est **pas** une étape `D`, rien n'a encore été exécuté. Le chapitre `La suite`
+  d'un plan suit la même mesure : un élément réversible, hors sécurité et petit entre
+  dans le plan au lieu d'y attendre (`${CLAUDE_PLUGIN_ROOT}/skills/plan-notion/chapitres-questions-execution.md`).
 - **À l'exécution** : l'intégration prend la forme d'une étape `D<n>` (D1, D2…,
   numérotée à part des étapes du plan) : une ligne de tableau, un titre H3, une
   correction datée. Elle part à l'exécutant avec sa liste fermée de fichiers, dans

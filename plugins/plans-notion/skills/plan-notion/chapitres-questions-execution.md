@@ -5,6 +5,7 @@ Référence de `plan-notion`, lue **avant d'écrire ou de remettre à jour** l'u
 ## Sommaire
 
 - Les questions ouvertes
+- Le chapitre `La suite`
 - Le chapitre `Exécution`
 - Le `Journal d'exécution`
 
@@ -74,6 +75,43 @@ choix cochée**, et sa ligne de preuve cite son message mot pour mot :
   sans case cochée (règle de la reco plus haut).
 - L'encadré passe au vert avec `(choix validé par Benjamin)` à la place de
   `(reco appliquée par défaut)`, et le H3 passe à `✅ Q<n> — …` dans le même geste.
+
+### Le chapitre `La suite`
+
+`La suite` n'est pas une réserve où l'on range ce qu'on n'a pas envie de faire :
+c'est le chapitre de ce que le plan **ne** fait **pas**, et chaque ligne y a une
+raison. Un élément qui arrive ici passe d'abord le tri, dans cet ordre, et **la
+première réponse qui s'applique décide** :
+
+1. **Déjà porté par un autre plan** (une étape, une question, un plan nommé et lié)
+   → il reste là-bas ; `La suite` le cite en une ligne, avec le lien. Un « à
+   reprendre dans un plan CI » sans plan nommé n'est pas un report : le plan n'existe
+   pas, passer au 3.
+2. **Trop gros pour ce plan** — la mesure de `_partage/decouvertes.md` §1 : il revient
+   sur une décision tranchée, coûte (argent, quota, plus d'une étape), touche la
+   sécurité, est irréversible, ou ne tient pas en une étape → c'est un **plan à part
+   entière**. Il se crée en `brouillon` dans la même passe quand ses contours sont
+   clairs, sinon il part en question à Benjamin ; `La suite` cite son titre et son
+   lien. Un point qui dépend de la réponse à une question (« si Q3 (b), … ») n'est pas
+   un élément de `La suite` : il s'écrit dans l'option de la question.
+3. **Sinon** — réversible, hors sécurité, petit (une étape) → il **entre dans le plan** :
+   une étape du chapitre `Exécution`, avec tous ses champs, et une retouche datée
+   (`_maj AAAA-MM-JJ — ajouté depuis « La suite » parce que …`). La ligne disparaît de
+   `La suite` ; la laisser aux deux endroits ferait croire qu'elle est faite et qu'elle
+   ne l'est pas.
+
+Restent dans `La suite`, parce qu'aucune étape ne peut les porter : ce qui **attend un
+événement** (une mesure à N jours, un merge, une version publiée), écrit avec son
+déclencheur et son propriétaire ; ce que **Benjamin a écarté** en toutes lettres, cité
+avec sa décision ; et la **dette de carte** (ci-dessus). Une ligne sans déclencheur ni
+propriétaire se range donc au 1, au 2 ou au 3, jamais ici. Le chapitre est « Rien. » quand
+tout a trouvé sa place.
+
+**À chaque passe**, relire `La suite` avec ce tri : un élément qui a attendu depuis la
+passe d'avant entre dans le plan s'il remplit le 3. Sur un plan encore à `brouillon`,
+`en revue` ou `valide`, c'est une retouche ordinaire ; sur un plan déjà ouvert à
+l'exécution, c'est une découverte comme une autre (`_partage/decouvertes.md` §2 : une
+étape `D<n>`).
 
 ### Le chapitre `Exécution`
 
