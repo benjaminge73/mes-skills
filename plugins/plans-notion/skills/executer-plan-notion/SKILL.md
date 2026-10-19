@@ -155,8 +155,9 @@ Puis, dans le même tour, avant la première étape :
 - **Réglage du pilote : Sonnet 5.5, effort `medium`**, contrainte de lancement. À
   vérifier **avant le premier geste de ce §**, d'après ce que la session sait de son
   modèle et de son effort. Une session qui n'est pas à ce réglage ne prépare ni ne
-  code : elle lance une **sous-session** à ce réglage, qui exécute le plan, et relaie
-  son compte rendu (`ouverture.md`, « Le réglage du pilote »). Seul Benjamin déroge,
+  code : elle ouvre une **sous-session visible** à ce réglage (lien Desktop ou ligne
+  de terminal, jamais `claude -p` en silence) et s'arrête (`ouverture.md`, « Le
+  réglage du pilote »). Seul Benjamin déroge,
   dans son message. La puce `**Pilote** : <modèle>, <effort>` de l'entrée `Ouverture`
   dit ce qui a servi (p.ex. `Sonnet 5.5, medium`), et `preparation-prete.py` refuse
   `pret` sinon. Pourquoi Sonnet : c'est le modèle du banc d'évals (`EVALS_MODELE` de

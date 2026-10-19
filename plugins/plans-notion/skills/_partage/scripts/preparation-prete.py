@@ -148,8 +148,8 @@ def defaut_pilote(valeur: str | None) -> str | None:
     if PILOTE_SONNET.search(valeur) and PILOTE_MEDIUM.search(valeur):
         return None
     return ("Ouverture : **Pilote** n'est pas Sonnet `medium` et ne cite aucune dérogation de "
-            "Benjamin : lancer l'exécution dans une sous-session `--model claude-sonnet-5-5 "
-            "--effort medium` (ouverture.md, « Le réglage du pilote »)")
+            "Benjamin : ouvrir une sous-session visible en Sonnet `medium` "
+            "(ouverture.md, « Le réglage du pilote »)")
 
 
 def defauts_ouverture(entree: list[str], numeros: list[str]) -> list[str]:

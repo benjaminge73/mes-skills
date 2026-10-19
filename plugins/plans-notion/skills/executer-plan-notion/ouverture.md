@@ -22,32 +22,42 @@ préparation est le travail du pilote, elle se joue donc déjà à ce réglage.
 
 - **La session est à ce réglage** → elle continue, et la puce **Pilote** de l'entrée
   `Ouverture` dit `Sonnet 5.5, medium`.
-- **Sinon, elle ne prépare ni ne code.** Elle lance une **sous-session** à ce réglage,
-  depuis le dépôt du plan, et lui confie le plan entier (préparation et étapes) :
-
-  ```bash
-  claude -p --model claude-sonnet-5-5 --effort medium --output-format json \
-    --permission-mode <celui de la session> "<brief>" < /dev/null
-  ```
-
-  - **L'identifiant complet**, pas l'alias `sonnet` : un alias lancé hors des réglages
-    de l'utilisateur a servi une autre version (`_partage/outils-et-quotas.md`,
-    2026-10-15). `< /dev/null` : sans lui l'appel attend l'entrée standard pour toujours.
-  - **Les réglages et les connecteurs du compte restent chargés** (ni
-    `--setting-sources ""` ni `--strict-mcp-config`) : la sous-session a besoin de
-    Notion et du plugin.
-  - **Le brief** porte l'URL de la page, « exécute ce plan avec `executer-plan-notion` »,
-    la page du plan maître s'il y en a une, la branche si elle existe déjà, et que
-    personne ne répondra en cours de route : la variante sans humain de
-    `_partage/decouvertes.md` §3 s'applique, les questions partent dans le compte rendu.
-  - **La commande se lance en arrière-plan** ; la session mère attend sa fin, ne touche
-    ni la page ni le dépôt entre-temps, puis **relaie** le compte rendu à Benjamin.
-  - **Le modèle réellement servi se vérifie** : `modelUsage` de la réponse JSON doit
-    nommer `claude-sonnet-5-5`. Un autre nom est un échec, pas un succès.
-- **`claude` introuvable ou non connecté** (`sudo` et `HOME`, même fiche) → la session
-  s'arrête avant tout geste et donne à Benjamin la ligne de relance : `claude --model
-  sonnet --effort medium`, ou `/model sonnet` puis `/effort medium`.
-- **Un plan maître a un seul pilote** : une seule sous-session conduit tout le lot.
+- **Sinon, elle ne prépare ni ne code.** Elle ouvre une **sous-session visible**, à ce
+  réglage, depuis le dépôt du plan, puis **s'arrête** : la sous-session reçoit le plan
+  entier (préparation et étapes) et parle elle-même à Benjamin. Jamais un `claude -p`
+  ni un agent d'arrière-plan lancé en silence : Benjamin n'y voit rien et ne peut rien
+  y répondre (retour du 2026-10-19).
+  - **Le brief est court** : l'URL de la page, « exécute ce plan avec
+    `executer-plan-notion` », la page du plan maître s'il y en a une, la branche si elle
+    existe déjà. Le détail est dans la page ; un brief long déborde du lien. **Un humain
+    est là** : les questions passent par `AskUserQuestion`, pas par la variante sans
+    humain de `_partage/decouvertes.md` §3.
+  - **Dans l'app Claude Code Desktop** (la voie d'abord) : un lien
+    `claude://code/new?q=<brief encodé>&folder=<chemin absolu du dépôt, encodé>`, ouvert
+    par `open` (macOS), `xdg-open` (Linux) ou `start ""` (Windows) ; sans bureau (une
+    session cloud), le lien se donne tel quel à Benjamin pour qu'il le clique. Il ouvre
+    une **nouvelle session dans la barre latérale**, qu'il suit comme n'importe quelle
+    autre. Le lien **pré-remplit** le prompt sans l'envoyer, demande de **confirmer le
+    dossier**, et **ne fixe ni modèle ni effort** : le message dit à Benjamin de choisir
+    Sonnet 5.5 et `medium` avant d'envoyer.
+  - **Dans un terminal** : donner à Benjamin la ligne à coller dans une nouvelle fenêtre,
+    qui fixe le réglage elle-même :
+    `claude --model claude-sonnet-5-5 --effort medium "<brief>"` (l'identifiant complet,
+    pas l'alias `sonnet` : un alias lancé hors des réglages de l'utilisateur a servi une
+    autre version, `_partage/outils-et-quotas.md`, 2026-10-15). S'il préfère détacher la
+    session : `claude --bg --name <plan> --model claude-sonnet-5-5 --effort medium
+    "<brief>"`, qui s'ouvre et se suit par `claude agents`, `claude attach <nom>` et
+    `claude logs <nom>`.
+  - **La sous-session vérifie son propre réglage** avant son premier geste (`/model`,
+    `/effort`) et le dit à Benjamin si ce n'est pas Sonnet `medium` ; la puce **Pilote**
+    écrite au `pret` en reste la trace, et `preparation-prete.py` la contrôle.
+  - **La session mère ne touche ni la page ni le dépôt** après avoir ouvert la
+    sous-session, et ne fait pas semblant d'en relayer le compte rendu : elle dit à
+    Benjamin où la trouver, c'est tout.
+- **Ni lien Desktop ni `claude` utilisable** (`sudo` et `HOME`, même fiche) → la session
+  s'arrête avant tout geste et donne à Benjamin la ligne de relance ci-dessus, ou `/model
+  sonnet` puis `/effort medium` dans la session courante.
+- **Un plan maître a un seul pilote** : une seule sous-session visible conduit tout le lot.
 - **Seul Benjamin déroge**, dans son message courant (un plan à haut enjeu qu'il veut
   piloter plus haut, par exemple). La puce dit alors `<modèle>, <effort> — dérogation de
   Benjamin, <date> : « <citation> »`. Sans cette citation, `preparation-prete.py` refuse
