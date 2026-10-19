@@ -152,17 +152,16 @@ Puis, dans le même tour, avant la première étape :
   que fait le label `review-required` ? un job merge-t-il seul ?) et
   **calculer les vagues** (`vagues.py`) ; les deux relevés s'écrivent dans
   les puces **CI** et **Vagues** de l'entrée `Ouverture` du journal (§4).
-- **Modèle du pilote** : noter dans l'entrée `Ouverture` la puce
-  `**Pilote** : <modèle>, <effort>` (p.ex. `Sonnet 5.5, medium`), d'après ce
-  que la session sait de son propre modèle et de son effort. Si ce n'est pas
-  Sonnet effort `medium`, proposer à Benjamin une ligne : « l'exécution se pilote
-  en Sonnet effort `medium` : relancer avec `claude --model sonnet --effort medium`,
-  ou `/model sonnet` puis `/effort medium` avant de continuer. Un plan à haut enjeu
-  (sécurité, données, déploiement) peut monter à `high` ». Le skill ne change pas
-  le modèle lui-même : il se choisit au lancement. Pourquoi Sonnet : c'est le modèle
-  du banc d'évals (Sonnet 5.5, `EVALS_MODELE` de `evals/outillage/lancer.sh`). L'effort `medium`
-  n'y est pas mesuré (le banc joue `high`, `docs/tester-un-skill.md`, « La CI joue Sonnet ») : il se
-  remesure au prochain plan. Sonnet coûte la moitié d'Opus sur chaque poste. La conception (`plan-notion`) reste en Opus.
+- **Réglage du pilote : Sonnet 5.5, effort `medium`**, contrainte de lancement. À
+  vérifier **avant le premier geste de ce §**, d'après ce que la session sait de son
+  modèle et de son effort. Une session qui n'est pas à ce réglage ne prépare ni ne
+  code : elle lance une **sous-session** à ce réglage, qui exécute le plan, et relaie
+  son compte rendu (`ouverture.md`, « Le réglage du pilote »). Seul Benjamin déroge,
+  dans son message. La puce `**Pilote** : <modèle>, <effort>` de l'entrée `Ouverture`
+  dit ce qui a servi (p.ex. `Sonnet 5.5, medium`), et `preparation-prete.py` refuse
+  `pret` sinon. Pourquoi Sonnet : c'est le modèle du banc d'évals (`EVALS_MODELE` de
+  `evals/outillage/lancer.sh`) ; `medium` n'y est pas mesuré (le banc joue `high`).
+  La conception (`plan-notion`) reste en Opus.
 
 **La porte du `pret`.** Un plan `pret` a **toutes ses étapes prouvées et
 rejouées à blanc, ses vagues calculées, et, s'il a un plan maître, l'orchestration

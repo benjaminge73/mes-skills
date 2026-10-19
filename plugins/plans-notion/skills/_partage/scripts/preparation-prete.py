@@ -27,7 +27,8 @@ Les miroirs sont la sortie de ``notion-fetch``. Le script contrôle :
      une puce **Preuve de l'étape N** (la commande de preuve rejouée à blanc et ce
      qu'elle a rendu), chacune non vide et sans coquille (« — », « - », « aucune »,
      « à définir », « à voir ») ; ``sans objet — <raison>`` est recevable, la raison
-     est obligatoire ;
+     est obligatoire ; la puce **Pilote** nomme Sonnet et ``medium``, ou porte la
+     dérogation de Benjamin citée (``dérogation de Benjamin, <date> : « … »``) ;
   6. **Orchestration** : ``sans objet — <raison>`` (aucun plan maître), ou la page maître
      est fournie par ``--maitre`` et porte, non vides, les sections « Plans »,
      « Croisement », « Ordre de merge » et « File des actions lourdes ».
@@ -55,6 +56,9 @@ OUVERTURE = re.compile(r"^###[ \t]+ouverture\b", re.IGNORECASE)
 QUESTION_OUVERTE = re.compile(r"^###[ \t]+.*🧭.*\bQ\d+\b")
 COQUILLES = {"", "—", "-", "aucune", "à définir", "à voir"}
 SANS_OBJET = re.compile(r"^sans objet\b[ \t]*(.*)$", re.IGNORECASE)
+PILOTE_SONNET = re.compile(r"\bsonnet\b", re.IGNORECASE)
+PILOTE_MEDIUM = re.compile(r"\bmedium\b", re.IGNORECASE)
+PILOTE_DEROGATION = re.compile(r"dérogation de Benjamin[^«]*«[^»]+»", re.IGNORECASE)
 SCRIPTS = Path(__file__).parent
 
 
@@ -135,10 +139,25 @@ def defaut_valeur(cle: str, valeur: str | None) -> str | None:
     return None
 
 
+def defaut_pilote(valeur: str | None) -> str | None:
+    """Le pilote tourne en Sonnet ``medium``, sauf dérogation citée de Benjamin."""
+    if valeur is None or _valeur_vide(valeur):
+        return None  # déjà signalé par defaut_valeur
+    if PILOTE_DEROGATION.search(valeur):
+        return None
+    if PILOTE_SONNET.search(valeur) and PILOTE_MEDIUM.search(valeur):
+        return None
+    return ("Ouverture : **Pilote** n'est pas Sonnet `medium` et ne cite aucune dérogation de "
+            "Benjamin : lancer l'exécution dans une sous-session `--model claude-sonnet-5-5 "
+            "--effort medium` (ouverture.md, « Le réglage du pilote »)")
+
+
 def defauts_ouverture(entree: list[str], numeros: list[str]) -> list[str]:
     valeurs = valeurs_puces(entree)
     cles = list(CLES) + [f"Preuve de l'étape {n}" for n in numeros]
-    return [d for d in (defaut_valeur(c, valeurs.get(c)) for c in cles) if d]
+    defauts = [d for d in (defaut_valeur(c, valeurs.get(c)) for c in cles) if d]
+    pilote = defaut_pilote(valeurs.get("Pilote"))
+    return defauts + [pilote] if pilote else defauts
 
 
 def orchestration_sans_objet(entree: list[str]) -> bool:

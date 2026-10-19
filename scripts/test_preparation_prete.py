@@ -140,6 +140,23 @@ class PorteDuPret(unittest.TestCase):
         self.assertEqual(code, 1)
         self.assertIn("puce **Pilote** absente", sortie)
 
+    def test_un_pilote_qui_n_est_pas_sonnet_medium_bloque(self):
+        for pilote in ("Opus 5.5, high", "Sonnet 5.5, high", "Opus 5.5, medium"):
+            with self.subTest(pilote=pilote):
+                code, sortie, _ = jouer(page(journal=ouverture(Pilote=pilote)))
+                self.assertEqual(code, 1)
+                self.assertIn("**Pilote** n'est pas Sonnet `medium`", sortie)
+
+    def test_une_derogation_citee_de_benjamin_rend_le_pilote_recevable(self):
+        derogation = "Opus 5.5, high — dérogation de Benjamin, 2026-10-19 : « pilote celui-ci en Opus »"
+        code, sortie, _ = jouer(page(journal=ouverture(Pilote=derogation)))
+        self.assertEqual(code, 0, sortie)
+
+    def test_une_derogation_sans_citation_ne_compte_pas(self):
+        code, sortie, _ = jouer(page(journal=ouverture(Pilote="Opus 5.5, high — dérogation de Benjamin")))
+        self.assertEqual(code, 1)
+        self.assertIn("**Pilote** n'est pas Sonnet `medium`", sortie)
+
     def test_tous_les_defauts_sont_rendus_d_un_coup(self):
         code, sortie, _ = jouer(page(journal=ouverture(CI=None, Vagues="—")))
         self.assertEqual(code, 1)
