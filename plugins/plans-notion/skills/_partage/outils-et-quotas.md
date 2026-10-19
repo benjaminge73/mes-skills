@@ -945,3 +945,43 @@ journaux d'`inspect` à la fin ; garder jeux, empreintes et résultats.
 
 **Repli** : un script direct qui appelle chaque modèle, sans `inspect_ai`, quand
 le banc n'a qu'un jeu et deux juges.
+
+## Fiche — Cage d'une source codée (bwrap, AppArmor, srt, systemd)
+
+**Quota ou coût** : aucun. Ce sont des outils locaux (relevé en 2026-10). Chacun
+des faits ci-dessous se vérifie par une commande, pas par la documentation seule.
+
+**Pièges datés** :
+
+- **2026-10 : `RuntimeMaxSec` est ignoré pour un service `Type=oneshot`.** Le
+  réglage n'a aucun effet sur un tel service : une durée bornée par lui n'est
+  pas bornée.
+- **2026-10 : une restriction de familles d'adresses qui omet `AF_NETLINK`
+  casse `bwrap --unshare-net`.** `systemd-run --user -p
+  RestrictAddressFamilies=… /usr/bin/bwrap …` reproduit une restriction de
+  familles d'adresses, mais `AF_NETLINK` doit rester dans la liste : sans lui,
+  `bwrap --unshare-net` ne se lance pas.
+- **2026-10, Ubuntu 26.04 : `apt install nodejs` n'installe pas `npm`.** Et le
+  PATH de `sudo` ne voit pas le `npm` de l'utilisateur : une commande npm lancée
+  sous `sudo` échoue même quand `npm` est présent sous le compte.
+
+**Bonne pratique** :
+
+- **Valider un profil AppArmor sans root** : `apparmor_parser -K -Q <profil>`
+  valide le profil sans droits root et sans passer par le cache. La vérification
+  se fait donc avant tout chargement, depuis un compte ordinaire.
+- **Prouver une restriction par la commande, pas par le réglage seul** :
+  `systemd-run --user -p RestrictAddressFamilies=… /usr/bin/bwrap …`, avec
+  `AF_NETLINK` dans la liste si `bwrap --unshare-net` est utilisé.
+- **Lancer les commandes npm sous le compte de l'utilisateur**, jamais sous
+  `sudo`, et vérifier `npm --version` dans le même environnement que la commande.
+- **srt 0.0.79 (relevé en 2026-10)** : le binaire bwrap se désigne par le
+  réglage `bwrapPath`. Son proxy réseau fonctionne par liste blanche de domaines :
+  un domaine absent de la liste est refusé. En ajouter un est une décision à
+  prendre, pas un réglage à faire en passant.
+
+**Repli** : pour un service `Type=oneshot` qui doit être borné dans le temps,
+borner la durée dans la commande elle-même ; ce repli n'est pas mesuré dans cette
+fiche. Si la restriction d'adresses casse `bwrap --unshare-net`, rétablir
+`AF_NETLINK` dans la liste. Pour `npm` absent sous `sudo` : aucun repli mesuré au
+2026-10, passer par le compte de l'utilisateur comme ci-dessus.
