@@ -64,7 +64,10 @@ lis-la quand un appel échoue, ne cherche pas ailleurs. Tu n'as que deux paliers
 connecteur de la session puis la commande `composio` du VPS. Le palier Hermes reste
 au pilote : tu ne lances jamais `hermes chat`, ni un sous-agent.
 
-**Palier 1, le connecteur de la session.** Un message qui nomme le hook de l'hôte
+**Palier 1, le connecteur de la session.** Il ne se joue que si un outil Notion figure
+dans ta liste d'outils. Le connecteur de l'app de bureau porte un nom en `uuid` qui n'y
+figure pas : si aucun outil Notion n'est dans ta liste, pas d'essai, tu passes tout de
+suite au palier 2. Quand un outil est là, un message qui nomme le hook de l'hôte
 (« host client may be unreachable », « did not respond before its timeout », « The tool
 call was not executed ») veut dire que rien n'est parti : réessaie le même appel, sans
 risque de doublon. Entre deux essais, attends une à deux minutes (`sleep 90` lancé en
@@ -75,7 +78,14 @@ réessaie pas, et `mcp_oauth_token_read_unsupported` ne se règle pas en réessa
 ce n'est pas une panne à contourner, tu rends `BLOCKED` avec le message mot pour mot.
 
 **Palier 2, la commande `composio` du VPS.** Elle parle à Notion sans passer par l'app
-de bureau. Tu l'appelles par `Bash`, seulement après trois échecs du palier 1 :
+de bureau. Tu l'appelles par `Bash`, dans deux cas seulement :
+
+- (a) aucun outil Notion n'est dans ta liste d'outils : tu passes tout de suite, sans
+  attendre ;
+- (b) trois échecs du palier 1 sur une dizaine de minutes, pour une panne de hook ou un
+  `internal_server_error`.
+
+Commandes :
 
 - **Lire** : `echo '{"page_id":"<id>"}' | composio execute NOTION_GET_PAGE_MARKDOWN -d -`.
   Si la réponse porte `"storedInFile": true` et un `outputFilePath`, lis ce fichier JSON
