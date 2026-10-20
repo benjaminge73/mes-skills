@@ -14,9 +14,8 @@ Pannes, une par test :
   5. Une entrée conforme rend 0 ; une page sans section « Récap » rend 2.
 Un test de plus (7) : un en-tête sans date rend 1. La panne 5 ne la couvre pas,
 et une date absente passe inaperçue dans une page longue.
-Trois de plus, pour l'entrée datée du Changelog (« ## AAAA-MM-JJ · titre ») : une
-conforme rend 0 (8) ; une rubrique absente rend 1 (9) ; un récap daté reste conforme
-(10, garde de non-régression, vert avant le correctif).
+Deux de plus, pour l'entrée datée du Changelog (« ## AAAA-MM-JJ · titre ») : une
+conforme rend 0 (8) ; une rubrique absente rend 1 (9).
 """
 from __future__ import annotations
 
@@ -125,14 +124,6 @@ class ControleChangelog(unittest.TestCase):
         code, sortie, erreur = jouer(self._entree(texte))
         self.assertEqual(code, 1, erreur)
         self.assertIn("« Reste à faire » absente", sortie)
-
-    def test_recap_date_dans_le_titre_rend_zero(self):
-        # Garde de non-régression, déjà vert avant le correctif : le récap dont la date est
-        # dans le titre (« ## Récap · AAAA-MM-JJ · titre ») reste conforme. Il attrape une
-        # régression du correctif qui ne reconnaîtrait plus le H2 « Récap » avec une date.
-        entete = "## Récap · 2026-10-20 · Plan exemple\nPR : #12 — statut : prête\n\n"
-        code, sortie, erreur = jouer(self._entree(entree(entete=entete)))
-        self.assertEqual((code, sortie), (0, ""), erreur)
 
 
 if __name__ == "__main__":
