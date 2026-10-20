@@ -32,11 +32,15 @@ Le texte contient cinq rubriques, présentes même vides (« aucune » s'écrit 
     sans VPS, le palier 2 manque : on passe directement au palier 3 ;
   - `non posé — pas de connecteur` : aucun palier Notion n'a posé l'entrée. Le fichier du
     palier 3 (à poser par Hermes) est indiqué juste à côté, avec son chemin ;
+  - `non posé — hub introuvable` : plan natif sur un dépôt sans aucun plan dans la base,
+    donc sans page `Projet` où poser l'entrée ;
   - `doc vivante désactivée` : rien n'est tenté dans Notion ;
   - `non posé — projet sans décision` : rien n'est écrit dans le hub, et la question
     « Doc vivante : à activer pour <projet> ? » part dans « Questions pour Benjamin ».
 
-  L'entrée porte la mention `plan natif`.
+  Dans les trois cas `non posé — …`, le texte COMPLET de l'entrée figure dans cette rubrique,
+  sous la mention : un plan natif n'a pas de page où le garder prêt. L'entrée porte la mention
+  `plan natif`.
 
 **Tri sans humain.** Une session lancée par Hermes n'a personne pour répondre. Le tri suit
 `${CLAUDE_PLUGIN_ROOT}/skills/_partage/decouvertes.md`, § 3 : la sécurité et l'irréversible

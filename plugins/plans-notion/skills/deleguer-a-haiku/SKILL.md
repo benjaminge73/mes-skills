@@ -1,7 +1,7 @@
 ---
 name: deleguer-a-haiku
 description: >-
-  Se charge DÈS LE LANCEMENT d'une session en mode plan natif de Claude Code (sans page Notion), pour enquêter avant d'écrire le plan : carte de voisinage, agent enqueteur, agent chercheur si l'artefact n'est pas propre au projet, le tout écrit dans le plan natif. Exécute aussi un plan natif approuvé, sans page Notion, en le déléguant à des sous-agents Haiku. À utiliser quand on demande d'exécuter, dérouler ou implémenter un plan validé qui vit dans un fichier et non dans Notion : « exécute le plan », « déroule plan.md », plan natif approuvé après ExitPlanMode, ou consigne d'Hermes qui lance une session en mode plan et lit son compte rendu final. Découpe le plan en étapes de cinq fichiers au plus, chacune avec sa preuve ; envoie chaque étape à plans-notion:executant, en parallèle quand les fichiers sont disjoints ; relit chaque rapport et rejoue la preuve ; n'ajoute un relecteur qu'au-delà de cinq fichiers touchés en tout ; cite dans le compte rendu la commande de preuve de chaque étape. Rien ne s'écrit dans Notion, sauf le changelog et les fiches du projet à la clôture. Pour un plan dans une page Notion, c'est executer-plan-notion.
+  Se charge DÈS LE LANCEMENT d'une session en mode plan natif de Claude Code (sans page Notion), pour enquêter avant d'écrire le plan : carte de voisinage, agent enqueteur, agent chercheur si l'artefact n'est pas propre au projet, le tout écrit dans le plan natif. Exécute aussi un plan natif approuvé, en le déléguant à des sous-agents Haiku. À utiliser quand on demande d'exécuter, dérouler ou implémenter un plan validé qui vit dans un fichier et non dans Notion : « exécute le plan », « déroule plan.md », plan natif approuvé après ExitPlanMode, ou consigne d'Hermes qui lance une session en mode plan et lit son compte rendu final. Découpe le plan en étapes de cinq fichiers au plus, chacune avec sa preuve ; envoie chaque étape à plans-notion:executant, en parallèle quand les fichiers sont disjoints ; relit chaque rapport et rejoue la preuve ; ajoute un relecteur au-delà de cinq fichiers touchés en tout ; cite dans le compte rendu la commande de preuve de chaque étape. Rien ne s'écrit dans Notion, sauf le changelog et les fiches du projet à la clôture. Pour un plan dans une page Notion, c'est executer-plan-notion.
 ---
 
 # Déléguer un plan natif à Haiku
@@ -63,13 +63,12 @@ Chaque passage relevé se traite selon la rubrique « Preuve doc » de
 
 ## 5. Compte rendu
 
-Avant la réponse finale, lire `${CLAUDE_PLUGIN_ROOT}/skills/_partage/compte-rendu-natif.md` :
-il fixe le texte, dont la preuve doc et ses cinq rubriques.
+Avant la réponse finale, poser l'entrée du changelog selon `changelog-et-doc.md` (rédaction,
+encadré d'activation, `controle-changelog.py`, cascade de repli), puis lire
+`${CLAUDE_PLUGIN_ROOT}/skills/_partage/compte-rendu-natif.md` : il fixe le texte, dont la preuve
+doc, les cinq rubriques et « Changelog », à remplir après la pose.
 
-Ses compagnons sont les fichiers partagés
-`${CLAUDE_PLUGIN_ROOT}/skills/_partage/avant-le-plan.md`,
-`${CLAUDE_PLUGIN_ROOT}/skills/_partage/vagues.md`,
-`${CLAUDE_PLUGIN_ROOT}/skills/_partage/revue.md`,
-`${CLAUDE_PLUGIN_ROOT}/skills/_partage/lecture-deleguee.md`,
-`${CLAUDE_PLUGIN_ROOT}/skills/_partage/changelog-et-doc.md`, `${CLAUDE_PLUGIN_ROOT}/skills/_partage/grille-doc.md` et
-`${CLAUDE_PLUGIN_ROOT}/skills/_partage/compte-rendu-natif.md`.
+Ses compagnons sont les fichiers partagés de `skills/`, sous `${CLAUDE_PLUGIN_ROOT}` :
+`_partage/avant-le-plan.md`, `_partage/vagues.md`, `_partage/revue.md`,
+`_partage/lecture-deleguee.md`, `_partage/changelog-et-doc.md`, `_partage/grille-doc.md` et
+`_partage/compte-rendu-natif.md`.
