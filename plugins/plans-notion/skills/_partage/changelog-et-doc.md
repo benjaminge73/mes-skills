@@ -112,7 +112,11 @@ Pour toute écriture de la clôture dans Notion (hub, et page du plan), une seul
 
 1. **Le connecteur Notion de la session.** Si l'appel est refusé par le hook (« did not respond before its timeout »), rien n'est parti : pas de doublon à craindre. Attendre une à deux minutes, réessayer le même appel, jusqu'à trois essais sur une dizaine de minutes. Pendant l'attente, avancer sur ce qui ne dépend pas de Notion.
 2. **La commande `composio` du VPS**, en écriture : `composio execute NOTION_UPDATE_PAGE_MARKDOWN -d @<fichier>`. Le texte passe par un fichier, jamais recopié à la main. Le `old_str` se construit par script. Les cases se recomptent après écriture.
-3. **Le fichier confié à Hermes.** L'entrée est écrite dans `~/brouillons/<projet>/changelog/<AAAA-MM-JJ>-<plan>.md`, et le compte rendu le signale comme à poser par Hermes. Hermes la pose par `composio` avec ce fichier, sans la recopier. L'agent qui écrit ne lance pas Hermes lui-même.
+3. **Les fichiers confiés à Hermes.** Au palier 3, deux fichiers distincts sous `~/brouillons/<projet>/changelog/`, pour un même plan et une même date :
+   - `<AAAA-MM-JJ>-<plan>-recap.md` : le Récap de la page du plan (titre `## Récap · AAAA-MM-JJ · <titre du plan>`). Il s'écrit dès que la page du plan n'a pu recevoir le Récap, quel que soit l'encadré.
+   - `<AAAA-MM-JJ>-<plan>.md` : l'entrée du hub (titre `## AAAA-MM-JJ · <titre du plan>`). Il ne s'écrit que si l'encadré dit « activée », et jamais pour un plan couvert par un plan maître (§ 2.4).
+
+   Le compte rendu signale chaque fichier posé comme à poser par Hermes. Hermes les pose par `composio` avec ce fichier, sans les recopier. L'agent qui écrit ne lance pas Hermes lui-même.
 
 Le compte rendu dit **quel palier** a posé l'entrée. Le détail des commandes de lecture et d'écriture, et la façon dont Hermes reçoit la transmission, sont dans la fiche « Connecteurs MCP d'une session Claude Code » de `${CLAUDE_PLUGIN_ROOT}/skills/_partage/outils-et-quotas.md`. Ne pas recopier ce détail ici.
 

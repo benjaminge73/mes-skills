@@ -263,14 +263,17 @@ Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard »
      - **(b) Le contrôle.** Relire la page fraîche, dans son miroir local, et jouer
        `python3 ${CLAUDE_PLUGIN_ROOT}/skills/_partage/scripts/controle-changelog.py <miroir>`.
        Si (a) est parti au palier 3 (la page ne porte pas de Récap), le contrôle ne se
-       joue pas sur la page : il se joue sur le fichier du palier 3, seul, sans miroir,
-       `python3 ${CLAUDE_PLUGIN_ROOT}/skills/_partage/scripts/controle-changelog.py <fichier>`
-       (une entrée seule suffit). Corriger le texte, jamais le contrôle, jusqu'au code 0 ;
-       une correction se pose par `update_content` sur le bloc de la page, ou par
-       réécriture du fichier au palier 3, puis on relit. Le corps du Récap est celui de
-       l'entrée du hub (`changelog-et-doc.md` § 2) : un code 0 vaut pour les deux, et
-       aucune entrée du hub ne part sans lui. Code 2 (entrée absente ou illisible, fichier
-       du palier 3 introuvable) : on le dit à Benjamin, et (c) et (d) ne se font pas.
+       joue pas sur la page : il se joue sur le fichier Récap du palier 3, seul, sans
+       miroir, `python3 ${CLAUDE_PLUGIN_ROOT}/skills/_partage/scripts/controle-changelog.py <fichier-recap>`
+       (une entrée seule suffit). Si l'entrée du hub part aussi au palier 3 (point (c)),
+       elle se contrôle de la même façon sur son propre fichier, `<fichier-hub>`. Chaque
+       fichier réellement posé au palier 3 passe le contrôle avant qu'Hermes ne le pose.
+       Corriger le texte, jamais le contrôle, jusqu'au code 0 ; une correction se pose par
+       `update_content` sur le bloc de la page, ou par réécriture du fichier concerné au
+       palier 3, puis on relit. Le corps du Récap et celui de l'entrée du hub sont les
+       mêmes (`changelog-et-doc.md` § 2), mais chaque fichier se contrôle quand même : un
+       code 0 sur l'un ne prouve rien sur l'autre. Code 2 (entrée absente ou illisible,
+       fichier du palier 3 introuvable) : on le dit à Benjamin, et (c) et (d) ne se font pas.
      - **(c) L'entrée du hub.** Un plan couvert par un plan maître (la session en porte
        un : `${CLAUDE_PLUGIN_ROOT}/skills/plan-notion/plan-maitre.md`) **ne pose pas
        d'entrée individuelle** au hub : l'entrée consolidée du lot part à la fermeture du
@@ -303,13 +306,18 @@ Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard »
        Hermes. Les commandes sont dans la fiche « Connecteurs MCP d'une session Claude
        Code » de `${CLAUDE_PLUGIN_ROOT}/skills/_partage/outils-et-quotas.md` : elles ne
        se recopient pas ici. Le compte rendu dit quel palier a posé l'entrée.
-       Au palier 3, pour un plan non couvert par un plan maître, le fichier
-       `~/brouillons/<projet>/changelog/<AAAA-MM-JJ>-<plan>.md` est l'entrée du hub préparée
-       pour Hermes. Si le Récap y figure, son titre passe de
-       `## Récap · AAAA-MM-JJ · <titre du plan>` à `## AAAA-MM-JJ · <titre du plan>`
-       (`changelog-et-doc.md` § 2), et le contrôle (b) se rejoue sur cette version avant
-       qu'Hermes ne la pose par `composio`. Le compte rendu le signale comme à poser par
-       Hermes, avec le chemin.
+       Au palier 3, deux fichiers distincts sous `~/brouillons/<projet>/changelog/`, pour
+       un même plan et une même date, chacun avec son propre titre :
+       - `<AAAA-MM-JJ>-<plan>-recap.md` : le Récap de la page du plan, titre
+         `## Récap · AAAA-MM-JJ · <titre du plan>`. Il s'écrit **dès que (a) n'a pu
+         partir**, quel que soit l'encadré : sans lui, le Récap n'existe nulle part.
+       - `<AAAA-MM-JJ>-<plan>.md` : l'entrée du hub, titre `## AAAA-MM-JJ · <titre du plan>`
+         (`changelog-et-doc.md` § 2). Il ne s'écrit **que si l'encadré est
+         `📘 Doc vivante : activée`**, et jamais pour un plan couvert par un plan maître
+         (point (c)). Un projet désactivé ou sans encadré n'en reçoit aucun.
+       Chaque fichier posé passe le contrôle (b) avant qu'Hermes ne le pose par
+       `composio`. Le compte rendu les signale chacun comme à poser par Hermes, avec leur
+       chemin, et dit quel palier a posé quoi.
 
      Ensuite, le journal et le compte rendu : `État final` (avec la sortie du point 6),
      `Statut` = **`a merger`**, `PR` = l'URL, et le compte rendu à Benjamin, qui est le
