@@ -129,7 +129,7 @@ Sur la page d'un plan maître, un chapitre `## Récap du lot` reprend les entré
 - l'identifiant de chaque titre se lit par `NOTION_FETCH_BLOCK_CONTENTS` (Composio, appel par bloc). La forme du lien est `…/p/<page>#<id du bloc sans tirets>` ;
 - **repli** : si la lecture de l'identifiant échoue, la mention en clair, `page du plan — → Étape 3` (ou `→ Récap`), sans lien.
 
-Le clic sur un lien d'ancre n'est pas encore vérifié. Il l'est à la répétition à blanc de l'exécution, sur une page de test. Tant qu'il ne l'est pas, la mention en clair reste écrite à côté du lien.
+Le lien d'ancre est vérifié (2026-10-20, page de test, Notion web) : ouvert par son URL, il arrive sur le titre ; cliqué depuis une autre page de Notion, il atterrit plusieurs sections avant. La mention en clair reste donc toujours écrite à côté du lien.
 
 Pour un lot, le condensé liste chaque plan du lot avec son lien ; le `Changelog` garde l'entrée consolidée unique (§ 2.4).
 
