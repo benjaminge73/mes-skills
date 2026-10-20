@@ -191,10 +191,19 @@ seul cas qui rouvre un lot fermé est le **plan de suite** d'un plan du lot
 maître est recalculé. Un lot qui retombe à un plan (un abandon) reste un maître
 jusqu'à sa fermeture.
 
-**À la fermeture du lot, une seule entrée au Changelog.** Quand
-`statut-maitre.py` rend `lot=ferme`, le pilote pose une entrée consolidée au
-`Changelog` du hub du projet, titre `## AAAA-MM-JJ · Lot <titre du plan maître>`,
-qui reprend chaque plan du lot avec son lien. Les plans du lot n'en écrivent pas
+**À la fermeture du lot, une seule entrée au Changelog.** L'entrée se pose au
+**passage** du lot de `ouvert` à `ferme`, jamais à chaque fois que
+`statut-maitre.py` rend `lot=ferme` : un lot déjà fermé dont un plan avance
+(`a merger` → `execute`) reste fermé, et le script le rend encore. Le passage se
+lit sur le `Statut` du maître avant réécriture : il valait un statut de lot
+ouvert (`brouillon` à `en cours`), le script rend désormais `lot=ferme`. Au
+passage, le pilote relit le `Changelog` du hub (page fraîche, § 4 de
+`_partage/changelog-et-doc.md`) et cherche une entrée `Lot <titre du plan maître>`
+déjà posée. Si elle n'existe pas, il pose l'entrée consolidée, titre
+`## AAAA-MM-JJ · Lot <titre du plan maître>`, qui reprend chaque plan du lot avec
+son lien. Si elle existe déjà (lot rouvert par un plan de suite puis refermé), il
+**met à jour cette entrée** au lieu d'en poser une seconde : le corps reprend le
+lot tel qu'il est, à sa nouvelle fermeture. Les plans du lot n'en écrivent pas
 chacun : leur récap reste en tête de leur propre page (`## Récap · …`), et le
 `Récap du lot` de la page maître reste le condensé. L'entrée part à la clôture du
 lot, comme une entrée de plan part à sa clôture, avant le merge : « Reste à faire »
