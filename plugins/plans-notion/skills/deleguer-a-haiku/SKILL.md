@@ -6,12 +6,12 @@ description: >-
 
 # Déléguer un plan natif à Haiku
 
-Ce skill sert une session qui a un plan **sans page Notion**, à écrire ou déjà approuvé.
-Il ne lit ni n'écrit aucune page hors clôture (changelog et fiches).
+Ce skill sert une session qui a un plan **sans page Notion**, à écrire ou approuvé.
+Il ne lit ni n'écrit de page hors clôture.
 
 ## Avant le plan
 
-Dès le lancement d'une session en mode plan natif, avant `ExitPlanMode` : lire
+Au lancement en mode plan natif, avant `ExitPlanMode` : lire
 `${CLAUDE_PLUGIN_ROOT}/skills/_partage/avant-le-plan.md` et suivre ses six temps.
 
 ## Invariants
@@ -29,7 +29,7 @@ bash "${CLAUDE_PLUGIN_ROOT}/skills/_partage/scripts/verifier-version.sh" "${CLAU
 ```
 
 Code 0 : à jour. Code 1 : version ou chemin différents de l'`installPath` : le dire, puis
-lire ce skill depuis cet `installPath`. Code 2 : lecture impossible, à dire.
+lire ce skill depuis lui. Code 2 : lecture impossible, à dire.
 
 ## 1. Envoyer les étapes
 
@@ -40,14 +40,13 @@ lire ce skill depuis cet `installPath`. Code 2 : lecture impossible, à dire.
 ## 2. Relire et rejouer
 
 - Lire chaque rapport en entier : état, fichiers, écarts.
-- **Rejouer soi-même la preuve de fin** de chaque étape. Un écart avec le rapport est à signaler.
+- **Rejouer soi-même la preuve de fin** de chaque étape. Tout écart avec le rapport se signale.
 - `NEEDS_CONTEXT` ou `BLOCKED` : le dire à Benjamin, ne pas trancher à sa place.
 
 ## 3. Relecteur, seulement au-delà de cinq fichiers
 
-Si le plan touche **plus de cinq fichiers en tout**, un appel à `plans-notion:relecteur` en fin
-de plan, selon `${CLAUDE_PLUGIN_ROOT}/skills/_partage/revue.md`. Sans commit, son brief désigne
-la liste des fichiers : écart à écrire au compte rendu.
+Au-delà de cinq fichiers touchés **en tout**, un appel à `plans-notion:relecteur` en fin de plan,
+selon `${CLAUDE_PLUGIN_ROOT}/skills/_partage/revue.md`. Sans commit, son brief liste les fichiers : écart à écrire au compte rendu.
 
 ## 4. Preuve doc
 
@@ -63,12 +62,9 @@ Chaque passage relevé se traite selon la rubrique « Preuve doc » de
 
 ## 5. Compte rendu
 
-Avant la réponse finale, poser l'entrée du changelog selon `changelog-et-doc.md` (rédaction,
-encadré d'activation, `controle-changelog.py`, cascade de repli), puis lire
-`${CLAUDE_PLUGIN_ROOT}/skills/_partage/compte-rendu-natif.md` : il fixe le texte, dont la preuve
-doc, les cinq rubriques et « Changelog », à remplir après la pose.
+Avant la réponse finale, poser l'entrée du changelog selon `${CLAUDE_PLUGIN_ROOT}/skills/_partage/changelog-et-doc.md` (`controle-changelog.py`), puis lire `${CLAUDE_PLUGIN_ROOT}/skills/_partage/compte-rendu-natif.md` : il fixe le texte (preuve doc, cinq rubriques, « Changelog » après la pose).
 
-Ses compagnons sont les fichiers partagés de `skills/`, sous `${CLAUDE_PLUGIN_ROOT}` :
-`_partage/avant-le-plan.md`, `_partage/vagues.md`, `_partage/revue.md`,
-`_partage/lecture-deleguee.md`, `_partage/changelog-et-doc.md`, `_partage/grille-doc.md` et
-`_partage/compte-rendu-natif.md`.
+Ses compagnons sont :
+`${CLAUDE_PLUGIN_ROOT}/skills/_partage/avant-le-plan.md`, `${CLAUDE_PLUGIN_ROOT}/skills/_partage/vagues.md`, `${CLAUDE_PLUGIN_ROOT}/skills/_partage/revue.md`,
+`${CLAUDE_PLUGIN_ROOT}/skills/_partage/lecture-deleguee.md`, `${CLAUDE_PLUGIN_ROOT}/skills/_partage/changelog-et-doc.md`,
+`${CLAUDE_PLUGIN_ROOT}/skills/_partage/grille-doc.md` et `${CLAUDE_PLUGIN_ROOT}/skills/_partage/compte-rendu-natif.md`.
