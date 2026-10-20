@@ -333,10 +333,10 @@ Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard »
   `unverifiable`, jamais un troisième mot)**, une rétrospective en cinq
   questions, les schémas relus
   (`${CLAUDE_PLUGIN_ROOT}/skills/_partage/schemas.md`).
-- Le compte rendu dit **quelles étapes sont parties en sous-agent `executant` (Haiku)** et,
-  pour celles faites en direct, pourquoi ; il dit aussi que **la PR est ouverte**
-  (son URL), prête, ou pourquoi elle est en brouillon, retenue, ou attend la
-  réponse de Benjamin sur un trou e2e.
+- Le compte rendu est le **récap** (`changelog-et-doc.md`, § 3) : les quatre rubriques,
+  puis `PR` et `Statut`, puis « Côté technique » — étapes parties en sous-agent
+  `executant` (Haiku) et pourquoi pour les autres, PR ouverte (son URL, prête, ou
+  pourquoi retenue), palier qui a posé le Changelog.
 - **Preuve doc, avant le push** : `qualite-doc.py lecteurs` puis `juger` (`cloture.md`, point 2 bis) ; passages douteux ou marqués d'office traités, sinon la clôture ne s'ouvre pas.
 - **Porte des preuves, avant le push** : `preuves-des-etapes.py <page.md>
   --apres` — code 0, on poursuit ; code 1, des défauts de journal, on corrige
@@ -495,6 +495,6 @@ parallèle ; le pilote ne garde que le croisement) vivent dans un seul fichier :
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/machine-partagee.md`,
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/cron-a-la-main.md`,
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/cout-des-plans.md`,
-  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/ranger-claude-md.md` et
-  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/outils-et-quotas.md`, livrés par le
-  plugin `plans-notion` — pas par le dépôt de travail, quel qu'il soit.
+  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/ranger-claude-md.md`,
+  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/changelog-et-doc.md` et
+  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/outils-et-quotas.md`, livrés par le plugin `plans-notion` — pas par le dépôt de travail, quel qu'il soit.

@@ -8,8 +8,8 @@ Sommaire :
 
 - Dans le même tour : `Statut`, `Branche`, entrée `État final`, compte rendu
 - La séquence de clôture (suite complète locale, allègement des `CLAUDE.md`
-  trop longs, preuve doc, push, PR prête, contrôle bloquant, clôture écrite,
-  suivi de la CI, retrait du worktree)
+  trop longs, preuve doc, push, PR prête, contrôle bloquant, clôture écrite
+  (Récap, hub, fiches), suivi de la CI, retrait du worktree)
 - La PR, puis la remontée sur `main`
 
 Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard »
@@ -108,14 +108,23 @@ Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard »
     invalide ; l'erreur se recopie, et la ligne ne porte aucun chiffre inventé.
     `--page` attend l'identifiant de la page (32 caractères hexadécimaux, tirets
     facultatifs), pas son URL. Aucun pourcentage de quota.
-- Le compte rendu dit **quelles étapes sont parties en sous-agent `executant` (Haiku)** et,
-  pour celles faites en direct, pourquoi (§3). Il dit aussi, en une ligne, que
-  **la PR est ouverte** (son URL), prête — avec ou sans le label
-  `review-required` selon ce que ce dépôt-là en fait (relevé du §2, les quatre
-  cas connus au §6) — ou pourquoi elle est en brouillon, retenue, ou attend la
-  réponse de Benjamin sur un trou e2e.
-- Le compte rendu liste aussi les rubriques **Ajouts sans question** et **Recos
-  appliquées par défaut** de l'`État final`, même vides (« aucun »).
+- **Le compte rendu du chat est le récap** (Q15, `changelog-et-doc.md` § 3), sans
+  réécriture : les quatre rubriques **Nouveau, Amélioré, Corrigé, Reste à faire**,
+  dans cet ordre, chaque ligne ✨ ou 🔧 avec sa source ; puis une ligne
+  `PR : <lien> · Statut : <statut>` ; puis le bloc **« Côté technique »**.
+  Le texte des rubriques est celui du Récap de la page (point 7, geste b).
+- **Côté technique** (le bloc replié, rien de perdu) : les étapes parties en
+  sous-agent `executant` (Haiku) et, pour celles faites en direct, pourquoi (§3) ;
+  la PR, son URL, prête — avec ou sans le label `review-required` selon ce que ce
+  dépôt-là en fait (relevé du §2, les quatre cas connus au §6) — ou pourquoi elle
+  est en brouillon, retenue, ou attend la réponse de Benjamin sur un trou e2e ;
+  les rubriques **Ajouts sans question** et **Recos appliquées par défaut** de
+  l'`État final`, même vides (« aucun »).
+- **Doc vivante** : une ligne dit quel palier a posé l'entrée du hub (connecteur
+  Notion, `composio`, ou fichier confié à Hermes : point 7, cascade), ou que le
+  projet est désactivé, ou pose la question « Doc vivante : à activer pour
+  <projet> ? » quand l'encadré manque (`changelog-et-doc.md` § 5). L'entrée
+  `État final` du journal reste telle quelle, comme trace complète.
 - **Livrer la PR, prête, et la suivre jusqu'au merge.** La PR s'ouvre à la
   clôture ; c'est la CI qui la merge, jamais la session (points 5 et 8). La
   séquence de clôture est courte :
@@ -241,11 +250,48 @@ Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard »
      dans l'entrée `État final`.
 
      📄 `${CLAUDE_PLUGIN_ROOT}/skills/_partage/vagues.md`
-  7. **Écrire la clôture, dans le même tour que le compte rendu.** Ce qui suit reprend
-     la sortie du point 6 : `État final` (avec cette sortie), `Statut` =
-     **`a merger`**, `PR` = l'URL, et le compte rendu à Benjamin (PR ouverte, son
-     URL, étapes parties en `executant`, ce qui retient le merge s'il y a lieu).
-     `a merger` est vrai à cet instant : le code n'est pas encore sur `main`.
+  7. **Écrire la clôture, dans le même tour que le compte rendu.** Quatre gestes sur
+     la doc du projet, dans cet ordre, puis l'écriture du journal. Le format, l'ancrage
+     et la cascade d'écriture vivent dans
+     📄 `${CLAUDE_PLUGIN_ROOT}/skills/_partage/changelog-et-doc.md` (§ 2, § 4, § 6).
+     - **(a) Le Récap.** Le H2 `## Récap · AAAA-MM-JJ · <titre du plan>` s'écrit en tête
+       de la page du plan, avant `Cartes`. Son nom commence par `Récap` : jamais
+       « Exécution », « Journal » ou « Questions ». Il s'écrit dans tous les cas, projet
+       activé ou non.
+     - **(b) Le contrôle.** Relire la page fraîche, dans son miroir local, et jouer
+       `python3 ${CLAUDE_PLUGIN_ROOT}/skills/_partage/scripts/controle-changelog.py <miroir>`.
+       Corriger le texte, jamais le contrôle, jusqu'au code 0 ; une correction se pose
+       par `update_content` sur le bloc, puis on relit. Le corps du Récap est celui de
+       l'entrée du hub (`changelog-et-doc.md` § 2) : un code 0 vaut pour les deux, et
+       aucune entrée du hub ne part sans lui. Code 2 (entrée absente ou illisible) : on
+       le dit à Benjamin, et (c) et (d) ne se font pas.
+     - **(c) L'entrée du hub.** Relever la page `Projet` fraîche et lire son encadré
+       d'activation (`changelog-et-doc.md` § 5) :
+       - `📘 Doc vivante : activée` : créer la sous-page `Changelog` si elle manque, et
+         poser l'entrée **en tête**, ancrée après la fin complète du dernier bloc qui
+         précède les entrées, jamais au milieu d'un paragraphe formaté. Si la page n'a
+         pas encore d'encadré « Doc partielle », en ajouter un en tête ; s'il existe, le
+         laisser en place.
+       - `📘 Doc vivante : désactivée` : (c) et (d) sont sautés. Le Récap reste écrit.
+       - Encadré absent : (c) et (d) attendent. La question « Doc vivante : à activer
+         pour <projet> ? » part dans le compte rendu, à chaque clôture tant qu'il manque.
+     - **(d) Les fiches et les processus.** Projet activé seulement. Une fiche par
+       fonctionnalité que le plan touche, créée si elle manque ; une fiche existante
+       reçoit une ligne en tête de son `Historique`, par `update_content`. La vue
+       d'ensemble et les processus clés ne se mettent à jour que s'ils existent et que le
+       diff du plan les touche : jamais créés, jamais réécrits au jugé (c'est le rôle de
+       la rétro-doc, `changelog-et-doc.md` § 5). Les lignes « Sous le capot » des briques
+       que le diff touche se mettent à jour à partir du diff (§ 9), jamais de mémoire.
+     - **Cascade.** (a), (c) et (d) suivent la cascade de repli de `changelog-et-doc.md`
+       § 6 : connecteur Notion, puis la commande `composio`, puis le fichier confié à
+       Hermes. Les commandes sont dans la fiche « Connecteurs MCP d'une session Claude
+       Code » de `${CLAUDE_PLUGIN_ROOT}/skills/_partage/outils-et-quotas.md` : elles ne
+       se recopient pas ici. Le compte rendu dit quel palier a posé l'entrée.
+
+     Ensuite, le journal et le compte rendu : `État final` (avec la sortie du point 6),
+     `Statut` = **`a merger`**, `PR` = l'URL, et le compte rendu à Benjamin, qui est le
+     récap (plus haut). `a merger` est vrai à cet instant : le code n'est pas encore sur
+     `main`.
   8. **Suivre la CI jusqu'au merge, sans jamais merger soi-même.** Une CI longue
      (30 à 40 minutes d'e2e) ne se suit pas au premier plan : elle se surveille en
      arrière-plan (`Bash` avec `run_in_background`, ou `Monitor` sur
