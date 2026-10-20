@@ -1,13 +1,13 @@
 ---
 name: deleguer-a-haiku
 description: >-
-  Se charge DÈS LE LANCEMENT d'une session en mode plan natif de Claude Code (sans page Notion), pour enquêter avant d'écrire le plan : carte de voisinage, agent enqueteur, agent chercheur si l'artefact n'est pas propre au projet, le tout écrit dans le plan natif. Exécute aussi un plan natif approuvé, sans page Notion, en le déléguant à des sous-agents Haiku. À utiliser quand on demande d'exécuter, dérouler ou implémenter un plan validé qui vit dans un fichier et non dans Notion : « exécute le plan », « déroule plan.md », plan natif approuvé après ExitPlanMode, ou consigne d'Hermes qui lance une session en mode plan et lit son compte rendu final. Découpe le plan en étapes de cinq fichiers au plus, chacune avec sa preuve ; envoie chaque étape à plans-notion:executant, en parallèle quand les fichiers sont disjoints ; relit chaque rapport et rejoue la preuve ; n'ajoute un relecteur qu'au-delà de cinq fichiers touchés en tout ; cite dans le compte rendu la commande de preuve de chaque étape. Rien ne s'écrit dans Notion. Pour un plan dans une page Notion, c'est executer-plan-notion.
+  Se charge DÈS LE LANCEMENT d'une session en mode plan natif de Claude Code (sans page Notion), pour enquêter avant d'écrire le plan : carte de voisinage, agent enqueteur, agent chercheur si l'artefact n'est pas propre au projet, le tout écrit dans le plan natif. Exécute aussi un plan natif approuvé, sans page Notion, en le déléguant à des sous-agents Haiku. À utiliser quand on demande d'exécuter, dérouler ou implémenter un plan validé qui vit dans un fichier et non dans Notion : « exécute le plan », « déroule plan.md », plan natif approuvé après ExitPlanMode, ou consigne d'Hermes qui lance une session en mode plan et lit son compte rendu final. Découpe le plan en étapes de cinq fichiers au plus, chacune avec sa preuve ; envoie chaque étape à plans-notion:executant, en parallèle quand les fichiers sont disjoints ; relit chaque rapport et rejoue la preuve ; n'ajoute un relecteur qu'au-delà de cinq fichiers touchés en tout ; cite dans le compte rendu la commande de preuve de chaque étape. Rien ne s'écrit dans Notion, sauf le changelog et les fiches du projet à la clôture. Pour un plan dans une page Notion, c'est executer-plan-notion.
 ---
 
 # Déléguer un plan natif à Haiku
 
 Ce skill sert une session qui a un plan **sans page Notion**, à écrire ou déjà approuvé.
-Il ne lit ni n'écrit aucune page.
+Il ne lit ni n'écrit aucune page hors clôture (changelog et fiches).
 
 ## Avant le plan
 
@@ -18,8 +18,8 @@ Dès le lancement d'une session en mode plan natif, avant `ExitPlanMode` : lire
 
 - **Une étape = un appel `Agent` à `plans-notion:executant`**, nom qualifié, sans
   `model` (son frontmatter le fixe, sauf montée de l'escalade bornée, `etapes.md`).
-  Jamais `general-purpose` pour une étape d'exécution : `${CLAUDE_PLUGIN_ROOT}/skills/executer-plan-notion/etapes.md`,
-  section « La délégation est la règle, pas une faveur ».
+  Jamais `general-purpose` pour une étape d'exécution :
+  `${CLAUDE_PLUGIN_ROOT}/skills/executer-plan-notion/etapes.md`.
 - **Diagnostic, pas correctif** : voir `${CLAUDE_PLUGIN_ROOT}/skills/_partage/compte-rendu-natif.md`.
 
 ## Suis-je la bonne version ?
@@ -33,8 +33,8 @@ lire ce skill depuis cet `installPath`. Code 2 : lecture impossible, à dire.
 
 ## 1. Envoyer les étapes
 
-- Brief : la forme de `${CLAUDE_PLUGIN_ROOT}/skills/executer-plan-notion/etapes.md` (« Le brief
-  du sous-agent »), sans recopier la définition de l'`executant`.
+- Brief : la forme de `${CLAUDE_PLUGIN_ROOT}/skills/executer-plan-notion/etapes.md`,
+  sans recopier la définition de l'`executant`.
 - **En parallèle** si les fichiers sont disjoints, sinon en séquence (`${CLAUDE_PLUGIN_ROOT}/skills/_partage/vagues.md`).
 
 ## 2. Relire et rejouer
@@ -59,17 +59,17 @@ python3 "${CLAUDE_PLUGIN_ROOT}/skills/_partage/scripts/qualite-doc.py" juger --e
 ```
 
 Chaque passage relevé se traite selon la rubrique « Preuve doc » de
-`${CLAUDE_PLUGIN_ROOT}/skills/_partage/compte-rendu-natif.md`, à lire avant. Bloquant.
+`${CLAUDE_PLUGIN_ROOT}/skills/_partage/compte-rendu-natif.md`. Bloquant.
 
 ## 5. Compte rendu
 
 Avant la réponse finale, lire `${CLAUDE_PLUGIN_ROOT}/skills/_partage/compte-rendu-natif.md` :
-il fixe le texte, dont la preuve de chaque étape, la preuve doc et ses quatre rubriques.
+il fixe le texte, dont la preuve doc et ses cinq rubriques.
 
 Ses compagnons sont les fichiers partagés
 `${CLAUDE_PLUGIN_ROOT}/skills/_partage/avant-le-plan.md`,
 `${CLAUDE_PLUGIN_ROOT}/skills/_partage/vagues.md`,
 `${CLAUDE_PLUGIN_ROOT}/skills/_partage/revue.md`,
 `${CLAUDE_PLUGIN_ROOT}/skills/_partage/lecture-deleguee.md`,
-`${CLAUDE_PLUGIN_ROOT}/skills/_partage/grille-doc.md` et
+`${CLAUDE_PLUGIN_ROOT}/skills/_partage/changelog-et-doc.md`, `${CLAUDE_PLUGIN_ROOT}/skills/_partage/grille-doc.md` et
 `${CLAUDE_PLUGIN_ROOT}/skills/_partage/compte-rendu-natif.md`.

@@ -7,9 +7,9 @@ tel quel : les rubriques ci-dessous restent dans le texte, avec leur nom exact.
 La dernière réponse de la session, courte : pour chaque étape, son état, sa commande de
 preuve et le résultat rejoué ; le verdict du relecteur s'il a été appelé ; la preuve doc ;
 les écarts et les questions ouvertes. Une consigne d'Hermes lit ce texte tel quel. Rien n'est écrit
-dans Notion ni ailleurs.
+dans Notion ni ailleurs, sauf le changelog et les fiches du projet, par la rubrique « Changelog ».
 
-Le texte contient quatre rubriques, présentes même vides (« aucune » s'écrit aussi) :
+Le texte contient cinq rubriques, présentes même vides (« aucune » s'écrit aussi) :
 
 - **Ajouts sans question** : les découvertes intégrées au plan sans demander, une par
   ligne (`${CLAUDE_PLUGIN_ROOT}/skills/_partage/decouvertes.md`, § 2).
@@ -25,6 +25,18 @@ Le texte contient quatre rubriques, présentes même vides (« aucune » s'écri
   ici son verdict. Autre code non nul : le dire. Tant qu'un passage est en suspens, la clôture attend.
   Une session lancée par Hermes (`piloted-code-change`, dont la veille) tient cette rubrique
   en une phrase.
+- **Changelog** : l'entrée du changelog et des fiches (`${CLAUDE_PLUGIN_ROOT}/skills/_partage/changelog-et-doc.md`,
+  § 8), toujours présente, avec une de ces mentions :
+  - `posé dans Notion (palier 1)` : le connecteur Notion de la session a posé l'entrée ;
+    `posé dans Notion (palier 2)` : la commande `composio` du VPS l'a posée. En session cloud,
+    sans VPS, le palier 2 manque : on passe directement au palier 3 ;
+  - `non posé — pas de connecteur` : aucun palier Notion n'a posé l'entrée. Le fichier du
+    palier 3 (à poser par Hermes) est indiqué juste à côté, avec son chemin ;
+  - `doc vivante désactivée` : rien n'est tenté dans Notion ;
+  - `non posé — projet sans décision` : rien n'est écrit dans le hub, et la question
+    « Doc vivante : à activer pour <projet> ? » part dans « Questions pour Benjamin ».
+
+  L'entrée porte la mention `plan natif`.
 
 **Tri sans humain.** Une session lancée par Hermes n'a personne pour répondre. Le tri suit
 `${CLAUDE_PLUGIN_ROOT}/skills/_partage/decouvertes.md`, § 3 : la sécurité et l'irréversible
