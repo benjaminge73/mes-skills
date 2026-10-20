@@ -55,6 +55,62 @@ Un code 1 se corrige et se rejoue ; jamais `pret` « en attendant ». Les valeur
   page et tu joues les commandes toi-même.
 - **Écrire un secret** (jeton, clé) dans la page ou dans ton rapport.
 
+## Quand Notion ne répond pas
+
+Une lecture ou une écriture Notion de la préparation peut tomber. La conduite à
+tenir, avec les pannes datées, est dans la fiche « Connecteurs MCP d'une session
+Claude Code (Notion, Composio) » de `${CLAUDE_PLUGIN_ROOT}/skills/_partage/outils-et-quotas.md` :
+lis-la quand un appel échoue, ne cherche pas ailleurs. Tu n'as que deux paliers, le
+connecteur de la session puis la commande `composio` du VPS. Le palier Hermes reste
+au pilote : tu ne lances jamais `hermes chat`, ni un sous-agent.
+
+**Palier 1, le connecteur de la session.** Un message qui nomme le hook de l'hôte
+(« host client may be unreachable », « did not respond before its timeout », « The tool
+call was not executed ») veut dire que rien n'est parti : réessaie le même appel, sans
+risque de doublon. Entre deux essais, attends une à deux minutes (`sleep 90` lancé en
+arrière-plan, jamais au premier plan), trois essais au plus sur une dizaine de minutes.
+`internal_server_error` de l'API Notion : même geste, panne ponctuelle côté Notion.
+Tout autre message (page introuvable, droit refusé, `validation_error`) ne se
+réessaie pas, et `mcp_oauth_token_read_unsupported` ne se règle pas en réessayant :
+ce n'est pas une panne à contourner, tu rends `BLOCKED` avec le message mot pour mot.
+
+**Palier 2, la commande `composio` du VPS.** Elle parle à Notion sans passer par l'app
+de bureau. Tu l'appelles par `Bash`, seulement après trois échecs du palier 1 :
+
+- **Lire** : `echo '{"page_id":"<id>"}' | composio execute NOTION_GET_PAGE_MARKDOWN -d -`.
+  Si la réponse porte `"storedInFile": true` et un `outputFilePath`, lis ce fichier JSON
+  et prends `data.markdown`.
+- **Écrire le contenu** : `composio execute NOTION_UPDATE_PAGE_MARKDOWN -d @args.json`, où
+  `args.json` porte `{"page_id": …, "type": "update_content", "update_content": {"content_updates": [{"old_str": …, "new_str": …}]}}`.
+- **Écrire une propriété** (`Statut`, `Branche`) : `composio execute NOTION_UPDATE_PAGE -d @args.json`.
+
+Les règles de `_partage/ecrire-dans-notion.md` valent sur ce chemin :
+
+- le texte passe **toujours** par un fichier (`-d @fichier`), jamais en ligne de commande
+  ni par recopie dans la réponse ;
+- le `old_str` se **construit par script** à partir d'une relecture fraîche de la page
+  (le miroir relu juste avant), jamais recopié à la main ; un caractère d'écart fait
+  échouer le remplacement, et un échec silencieux se voit à la relecture ;
+- après chaque écriture, relis la page et recompte les cases :
+  `python3 "${CLAUDE_PLUGIN_ROOT}/skills/_partage/scripts/compter-cases.py" <page.md> --releve <releve.json>`,
+  où `<releve.json>` est pris sur la page fraîche avant la première écriture. Code 0
+  attendu. Un écart n'est jamais corrigé en silence : tu le rends dans le rapport avec
+  sa ligne, et tu rends `BLOCKED` tant qu'il n'est pas expliqué ;
+- tu ne coches ni ne décoches aucune case par cette voie.
+
+**`pret` et la relecture.** `Statut` = `pret` ne se pose par le palier 2 que si la
+relecture montre ensuite la valeur `pret` et la `Branche` attendues. Une écriture dont
+la relecture ne confirme pas ce qui était posé n'est pas posée : tu ne tiens pas `pret`
+pour acquis, et tu rends `BLOCKED`.
+
+**Les deux paliers échouent.** Tu rends `BLOCKED`, et ton rapport porte :
+
+- l'erreur mot pour mot, celle du dernier palier essayé ;
+- le palier atteint (« palier 1 » ou « palier 2 ») ;
+- le chemin du fichier d'arguments prêt à envoyer, rangé sous
+  `~/brouillons/<projet>/<sujet>/` (et non à la racine de `~`, ni dans `/tmp`), sans aucun
+  secret dedans. Le pilote le confiera à Hermes, qui l'enverra par `composio … -d @fichier`.
+
 ## Ton rapport
 
 Un état explicite en première ligne, puis court :
