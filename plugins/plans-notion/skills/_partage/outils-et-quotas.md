@@ -403,13 +403,26 @@ lecture.
    NOTION_UPDATE_PAGE_MARKDOWN -d @fichier`, ou une entrée de changelog sous
    `~/brouillons/<projet>/changelog/`), c'est le pilote qui le reprend, jamais
    l'agent. Le pilote calcule l'empreinte sha256 du fichier, puis charge Hermes,
-   par le même `hermes chat --query-file` et le même délai, de jouer lui-même
-   `composio execute <slug> -d @<fichier>` sur ce chemin exact : même action, même
-   fichier. La consigne interdit à Hermes d'ouvrir le fichier et de le recopier ;
-   c'est `composio` qui le lit. Le pilote recalcule l'empreinte après l'envoi : si
-   elle a changé, l'opération s'arrête. Hermes rend le JSON de la réponse de
-   `composio`, et le pilote relit la page et recompte les cases avant de tenir
-   l'écriture pour faite.
+   par le même `hermes chat --query-file` et le même délai, de jouer lui-même une
+   seule commande sur ce chemin exact, qui vérifie l'empreinte juste avant
+   l'envoi : `echo "<sha256>  <fichier>" | sha256sum -c - && composio execute
+   <slug> -d @<fichier>`. Si l'empreinte diffère, `sha256sum -c` échoue et
+   `composio` n'est jamais appelé : rien n'est envoyé. Même action, même fichier.
+   La consigne interdit à Hermes d'ouvrir le fichier et de le recopier ; c'est
+   `composio` qui le lit. Si malgré tout la page ne correspond pas au texte prévu
+   après l'envoi, le pilote la relit, la compare au texte prévu et corrige par une
+   nouvelle écriture ciblée, selon le protocole de `ecrire-dans-notion.md`, jamais
+   en silence. Hermes rend le JSON de la réponse de `composio`, et le pilote relit
+   la page et recompte les cases avant de tenir l'écriture pour faite.
+
+   **Nuance : l'échec vient de Composio.** Si l'agent a rendu `BLOCKED` parce que
+   Composio lui-même refuse (compte déconnecté ou expiré, refus de l'API), rejouer
+   la même commande refera la même erreur. Le pilote le lit dans le message du
+   `BLOCKED`. Dans ce cas, il ne rejoue pas la commande : il charge Hermes de
+   passer par son workbench (`COMPOSIO_REMOTE_WORKBENCH` / `proxy_execute`, voie
+   décrite plus haut dans ce palier), le code du workbench étant écrit par le
+   pilote lui-même, comme le veut la bonne pratique plus haut, et l'empreinte
+   vérifiée par ce code avant toute écriture.
 
 Limite : `composio` est posé à la main sur le VPS, hors de la cascade
 d'installation de `installer-un-outil.md`, sans manifeste ; rien ne le met à
