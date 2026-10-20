@@ -7,8 +7,10 @@ rubrique oubliée, une ligne sans source, une date absente ne se voient pas à l
 dans une page longue ; ça se compte. Même principe que ``compter-cases.py``.
 
 Usage : controle-changelog.py <entree.md>
-  Lit la section dont le titre H2 commence par « Récap » (casse indifférente), jusqu'au
-  prochain titre H1 ou H2. Vérifie :
+  Lit la première section dont le titre H2 commence par « Récap » (casse indifférente)
+  ou par une date (AAAA-MM-JJ ou JJ/MM/AAAA : l'en-tête d'une entrée du Changelog du hub,
+  « ## AAAA-MM-JJ · titre »), jusqu'au prochain titre H1 ou H2. Les sections suivantes
+  ne sont pas contrôlées. Vérifie :
   - l'en-tête (le H2 et les lignes avant la première rubrique) porte une date ISO
     (AAAA-MM-JJ) ou JJ/MM/AAAA ;
   - les quatre rubriques sont présentes, dans l'ordre : Nouveau, Amélioré, Corrigé,
@@ -23,8 +25,8 @@ Usage : controle-changelog.py <entree.md>
 
 Sortie : sans défaut, rien. Sinon un défaut par ligne sur la sortie standard, avec son
 numéro de ligne.
-Codes : 0 conforme ; 1 défauts ; 2 entrée illisible ou section « Récap » absente (le
-motif part sur la sortie d'erreur).
+Codes : 0 conforme ; 1 défauts ; 2 entrée illisible ou aucune entrée (« Récap » ni date
+en tête de H2) trouvée (le motif part sur la sortie d'erreur).
 Bibliothèque standard uniquement.
 """
 from __future__ import annotations
@@ -55,12 +57,20 @@ def _contenu(ligne: str) -> str:
     return PUCE.sub("", ligne).strip()
 
 
+def _ouvre_une_entree(ligne: str) -> bool:
+    """Vrai si la ligne ouvre une entrée : un H2 « Récap », ou un H2 qui commence par une date."""
+    if not ligne.startswith("## "):
+        return False
+    titre = ligne[3:].strip()
+    return titre.lower().startswith("récap") or DATE.match(titre) is not None
+
+
 def _section_recap(lignes: list[str]) -> tuple[int, int] | None:
-    """Indices (début, fin exclue) de la section « Récap », ou None si elle est absente."""
+    """Indices (début, fin exclue) de la première entrée, ou None si elle est absente."""
     debut = None
     for i, ligne in enumerate(lignes):
         if debut is None:
-            if ligne.startswith("## ") and ligne[3:].strip().lower().startswith("récap"):
+            if _ouvre_une_entree(ligne):
                 debut = i
         elif TITRE_HAUT.match(ligne):
             return debut, i
@@ -68,11 +78,11 @@ def _section_recap(lignes: list[str]) -> tuple[int, int] | None:
 
 
 def controler(texte: str) -> list[str]:
-    """Renvoie la liste des défauts ; lève ValueError si la section « Récap » manque."""
+    """Renvoie la liste des défauts ; lève ValueError si aucune entrée n'est trouvée."""
     lignes = texte.splitlines()
     borne = _section_recap(lignes)
     if borne is None:
-        raise ValueError("section « Récap » absente")
+        raise ValueError("section « Récap » ou entrée datée (## AAAA-MM-JJ) absente")
     debut, fin = borne
 
     titres = []  # (indice, libellé) de chaque rubrique, dans l'ordre du document
