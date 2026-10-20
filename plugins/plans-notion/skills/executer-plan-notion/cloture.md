@@ -21,6 +21,9 @@ Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard »
   Benjamin l'a demandé). `execute` se pose dès que le merge est
   vérifié sur `main`, dans le tour où on le constate : ce peut être un tour
   après celui du compte rendu (point 8 de la séquence).
+  Plan couvert par un plan maître : le passage à `a merger` rejoue aussi
+  `statut-maitre.py --actuel` dans ce tour (`plan-notion/plan-maitre.md`, « Qui rejoue le
+  calcul, et quand »).
   Une seule question, et sa réponse est factuelle — *où est le code à cette
   seconde ?* Poser `execute` sur du travail qui dort sur une branche ou une PR
   ouverte fait croire
@@ -332,6 +335,8 @@ Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard »
        dans `origin/main`), poser `execute`, ajouter une ligne datée à `État
        final`, retirer le worktree. Ce tour peut être un tour ultérieur à celui du
        point 7 : `execute` se pose dans le tour où le merge est constaté.
+       Plan couvert par un plan maître : rejouer `statut-maitre.py --actuel` dans ce
+       même tour (`plan-notion/plan-maitre.md`, « Qui rejoue le calcul, et quand »).
      - **(b) Rouge** → corriger dans le worktree, encore présent, rejouer la suite
        complète en local, repousser **une seule fois** (chaque push relance un
        run). `Statut` reste `a merger`. Un correctif structurant part à l'arbitrage

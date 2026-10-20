@@ -189,3 +189,10 @@ c'est la vérité, pas un oubli. Et **dès que la branche part sur `main`, la pa
 passe à `execute` dans le même tour que le merge** : le statut suit le code, et
 une page restée à `a merger` sur du travail déjà remonté annonce un chantier en
 attente qui n'existe plus.
+
+**Un `Statut` de plan ne s'écrit jamais seul quand le plan a un maître.** Le `Statut`
+du plan maître est dérivé de ceux de ses plans : qui change l'un (`en cours`,
+`a merger`, `execute`, `archive`) rejoue `statut-maitre.py --actuel` dans le même
+tour et réécrit le maître si le code rendu est 3. Sinon le maître reste sur son
+dernier calcul, et annonce `pret` un lot déjà sur `main`. Les gestes sont dans
+`plan-notion/plan-maitre.md`, « Qui rejoue le calcul, et quand ».
