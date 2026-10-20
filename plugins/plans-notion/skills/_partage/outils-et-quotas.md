@@ -398,6 +398,19 @@ lecture.
    par écriture, il bloquerait une vague de sous-agents. Un agent qui atteint le
    palier 2 sans succès rend `BLOCKED` et laisse le texte prêt dans un fichier.
 
+   **Reprendre un fichier d'arguments laissé par un agent.** Quand un agent rend
+   `BLOCKED` avec un fichier prêt (un `args.json` pour `composio execute
+   NOTION_UPDATE_PAGE_MARKDOWN -d @fichier`, ou une entrée de changelog sous
+   `~/brouillons/<projet>/changelog/`), c'est le pilote qui le reprend, jamais
+   l'agent. Le pilote calcule l'empreinte sha256 du fichier, puis charge Hermes,
+   par le même `hermes chat --query-file` et le même délai, de jouer lui-même
+   `composio execute <slug> -d @<fichier>` sur ce chemin exact : même action, même
+   fichier. La consigne interdit à Hermes d'ouvrir le fichier et de le recopier ;
+   c'est `composio` qui le lit. Le pilote recalcule l'empreinte après l'envoi : si
+   elle a changé, l'opération s'arrête. Hermes rend le JSON de la réponse de
+   `composio`, et le pilote relit la page et recompte les cases avant de tenir
+   l'écriture pour faite.
+
 Limite : `composio` est posé à la main sur le VPS, hors de la cascade
 d'installation de `installer-un-outil.md`, sans manifeste ; rien ne le met à
 jour. Une session cloud ne l'a pas : là-bas, on passe du palier 1 au palier 3.
