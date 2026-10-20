@@ -133,11 +133,9 @@ Pour un lot, le condensé liste chaque plan du lot avec son lien ; le `Changelog
 
 - Un plan natif alimente le `Changelog` et les fiches. C'est la seule exception à la règle « rien dans Notion » d'un plan natif. Son entrée est marquée `(plan natif)`.
 - Le hub d'un plan natif suit le § 1.
-- Le compte rendu natif porte une **cinquième rubrique `Changelog`**, toujours présente, avec une de ces mentions :
-  - `posé dans Notion (palier 1)` ou `posé dans Notion (palier 2)`, selon le palier qui a réussi (§ 6) ;
-  - `non posé — pas de connecteur` : aucun palier Notion n'a posé l'entrée. Le fichier du palier 3 est alors indiqué juste à côté, avec son chemin.
+- Le compte rendu natif porte une **cinquième rubrique `Changelog`**, toujours présente. Ses mentions possibles, et ce que chacune veut dire, sont celles de `${CLAUDE_PLUGIN_ROOT}/skills/_partage/compte-rendu-natif.md`, rubrique « Changelog ». Cette rubrique en est la seule source : ce fichier n'en recopie aucune mention.
 - Le skill **n'échoue pas** parce que Notion manque, et il ne cherche aucun contournement en dehors de la chaîne du § 6.
-- Projet désactivé (§ 5) : la rubrique dit `doc vivante désactivée`, et rien n'est tenté dans Notion.
+- Projet désactivé (§ 5) : rien n'est tenté dans Notion, et la mention qui le dit est celle de `compte-rendu-natif.md`.
 
 ## 9. La couche « Sous le capot »
 
