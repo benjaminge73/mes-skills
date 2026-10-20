@@ -83,7 +83,9 @@
         "skills/_partage/lecture-deleguee.md",
         "skills/_partage/decouvertes.md",
         "skills/_partage/scripts/qualite-doc.py",
-        "skills/_partage/grille-doc.md"
+        "skills/_partage/grille-doc.md",
+        "skills/_partage/changelog-et-doc.md",
+        "skills/_partage/scripts/controle-changelog.py"
       ],
       "cas": ["decouverte-irreversible", "decouverte-reversible", "decouverte-secret", "decouverte-trop-grande", "cloture-ouvre-la-pr", "cloture-preuve-doc"],
       "plancher": 0.47
@@ -120,7 +122,8 @@
         "agents/preparateur.md",
         "skills/_partage/lecture-deleguee.md",
         "skills/_partage/avant-le-plan.md",
-        "skills/_partage/compte-rendu-natif.md"
+        "skills/_partage/compte-rendu-natif.md",
+        "skills/_partage/changelog-et-doc.md"
       ],
       "cas": ["deleguer-sans-notion"],
       "plancher": 0.9
