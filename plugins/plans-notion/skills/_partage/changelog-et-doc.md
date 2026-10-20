@@ -118,10 +118,10 @@ Le compte rendu dit **quel palier** a posé l'entrée. Le détail des commandes 
 
 ## 7. Le condensé du plan maître
 
-Sur la page d'un plan maître, un chapitre `## Condensé` reprend les entrées de chaque plan enfant :
+Sur la page d'un plan maître, un chapitre `## Récap du lot` reprend les entrées de chaque plan enfant :
 
 - une puce par entrée : titre du plan, date, une phrase de l'entrée ;
-- un **lien d'ancre** vers le titre exact de la section concernée : `### Étape N` pour une étape, ou le titre commençant par `## Récap` (`## Récap · AAAA-MM-JJ · <titre du plan>`) pour le récap du plan ;
+- un **lien d'ancre** vers le titre exact de la section concernée : `### Étape N` pour une étape, ou le titre commençant par `## Récap` (`## Récap · AAAA-MM-JJ · <titre du plan>`) pour le récap du plan. `## Récap du lot` n'est pas une cible : c'est le condensé d'un lot, sur la page maître, et il ne récapitule aucun plan ;
 - l'identifiant de chaque titre se lit par `NOTION_FETCH_BLOCK_CONTENTS` (Composio, appel par bloc). La forme du lien est `…/p/<page>#<id du bloc sans tirets>` ;
 - **repli** : si la lecture de l'identifiant échoue, la mention en clair, `page du plan — → Étape 3` (ou `→ Récap`), sans lien.
 

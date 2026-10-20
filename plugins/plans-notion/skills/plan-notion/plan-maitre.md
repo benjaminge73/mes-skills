@@ -57,6 +57,23 @@ Les quatre premières sont des **H2 aux titres fixes** — `Plans`, `Croisement`
 `pret` tant qu'une d'elles manque (« Le statut du plan maître et son lot »). Les
 deux autres s'appellent `Avancement` et `État final`.
 
+Un H2 de plus, **`Récap du lot`**, n'est pas dans cette liste. `preparation-prete.py
+--maitre` ne le cherche pas, et son titre ne commence par aucun des six : il n'en
+est ni une condition ni un doublon. C'est le condensé du lot, la seule place où
+Benjamin voit ce que chaque plan change pour lui sans ouvrir sa page :
+
+- un tableau, **Plan · Ce qui change pour toi · Reste à faire**, une ligne par
+  plan du lot ; la colonne Plan porte le lien vers la page du plan ;
+- la colonne « Ce qui change pour toi » reprend l'entrée de ce plan, une puce par
+  entrée (titre du plan, date, une phrase), et chaque puce porte son **lien
+  d'ancre** vers le titre `## Récap · AAAA-MM-JJ · <titre du plan>` de la page du
+  plan, avec la mention en clair à côté (`→ Récap`) tant que le clic n'est pas
+  vérifié. La méthode de l'ancre et son repli sont au § 7 de
+  `_partage/changelog-et-doc.md` : on y renvoie, on ne les recopie pas ;
+- le pilote complète la ligne d'un plan **à chacune de ses clôtures**, dans la
+  même passe que l'avancement. Tant qu'un plan n'a pas clos, sa ligne porte `—`
+  dans « Ce qui change pour toi », et « Reste à faire » dit ce qui l'attend.
+
 Elle s'écrit avec les mêmes précautions que le reste
 (`_partage/ecrire-dans-notion.md`), schéma compris (`_partage/schemas.md`).
 
@@ -98,20 +115,27 @@ par plan et par geste. Le pool d'une douzaine de places
 Une fiche qui manque ou rend `NEEDS_CONTEXT` se relance pour ce plan seul ; les
 autres ne l'attendent pas.
 
-**Quand Notion ne répond pas.** Le `lecteur` rend `BLOCKED` avec l'erreur mot
-pour mot ; le repli est au pilote, dans l'ordre de la fiche « Connecteurs MCP
-d'une session Claude Code » de `_partage/outils-et-quotas.md` :
+**Quand Notion ne répond pas.** Le `lecteur` joue lui-même les deux premiers
+paliers de la chaîne : le connecteur de la session, puis la commande `composio`
+du VPS, en lecture seule. Quand les deux échouent, il rend `BLOCKED` avec
+l'erreur mot pour mot, et y nomme le palier suivant si `composio` a été joué.
+La chaîne complète, ses délais
+et ses règles de doublon sont dans la fiche « Connecteurs MCP d'une session
+Claude Code » de `_partage/outils-et-quotas.md` : on la lit là, elle n'est pas
+recopiée ici. L'outil Composio de la session n'est pas un palier : il passe par
+le même relais que Notion et tombe avec lui.
 
-1. panne « hôte injoignable » (hook, délai dépassé, appel non parti) : attendre
-   une à deux minutes et relancer le `lecteur`, trois fois au plus — rien n'est
-   parti, donc pas de doublon ;
-2. la panne dure et la session a l'outil Composio : lire la page par lui. Une
-   lecture de blocs volumineuse revient élidée par `COMPOSIO_MULTI_EXECUTE_TOOL` ;
-   pour une page longue, c'est le workbench (`COMPOSIO_REMOTE_WORKBENCH`) qui la
-   rend, et son code écrit la page dans un fichier au lieu de la renvoyer, pour
-   que le pilote ne la charge pas dans son contexte ;
-3. toujours rien : `hermes chat --query-file`, délai d'au moins 900 s (300 s a
-   expiré), seulement pour lire — le pilote écrit lui-même la consigne.
+Le pilote lit la mention du `BLOCKED` :
+
+- **« palier suivant : Hermes, au pilote »** : le `lecteur` a déjà joué
+  `composio`, et ça a échoué. Il ne relance pas le `lecteur` pour cette page.
+  Le pilote passe au palier Hermes de la fiche, seulement pour lire, avec la
+  consigne qu'il écrit lui-même.
+- **Sans cette mention** : `composio` était absent, ou la page est refusée
+  (catégorie « autre »). Le pilote suit la fiche pour ce cas. Il ne relance le
+  `lecteur` que si la fiche prévoit une nouvelle tentative (panne « hôte
+  injoignable » : attendre une à deux minutes, trois essais au plus) ; une page
+  refusée ne se relance pas, elle refuserait à l'identique.
 
 Le pilote ne lit jamais la page en Opus par le connecteur « pour aller plus
 vite » : c'est le chemin que ce fichier ferme. Et les pages que le `lecteur` a
@@ -166,6 +190,16 @@ seul cas qui rouvre un lot fermé est le **plan de suite** d'un plan du lot
 (`_partage/plan-de-suite.md`) : né de ce plan, il le rejoint, et le statut du
 maître est recalculé. Un lot qui retombe à un plan (un abandon) reste un maître
 jusqu'à sa fermeture.
+
+**À la fermeture du lot, une seule entrée au Changelog.** Quand
+`statut-maitre.py` rend `lot=ferme`, le pilote pose une entrée consolidée au
+`Changelog` du hub du projet, titre `## AAAA-MM-JJ · Lot <titre du plan maître>`,
+qui reprend chaque plan du lot avec son lien. Les plans du lot n'en écrivent pas
+chacun : leur récap reste en tête de leur propre page (`## Récap · …`), et le
+`Récap du lot` de la page maître reste le condensé. L'entrée part à la clôture du
+lot, comme une entrée de plan part à sa clôture, avant le merge : « Reste à faire »
+dit ce qui attend. Format et règles : `_partage/changelog-et-doc.md` (§ 2.4, et § 5
+pour un projet non activé, où le hub n'est pas touché).
 
 **Ajouter un plan en route** : sa préparation se joue seule, jusqu'à `pret`
 (`lecteur`, `enqueteur`, `sondeur` sur ce plan, plus les étapes ci-dessous), puis

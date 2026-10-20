@@ -489,6 +489,7 @@ comment de la séance de code.
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/schemas.md`,
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/cron-a-la-main.md`,
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/decouvertes.md`,
+  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/changelog-et-doc.md`,
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/revue.md` et
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/bons-tests.md`, ses quatre fichiers de
   référence (`enquete.md`, `chapitres-cadrage.md`,
