@@ -128,6 +128,10 @@ Séquence, dans l'ordre :
 
 5. **`Statut` = `execute`** — seulement si le point 4 a constaté un merge, dans le
    tour où on le constate.
+   Si le plan est couvert par un plan maître, **rejouer son calcul dans le même tour**
+   (`statut-maitre.py --actuel` ; `plan-notion/plan-maitre.md`, « Qui rejoue le calcul, et quand ») : le dernier
+   plan à passer `execute` est celui qui ferme le lot, et c'est le maître qui reste
+   en arrière.
 6. Une entrée de journal **`Remontée sur main`** (H3, comme les autres, §4) : la
    PR, le commit de merge, la date, et ce qui reste à faire après le merge s'il
    reste quelque chose. Une PR ouverte sans merge a aussi son entrée — `PR

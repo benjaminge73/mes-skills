@@ -10,8 +10,9 @@ RACINE = Path(__file__).resolve().parent.parent
 SCRIPT = RACINE / "plugins" / "plans-notion" / "skills" / "_partage" / "scripts" / "statut-maitre.py"
 
 
-def jouer(*statuts):
-    r = subprocess.run([sys.executable, str(SCRIPT), *statuts], capture_output=True, text=True)
+def jouer(*statuts, actuel=None):
+    option = [] if actuel is None else ["--actuel", actuel]
+    r = subprocess.run([sys.executable, str(SCRIPT), *option, *statuts], capture_output=True, text=True)
     sortie = dict(l.split("=", 1) for l in r.stdout.splitlines())
     return r.returncode, sortie, r.stderr
 
@@ -63,6 +64,40 @@ class StatutMaitre(unittest.TestCase):
                 code, _, erreur = jouer("valide", valeur)
                 self.assertEqual(code, 2)
                 self.assertIn(valeur, erreur)
+
+    def test_un_maitre_reste_a_pret_alors_que_tous_ses_plans_sont_executes_est_signale(self):
+        # Le cas du 2026-10-20 : maître Vahiny noté `pret` (lot ouvert) pendant que ses plans
+        # passaient `en cours`, `a merger`, `execute` sans que personne ne rejoue le calcul.
+        code, sortie, _ = jouer("execute", "execute", "archive", actuel="pret")
+        self.assertEqual(code, 3)
+        self.assertEqual(sortie, {"statut": "execute", "lot": "ferme", "actuel": "pret"})
+
+    def test_un_statut_de_maitre_vide_est_un_ecart(self):
+        # Le maître « La doc suit le plan » n'a jamais eu de Statut : vide = périmé.
+        code, sortie, _ = jouer("a merger", "en cours", actuel="")
+        self.assertEqual((code, sortie["statut"], sortie["actuel"]), (3, "en cours", ""))
+
+    def test_un_maitre_a_jour_rend_zero_et_ne_dit_pas_actuel(self):
+        code, sortie, _ = jouer("execute", "a merger", actuel="a merger")
+        self.assertEqual(code, 0)
+        self.assertNotIn("actuel", sortie)
+
+    def test_actuel_sans_valeur_est_refuse(self):
+        r = subprocess.run([sys.executable, str(SCRIPT), "--actuel"], capture_output=True, text=True)
+        self.assertEqual(r.returncode, 2)
+
+    def test_chaque_endroit_qui_ecrit_un_statut_de_plan_renvoie_au_rejeu_du_maitre(self):
+        # Le script ne se rejoue pas tout seul : ce qui tient la règle, c'est qu'elle soit écrite
+        # à chaque endroit où un `Statut` de plan se pose (ouverture, clôture, remontée, vocabulaire).
+        skills = RACINE / "plugins" / "plans-notion" / "skills"
+        for chemin in ("executer-plan-notion/ouverture.md", "executer-plan-notion/cloture.md",
+                       "_partage/remontee-sur-main.md", "_partage/ecrire-dans-notion.md"):
+            with self.subTest(fichier=chemin):
+                texte = " ".join((skills / chemin).read_text(encoding="utf-8").split())
+                self.assertIn("Qui rejoue le calcul, et quand", texte)
+                self.assertIn("statut-maitre.py", texte)
+        titres = (skills / "plan-notion" / "plan-maitre.md").read_text(encoding="utf-8")
+        self.assertIn("### Qui rejoue le calcul, et quand", titres)
 
 
 if __name__ == "__main__":
