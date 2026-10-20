@@ -14,6 +14,9 @@ Pannes, une par test :
   5. Une entrée conforme rend 0 ; une page sans section « Récap » rend 2.
 Un test de plus (7) : un en-tête sans date rend 1. La panne 5 ne la couvre pas,
 et une date absente passe inaperçue dans une page longue.
+Trois de plus, pour l'entrée datée du Changelog (« ## AAAA-MM-JJ · titre ») : une
+conforme rend 0 (8) ; une rubrique absente rend 1 (9) ; un récap daté reste conforme
+(10, garde de non-régression, vert avant le correctif).
 """
 from __future__ import annotations
 
@@ -103,6 +106,33 @@ class ControleChangelog(unittest.TestCase):
         code, sortie, erreur = jouer(self._entree(texte))
         self.assertEqual(code, 1, erreur)
         self.assertIn("sans date", sortie)
+
+    # Entrée du Changelog du hub (§ 2 de changelog-et-doc.md) : le H2 porte la date
+    # au début, « ## AAAA-MM-JJ · titre ». Ce n'est pas un H2 « Récap », et le script
+    # doit le lire comme une entrée et non rendre 2 « section absente ».
+    ENTETE_DATEE = "## 2026-10-20 · Plan exemple\nPlan : lien · PR : aucune (plan natif) · Statut : prête\n\n"
+
+    def test_entree_datee_du_changelog_conforme_rend_zero(self):
+        # Panne : le H2 daté rendait 2. Attendu indépendant : une entrée conforme au § 2
+        # n'a aucun défaut, la date du titre tient lieu de date d'en-tête.
+        code, sortie, erreur = jouer(self._entree(entree(entete=self.ENTETE_DATEE)))
+        self.assertEqual((code, sortie), (0, ""), erreur)
+
+    def test_entree_datee_sans_reste_a_faire_rend_un_et_nomme_la_rubrique(self):
+        # Panne : une rubrique oubliée dans une entrée datée passait inaperçue (rend 2 avant
+        # le correctif). Attendu : rend 1 et nomme « Reste à faire ».
+        texte = entree(ordre=("nouveau", "ameliore", "corrige"), entete=self.ENTETE_DATEE)
+        code, sortie, erreur = jouer(self._entree(texte))
+        self.assertEqual(code, 1, erreur)
+        self.assertIn("« Reste à faire » absente", sortie)
+
+    def test_recap_date_dans_le_titre_rend_zero(self):
+        # Garde de non-régression, déjà vert avant le correctif : le récap dont la date est
+        # dans le titre (« ## Récap · AAAA-MM-JJ · titre ») reste conforme. Il attrape une
+        # régression du correctif qui ne reconnaîtrait plus le H2 « Récap » avec une date.
+        entete = "## Récap · 2026-10-20 · Plan exemple\nPR : #12 — statut : prête\n\n"
+        code, sortie, erreur = jouer(self._entree(entree(entete=entete)))
+        self.assertEqual((code, sortie), (0, ""), erreur)
 
 
 if __name__ == "__main__":
