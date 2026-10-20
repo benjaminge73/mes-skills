@@ -333,12 +333,28 @@ coûte, lui, les tokens du modèle d'Hermes : une session Hermes par écriture.
   dont le champ `text` porte la page en Markdown.
 - **2026-10-09** : une capture d'écran se joint à une page en deux temps,
   `notion-create-file-upload` puis un POST du fichier vers l'adresse rendue.
+- **2026-10-10 : Notion et les outils Composio de la session tombent
+  ensemble.** L'app est restée injoignable plus de vingt minutes, et les
+  `mcp__<uuid>__COMPOSIO_*` ont expiré sur le même hook que Notion. Seule la
+  commande `composio` du VPS (palier 2 ci-dessous) a tenu, en lecture comme en
+  écriture. D'où le palier 2 hors de l'app, et non l'outil Composio de la
+  session.
+- **2026-10-20 : le connecteur Notion de l'app de bureau porte un nom en
+  `uuid`.** Ses outils s'appellent `mcp__<uuid>__…`, et la liste d'outils d'un
+  agent ne peut pas les prévoir : un agent ne cherche pas `notion-fetch` par son
+  nom. Il regarde si un outil Notion figure dans sa liste ; sinon il passe au
+  palier 2 sans attendre.
+- **2026-10-20 : les commentaires ne se lisent pas d'un coup par le chemin
+  `composio`.** `NOTION_FETCH_COMMENTS` prend un bloc à la fois : un relevé qui
+  veut les fils fait un appel par bloc concerné, ou écrit « fils non relus
+  (chemin composio) » et laisse le pilote les lire par `notion-get-comments`.
 
 **Bonne pratique** :
 
 - **Lire le message d'erreur avant de conclure.** S'il nomme le hook et dit
-  que l'appel n'est pas parti, la panne est entre la session et l'hôte :
-  passer au repli plutôt qu'attendre.
+  que l'appel n'est pas parti, la panne est entre la session et l'hôte : suivre
+  le repli ci-dessous (palier 1 réessayé, puis palier 2), sans conclure que
+  Notion est en panne.
 - **Le pilote écrit lui-même le code** que le workbench exécutera, contenu à
   écrire compris. Hermes ne fait que le transmettre : jamais lui demander de
   rédiger ou de reformuler.
@@ -353,13 +369,64 @@ coûte, lui, les tokens du modèle d'Hermes : une session Hermes par écriture.
 - Recompter après l'écriture, en relisant la page, comme avec le connecteur
   direct (`ecrire-dans-notion.md`).
 
-**Repli** : d'abord attendre une à deux minutes et réessayer, jusqu'à trois
-fois (rien n'est parti, donc pas de doublon) ; pendant ce temps, l'outil
-Composio de la session lit et écrit Notion si elle l'a. Si la panne dure,
-`hermes chat --query-file <consigne>`, avec un délai d'au moins
-900 s ; Hermes appelle son propre Composio, `COMPOSIO_REMOTE_WORKBENCH`, dont le
-code joue `proxy_execute(method, endpoint="/v1/…", toolkit="notion", body=…)`
-vers l'API Notion.
+**Repli** : trois paliers, dans cet ordre. On ne passe au suivant que si le
+précédent échoue, et le compte rendu dit lequel a posé l'écriture ou fourni la
+lecture.
+
+1. **Le connecteur Notion de la session.** Si l'appel est refusé par le hook
+   (« did not respond before its timeout »), attendre une à deux minutes et
+   réessayer le même appel, jusqu'à trois essais sur une dizaine de minutes.
+   Rien n'est parti, donc pas de doublon. Pendant ce temps, avancer sur ce qui
+   ne dépend pas de l'app.
+2. **La commande `composio` du VPS**, en lecture et en écriture. Elle est
+   installée à `~/.local/bin/composio` (lien vers `~/.composio/composio`, version
+   0.4.0). Lecture : `echo '{"page_id":"<id>"}' | composio execute
+   NOTION_GET_PAGE_MARKDOWN -d -` ; une grosse page revient dans un fichier
+   (`storedInFile`, puis `outputFilePath`, champ `data.markdown`). Écriture de
+   contenu : `composio execute NOTION_UPDATE_PAGE_MARKDOWN -d @args.json`, et
+   d'une propriété : `NOTION_UPDATE_PAGE`. Le texte passe par un fichier, jamais
+   recopié à la main ; `old_str` se construit par script, et les cases se
+   recomptent après chaque écriture (`connecteurs-timeout-hook.md`). L'outil
+   Composio de la session ne compte pas comme palier : il passe par le même
+   relais que Notion et tombe avec lui.
+3. **Hermes, au pilote seulement.** `hermes chat --query-file <consigne>`, avec
+   un délai d'au moins 900 s ; Hermes appelle son propre Composio,
+   `COMPOSIO_REMOTE_WORKBENCH`, dont le code joue `proxy_execute(method,
+   endpoint="/v1/…", toolkit="notion", body=…)` vers l'API Notion. Le contenu
+   est verrouillé par son empreinte sha256 (voir plus haut). Un agent ne lance
+   jamais ce palier : un `hermes chat` dure jusqu'à 900 s et ouvre une session
+   par écriture, il bloquerait une vague de sous-agents. Un agent qui atteint le
+   palier 2 sans succès rend `BLOCKED` et laisse le texte prêt dans un fichier.
+
+   **Reprendre un fichier d'arguments laissé par un agent.** Quand un agent rend
+   `BLOCKED` avec un fichier prêt (un `args.json` pour `composio execute
+   NOTION_UPDATE_PAGE_MARKDOWN -d @fichier`, ou une entrée de changelog sous
+   `~/brouillons/<projet>/changelog/`), c'est le pilote qui le reprend, jamais
+   l'agent. Le pilote calcule l'empreinte sha256 du fichier, puis charge Hermes,
+   par le même `hermes chat --query-file` et le même délai, de jouer lui-même une
+   seule commande sur ce chemin exact, qui vérifie l'empreinte juste avant
+   l'envoi : `echo "<sha256>  <fichier>" | sha256sum -c - && composio execute
+   <slug> -d @<fichier>`. Si l'empreinte diffère, `sha256sum -c` échoue et
+   `composio` n'est jamais appelé : rien n'est envoyé. Même action, même fichier.
+   La consigne interdit à Hermes d'ouvrir le fichier et de le recopier ; c'est
+   `composio` qui le lit. Si malgré tout la page ne correspond pas au texte prévu
+   après l'envoi, le pilote la relit, la compare au texte prévu et corrige par une
+   nouvelle écriture ciblée, selon le protocole de `ecrire-dans-notion.md`, jamais
+   en silence. Hermes rend le JSON de la réponse de `composio`, et le pilote relit
+   la page et recompte les cases avant de tenir l'écriture pour faite.
+
+   **Nuance : l'échec vient de Composio.** Si l'agent a rendu `BLOCKED` parce que
+   Composio lui-même refuse (compte déconnecté ou expiré, refus de l'API), rejouer
+   la même commande refera la même erreur. Le pilote le lit dans le message du
+   `BLOCKED`. Dans ce cas, il ne rejoue pas la commande : il charge Hermes de
+   passer par son workbench (`COMPOSIO_REMOTE_WORKBENCH` / `proxy_execute`, voie
+   décrite plus haut dans ce palier), le code du workbench étant écrit par le
+   pilote lui-même, comme le veut la bonne pratique plus haut, et l'empreinte
+   vérifiée par ce code avant toute écriture.
+
+Limite : `composio` est posé à la main sur le VPS, hors de la cascade
+d'installation de `installer-un-outil.md`, sans manifeste ; rien ne le met à
+jour. Une session cloud ne l'a pas : là-bas, on passe du palier 1 au palier 3.
 
 ## Fiche — DeepSeek vision
 

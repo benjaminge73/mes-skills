@@ -191,3 +191,186 @@ flowchart TD
   E11 --> E9
   E9 --> E10 --> BR
 ```
+
+## Le schéma de processus (doc fonctionnelle)
+
+Un processus clé de la doc fonctionnelle d'un projet (le chapitre « Processus clés »
+de sa vue d'ensemble, sous la page du projet dans `Clients / Projets`) se lit en deux
+temps : une vue courte, comprise d'un coup d'œil, puis une frise dépliable où chaque
+étape dit comment elle est faite. Ce n'est pas le schéma du plan : il ne répond pas à
+*qu'est-ce qui tourne en parallèle ?*, mais à *qui fait quoi, dans quel ordre, avec
+quel outil ?*. Il sert à relire un processus sans ouvrir le code.
+
+### La vue courte
+
+Un `flowchart LR` : de gauche à droite, de 5 à 7 boîtes, chacune au libellé métier
+(« Extraction du guide », jamais le nom d'un fichier) et précédée de son numéro, que
+reprend la frise. Une boîte = une étape métier. Ses sous-étapes techniques (découpe,
+lecture, contrôle) ne sont pas des boîtes : ce sont des lignes de son tableau dans la
+frise. Une seule suite de flèches : pas de `subgraph`, pas de flèche croisée, parce
+qu'un processus est une chaîne.
+
+Chaque boîte porte la classe de son acteur, avec les noms et les couleurs du code
+couleur ci-dessus. Seule la légende change : la classe `agent` s'appelle **hermes**,
+et la classe `det` s'appelle **ci**. Dans ce schéma, tout agent, sous-agent compris,
+prend la classe `agent` ; `det` ne couvre que ce qui tourne sans modèle. Pour les
+schémas de processus, la légende de cette section l'emporte sur la ligne `det` du code
+couleur (« écriture déterministe, ou sous-agent »). La légende suit toujours le schéma,
+en liste.
+
+```mermaid
+flowchart LR
+  classDef toi fill:#ffe3c2,stroke:#e08a1e,color:#000
+  classDef agent fill:#efe0ff,stroke:#8b4fd6,color:#000
+  classDef det fill:#dbe9ff,stroke:#3b6fd6,color:#000
+  classDef out fill:#dff5e1,stroke:#2e8b57,color:#000
+
+  S1["1 · Dépôt du PDF Routard"]:::toi
+  S2["2 · Extraction du guide"]:::agent
+  S3["3 · Classement des lieux par étape"]:::agent
+  S4["4 · Choix des photos"]:::toi
+  S5["5 · Construction du pack"]:::det
+  S6["6 · Publication du pack"]:::out
+
+  S1 --> S2 --> S3 --> S4 --> S5 --> S6
+```
+
+Légende :
+- 👤 **toi**, orange (`toi`) : un geste de Benjamin.
+- 🤖 **hermes**, violet (`agent`) : un agent qui lit ou juge.
+- 🔁 **ci**, bleu (`det`) : un automatisme sans agent, script Python ou job CI.
+- 📦 **out**, vert (`out`) : la sortie livrée.
+
+### La frise
+
+Une boîte de la vue courte donne un `<details>`, titré `N · <nom de l'étape> — <emoji>
+<acteur>`, où `N` et le nom sont ceux de sa boîte, à l'identique (acteurs :
+👤 Toi, 🤖 Hermes, 🔁 CI, 📦 Livré). Dedans, dans cet ordre : l'entrée, la sortie,
+« peut casser », et le lien vers la fiche de la fonctionnalité (une mention de page
+Notion, pas un lien d'ancre). Les pièges Notion ci-dessus valent aussi ici.
+
+Chaque `<details>` se termine par le tableau **🔩 Sous le capot** : une ligne par
+sous-étape, avec six colonnes. Une étape métier peut compter plusieurs sous-étapes :
+elles sont des lignes du même tableau, jamais des boîtes ni des `<details>` à part.
+
+| Colonne | Contenu |
+|---|---|
+| Sous-étape | ce qui se passe, en mots métier |
+| Mécanisme | ⚙️ Python déterministe · 🤖 agent · ⏰ cron · 🔁 CI ; « — » pour un geste de Benjamin |
+| Où | le fichier, le skill ou le job, à son vrai chemin |
+| Modèle | l'alias du modèle, pour un agent seulement ; « — » sinon |
+| effort | le niveau d'effort, pour un agent seulement ; « — » sinon |
+| Déclencheur | ce qui lance la sous-étape |
+
+### Exemple : ajouter un routard à Vahiny (données factices)
+
+Le processus « Ajouter un nouveau routard », du dépôt du guide à la publication du pack.
+**Données factices** : le guide, les noms de fichiers et les valeurs sont inventés pour
+montrer la forme. La rétro-doc de Vahiny posera les vraies.
+
+<details>
+<summary>1 · Dépôt du PDF Routard — 👤 Toi</summary>
+
+**Entrée** : le PDF du guide Routard, à déposer dans la page du plan.
+**Sortie** : un guide à traiter, identifié par son nom court.
+**Peut casser** : un PDF d'une autre édition du guide, et le pack part pour le mauvais guide.
+**Fiche** : « Ajouter un routard » (mention de la sous-page du projet).
+
+**🔩 Sous le capot**
+
+| Sous-étape | Mécanisme | Où | Modèle | effort | Déclencheur |
+|---|---|---|---|---|---|
+| Dépôt du PDF dans la page du plan | — (geste de toi) | page du plan | — | — | à la demande |
+
+</details>
+
+<details>
+<summary>2 · Extraction du guide — 🤖 Hermes</summary>
+
+**Entrée** : le PDF du guide Routard.
+**Sortie** : le texte du guide en morceaux, encadrés compris, un fichier JSON par morceau.
+**Peut casser** : un encadré sur deux colonnes, lu dans le désordre, que le contrôle de forme ne voit pas.
+**Fiche** : « Extraire un guide » (mention de la sous-page du projet).
+
+**🔩 Sous le capot**
+
+| Sous-étape | Mécanisme | Où | Modèle | effort | Déclencheur |
+|---|---|---|---|---|---|
+| Découpe du PDF en pages | ⚙️ Python déterministe | `scripts/decoupe_guide.py` (factice) | — | — | dépôt du PDF |
+| Lecture des encadrés (prix, horaires, adresses) | 🤖 agent | `agents/encadres-lecteur.md` (factice) | sonnet | medium | après la découpe, un agent par morceau |
+| Contrôle du texte, bloquant | ⚙️ Python déterministe | `scripts/verifier-extraction.py` (factice) | — | — | après la lecture ; un code de sortie 1 arrête la chaîne |
+
+</details>
+
+<details>
+<summary>3 · Classement des lieux par étape — 🤖 Hermes</summary>
+
+**Entrée** : les morceaux de l'étape 2.
+**Sortie** : un fichier JSON par lieu, rangé dans son étape du voyage.
+**Peut casser** : un lieu rangé dans la mauvaise étape, que la construction ne voit pas : elle contrôle la forme et non le sens.
+**Fiche** : « Classer les lieux » (mention de la sous-page du projet).
+
+**🔩 Sous le capot**
+
+| Sous-étape | Mécanisme | Où | Modèle | effort | Déclencheur |
+|---|---|---|---|---|---|
+| Rangement des lieux par étape | 🤖 agent | `agents/classifieur-lieux.md` (factice) | haiku | high | après la lecture, une fois le contrôle vert |
+
+</details>
+
+<details>
+<summary>4 · Choix des photos — 👤 Toi</summary>
+
+**Entrée** : les lieux classés par l'étape 3.
+**Sortie** : une photo retenue par lieu, dans la page du plan.
+**Peut casser** : une photo d'un autre lieu, choisie par erreur, qui part dans le pack.
+**Fiche** : « Choisir les photos » (mention de la sous-page du projet).
+
+**🔩 Sous le capot**
+
+| Sous-étape | Mécanisme | Où | Modèle | effort | Déclencheur |
+|---|---|---|---|---|---|
+| Choix d'une photo par lieu | — (geste de toi) | page du plan | — | — | après le classement, à la demande |
+
+</details>
+
+<details>
+<summary>5 · Construction du pack — 🔁 CI</summary>
+
+**Entrée** : les lieux classés et les photos retenues.
+**Sortie** : un pack validé, prêt à être publié.
+**Peut casser** : un champ vide passe, si la liste des champs obligatoires ne le couvre pas.
+**Fiche** : « Construire un pack » (mention de la sous-page du projet).
+
+**🔩 Sous le capot**
+
+| Sous-étape | Mécanisme | Où | Modèle | effort | Déclencheur |
+|---|---|---|---|---|---|
+| Assemblage du pack | ⚙️ Python déterministe | `scripts/assembler_pack.py` (factice) | — | — | après le choix des photos |
+| Contrôle de forme, bloquant | ⚙️ Python déterministe | `scripts/controle_pack.py` (factice) | — | — | après l'assemblage ; un code de sortie 1 arrête la chaîne |
+
+</details>
+
+<details>
+<summary>6 · Publication du pack — 📦 Livré</summary>
+
+**Entrée** : un pack validé par l'étape 5.
+**Sortie** : le pack disponible pour l'application (factice).
+**Peut casser** : une publication qui part avant le contrôle vert.
+**Fiche** : « Publier un pack » (mention de la sous-page du projet).
+
+**🔩 Sous le capot**
+
+| Sous-étape | Mécanisme | Où | Modèle | effort | Déclencheur |
+|---|---|---|---|---|---|
+| Mise en ligne du pack | 🔁 CI | `.github/workflows/publier.yml` (factice) | — | — | push sur `main`, si le contrôle est vert |
+
+</details>
+
+### Tenir le schéma à jour
+
+Un processus qui change (étape ajoutée, agent remplacé, script renommé) : la vue courte
+et la frise se réécrivent dans la même passe, jamais l'une sans l'autre. Contrôle à la
+main : autant de boîtes dans le schéma que de `<details>` dans la frise, le numéro et
+le nom de chaque `<summary>` identiques à ceux de sa boîte, et un tableau « Sous le
+capot » dans chaque `<details>`. Aucun script ne le vérifie aujourd'hui.

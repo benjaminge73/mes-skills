@@ -65,7 +65,7 @@ Séquence, dans l'ordre :
      `a merger`.
    - `PR` renseignée sur la page dès l'ouverture.
 2. **Attendre la CI, et lire son verdict.** La CI se suit en arrière-plan, avec
-   une attente bornée (`cloture.md`, point 7). Verte → point 3. Rouge : corriger
+   une attente bornée (`cloture.md`, point 8). Verte → point 3. Rouge : corriger
    **tout** en local, rejouer la suite complète, puis repousser une seule fois
    (chaque `push` sur la PR relance un run). Correctif structurant, ou échec
    qu'on ne sait plus diagnostiquer : même arbitrage qu'en cours de route
