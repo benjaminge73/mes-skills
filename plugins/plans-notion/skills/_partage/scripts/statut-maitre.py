@@ -7,15 +7,19 @@ Le pilote lit les ``Statut`` actuels des plans du lot (une requête sur la base,
 jamais la colonne recopiée dans la page maître) et passe ce script à chaque
 événement : ajout d'un plan, changement de statut, clôture.
 
-Usage : statut-maitre.py <statut> <statut> [<statut> …]   (un argument par plan du lot)
+Usage : statut-maitre.py [--actuel <statut du maître>] <statut> <statut> [<statut> …]
+(un argument par plan du lot). ``--actuel`` est le ``Statut`` lu sur la page maître, ``""``
+quand la propriété est vide : le script dit alors si le maître est périmé.
 Règle : l'ordre est brouillon < en revue < valide < pret < en cours < a merger <
 execute. ``archive`` ne compte pas dans le calcul (tout archivé : ``archive``).
 Dès qu'un plan est ``en cours``, le maître l'est aussi ; sinon il prend le statut du
 plan le moins avancé. Le lot est ``ferme`` quand le statut est ``a merger`` ou
 au-delà (aucun plan ne démarre ni n'avance plus, seules les PR attendent), sinon
 ``ouvert`` : un plan ne s'ajoute qu'à un lot ouvert.
-Sortie : deux lignes, ``statut=<valeur>`` et ``lot=ouvert|ferme``.
-Codes : 0 calculé ; 2 moins de deux plans passés, ou une valeur inconnue (une
+Sortie : deux lignes, ``statut=<valeur>`` et ``lot=ouvert|ferme`` ; avec ``--actuel``, une
+troisième, ``actuel=<valeur lue>``, qui n'apparaît que si elle diffère du statut calculé.
+Codes : 0 calculé (avec ``--actuel`` : le maître est à jour) ; 3 avec ``--actuel``, le maître
+est périmé ou vide, à réécrire dans le tour ; 2 moins de deux plans passés, ou une valeur inconnue (une
 valeur accentuée, « prêt », « exécuté », est inconnue : les valeurs sont sans accents).
 Bibliothèque standard uniquement.
 """
@@ -35,7 +39,14 @@ def calculer(statuts: list[str]) -> tuple[str, str]:
 
 
 def main(argv: list[str] | None = None) -> int:
-    statuts = [a.strip() for a in (sys.argv[1:] if argv is None else argv)]
+    args = list(sys.argv[1:] if argv is None else argv)
+    actuel = None
+    if args[:1] == ["--actuel"]:
+        if len(args) < 2:
+            print("--actuel attend le Statut lu sur la page maître (\"\" s'il est vide)", file=sys.stderr)
+            return 2
+        actuel, args = args[1].strip(), args[2:]
+    statuts = [a.strip() for a in args]
     if len(statuts) < 2:
         print("usage : statut-maitre.py <statut> <statut> […] — un plan maître couvre au moins "
               "deux plans", file=sys.stderr)
@@ -47,6 +58,9 @@ def main(argv: list[str] | None = None) -> int:
         return 2
     statut, lot = calculer(statuts)
     print(f"statut={statut}\nlot={lot}")
+    if actuel is not None and actuel != statut:
+        print(f"actuel={actuel}")
+        return 3
     return 0
 
 

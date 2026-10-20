@@ -13,6 +13,7 @@ et la façon de la préparer ne vivent qu'ici.
 - Le travail préliminaire : les règles d'un plan classique, plan par plan
 - Ce qui reste au pilote
 - Le statut du plan maître et son lot
+- Qui rejoue le calcul, et quand
 - Lancé par `executer-plan-notion`
 
 ## Pourquoi ce fichier
@@ -155,8 +156,8 @@ Le script rend `statut=<valeur>` et `lot=ouvert|ferme`. La règle :
   `pret` pendant que du code s'écrit ;
 - `archive` ne compte pas ; un plan abandonné **sort du lot** par une ligne datée
   dans la page maître (sinon il bloque le minimum) ;
-- le pilote rejoue le script et réécrit le `Statut` du maître à chaque événement :
-  ajout, changement de statut d'un plan, clôture.
+- le `Statut` du maître n'est **jamais vide** : il se pose à la création de la page,
+  par ce même script, et non « plus tard ».
 
 **Le lot est fermé** quand tous les plans sont au moins `a merger` : le maître vaut
 alors `a merger` tant qu'une PR n'est pas mergée, `execute` quand toutes le sont.
@@ -187,6 +188,45 @@ nourrissent les puces **Relecture**, **Preuves** et **Répétition** de chaque
 plan). Un plan `pret` attend son tour de vague ; il passe `en cours` quand son
 tour vient, pas avant. La page maître dit dans l'avancement quel plan reste
 `valide` faute de préparation complète, et ce qui lui manque.
+
+### Qui rejoue le calcul, et quand
+
+Un statut dérivé ne reste juste que si quelqu'un le recalcule. Le 2026-10-20, le
+maître Vahiny « Les suites du 17 octobre » était encore `pret`, lot ouvert, alors
+que ses sept plans étaient `execute` ou `archive` : le calcul n'avait été joué qu'à la
+préparation, et les passages `en cours`, `a merger` et `execute` s'étaient faits
+dans d'autres tours, parfois d'autres sessions, que personne ne chargeait de le
+rejouer. Le maître « La doc suit le plan » n'avait même jamais reçu de `Statut`.
+
+**Celui qui écrit le `Statut` d'un plan couvert par un maître rejoue le calcul dans
+le même tour**, comme `execute` se pose dans le tour où le merge est constaté. Ça
+vaut pour toute session, pas seulement le pilote du lot : la plupart des
+transitions (`execute` après un merge, `archive`, un plan de suite) se font hors de
+lui.
+
+1. **Trouver le maître** : la puce **Orchestration** de l'entrée `Ouverture` du plan
+   en cite le lien. Pas de lien (`sans objet — aucun plan maître`), pas de maître,
+   rien à faire. Un plan sans entrée `Ouverture` (clos avant la règle, ou archivé à
+   la main) : chercher dans la base les maîtres du même `Repo` non `execute` ni
+   `archive`, et lire leur tableau `Plans`.
+2. **Relever les `Statut` de tous les plans du tableau `Plans`** par une requête sur
+   la base (jamais la colonne recopiée dans la page) ; ajouter les plans de suite nés
+   d'un plan du lot.
+3. **Jouer le script avec le statut actuel du maître** :
+
+   ```bash
+   python3 "${CLAUDE_PLUGIN_ROOT}/skills/_partage/scripts/statut-maitre.py" --actuel "pret" execute execute archive
+   ```
+
+   Code 0 : le maître est à jour, rien à écrire. **Code 3** : il est périmé (ou
+   vide) ; réécrire `Statut` avec la valeur rendue, ajouter une ligne datée à
+   `Avancement` (ancien statut, nouveau, plan qui a bougé), et, quand le lot devient
+   fermé, mettre à jour le tableau `Plans` et l'`État final`.
+
+À l'**entrée** d'un maître ou d'un de ses plans, la même vérification est un
+rattrapage : Benjamin change des statuts à la main (`archive` en tête), et rien
+d'autre ne le voit. Un écart trouvé à ce moment se corrige tout de suite, sans
+attendre un événement, et se signale d'une ligne à Benjamin.
 
 ## Lancé par `executer-plan-notion`
 
