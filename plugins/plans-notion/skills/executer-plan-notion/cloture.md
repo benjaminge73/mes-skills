@@ -257,21 +257,37 @@ Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard »
      - **(a) Le Récap.** Le H2 `## Récap · AAAA-MM-JJ · <titre du plan>` s'écrit en tête
        de la page du plan, avant `Cartes`. Son nom commence par `Récap` : jamais
        « Exécution », « Journal » ou « Questions ». Il s'écrit dans tous les cas, projet
-       activé ou non.
+       activé ou non. Son en-tête porte `PR` (l'URL ouverte au point 5) et
+       `Statut : a merger` : c'est le statut que la page aura à la fin de la clôture, et
+       non le statut courant, puisque le Récap s'écrit avant le passage à `a merger`.
      - **(b) Le contrôle.** Relire la page fraîche, dans son miroir local, et jouer
        `python3 ${CLAUDE_PLUGIN_ROOT}/skills/_partage/scripts/controle-changelog.py <miroir>`.
-       Corriger le texte, jamais le contrôle, jusqu'au code 0 ; une correction se pose
-       par `update_content` sur le bloc, puis on relit. Le corps du Récap est celui de
+       Si (a) est parti au palier 3 (la page ne porte pas de Récap), le contrôle ne se
+       joue pas sur la page : il se joue sur le fichier du palier 3, seul, sans miroir,
+       `python3 ${CLAUDE_PLUGIN_ROOT}/skills/_partage/scripts/controle-changelog.py <fichier>`
+       (une entrée seule suffit). Corriger le texte, jamais le contrôle, jusqu'au code 0 ;
+       une correction se pose par `update_content` sur le bloc de la page, ou par
+       réécriture du fichier au palier 3, puis on relit. Le corps du Récap est celui de
        l'entrée du hub (`changelog-et-doc.md` § 2) : un code 0 vaut pour les deux, et
-       aucune entrée du hub ne part sans lui. Code 2 (entrée absente ou illisible) : on
-       le dit à Benjamin, et (c) et (d) ne se font pas.
-     - **(c) L'entrée du hub.** Relever la page `Projet` fraîche et lire son encadré
-       d'activation (`changelog-et-doc.md` § 5) :
-       - `📘 Doc vivante : activée` : créer la sous-page `Changelog` si elle manque, et
-         poser l'entrée **en tête**, ancrée après la fin complète du dernier bloc qui
-         précède les entrées, jamais au milieu d'un paragraphe formaté. Si la page n'a
-         pas encore d'encadré « Doc partielle », en ajouter un en tête ; s'il existe, le
-         laisser en place.
+       aucune entrée du hub ne part sans lui. Code 2 (entrée absente ou illisible, fichier
+       du palier 3 introuvable) : on le dit à Benjamin, et (c) et (d) ne se font pas.
+     - **(c) L'entrée du hub.** Un plan couvert par un plan maître (la session en porte
+       un : `${CLAUDE_PLUGIN_ROOT}/skills/plan-notion/plan-maitre.md`) **ne pose pas
+       d'entrée individuelle** au hub : l'entrée consolidée du lot part à la fermeture du
+       lot (`changelog-et-doc.md` § 2.4, et `plan-maitre.md`). Ce plan complète à la place
+       sa ligne dans le tableau `Récap du lot` de la page maître, colonnes « Ce qui change
+       pour toi » et « Reste à faire » : une puce par entrée du Récap du plan, avec son
+       lien d'ancre et la mention en clair à côté (`changelog-et-doc.md` § 7). Cette ligne
+       se complète quel que soit l'encadré ci-dessous : `plan-maitre.md` la demande à
+       chaque clôture de plan, et la page maître n'est pas le hub. Relever la page maître
+       fraîche, et écrire par la cascade du point (a).
+       Relever la page `Projet` fraîche et lire son encadré d'activation
+       (`changelog-et-doc.md` § 5) :
+       - `📘 Doc vivante : activée` : créer la sous-page `Changelog` si elle manque, et,
+         sauf plan couvert par un plan maître, poser l'entrée **en tête**, ancrée après la
+         fin complète du dernier bloc qui précède les entrées, jamais au milieu d'un
+         paragraphe formaté. Si la page n'a pas encore d'encadré « Doc partielle », en
+         ajouter un en tête ; s'il existe, le laisser en place.
        - `📘 Doc vivante : désactivée` : (c) et (d) sont sautés. Le Récap reste écrit.
        - Encadré absent : (c) et (d) attendent. La question « Doc vivante : à activer
          pour <projet> ? » part dans le compte rendu, à chaque clôture tant qu'il manque.
@@ -287,6 +303,13 @@ Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard »
        Hermes. Les commandes sont dans la fiche « Connecteurs MCP d'une session Claude
        Code » de `${CLAUDE_PLUGIN_ROOT}/skills/_partage/outils-et-quotas.md` : elles ne
        se recopient pas ici. Le compte rendu dit quel palier a posé l'entrée.
+       Au palier 3, pour un plan non couvert par un plan maître, le fichier
+       `~/brouillons/<projet>/changelog/<AAAA-MM-JJ>-<plan>.md` est l'entrée du hub préparée
+       pour Hermes. Si le Récap y figure, son titre passe de
+       `## Récap · AAAA-MM-JJ · <titre du plan>` à `## AAAA-MM-JJ · <titre du plan>`
+       (`changelog-et-doc.md` § 2), et le contrôle (b) se rejoue sur cette version avant
+       qu'Hermes ne la pose par `composio`. Le compte rendu le signale comme à poser par
+       Hermes, avec le chemin.
 
      Ensuite, le journal et le compte rendu : `État final` (avec la sortie du point 6),
      `Statut` = **`a merger`**, `PR` = l'URL, et le compte rendu à Benjamin, qui est le

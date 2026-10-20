@@ -157,7 +157,7 @@ Sous chaque étape d'un processus de la vue d'ensemble, et dans chaque fiche, un
 
 - **Vue d'ensemble** : un paragraphe sur ce que fait le projet et pour qui, puis la liste des fiches.
 - **Processus clés** : d'abord une vue courte en Mermaid (le langage de schéma de Notion), 5 à 7 étapes métier, une boîte par étape. Les classes de couleur sont celles de `${CLAUDE_PLUGIN_ROOT}/skills/_partage/schemas.md` (`color:#000` obligatoire). Un libellé à caractères spéciaux se met entre guillemets doubles.
-- Puis une **frise** de blocs dépliables, un par étape : **Acteur**, **Entrée**, **Sortie**, **Où ça peut casser**. Sous chaque étape, son tableau « Sous le capot ».
+- Puis une **frise** de blocs dépliables, un par étape : son titre, ses champs et leur ordre sont ceux de `${CLAUDE_PLUGIN_ROOT}/skills/_partage/schemas.md`, section « La frise », seule source. Sous chaque étape, son tableau « Sous le capot ».
 
 ### 9.2 Fiche par fonctionnalité
 
