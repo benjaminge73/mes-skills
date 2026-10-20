@@ -191,3 +191,156 @@ flowchart TD
   E11 --> E9
   E9 --> E10 --> BR
 ```
+
+## Le schéma de processus (doc fonctionnelle)
+
+Un processus clé de la doc fonctionnelle d'un projet (le chapitre « Processus clés »
+de sa vue d'ensemble, sous la page du projet dans `Clients / Projets`) se lit en deux
+temps : une vue courte, comprise d'un coup d'œil, puis une frise dépliable où chaque
+étape dit comment elle est faite. Ce n'est pas le schéma du plan : il ne répond pas à
+*qu'est-ce qui tourne en parallèle ?*, mais à *qui fait quoi, dans quel ordre, avec
+quel outil ?*. Il sert à relire un processus sans ouvrir le code.
+
+### La vue courte
+
+Un `flowchart LR` : de gauche à droite, de 5 à 7 boîtes, chacune au libellé métier
+(« Extraction du guide », jamais le nom d'un fichier). Une seule suite de flèches :
+pas de `subgraph`, pas de flèche croisée, parce qu'un processus est une chaîne.
+
+Chaque boîte porte la classe de son acteur, avec les noms et les couleurs du code
+couleur ci-dessus. Seule la légende change : la classe `agent` s'appelle **hermes**,
+et la classe `det` s'appelle **ci**. La légende suit toujours le schéma, en liste.
+
+```mermaid
+flowchart LR
+  classDef toi fill:#ffe3c2,stroke:#e08a1e,color:#000
+  classDef agent fill:#efe0ff,stroke:#8b4fd6,color:#000
+  classDef det fill:#dbe9ff,stroke:#3b6fd6,color:#000
+  classDef out fill:#dff5e1,stroke:#2e8b57,color:#000
+
+  S1["Tu lances l'ajout<br>d'un routard"]:::toi
+  S2["Extraction du guide<br>en morceaux"]:::det
+  S3["Lecture des encadrés<br>prix, horaires, adresses"]:::agent
+  S4["Contrôle du pack<br>avant publication"]:::det
+  S5["Pack publié<br>sur le serveur"]:::out
+
+  S1 --> S2 --> S3 --> S4 --> S5
+```
+
+Légende :
+- 👤 **toi**, orange (`toi`) : un geste de Benjamin.
+- 🤖 **hermes**, violet (`agent`) : un agent qui lit ou juge.
+- 🔁 **ci**, bleu (`det`) : un automatisme sans agent, script Python ou job CI.
+- 📦 **out**, vert (`out`) : la sortie livrée.
+
+### La frise
+
+Une étape du schéma donne un `<details>`, titré `N · Étape — <emoji> <acteur>`
+(acteurs : 👤 Toi, 🤖 Hermes, 🔁 CI, 📦 Livré). Dedans, dans cet ordre : l'entrée, la
+sortie, « peut casser », et le lien vers la fiche de la fonctionnalité (une mention de
+page Notion, pas un lien d'ancre). Les pièges Notion ci-dessus valent aussi ici.
+
+Chaque `<details>` se termine par le tableau **🔩 Sous le capot** : une ligne par
+sous-étape, avec six colonnes.
+
+| Colonne | Contenu |
+|---|---|
+| Sous-étape | ce qui se passe, en mots métier |
+| Mécanisme | ⚙️ Python déterministe · 🤖 agent · ⏰ cron · 🔁 CI ; « — » pour un geste de Benjamin |
+| Où | le fichier, le skill ou le job, à son vrai chemin |
+| Modèle | l'alias du modèle, pour un agent seulement ; « — » sinon |
+| effort | le niveau d'effort, pour un agent seulement ; « — » sinon |
+| Déclencheur | ce qui lance la sous-étape |
+
+### Exemple : ajouter un routard à Vahiny (données factices)
+
+Le processus « Ajouter un nouveau routard », de l'extraction à la publication du pack.
+**Données factices** : le guide, les noms de fichiers et les valeurs sont inventés pour
+montrer la forme. La rétro-doc de Vahiny posera les vraies.
+
+<details>
+<summary>1 · Étape — 👤 Toi</summary>
+
+**Entrée** : le nom du guide, écrit dans la page du plan.
+**Sortie** : un guide à traiter, identifié par son nom court.
+**Peut casser** : un nom mal orthographié, et le pack part pour le mauvais guide.
+**Fiche** : « Ajouter un routard » (mention de la sous-page du projet).
+
+**🔩 Sous le capot**
+
+| Sous-étape | Mécanisme | Où | Modèle | effort | Déclencheur |
+|---|---|---|---|---|---|
+| Saisie du nom du guide | — (geste de toi) | page du plan | — | — | à la demande |
+
+</details>
+
+<details>
+<summary>2 · Étape — 🔁 CI</summary>
+
+**Entrée** : le guide brut, tel que fourni (fichier factice).
+**Sortie** : des morceaux numérotés, un par page du guide.
+**Peut casser** : un encadré coupé en deux, lu ensuite comme deux encadrés.
+**Fiche** : « Extraire un guide » (mention de la sous-page du projet).
+
+**🔩 Sous le capot**
+
+| Sous-étape | Mécanisme | Où | Modèle | effort | Déclencheur |
+|---|---|---|---|---|---|
+| Découpe du guide en morceaux | ⚙️ Python déterministe | `scripts/decoupe_guide.py` (factice) | — | — | lancé par le pilote après l'étape 1 |
+
+</details>
+
+<details>
+<summary>3 · Étape — 🤖 Hermes</summary>
+
+**Entrée** : les morceaux de l'étape 2.
+**Sortie** : un fichier JSON par morceau, avec les encadrés et leurs valeurs.
+**Peut casser** : un prix lu faux, que l'étape 4 ne voit pas, car elle contrôle la forme et non le sens.
+**Fiche** : « Lire les encadrés » (mention de la sous-page du projet).
+
+**🔩 Sous le capot**
+
+| Sous-étape | Mécanisme | Où | Modèle | effort | Déclencheur |
+|---|---|---|---|---|---|
+| Lecture des encadrés | 🤖 agent | `agents/encadres-lecteur.md` (factice) | haiku | high | un agent par morceau, dès que la découpe est finie |
+
+</details>
+
+<details>
+<summary>4 · Étape — 🔁 CI</summary>
+
+**Entrée** : les fichiers JSON de l'étape 3.
+**Sortie** : un pack validé, prêt à être publié.
+**Peut casser** : un champ vide passe, si la liste des champs obligatoires ne le couvre pas.
+**Fiche** : « Contrôler un pack » (mention de la sous-page du projet).
+
+**🔩 Sous le capot**
+
+| Sous-étape | Mécanisme | Où | Modèle | effort | Déclencheur |
+|---|---|---|---|---|---|
+| Contrôle de forme, bloquant | ⚙️ Python déterministe | `scripts/controle_pack.py` (factice) | — | — | après l'étape 3 ; un code de sortie 1 arrête la chaîne |
+
+</details>
+
+<details>
+<summary>5 · Étape — 📦 Livré</summary>
+
+**Entrée** : un pack validé par l'étape 4.
+**Sortie** : le pack disponible pour l'application (factice).
+**Peut casser** : une publication qui part avant le contrôle vert.
+**Fiche** : « Publier un pack » (mention de la sous-page du projet).
+
+**🔩 Sous le capot**
+
+| Sous-étape | Mécanisme | Où | Modèle | effort | Déclencheur |
+|---|---|---|---|---|---|
+| Mise en ligne du pack | 🔁 CI | `.github/workflows/publier.yml` (factice) | — | — | push sur `main`, si le contrôle est vert |
+
+</details>
+
+### Tenir le schéma à jour
+
+Un processus qui change (étape ajoutée, agent remplacé, script renommé) : la vue courte
+et la frise se réécrivent dans la même passe, jamais l'une sans l'autre. Contrôle à la
+main : autant de boîtes dans le schéma que de `<details>` dans la frise, et un tableau
+« Sous le capot » dans chaque `<details>`. Aucun script ne le vérifie aujourd'hui.
