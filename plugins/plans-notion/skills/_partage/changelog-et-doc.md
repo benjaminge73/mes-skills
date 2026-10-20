@@ -15,7 +15,7 @@ Les règles d'écriture détaillées (relevé des cases, pièges de l'API Notion
 
 ## 2. L'entrée : format
 
-Une entrée a toujours cette forme. Dans la page du plan, elle commence par le titre `## Récap`. Dans le `Changelog` du hub, elle commence par `## AAAA-MM-JJ · <titre du plan>`. Le corps est le même dans les deux cas.
+Une entrée a toujours cette forme. Dans la page du plan, elle commence par le titre `## Récap · AAAA-MM-JJ · <titre du plan>` : le mot `Récap` reste en tête (ancre du condensé, § 7), et la date, dans le titre, est ce que le contrôle du § 4 cherche. Dans le `Changelog` du hub, elle commence par `## AAAA-MM-JJ · <titre du plan>`. Le corps est le même dans les deux cas.
 
 ```
 ## AAAA-MM-JJ · <titre du plan>
@@ -85,7 +85,7 @@ Les règles de `ecrire-dans-notion.md` s'appliquent : relevé avant écriture, �
 
 1. **Relever.** Recharger la page fraîche (hub ou page du plan) avant d'écrire. Noter l'encadré d'activation, les sous-pages existantes, et les fiches déjà là. Ne jamais écrire sur un miroir local.
 2. **Contrôler la forme.** Passer l'entrée au script `${CLAUDE_PLUGIN_ROOT}/skills/_partage/scripts/controle-changelog.py` avant pose. Il vérifie les quatre rubriques dans l'ordre, la source sur chaque ligne ✨ ou 🔧, et « rien » là où une rubrique est vide. Sa ligne de commande est dans son en-tête. Si le contrôle échoue, corriger le texte, pas le contrôle.
-3. **Poser l'entrée en tête.** Dans le `Changelog`, l'entrée va avant l'entrée précédente, la plus récente en haut. Ancrer le texte sur la **fin complète** du dernier bloc qui précède les entrées (le titre de la page ou son intro), jamais au milieu d'un paragraphe formaté : l'insertion y casserait l'italique ou le gras, sans erreur. Dans la page du plan, le `## Récap` se pose de la même façon, en tête.
+3. **Poser l'entrée en tête.** Dans le `Changelog`, l'entrée va avant l'entrée précédente, la plus récente en haut. Ancrer le texte sur la **fin complète** du dernier bloc qui précède les entrées (le titre de la page ou son intro), jamais au milieu d'un paragraphe formaté : l'insertion y casserait l'italique ou le gras, sans erreur. Dans la page du plan, le `## Récap · AAAA-MM-JJ · <titre du plan>` se pose de la même façon, en tête.
 4. **Réécrire une fiche par bloc.** Une fiche se met à jour par `update_content` sur le bloc concerné, jamais par recréation de la page. Ajouter une ligne en tête de sa liste `Historique` : `- AAAA-MM-JJ · <titre du plan> — <ce qui a changé, côté utilisateur>`.
 5. **Ne jamais insérer juste avant une liste de cases à cocher.** Notion la recrée et redistribue ses cases cochées. Ancrer après la liste. Ne jamais utiliser un remplacement global (`replace_all`) sur un motif qui contient du balisage.
 6. **Vérifier après.** Relire la page : l'entrée est en tête, l'encadré d'activation n'a pas bougé, chaque fiche touchée a sa ligne d'historique. Une écriture peut échouer en silence : sans relecture, l'écriture n'est pas prouvée.
@@ -121,7 +121,7 @@ Le compte rendu dit **quel palier** a posé l'entrée. Le détail des commandes 
 Sur la page d'un plan maître, un chapitre `## Condensé` reprend les entrées de chaque plan enfant :
 
 - une puce par entrée : titre du plan, date, une phrase de l'entrée ;
-- un **lien d'ancre** vers le titre exact de la section concernée : `### Étape N` pour une étape, ou le titre `## Récap` pour le récap du plan ;
+- un **lien d'ancre** vers le titre exact de la section concernée : `### Étape N` pour une étape, ou le titre commençant par `## Récap` (`## Récap · AAAA-MM-JJ · <titre du plan>`) pour le récap du plan ;
 - l'identifiant de chaque titre se lit par `NOTION_FETCH_BLOCK_CONTENTS` (Composio, appel par bloc). La forme du lien est `…/p/<page>#<id du bloc sans tirets>` ;
 - **repli** : si la lecture de l'identifiant échoue, la mention en clair, `page du plan — → Étape 3` (ou `→ Récap`), sans lien.
 
