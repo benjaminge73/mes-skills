@@ -395,3 +395,40 @@ Une entrée par passe, la plus récente en dernier. Le titre est
   dont deux « en place » (cas `revue-hors-plan` et `escalade-bornee`) et deux « manquant » (`maxTurns`, citation d'une case cochée).
 - **Verdict de `scripts/veille_faits.py`** (2026-10-16) : 22 faits vérifiés, 0 citation à
   signaler, 0 page injoignable (code 0).
+
+### 2026-10-21 — passe avant la PR « gestes Notion du plugin plans-notion » (plan « micro-trading — collecte des jetons diplômés », étapes 1, 8 et 9)
+
+- **Sources lues** : le changelog Claude Code, le résumé hebdomadaire, les docs skills, sous-agents
+  et référence des plugins ; la spec Notion (`developers.notion.com` : enhanced-markdown v1,
+  notion-flavored-markdown v2 en aperçu, working-with-markdown-content) ; les releases GitHub de
+  `anthropics/claude-code`. **Les citations de cette entrée ont été extraites par un modèle
+  intermédiaire : elles sont à reconfirmer par `grep` sur les pages avant de s'y fier**, et
+  rien ici ne les a reconfirmées.
+- **Ce qui a changé** :
+  - Changelog, versions 2.1.302 à 2.1.306 (du 16 au 21 oct.) :
+    - reprise d'un sous-agent juste après sa fin, corrigée en 2.1.304 (« Before v2.1.304, a subagent
+      that Claude messaged or resumed right after it finished could forget its most recent work. ») ;
+    - 2.1.302 : au plus 12 hooks `prompt` ou `agent` d'un même événement en parallèle ;
+    - 2.1.304 : plafond de 1 024 hooks et de 16 384 caractères de matcher par source et par session,
+      et compaction qui renvoie la liste des skills ;
+    - 2.1.302 : sous-agents forkés par défaut dans `claude -p`, le SDK, l'app bureau et VS Code
+      (`CLAUDE_CODE_FORK_SUBAGENT=0` les coupe) ;
+    - 2.1.305 : `allowed-tools` ignoré sous `allowManagedPermissionRulesOnly` (sans effet sur ce poste).
+    Aucun ne contredit un fait du tableau de la partie 2.
+  - **Notion** : la spec REST publique « enhanced markdown » (v1) prescrit `{color="…"}` en fin de
+    première ligne d'un bloc, et `<details><summary>` pour le repliable ; la v2 (aperçu) écrit le
+    repliable `<toggle heading=… color=…>`. Or le connecteur Notion de claude.ai (outils
+    `notion-fetch` et `notion-update-page`, avec sa spec `notion://docs/notion-flavored-markdown-spec`)
+    a été **mesuré le 2026-10-21** sur une page de test : `{color=…}` s'enregistre comme texte visible ;
+    la couleur passe par l'attribut de la balise (`<p color="blue">`, `<span color="blue">`) ;
+    `<details>` est converti en `<toggle>` avec l'avertissement « legacy Markdown ».
+  - Non vérifié : la version Markdown que le MCP envoie, et les attributs de `<embed>`.
+- **Ce qu'on en fait** : rien ne change au tableau de la partie 2 (aucun fait n'a de contrôle
+  pour entrer). Les plugins de ce dépôt n'écrivent que par le connecteur, pas par l'API REST :
+  le garde suit donc le connecteur. La règle (n) de `scripts/check_skills.py` tient la correction
+  de l'étape 8 (qui a retiré `{color=` et `<details>` des fichiers `_partage/`, commit `7083cdd`) : elle
+  refuse `{color=`, `<details>` et `<summary>` dans tout `skills/**/*.md`, en citant le fichier et
+  la ligne. Ligne du registre : « Les syntaxes Notion interdites n'entrent pas dans un skill ».
+  À rouvrir si l'on écrit un jour par l'API REST v1.
+- **Verdict de `scripts/veille_faits.py`** (2026-10-21) : 22 faits vérifiés, 0 citation à signaler,
+  0 page injoignable (code 0).
