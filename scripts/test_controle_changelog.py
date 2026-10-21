@@ -16,7 +16,7 @@ Un test de plus (7) : un en-tête sans date rend 1. La panne 5 ne la couvre pas,
 et une date absente passe inaperçue dans une page longue.
 Deux de plus, pour l'entrée datée du Changelog (« ## AAAA-MM-JJ · titre ») : une
 conforme rend 0 (8) ; une rubrique absente rend 1 (9).
-Trois de plus, pour le contrôle de forme (étape 1 du plan « fix/changelog-doc-vivante-2 ») :
+Trois de plus, pour le contrôle de forme (plan « Changelog fonctionnel à la clôture et doc vivante des projets #2 », étape 1) :
 une ligne ✨ sourcée « (étape D1) » est acceptée (10) ; un en-tête sans ligne « Plan : »
 rend 1 (11) ; une entrée sans bloc « Côté technique » rend 1 (12).
 """
