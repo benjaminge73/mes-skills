@@ -432,3 +432,27 @@ Une entrée par passe, la plus récente en dernier. Le titre est
   À rouvrir si l'on écrit un jour par l'API REST v1.
 - **Verdict de `scripts/veille_faits.py`** (2026-10-21) : 22 faits vérifiés, 0 citation à signaler,
   0 page injoignable (code 0).
+
+### 2026-10-21 — passe avant le plan « Changelog fonctionnel et doc vivante #2 »
+
+- **Sources lues** : les pages de doc Claude Code de la partie 1 (skills, sous-agents, plugins,
+  référence et chargement des plugins, hooks, tests par évals, bac à sable, mémoire, réglages,
+  model-config), le changelog, « What's new », claude.dev, anthropic.com/engineering,
+  `anthropics/skills` et l'issue `sandbox-runtime#74`. Lecture partielle pour `hooks.md`,
+  `sub-agents.md`, `model-config.md` et `skills.md` (pages tronquées par l'outil de lecture).
+- **Ce qui a changé** : rien de daté après le 2026-10-16 dans les pages de doc, les blogs ni
+  l'issue (toujours ouverte, sans correctif). Nuances relevées, sans effet sur ce plan :
+  `CLAUDE_CODE_SUBAGENT_MODEL_FORCE` (2.1.257) fait ignorer le `model` d'un frontmatter, donc le
+  fait « le `model` du frontmatter l'emporte » vaut sans cette variable ; un plugin chargé sur
+  place depuis une marketplace de chemin local relit ses fichiers à chaque démarrage, quelle que
+  soit sa version ; 2.1.305 ajoute `sandbox.allowNestedUserNamespaces` (à lire avant de garder
+  bwrap) ; 2.1.304 renvoie la liste des skills après une compaction.
+- **Faits porteurs** : la lecture à la main du `chercheur` a cru deux citations touchées
+  (« Bash dans une éval exige un bac à sable » ; l'alias `haiku`). Le contrôle mécanique les
+  retrouve toutes les deux : le script fait foi, rien ne change au tableau de la partie 2.
+- **Ce qu'on en fait** : rien ne s'applique aux fichiers de ce plan (contrôle de forme du
+  changelog, règles du changelog, pièges Notion des schémas). Non lus, à reprendre à la passe
+  suivante : les articles claude.dev des 8 et 15 octobre, « Redesigning source control at
+  Anthropic » (13 octobre), `spec/` d'`anthropics/skills`, les dates des versions 2.1.301 à 2.1.306.
+- **Verdict de `scripts/veille_faits.py`** (2026-10-21) : 22 faits vérifiés, 0 citation à
+  signaler, 0 page injoignable (code 0).

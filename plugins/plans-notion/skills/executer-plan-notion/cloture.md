@@ -275,6 +275,8 @@ Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard »
        activé ou non. Son en-tête porte `PR` (l'URL ouverte au point 5) et
        `Statut : a merger` : c'est le statut que la page aura à la fin de la clôture, et
        non le statut courant, puisque le Récap s'écrit avant le passage à `a merger`.
+       Le titre du plan se lit dans les propriétés de la page, jamais dans son miroir
+       local : `changelog-et-doc.md` § 4 point 1.
      - **(b) Le contrôle.** Relire la page fraîche, dans son miroir local, et jouer
        `python3 ${CLAUDE_PLUGIN_ROOT}/skills/_partage/scripts/controle-changelog.py <miroir>`.
        Si (a) est parti au palier 3 (la page ne porte pas de Récap), le contrôle ne se

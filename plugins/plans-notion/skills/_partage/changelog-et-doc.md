@@ -34,7 +34,7 @@ Plan : <lien vers la page du plan> · PR : <lien, ou « aucune (plan natif) »> 
 - rien
 
 <toggle>Côté technique
-<contenu, § 2.3>
+	<contenu, § 2.3>
 </toggle>
 ```
 
@@ -52,7 +52,7 @@ Plan : <lien vers la page du plan> · PR : <lien, ou « aucune (plan natif) »> 
 1. **Le bénéfice d'abord.** La phrase dit ce que la personne peut faire ou voit désormais, pas ce qui a été codé. Exemple, pour ✨ : « Un récap de chaque clôture, lisible en une minute. »
 2. **Pas de jargon dans la phrase.** Ni nom de fichier, ni nom de fonction, ni sigle non défini. Le terme technique va dans « Côté technique ».
 3. **Une ligne, une idée**, en phrase courte, au présent.
-4. **Chaque ligne ✨ ou 🔧 finit par sa source entre parenthèses** : le numéro de l'étape du plan, `(étape 4)`, ou la preuve, `(preuve : <commande>)`. Une phrase sans source ne va pas en ✨ ni en 🔧 : elle va en ⏭️ ou dans « Côté technique ».
+4. **Chaque ligne ✨ ou 🔧 finit par sa source entre parenthèses** : le numéro de l'étape du plan, `(étape 4)`, ou la preuve, `(preuve : <commande>)`. Pour une étape de découverte, la source peut être `(étape D<n>)`. Une phrase sans source ne va pas en ✨ ni en 🔧 : elle va en ⏭️ ou dans « Côté technique ».
 5. **Ne jamais inventer un bénéfice** que la preuve ne montre pas. Si la preuve ne le montre pas, la phrase reste technique.
 
 ### 2.3 Côté technique
@@ -82,8 +82,8 @@ Le compte rendu de clôture dans le chat **est** le récap, sans réécriture : 
 
 Les règles de `ecrire-dans-notion.md` s'appliquent : relevé avant écriture, édition ciblée, vérification après. Ici, le détail :
 
-1. **Relever.** Recharger la page fraîche (hub ou page du plan) avant d'écrire. Noter l'encadré d'activation, les sous-pages existantes, et les fiches déjà là. Ne jamais écrire sur un miroir local.
-2. **Contrôler la forme.** Passer l'entrée au script `${CLAUDE_PLUGIN_ROOT}/skills/_partage/scripts/controle-changelog.py` avant pose. Il vérifie les quatre rubriques dans l'ordre, la source sur chaque ligne ✨ ou 🔧, et « rien » là où une rubrique est vide. Sa ligne de commande est dans son en-tête. Si le contrôle échoue, corriger le texte, pas le contrôle.
+1. **Relever.** Recharger la page fraîche (hub ou page du plan) avant d'écrire. Noter l'encadré d'activation, les sous-pages existantes, et les fiches déjà là. Ne jamais écrire sur un miroir local. Le titre de la page se lit dans ses propriétés (`title` ou `Titre` de `notion-fetch`), jamais dans le miroir : le corps rendu par `notion-fetch` ne le porte pas, et celui de `composio` (`NOTION_GET_PAGE_MARKDOWN`) n'a ni titre ni propriétés.
+2. **Contrôler la forme.** Passer l'entrée au script `${CLAUDE_PLUGIN_ROOT}/skills/_partage/scripts/controle-changelog.py` avant pose. Il vérifie les quatre rubriques dans l'ordre, la source sur chaque ligne ✨ ou 🔧, et « rien » là où une rubrique est vide. Il vérifie aussi que l'en-tête porte sa ligne `Plan :` et que l'entrée a son bloc « Côté technique ». Sa ligne de commande est dans son en-tête. Si le contrôle échoue, corriger le texte, pas le contrôle.
 3. **Poser l'entrée en tête.** Dans le `Changelog`, l'entrée va avant l'entrée précédente, la plus récente en haut. Ancrer le texte sur la **fin complète** du dernier bloc qui précède les entrées (le titre de la page ou son intro), jamais au milieu d'un paragraphe formaté : l'insertion y casserait l'italique ou le gras, sans erreur. Dans la page du plan, le `## Récap · AAAA-MM-JJ · <titre du plan>` se pose de la même façon, en tête.
 4. **Réécrire une fiche par bloc.** Une fiche se met à jour par `update_content` sur le bloc concerné, jamais par recréation de la page. Ajouter une ligne en tête de sa liste `Historique` : `- AAAA-MM-JJ · <titre du plan> — <ce qui a changé, côté utilisateur>`.
 5. **Ne jamais insérer juste avant une liste de cases à cocher.** Notion la recrée et redistribue ses cases cochées. Ancrer après la liste. Ne jamais utiliser un remplacement global (`replace_all`) sur un motif qui contient du balisage.
@@ -162,10 +162,12 @@ Sous chaque étape d'un processus de la vue d'ensemble, et dans chaque fiche, un
 
 ### 9.2 Fiche par fonctionnalité
 
-Une fiche porte trois parties :
+Une fiche porte cinq parties, dans cet ordre :
 
-- **Ce que ça fait** : la description côté utilisateur, sans obligation de source.
+- **À quoi sert** : la description côté utilisateur, sans obligation de source.
+- **Comment l'utiliser** : la marche à suivre côté utilisateur.
 - **Sous le capot** : le tableau du § 9.
+- **Limites connues** : ce que la fonctionnalité ne fait pas encore, ou fait mal. « rien » s'il n'y en a pas.
 - **Historique** : une liste, la plus récente en tête, au format du point 4 du § 4.
 
 Une fiche n'est créée que pour une fonctionnalité que le plan touche, et seulement dans un projet activé (§ 5).
