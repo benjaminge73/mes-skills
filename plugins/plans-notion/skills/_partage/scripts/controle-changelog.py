@@ -13,13 +13,16 @@ Usage : controle-changelog.py <entree.md>
   ne sont pas contrôlées. Vérifie :
   - l'en-tête (le H2 et les lignes avant la première rubrique) porte une date ISO
     (AAAA-MM-JJ) ou JJ/MM/AAAA ;
+  - l'en-tête porte une ligne qui commence par « Plan : » (le lien vers la page du plan) ;
   - les quatre rubriques sont présentes, dans l'ordre : Nouveau, Amélioré, Corrigé,
     Reste à faire. Une rubrique se reconnaît à son libellé, en titre ou en gras, avec
     ou sans son emoji ;
   - chaque rubrique a du contenu ; « rien » suffit ;
   - chaque ligne de « Nouveau » ou « Amélioré » (ou toute ligne commençant par ✨ ou 🔧)
-    finit par une source entre parenthèses qui cite « Étape N » ou « preuve : ».
-    Une ligne « rien » n'en demande pas.
+    finit par une source entre parenthèses qui cite « Étape N », « Étape D<n> » ou
+    « preuve : ». Une ligne « rien » n'en demande pas ;
+  - après la rubrique « Reste à faire » et avant la fin de la section, un ``<details>``
+    dont le ``<summary>`` contient « Côté technique ».
   Le corps d'une rubrique s'arrête au titre suivant, à tout autre titre, ou à un
   ``<details>`` (le bloc « Côté technique »).
 
@@ -47,9 +50,10 @@ TITRE = re.compile(r"^#{1,6}\s")
 PUCE_DE_LIGNE = re.compile(r"^\s*(?:[-*]\s+)?[✨🔧]")
 PUCE = re.compile(r"^[\s\-*•]+")
 SOURCE = re.compile(
-    r"\((?=[^()]*(?:étape\s+\d+|preuve\s*:))[^()]*\)\s*$", re.IGNORECASE
+    r"\((?=[^()]*(?:étape\s+D?\d+|preuve\s*:))[^()]*\)\s*$", re.IGNORECASE
 )
 DATE = re.compile(r"\b\d{4}-\d{2}-\d{2}\b|\b\d{2}/\d{2}/\d{4}\b")
+COTE_TECHNIQUE = re.compile(r"<details[^>]*>\s*<summary>[^<]*Côté technique[^<]*</summary>")
 
 
 def _contenu(ligne: str) -> str:
@@ -96,6 +100,8 @@ def controler(texte: str) -> list[str]:
     entete = "\n".join(lignes[debut:premier])
     if not DATE.search(entete):
         defauts.append(f"ligne {debut + 1} : en-tête sans date (AAAA-MM-JJ ou JJ/MM/AAAA)")
+    if not any(ligne.strip().startswith("Plan :") for ligne in lignes[debut:premier]):
+        defauts.append(f"ligne {debut + 1} : en-tête sans ligne Plan :")
 
     libelles = [libelle for _, libelle in titres]
     for r in RUBRIQUES:
@@ -126,8 +132,17 @@ def controler(texte: str) -> list[str]:
             if demande_source and not SOURCE.search(lignes[j]):
                 defauts.append(
                     f"ligne {j + 1} : ligne sans source "
-                    "(Étape N ou preuve : entre parenthèses, en fin de ligne)"
+                    "(Étape N, Étape D<n> ou preuve : entre parenthèses, en fin de ligne)"
                 )
+
+    # Le bloc « Côté technique » se cherche après « Reste à faire » (son titre, s'il existe ;
+    # sinon depuis le début de la section : l'absence de la rubrique est déjà signalée).
+    debut_reste = next((i for i, libelle in titres if libelle == "Reste à faire"), debut)
+    if not COTE_TECHNIQUE.search("\n".join(lignes[debut_reste:fin])):
+        defauts.append(
+            f"ligne {debut + 1} : bloc Côté technique absent (un <details> dont le <summary> "
+            "contient « Côté technique », après « Reste à faire »)"
+        )
     return defauts
 
 
