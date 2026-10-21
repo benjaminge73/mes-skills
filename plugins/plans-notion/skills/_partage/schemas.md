@@ -142,6 +142,13 @@ rien et qui attrape l'oubli le plus fréquent.
   dernière passe, mais un bloc de code ne prend pas la coloration en ligne de
   Notion. C'est **la légende juste au-dessus du schéma** qui porte le bleu quand
   le schéma a changé — jamais le bloc Mermaid lui-même.
+- **Un tableau markdown revient en `<table>` à la relecture.** Une page écrite avec un
+  tableau markdown se relit sous la forme `<table>` : c'est cette forme-là, et non le
+  markdown d'origine, qu'un `old_str` doit chercher.
+- **Le contenu d'un `<details>` s'indente d'une tabulation.** Sans cette indentation, le
+  contenu sort du bloc `<details>` au lieu de rester dessous.
+- **Le code d'un bloc Mermaid s'affiche au-dessus de son rendu.** C'est normal : Notion
+  montre le code, puis le diagramme. Ce n'est pas un bug à corriger.
 
 ## Exemple : le plan en un schéma
 
@@ -200,6 +207,10 @@ temps : une vue courte, comprise d'un coup d'œil, puis une frise dépliable où
 étape dit comment elle est faite. Ce n'est pas le schéma du plan : il ne répond pas à
 *qu'est-ce qui tourne en parallèle ?*, mais à *qui fait quoi, dans quel ordre, avec
 quel outil ?*. Il sert à relire un processus sans ouvrir le code.
+
+Vérifié à la main le 2026-10-20 (Chrome, Notion web, sur le plan Vahiny) : le rendu
+Mermaid est lisible (six boîtes colorées, texte noir lisible sur les couleurs), et le
+lien d'ancre « → Récap » atterrit sur le titre du Récap, surligné.
 
 ### La vue courte
 
