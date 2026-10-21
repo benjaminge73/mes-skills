@@ -50,9 +50,10 @@ CLES = ("Relecture", "Questions", "Preuves", "Répétition", "Maquette", "CI", "
         "Pilote", "Branche", "Orchestration")
 SECTIONS_MAITRE = (("plans", "Plans"), ("croisement", "Croisement"), ("ordre de merge", "Ordre de merge"),
                    ("file des actions lourdes", "File des actions lourdes"))
-ETAPE = re.compile(r"^###[ \t]+étape[ \t]+(D?\d+)", re.IGNORECASE)
+# Les <span> ouvrants (titre retouché en bleu, ecrire-dans-notion.md) sont tolérés entre ### et le mot.
+ETAPE = re.compile(r"^###[ \t]+(?:<span[^>]*>[ \t]*)*étape[ \t]+(D?\d+)", re.IGNORECASE)
 PUCE = re.compile(r"^[ \t]*[-*][ \t]+\*\*([^*]+?)\*\*[ \t]*(?:\([^)]*\)[ \t]*)?:[ \t]*(.*)$")
-OUVERTURE = re.compile(r"^###[ \t]+ouverture\b", re.IGNORECASE)
+OUVERTURE = re.compile(r"^###[ \t]+(?:<span[^>]*>[ \t]*)*ouverture\b", re.IGNORECASE)
 QUESTION_OUVERTE = re.compile(r"^###[ \t]+.*🧭.*\bQ\d+\b")
 COQUILLES = {"", "—", "-", "aucune", "à définir", "à voir"}
 SANS_OBJET = re.compile(r"^sans objet\b[ \t]*(.*)$", re.IGNORECASE)

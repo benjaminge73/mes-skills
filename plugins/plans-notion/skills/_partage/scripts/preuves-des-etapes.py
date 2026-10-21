@@ -33,7 +33,10 @@ from pathlib import Path
 
 # « ### Étape 4 — titre », « ### Étape D1 — titre ». Le numéro n'exige aucune frontière
 # après lui : « Étape 3bis » reste l'étape 3, et non une section ignorée sans bruit.
-ETAPE = re.compile(r"^###[ \t]+étape[ \t]+(D?\d+)", re.IGNORECASE)
+# Un titre retouché en bleu s'écrit « ### <span color="blue">Étape 3 — …</span> » (règle
+# « Le bleu des retouches », ecrire-dans-notion.md) : les <span> ouvrants entre ### et Étape
+# sont tolérés, et le numéro capturé ne change pas.
+ETAPE = re.compile(r"^###[ \t]+(?:<span[^>]*>[ \t]*)*étape[ \t]+(D?\d+)", re.IGNORECASE)
 PREUVE_DE_FIN = re.compile(r"^[ \t]*[-*][ \t]+\*\*Preuve de fin\*\*[ \t]*:[ \t]*(.*)$")
 # Une clé de champ du journal : au début de la puce, ou après un point (« … . **Commit** : »).
 # « Commit », « Commits » ou « Commit(s) » : le « (s) » est dans le gras, donc dans la clé.
