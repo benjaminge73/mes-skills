@@ -35,7 +35,7 @@ Plan : <lien vers la page du plan> · PR : <lien, ou « aucune (plan natif) »> 
 
 <details>
 <summary>Côté technique</summary>
-<contenu, § 2.3>
+	<contenu, § 2.3>
 </details>
 ```
 
