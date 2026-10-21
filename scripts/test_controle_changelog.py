@@ -16,6 +16,9 @@ Un test de plus (7) : un en-tête sans date rend 1. La panne 5 ne la couvre pas,
 et une date absente passe inaperçue dans une page longue.
 Deux de plus, pour l'entrée datée du Changelog (« ## AAAA-MM-JJ · titre ») : une
 conforme rend 0 (8) ; une rubrique absente rend 1 (9).
+Un de plus (10) : « Reste à faire » vide suivie d'un bloc « <toggle> » (la forme
+Notion du « Côté technique ») rend 1. Le corps d'une rubrique doit s'arrêter au
+toggle ; sinon son titre sert de contenu et la rubrique vide passe au vert.
 """
 from __future__ import annotations
 
@@ -36,7 +39,7 @@ BLOCS = {
     "corrige": "### 🐛 Corrigé\nrien\n\n",
     "reste": "### ⏭️ Reste à faire\n- Brancher le contrôle sur la clôture (Étape 5)\n\n",
 }
-DETAILS = "<details>\n<summary>Côté technique</summary>\n\nDétail technique.\n</details>\n"
+DETAILS = "<toggle>Côté technique\n\nDétail technique.\n</toggle>\n"
 ORDRE = ("nouveau", "ameliore", "corrige", "reste")
 
 
@@ -124,6 +127,15 @@ class ControleChangelog(unittest.TestCase):
         code, sortie, erreur = jouer(self._entree(texte))
         self.assertEqual(code, 1, erreur)
         self.assertIn("« Reste à faire » absente", sortie)
+
+    def test_reste_a_faire_vide_suivie_d_un_toggle_rend_un(self):
+        # Panne : le corps d'une rubrique ne s'arrêtait que sur « <details » ; avec un
+        # bloc « <toggle> », son titre passait pour du contenu et la rubrique vide était
+        # jugée remplie. Attendu : rend 1 et nomme « Reste à faire » vide.
+        texte = entree(blocs={"reste": "### ⏭️ Reste à faire\n\n"})
+        code, sortie, erreur = jouer(self._entree(texte))
+        self.assertEqual(code, 1, erreur)
+        self.assertIn("« Reste à faire » vide", sortie)
 
 
 if __name__ == "__main__":
