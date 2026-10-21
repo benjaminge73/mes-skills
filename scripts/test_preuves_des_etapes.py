@@ -116,6 +116,25 @@ class PorteAvant(_Dossier):
         self.assertEqual(code, 1, sortie)
         self.assertIn("Étape D1 : pas de preuve de fin", sortie)
 
+    def test_titre_etape_colore_sans_preuve_de_fin_est_refuse(self):
+        # Panne : un titre « ### <span color="blue">Étape 2 … </span> » (retouche bleue de
+        # ecrire-dans-notion.md) n'est plus repéré ; l'étape 2 sans preuve passe au vert.
+        p = self.ecrire("p.md", ENTETE + chapitre(
+            etape("1", PREUVE_DE_FIN),
+            '### <span color="blue">Étape 2 — retouchée</span>\n\n- **Preuve de fin** : —\n\n'))
+        code, sortie, _ = jouer(p, "--avant")
+        self.assertEqual(code, 1, sortie)
+        self.assertIn("Étape 2 : pas de preuve de fin", sortie)
+
+    def test_titre_etape_colore_avec_preuve_de_fin_est_compte(self):
+        # Panne : l'étape colorée est absente du compte ; le plan de deux étapes en rend une.
+        p = self.ecrire("p.md", ENTETE + chapitre(
+            etape("1", PREUVE_DE_FIN),
+            '### <span color="blue">Étape 2 — retouchée</span>\n\n' + PREUVE_DE_FIN + "\n\n"))
+        code, sortie, _ = jouer(p, "--avant")
+        self.assertEqual(code, 0, sortie)
+        self.assertIn("avant : 2 étape(s), toutes ont une preuve de fin", sortie)
+
     def test_etape_en_double_dans_le_chapitre_est_refusee(self):
         # Panne : deux sections « Étape 4 » passent pour une seule étape, dans les deux portes.
         for mode in ("--avant", "--apres"):
@@ -226,6 +245,18 @@ class PorteApres(_Dossier):
         defaut = next(i for i, l in enumerate(lignes) if "Étape 3 : pas de Preuve" in l)
         non_prouvee = next(i for i, l in enumerate(lignes) if "non prouvée : Étape 2" in l)
         self.assertLess(defaut, non_prouvee, sortie)
+
+    # Test en plus, hors liste du brief : le titre coloré d'une entrée de journal passe par la
+    # même regex que celui d'une étape. Panne : l'entrée colorée de l'étape 2 est ignorée, et
+    # la porte rend « pas d'entrée de journal » au lieu de « pas de Preuve ».
+    def test_entree_de_journal_coloree_est_lue(self):
+        sans_preuve = "".join(f"{CHAMPS_OK[c]}\n" for c in ("Commit", "Découvertes", "Verdict"))
+        colore = '### <span color="blue">Étape 2 — Un titre</span>\n\n' + sans_preuve + "\n"
+        p = self.ecrire("p.md", ENTETE + chapitre_ok("1", "2", "3") + journal(
+            entree("1"), colore, entree("3")))
+        code, sortie, _ = jouer(p, "--apres")
+        self.assertEqual(code, 1, sortie)
+        self.assertIn("Étape 2 : pas de Preuve", sortie)
 
     def test_page_sans_journal_rend_deux(self):
         # Panne : une page sans « Journal d'exécution » passe pour un journal vide et conforme.

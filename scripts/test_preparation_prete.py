@@ -132,6 +132,27 @@ class PorteDuPret(unittest.TestCase):
         self.assertEqual(code, 1)
         self.assertIn("preuves :", sortie)
 
+    def test_titre_ouverture_colore_par_span_est_reconnu(self):
+        # Panne : « ### <span color="blue">Ouverture</span> » (retouche bleue de
+        # ecrire-dans-notion.md) n'est pas reconnu ; une préparation complète rend « absente ».
+        colore = ouverture().replace("### Ouverture", '### <span color="blue">Ouverture</span>', 1)
+        code, sortie, _ = jouer(page(journal=colore))
+        self.assertEqual(code, 0, sortie)
+        self.assertNotIn("« Ouverture » absente", sortie)
+
+    def test_titre_etape_colore_reste_attendu_dans_l_ouverture(self):
+        # Panne : l'étape 2 au titre coloré n'entre pas dans le chapitre « Exécution » ; sa puce
+        # « Preuve de l'étape 2 » n'est jamais exigée, et la préparation passe prête à tort.
+        execution = (
+            "## Exécution\n\n" + TABLEAU +
+            "### Étape 1 — Un titre\n\n- **Preuve de fin** : `pytest a -q` → tout vert\n\n"
+            '### <span color="blue">Étape 2 — Un autre</span>\n\n'
+            "- **Preuve de fin** : `pytest b -q` → tout vert\n\n")
+        code, sortie, _ = jouer(page(execution=execution,
+                                     journal=ouverture(**{"Preuve de l'étape 2": None})))
+        self.assertEqual(code, 1, sortie)
+        self.assertIn("Ouverture : puce **Preuve de l'étape 2** absente", sortie)
+
     def test_c_est_la_derniere_ouverture_qui_compte(self):
         # Préparation refaite après un retour à « valide » : l'ancienne entrée complète
         # ne couvre pas la nouvelle, qui a perdu une puce.
