@@ -21,7 +21,7 @@ Usage : controle-changelog.py <entree.md>
     finit par une source entre parenthèses qui cite « Étape N » ou « preuve : ».
     Une ligne « rien » n'en demande pas.
   Le corps d'une rubrique s'arrête au titre suivant, à tout autre titre, ou à un
-  ``<details>`` (le bloc « Côté technique »).
+  ``<toggle>`` (le bloc « Côté technique »).
 
 Sortie : sans défaut, rien. Sinon un défaut par ligne sur la sortie standard, avec son
 numéro de ligne.
@@ -111,7 +111,7 @@ def controler(texte: str) -> list[str]:
         fin_corps = titres[k + 1][0] if k + 1 < len(titres) else fin
         corps = []
         for j in range(i + 1, fin_corps):
-            if lignes[j].startswith("<details") or TITRE.match(lignes[j]):
+            if lignes[j].startswith("<toggle") or TITRE.match(lignes[j]):
                 break
             corps.append(j)
 
