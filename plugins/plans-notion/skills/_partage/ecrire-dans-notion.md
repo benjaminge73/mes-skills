@@ -71,11 +71,24 @@ appel n'échoue.
 
 ### Comment
 
-- Un **bloc entier** qui change — paragraphe, puce, `to-do`, titre : `{color="blue"}`
-  en fin de première ligne du bloc.
-- Une **portion de ligne** seulement : `<span color="blue">…</span>`.
-- **Décolorer, c'est retirer le balisage** — l'attribut `{color="…"}` ou le `<span>` —
-  et rien d'autre. ⚠️ Il n'existe **pas** de couleur « blanc » ni « défaut » dans
+- Un **bloc entier** qui change — paragraphe, puce, `to-do` : la couleur va sur
+  **l'attribut de la balise du bloc**, jamais sur une accolade en fin de ligne (une
+  telle accolade s'enregistre comme texte visible, Notion ne la lit pas) :
+  `<p color="blue">…</p>`, une puce `<ul><li color="blue">…</li></ul>`, une case
+  `<todo checked="false" color="blue">…</todo>`.
+- Un **titre** d'étape ou de question ne se colore **jamais** par l'attribut de sa
+  balise : relu sur la page, la balise tient seule sur sa ligne et le texte sur la
+  suivante, et le `###` disparaît du miroir que lisent `compter-cases.py` et
+  `vagues.py`. Le bleu se pose alors par un `<span>` **à l'intérieur** du titre :
+  `### <span color="blue">Étape 3 — …</span>`.
+- Une **portion de ligne** seulement, et le texte d'une **case à cocher** :
+  `<span color="blue">…</span>`. Ajouté ou retiré dans le texte d'une case cochée, il
+  laisse la coche en place.
+- Une ligne `Preuve : …` reste **nue** : elle ne se colore pas.
+- **Décolorer, c'est remplacer la forme relue sur la page fraîche par le même texte
+  sans balisage coloré** — l'attribut `color` de la balise, ou le `<span>` — et rien
+  d'autre : la coche d'une case reste en place.
+  ⚠️ Il n'existe **pas** de couleur « blanc » ni « défaut » dans
   Notion : l'absence de couleur *est* la couleur par défaut, et elle s'affiche en noir
   ou en blanc selon le thème du lecteur. Écrire `color="white"` ne colore rien et fait
   échouer l'appel.
@@ -100,7 +113,7 @@ appel n'échoue.
   bleu dit **où** regarder, la ligne `_maj AAAA-MM-JJ — …_` dit **quoi** et
   **pourquoi**.
 - **Un bloc de code, Mermaid compris.** Un ```` ```mermaid ```` est un bloc de code :
-  ni `{color="blue"}` ni un `<span>` n'y ont d'effet, et un `<span>` glissé à
+  ni la couleur d'un bloc ni un `<span>` n'y ont d'effet, et un `<span>` glissé à
   l'intérieur casserait le diagramme lui-même. C'est la légende juste au-dessus du
   bloc qui porte le bleu, et qui dit ce qui a changé dans le schéma.
 

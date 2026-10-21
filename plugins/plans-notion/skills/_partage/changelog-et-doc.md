@@ -33,10 +33,9 @@ Plan : <lien vers la page du plan> · PR : <lien, ou « aucune (plan natif) »> 
 ### ⏭️ Reste à faire
 - rien
 
-<details>
-<summary>Côté technique</summary>
+<toggle>Côté technique
 	<contenu, § 2.3>
-</details>
+</toggle>
 ```
 
 ### 2.1 Les quatre rubriques
@@ -58,7 +57,7 @@ Plan : <lien vers la page du plan> · PR : <lien, ou « aucune (plan natif) »> 
 
 ### 2.3 Côté technique
 
-Le bloc `<details>` est replié. Il contient tout ce qui sert à la relecture et n'est pas dans les quatre rubriques :
+Le bloc `<toggle>` est replié. Il contient tout ce qui sert à la relecture et n'est pas dans les quatre rubriques :
 
 - les étapes parties, et celles confiées à un sous-agent ;
 - l'URL de la PR et le statut de la page ;

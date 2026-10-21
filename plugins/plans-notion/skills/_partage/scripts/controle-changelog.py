@@ -21,10 +21,10 @@ Usage : controle-changelog.py <entree.md>
   - chaque ligne de « Nouveau » ou « Amélioré » (ou toute ligne commençant par ✨ ou 🔧)
     finit par une source entre parenthèses qui cite « Étape N », « Étape D<n> » ou
     « preuve : ». Une ligne « rien » n'en demande pas ;
-  - après la rubrique « Reste à faire » et avant la fin de la section, un ``<details>``
-    dont le ``<summary>`` contient « Côté technique ».
+  - après la rubrique « Reste à faire » et avant la fin de la section, un ``<toggle>``
+    dont le titre (même ligne) commence par « Côté technique ».
   Le corps d'une rubrique s'arrête au titre suivant, à tout autre titre, ou à un
-  ``<details>`` (le bloc « Côté technique »).
+  ``<toggle>`` (le bloc « Côté technique »).
 
 Sortie : sans défaut, rien. Sinon un défaut par ligne sur la sortie standard, avec son
 numéro de ligne.
@@ -53,7 +53,7 @@ SOURCE = re.compile(
     r"\((?=[^()]*(?:étape\s+D?\d+|preuve\s*:))[^()]*\)\s*$", re.IGNORECASE
 )
 DATE = re.compile(r"\b\d{4}-\d{2}-\d{2}\b|\b\d{2}/\d{2}/\d{4}\b")
-COTE_TECHNIQUE = re.compile(r"<details[^>]*>\s*<summary>[^<]*Côté technique[^<]*</summary>")
+COTE_TECHNIQUE = re.compile(r"<toggle[^>]*>\s*Côté technique")
 
 
 def _contenu(ligne: str) -> str:
@@ -117,7 +117,7 @@ def controler(texte: str) -> list[str]:
         fin_corps = titres[k + 1][0] if k + 1 < len(titres) else fin
         corps = []
         for j in range(i + 1, fin_corps):
-            if lignes[j].startswith("<details") or TITRE.match(lignes[j]):
+            if lignes[j].startswith("<toggle") or TITRE.match(lignes[j]):
                 break
             corps.append(j)
 
@@ -140,8 +140,8 @@ def controler(texte: str) -> list[str]:
     debut_reste = next((i for i, libelle in titres if libelle == "Reste à faire"), debut)
     if not COTE_TECHNIQUE.search("\n".join(lignes[debut_reste:fin])):
         defauts.append(
-            f"ligne {debut + 1} : bloc Côté technique absent (un <details> dont le <summary> "
-            "contient « Côté technique », après « Reste à faire »)"
+            f"ligne {debut + 1} : bloc Côté technique absent (un <toggle> intitulé « Côté "
+            "technique », après « Reste à faire »)"
         )
     return defauts
 

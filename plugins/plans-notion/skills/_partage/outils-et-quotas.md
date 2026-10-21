@@ -1052,3 +1052,157 @@ borner la durée dans la commande elle-même ; ce repli n'est pas mesuré dans c
 fiche. Si la restriction d'adresses casse `bwrap --unshare-net`, rétablir
 `AF_NETLINK` dans la liste. Pour `npm` absent sous `sudo` : aucun repli mesuré au
 2026-10, passer par le compte de l'utilisateur comme ci-dessus.
+
+## Fiche — DexScreener
+
+**Quota ou coût** (relevé au 2026-10-21) : gratuit. La réponse ne porte aucun
+en-tête de limite.
+
+- Le point `/tokens/v1/solana/<adresses>` accepte **jusqu'à 30 adresses par
+  appel**. Mesure du 2026-10-21 : HTTP 200 en 0,09 s, 30 jetons sur 30 rendus.
+- Limite publiée : **60 requêtes par minute**, mais seulement pour
+  `/token-boosts/latest/v1`, `/token-boosts/top/v1` et
+  `/token-profiles/latest/v1`. Rien n'est publié pour `/tokens/v1`.
+- Conditions (`docs.dexscreener.com/api/api-terms-and-conditions`, version du
+  2023-08-18) : licence limitée et révocable ; usage commercial et non commercial
+  permis ; **redistribution du service interdite** ; la limite du plan gratuit
+  n'est affichée qu'« au checkout », pas dans les conditions.
+
+**Pièges datés** :
+
+- **2026-10-21 : une paire existante n'est pas un jeton vivant.** Sur 30 jetons
+  diplômés il y a 24 à 48 h, 24 ont encore une paire, mais **6 seulement ont eu un
+  échange dans l'heure**. Les liquidités restent typiquement autour de 2 000 USD
+  même sans échange : la liquidité ne dit pas si un jeton vit, l'activité
+  (`txns`) si.
+- **2026-10-21 : tous les jetons n'ont pas de paire `pumpswap`.** Sur les 30,
+  28 en ont une ; prix, liquidité et volume ne sont présents que sur 27 de ces
+  28 paires. Un champ absent se traite comme une donnée manquante, jamais comme
+  un zéro.
+- **2026-10-21 : aucun compteur de quota dans la réponse.** Le nombre d'appels
+  se tient soi-même ; l'en-tête ne le dira pas.
+
+**Bonne pratique** :
+
+- Regrouper les adresses par tranches de 30 : un appel par tranche, pas un par
+  jeton.
+- Lire `pairCreatedAt` et `txns` avant la liquidité pour décider si un jeton vit.
+- Ne pas republier les réponses brutes : les conditions interdisent de
+  redistribuer le service.
+
+**Repli** : sur un 429, doubler l'attente à chaque refus. La durée de la première
+attente n'est pas mesurée au 2026-10-21.
+
+## Fiche — RPC public Solana
+
+**Quota ou coût** (relevé au 2026-10-21) : gratuit, mais **« not intended for
+production »** selon la documentation officielle de Solana. Limite publiée :
+**100 requêtes par 10 secondes et par adresse IP**. Point d'accès :
+`wss://api.mainnet-beta.solana.com`.
+
+**Pièges datés** :
+
+- **2026-10-21 : un abonnement qui tient n'est pas un abonnement sobre.** Un
+  `logsSubscribe` sur le programme PumpSwap
+  (`pAMMBay6oceH9fJKBRHGP5D4bD4sWpmSwMn52FMfXEA`) n'a subi aucune coupure, mais
+  a reçu **25 831 messages et 80 Mo en 70 secondes**, soit environ 1,1 Mo/s. Le
+  coût est dans le volume de messages, pas dans le nombre d'appels.
+
+**Bonne pratique** :
+
+- Ne pas s'abonner aux journaux d'un programme à fort débit sur le RPC public.
+- Pour un prix de jeton, lire DexScreener (fiche ci-dessus) plutôt que le flux de
+  journaux.
+
+**Repli** : DexScreener pour les prix. Un RPC payant ou dédié seulement si le
+besoin ne se couvre pas autrement. Aucun RPC payant n'a été essayé au
+2026-10-21.
+
+## Fiche — GeckoTerminal
+
+**Quota ou coût** (relevé au 2026-10-21, d'après la page d'aide de CoinGecko) :
+**30 appels par minute** en gratuit. Le consommateur qui l'interroge (listes
+`pool_nouveau` et `pool_tendance`) appelle toutes les **300 secondes** : bien
+sous cette limite.
+
+**Pièges datés** :
+
+- **2026-10-21 : pour un jeton diplômé, GeckoTerminal rend le pool de la courbe
+  pump.fun, pas le pool PumpSwap.** Un prix lu là est celui de la courbe, pas
+  celui de l'échange où le jeton se négocie après sa migration.
+- **2026-10-21 : la liquidité n'est relevée qu'une fois.** Un chiffre lu à la
+  création du pool est un instantané, il ne suit pas le pool.
+
+**Bonne pratique** :
+
+- Vérifier le DEX de la paire rendue (pump.fun ou PumpSwap) avant de lire son
+  prix.
+- Relever la liquidité à chaque cycle si une décision s'appuie dessus.
+
+**Repli** : aucun repli mesuré au 2026-10-21 sur GeckoTerminal. Pour le prix d'un
+jeton migré, DexScreener rend la paire PumpSwap (fiche ci-dessus) ; ce n'est pas un
+essai de substitution sur le même jeu de jetons.
+
+## Fiche — PumpPortal
+
+**Quota ou coût** (relevé au 2026-10-21) :
+
+- **Migrations : gratuites.** Environ 6 394 migrations sur 7 jours.
+- **Flux des échanges : payant**, 0,01 SOL pour 10 000 messages. Il est donc
+  exclu.
+
+**Pièges datés** :
+
+- **2026-10-21 : la charge d'une migration ne porte pas l'adresse du pool.** Elle
+  porte `signature`, `mint`, `txType` et `pool = "pump-amm"`. Or `pump-amm` est le
+  nom d'un pool, pas son adresse : qui veut la paire doit la retrouver ailleurs.
+
+**Bonne pratique** :
+
+- Lire `pool = "pump-amm"` comme la marque d'une migration vers PumpSwap, et
+  chercher la paire par `mint`.
+- Ne pas supposer un flux d'échanges gratuit : le seul mesuré est payant.
+
+**Repli** : pour retrouver la paire d'un `mint`, DexScreener (fiche ci-dessus), non
+mesuré sur ce flux au 2026-10-21. Pour les échanges, aucun flux gratuit mesuré ; on
+lit l'activité par `txns` de DexScreener, qui n'est pas le même flux.
+
+## Fiche — GDELT
+
+**Quota ou coût** (relevé au 2026-10-21) :
+
+- **Gratuit, sans limite annoncée** : licence « unlimited and unrestricted use …
+  without fee » (`gdeltproject.org/about.html`). Condition : toute utilisation ou
+  redistribution doit **citer le GDELT Project avec un lien vers
+  `https://www.gdeltproject.org/`**.
+- **L'API de recherche (`doc/geo`) refuse** : HTTP 429 deux fois de suite depuis le
+  VPS, le 2026-10-21.
+- **Les fichiers publiés toutes les 15 minutes** se téléchargent sans refus. Pour
+  le seul fichier GKG (articles, thèmes, tons) : 6,1 Mo compressé par créneau,
+  soit **environ 585 Mo par jour** (96 créneaux × 6,1 Mo, calcul).
+
+**Pièges datés** :
+
+- **2026-10-21 : le créneau annoncé peut ne pas exister encore.** L'index
+  `lastupdate.txt` annonce le créneau courant ; le fichier qu'il désigne a rendu
+  404. Le créneau précédent se lit par son nom.
+- **2026-10-21 : `lastupdate.txt` en http redirige vers https.** Appeler directement
+  l'adresse https.
+- **2026-10-21 : une recherche par sous-chaîne ramène du bruit.** Sur le fichier GKG
+  du 2026-10-21 à 14 h UTC (1 354 articles), une recherche par simple sous-chaîne
+  sur les mots crypto (dont « ether ») rend 21 articles ; 6 à 10 seulement sont
+  vrais. « ether » tombe dans « whether », et le thème `ECON_BITCOIN` est posé
+  sur des articles hors sujet.
+
+**Bonne pratique** :
+
+- Lire le titre dans la balise `PAGE_TITLE` de la colonne `V2EXTRASXML`, et le ton
+  dans le premier nombre de `V1.5TONE` (de −100 à +100). Le fichier compte
+  27 colonnes.
+- Filtrer par mot entier, jamais par sous-chaîne, et ne pas tenir un thème pour une
+  preuve de pertinence : le titre tranche.
+- Vérifier la taille et le md5 annoncés dans l'index avant de décompresser un
+  fichier.
+
+**Repli** : sur un 429 de `doc/geo`, lire les fichiers GKG créneau par créneau : ils
+ne refusent pas au 2026-10-21. Le délai de reprise de l'API n'est pas mesuré.

@@ -19,6 +19,9 @@ conforme rend 0 (8) ; une rubrique absente rend 1 (9).
 Trois de plus, pour le contrôle de forme (plan « Changelog fonctionnel à la clôture et doc vivante des projets #2 », étape 1) :
 une ligne ✨ sourcée « (étape D1) » est acceptée (10) ; un en-tête sans ligne « Plan : »
 rend 1 (11) ; une entrée sans bloc « Côté technique » rend 1 (12).
+Un de plus (13) : « Reste à faire » vide suivie d'un bloc « <toggle> » (la forme
+Notion du « Côté technique ») rend 1. Le corps d'une rubrique doit s'arrêter au
+toggle ; sinon son titre sert de contenu et la rubrique vide passe au vert.
 """
 from __future__ import annotations
 
@@ -39,7 +42,7 @@ BLOCS = {
     "corrige": "### 🐛 Corrigé\nrien\n\n",
     "reste": "### ⏭️ Reste à faire\n- Brancher le contrôle sur la clôture (Étape 5)\n\n",
 }
-DETAILS = "<details>\n<summary>Côté technique</summary>\n\nDétail technique.\n</details>\n"
+DETAILS = "<toggle>Côté technique\n\nDétail technique.\n</toggle>\n"
 ORDRE = ("nouveau", "ameliore", "corrige", "reste")
 
 
@@ -145,11 +148,20 @@ class ControleChangelog(unittest.TestCase):
         self.assertIn("sans ligne Plan :", sortie)
 
     def test_sans_bloc_cote_technique_rend_un_et_le_nomme(self):
-        # Panne : une entrée sans <details> « Côté technique » passait. Attendu : rend 1
+        # Panne : une entrée sans <toggle> « Côté technique » passait. Attendu : rend 1
         # et le nomme. L'entrée n'a que le corps, sans aucun bloc après « Reste à faire ».
         code, sortie, erreur = jouer(self._entree(entree(details="")))
         self.assertEqual(code, 1, erreur)
         self.assertIn("bloc Côté technique absent", sortie)
+
+    def test_reste_a_faire_vide_suivie_d_un_toggle_rend_un(self):
+        # Panne : le corps d'une rubrique ne s'arrêtait que sur « <details » ; avec un
+        # bloc « <toggle> », son titre passait pour du contenu et la rubrique vide était
+        # jugée remplie. Attendu : rend 1 et nomme « Reste à faire » vide.
+        texte = entree(blocs={"reste": "### ⏭️ Reste à faire\n\n"})
+        code, sortie, erreur = jouer(self._entree(texte))
+        self.assertEqual(code, 1, erreur)
+        self.assertIn("« Reste à faire » vide", sortie)
 
 
 if __name__ == "__main__":

@@ -76,6 +76,11 @@ Les règles, et le fait de doc qui fonde chacune (voir ``docs/veille.md``) :
     ou autre selon le poste), un appel qui ne nomme aucun agent aussi : le 2026-10-16, la
     préparation d'un plan Vahiny (§2) est partie à un sous-agent écrit à la main, sur le
     modèle de la session, faute d'agent ni de règle qui la couvre.
+(n) Aucun fichier ``skills/**/*.md`` (``_partage/`` compris) n'écrit ``{color=``,
+    ``<details>`` ni ``<summary>`` : le connecteur Notion de claude.ai affiche
+    ``{color=…}`` comme texte visible et convertit ``<details>`` en ``<toggle>``
+    avec l'avertissement « legacy Markdown » (mesuré le 2026-10-21, voir
+    ``docs/veille.md``). La couleur passe par l'attribut d'une balise.
 
 Exceptions datées
 -----------------
@@ -603,6 +608,28 @@ def _regle_m(racine: Path, plugin: Path) -> list[Anomalie]:
     return anomalies
 
 
+# Syntaxes qu'un skill n'écrit pas : le connecteur Notion de claude.ai les rend mal.
+_SYNTAXES_NOTION_INTERDITES = re.compile(r"\{color=|<(?:details|summary)[\s>/]", re.IGNORECASE)
+
+
+def _regle_n(racine: Path, plugin: Path) -> list[Anomalie]:
+    """Aucun ``skills/**/*.md`` n'écrit ``{color=``, ``<details>`` ni ``<summary>``."""
+    anomalies = []
+    for fichier in sorted(plugin.glob("skills/**/*.md")):
+        cible = _rel(racine, fichier)
+        lignes = fichier.read_text(encoding="utf-8").splitlines()
+        for numero, ligne in enumerate(lignes, start=1):
+            for trouve in _SYNTAXES_NOTION_INTERDITES.finditer(ligne):
+                syntaxe = trouve.group(0)
+                anomalies.append(Anomalie("n", cible, (
+                    f"ligne {numero} : `{syntaxe}` n'est pas rendu par le connecteur Notion "
+                    "de claude.ai (texte visible, ou `<toggle>` avec l'avertissement « legacy "
+                    "Markdown ») : la couleur s'écrit par l'attribut d'une balise, comme "
+                    "`<span color=\"blue\">`, et le repliable est à reprendre (voir "
+                    "docs/veille.md, journal du 2026-10-21).")))
+    return anomalies
+
+
 _FICHE_EVALS = "## Fiche — claude plugin eval"
 
 
@@ -752,6 +779,7 @@ def controler(racine: Path, limites: dict, sans_exceptions: bool = False) -> Res
         anomalies += _regle_k(racine, plugin)
         anomalies += _regle_l(racine, plugin)
         anomalies += _regle_m(racine, plugin)
+        anomalies += _regle_n(racine, plugin)
     anomalies += _regle_h(racine)
 
     exceptions = [] if sans_exceptions else list(limites.get("exceptions", []))
