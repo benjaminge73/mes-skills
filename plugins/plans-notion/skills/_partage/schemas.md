@@ -243,15 +243,15 @@ Légende :
 
 ### La frise
 
-Une boîte de la vue courte donne un `<details>`, titré `N · <nom de l'étape> — <emoji>
+Une boîte de la vue courte donne un `<toggle>`, titré `N · <nom de l'étape> — <emoji>
 <acteur>`, où `N` et le nom sont ceux de sa boîte, à l'identique (acteurs :
 👤 Toi, 🤖 Hermes, 🔁 CI, 📦 Livré). Dedans, dans cet ordre : l'entrée, la sortie,
 « peut casser », et le lien vers la fiche de la fonctionnalité (une mention de page
 Notion, pas un lien d'ancre). Les pièges Notion ci-dessus valent aussi ici.
 
-Chaque `<details>` se termine par le tableau **🔩 Sous le capot** : une ligne par
+Chaque `<toggle>` se termine par le tableau **🔩 Sous le capot** : une ligne par
 sous-étape, avec six colonnes. Une étape métier peut compter plusieurs sous-étapes :
-elles sont des lignes du même tableau, jamais des boîtes ni des `<details>` à part.
+elles sont des lignes du même tableau, jamais des boîtes ni des `<toggle>` à part.
 
 | Colonne | Contenu |
 |---|---|
@@ -268,8 +268,7 @@ Le processus « Ajouter un nouveau routard », du dépôt du guide à la publica
 **Données factices** : le guide, les noms de fichiers et les valeurs sont inventés pour
 montrer la forme. La rétro-doc de Vahiny posera les vraies.
 
-<details>
-<summary>1 · Dépôt du PDF Routard — 👤 Toi</summary>
+<toggle>1 · Dépôt du PDF Routard — 👤 Toi
 
 **Entrée** : le PDF du guide Routard, à déposer dans la page du plan.
 **Sortie** : un guide à traiter, identifié par son nom court.
@@ -282,10 +281,9 @@ montrer la forme. La rétro-doc de Vahiny posera les vraies.
 |---|---|---|---|---|---|
 | Dépôt du PDF dans la page du plan | — (geste de toi) | page du plan | — | — | à la demande |
 
-</details>
+</toggle>
 
-<details>
-<summary>2 · Extraction du guide — 🤖 Hermes</summary>
+<toggle>2 · Extraction du guide — 🤖 Hermes
 
 **Entrée** : le PDF du guide Routard.
 **Sortie** : le texte du guide en morceaux, encadrés compris, un fichier JSON par morceau.
@@ -300,10 +298,9 @@ montrer la forme. La rétro-doc de Vahiny posera les vraies.
 | Lecture des encadrés (prix, horaires, adresses) | 🤖 agent | `agents/encadres-lecteur.md` (factice) | sonnet | medium | après la découpe, un agent par morceau |
 | Contrôle du texte, bloquant | ⚙️ Python déterministe | `scripts/verifier-extraction.py` (factice) | — | — | après la lecture ; un code de sortie 1 arrête la chaîne |
 
-</details>
+</toggle>
 
-<details>
-<summary>3 · Classement des lieux par étape — 🤖 Hermes</summary>
+<toggle>3 · Classement des lieux par étape — 🤖 Hermes
 
 **Entrée** : les morceaux de l'étape 2.
 **Sortie** : un fichier JSON par lieu, rangé dans son étape du voyage.
@@ -316,10 +313,9 @@ montrer la forme. La rétro-doc de Vahiny posera les vraies.
 |---|---|---|---|---|---|
 | Rangement des lieux par étape | 🤖 agent | `agents/classifieur-lieux.md` (factice) | haiku | high | après la lecture, une fois le contrôle vert |
 
-</details>
+</toggle>
 
-<details>
-<summary>4 · Choix des photos — 👤 Toi</summary>
+<toggle>4 · Choix des photos — 👤 Toi
 
 **Entrée** : les lieux classés par l'étape 3.
 **Sortie** : une photo retenue par lieu, dans la page du plan.
@@ -332,10 +328,9 @@ montrer la forme. La rétro-doc de Vahiny posera les vraies.
 |---|---|---|---|---|---|
 | Choix d'une photo par lieu | — (geste de toi) | page du plan | — | — | après le classement, à la demande |
 
-</details>
+</toggle>
 
-<details>
-<summary>5 · Construction du pack — 🔁 CI</summary>
+<toggle>5 · Construction du pack — 🔁 CI
 
 **Entrée** : les lieux classés et les photos retenues.
 **Sortie** : un pack validé, prêt à être publié.
@@ -349,10 +344,9 @@ montrer la forme. La rétro-doc de Vahiny posera les vraies.
 | Assemblage du pack | ⚙️ Python déterministe | `scripts/assembler_pack.py` (factice) | — | — | après le choix des photos |
 | Contrôle de forme, bloquant | ⚙️ Python déterministe | `scripts/controle_pack.py` (factice) | — | — | après l'assemblage ; un code de sortie 1 arrête la chaîne |
 
-</details>
+</toggle>
 
-<details>
-<summary>6 · Publication du pack — 📦 Livré</summary>
+<toggle>6 · Publication du pack — 📦 Livré
 
 **Entrée** : un pack validé par l'étape 5.
 **Sortie** : le pack disponible pour l'application (factice).
@@ -365,12 +359,12 @@ montrer la forme. La rétro-doc de Vahiny posera les vraies.
 |---|---|---|---|---|---|
 | Mise en ligne du pack | 🔁 CI | `.github/workflows/publier.yml` (factice) | — | — | push sur `main`, si le contrôle est vert |
 
-</details>
+</toggle>
 
 ### Tenir le schéma à jour
 
 Un processus qui change (étape ajoutée, agent remplacé, script renommé) : la vue courte
 et la frise se réécrivent dans la même passe, jamais l'une sans l'autre. Contrôle à la
-main : autant de boîtes dans le schéma que de `<details>` dans la frise, le numéro et
-le nom de chaque `<summary>` identiques à ceux de sa boîte, et un tableau « Sous le
-capot » dans chaque `<details>`. Aucun script ne le vérifie aujourd'hui.
+main : autant de boîtes dans le schéma que de `<toggle>` dans la frise, le numéro et
+le nom de chaque `<toggle>` identiques à ceux de sa boîte, et un tableau « Sous le
+capot » dans chaque `<toggle>`. Aucun script ne le vérifie aujourd'hui.

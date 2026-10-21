@@ -61,26 +61,26 @@ dans une page reste temporaire et expire : on le perd sans message.
 
 ## Remplacer la maquette à une passe suivante
 
-Vérifié le 2026-09-24 sur la même page : un nouvel `create-attachment`, puis
-`update-page` en `update_content` dont `old_str` est **la ligne `<embed …>`
-exacte relue sur la page fraîche** — avec son `src="file://…"` — et dont
-`new_str` porte le nouveau bloc. Les cases cochées ailleurs dans la page ne
-bougent pas.
+Mesuré le 2026-10-21 sur une page de test : un bloc `<embed>` relu sur la page n'est
+**jamais trouvé** par `update_content`, et viser sa légende rend un succès sans effet.
+Viser le bloc de l'ancienne maquette ne remplace donc rien. On ne le vise plus.
 
-Pour garder la version d'avant consultable, `new_str` la reprend telle quelle
-dans un bloc repliable, sous le nouveau :
+Le nouveau bloc s'insère **sous le titre `## Maquette`** : un nouveau
+`create-attachment`, puis `update-page` en `update_content` dont `old_str` est le
+titre `## Maquette` relu sur la page fraîche, et dont `new_str` reprend ce titre suivi
+du nouveau bloc :
 
 ```
+## Maquette
 <embed src="file-upload://<nouvel-id>">Maquette — passe N · AAAA-MM-JJ · file_upload_id <nouvel-id></embed>
-<details>
-<summary>Maquette de la passe précédente</summary>
-	<embed src="file://…recopié tel quel…">…sa légende, recopiée telle quelle…</embed>
-</details>
 ```
 
-Le fichier de la passe précédente reste celui d'origine : recopier son `src`
-suffit, rien n'est renvoyé. Ne garder que la passe précédente — un empilement
-de toutes les versions alourdit la page pour rien.
+L'ancien bloc **reste en dessous**, tel quel : l'API ne sait ni le replier ni le
+retirer. Chaque passe ajoute donc un bloc, et la page s'allonge d'une maquette à
+chaque passe. Les cases cochées ailleurs dans la page ne bougent pas.
+
+⚠️ Viser le titre comme `old_str` n'a pas encore été mesuré : le relire sur la page
+après la première passe qui l'utilise.
 
 **Ne remplacer que si la maquette a changé** : chaque envoi fait transiter le
 fichier entier en tokens.
