@@ -142,6 +142,13 @@ rien et qui attrape l'oubli le plus fréquent.
   dernière passe, mais un bloc de code ne prend pas la coloration en ligne de
   Notion. C'est **la légende juste au-dessus du schéma** qui porte le bleu quand
   le schéma a changé — jamais le bloc Mermaid lui-même.
+- **Un tableau markdown revient en `<table>` à la relecture.** Une page écrite avec un
+  tableau markdown se relit sous la forme `<table>` : c'est cette forme-là, et non le
+  markdown d'origine, qu'un `old_str` doit chercher.
+- **Le contenu d'un `<details>` s'indente d'une tabulation.** Sans cette indentation, le
+  contenu sort du bloc `<details>` au lieu de rester dessous.
+- **Le code d'un bloc Mermaid s'affiche au-dessus de son rendu.** C'est normal : Notion
+  montre le code, puis le diagramme. Ce n'est pas un bug à corriger.
 
 ## Exemple : le plan en un schéma
 
@@ -200,6 +207,10 @@ temps : une vue courte, comprise d'un coup d'œil, puis une frise dépliable où
 étape dit comment elle est faite. Ce n'est pas le schéma du plan : il ne répond pas à
 *qu'est-ce qui tourne en parallèle ?*, mais à *qui fait quoi, dans quel ordre, avec
 quel outil ?*. Il sert à relire un processus sans ouvrir le code.
+
+Vérifié à la main le 2026-10-20 (Chrome, Notion web, sur le plan Vahiny) : le rendu
+Mermaid est lisible (six boîtes colorées, texte noir lisible sur les couleurs), et le
+lien d'ancre « → Récap » atterrit sur le titre du Récap, surligné.
 
 ### La vue courte
 
@@ -271,99 +282,99 @@ montrer la forme. La rétro-doc de Vahiny posera les vraies.
 <details>
 <summary>1 · Dépôt du PDF Routard — 👤 Toi</summary>
 
-**Entrée** : le PDF du guide Routard, à déposer dans la page du plan.
-**Sortie** : un guide à traiter, identifié par son nom court.
-**Peut casser** : un PDF d'une autre édition du guide, et le pack part pour le mauvais guide.
-**Fiche** : « Ajouter un routard » (mention de la sous-page du projet).
+	**Entrée** : le PDF du guide Routard, à déposer dans la page du plan.
+	**Sortie** : un guide à traiter, identifié par son nom court.
+	**Peut casser** : un PDF d'une autre édition du guide, et le pack part pour le mauvais guide.
+	**Fiche** : « Ajouter un routard » (mention de la sous-page du projet).
 
-**🔩 Sous le capot**
+	**🔩 Sous le capot**
 
-| Sous-étape | Mécanisme | Où | Modèle | effort | Déclencheur |
-|---|---|---|---|---|---|
-| Dépôt du PDF dans la page du plan | — (geste de toi) | page du plan | — | — | à la demande |
+	| Sous-étape | Mécanisme | Où | Modèle | effort | Déclencheur |
+	|---|---|---|---|---|---|
+	| Dépôt du PDF dans la page du plan | — (geste de toi) | page du plan | — | — | à la demande |
 
 </details>
 
 <details>
 <summary>2 · Extraction du guide — 🤖 Hermes</summary>
 
-**Entrée** : le PDF du guide Routard.
-**Sortie** : le texte du guide en morceaux, encadrés compris, un fichier JSON par morceau.
-**Peut casser** : un encadré sur deux colonnes, lu dans le désordre, que le contrôle de forme ne voit pas.
-**Fiche** : « Extraire un guide » (mention de la sous-page du projet).
+	**Entrée** : le PDF du guide Routard.
+	**Sortie** : le texte du guide en morceaux, encadrés compris, un fichier JSON par morceau.
+	**Peut casser** : un encadré sur deux colonnes, lu dans le désordre, que le contrôle de forme ne voit pas.
+	**Fiche** : « Extraire un guide » (mention de la sous-page du projet).
 
-**🔩 Sous le capot**
+	**🔩 Sous le capot**
 
-| Sous-étape | Mécanisme | Où | Modèle | effort | Déclencheur |
-|---|---|---|---|---|---|
-| Découpe du PDF en pages | ⚙️ Python déterministe | `scripts/decoupe_guide.py` (factice) | — | — | dépôt du PDF |
-| Lecture des encadrés (prix, horaires, adresses) | 🤖 agent | `agents/encadres-lecteur.md` (factice) | sonnet | medium | après la découpe, un agent par morceau |
-| Contrôle du texte, bloquant | ⚙️ Python déterministe | `scripts/verifier-extraction.py` (factice) | — | — | après la lecture ; un code de sortie 1 arrête la chaîne |
+	| Sous-étape | Mécanisme | Où | Modèle | effort | Déclencheur |
+	|---|---|---|---|---|---|
+	| Découpe du PDF en pages | ⚙️ Python déterministe | `scripts/decoupe_guide.py` (factice) | — | — | dépôt du PDF |
+	| Lecture des encadrés (prix, horaires, adresses) | 🤖 agent | `agents/encadres-lecteur.md` (factice) | sonnet | medium | après la découpe, un agent par morceau |
+	| Contrôle du texte, bloquant | ⚙️ Python déterministe | `scripts/verifier-extraction.py` (factice) | — | — | après la lecture ; un code de sortie 1 arrête la chaîne |
 
 </details>
 
 <details>
 <summary>3 · Classement des lieux par étape — 🤖 Hermes</summary>
 
-**Entrée** : les morceaux de l'étape 2.
-**Sortie** : un fichier JSON par lieu, rangé dans son étape du voyage.
-**Peut casser** : un lieu rangé dans la mauvaise étape, que la construction ne voit pas : elle contrôle la forme et non le sens.
-**Fiche** : « Classer les lieux » (mention de la sous-page du projet).
+	**Entrée** : les morceaux de l'étape 2.
+	**Sortie** : un fichier JSON par lieu, rangé dans son étape du voyage.
+	**Peut casser** : un lieu rangé dans la mauvaise étape, que la construction ne voit pas : elle contrôle la forme et non le sens.
+	**Fiche** : « Classer les lieux » (mention de la sous-page du projet).
 
-**🔩 Sous le capot**
+	**🔩 Sous le capot**
 
-| Sous-étape | Mécanisme | Où | Modèle | effort | Déclencheur |
-|---|---|---|---|---|---|
-| Rangement des lieux par étape | 🤖 agent | `agents/classifieur-lieux.md` (factice) | haiku | high | après la lecture, une fois le contrôle vert |
+	| Sous-étape | Mécanisme | Où | Modèle | effort | Déclencheur |
+	|---|---|---|---|---|---|
+	| Rangement des lieux par étape | 🤖 agent | `agents/classifieur-lieux.md` (factice) | haiku | high | après la lecture, une fois le contrôle vert |
 
 </details>
 
 <details>
 <summary>4 · Choix des photos — 👤 Toi</summary>
 
-**Entrée** : les lieux classés par l'étape 3.
-**Sortie** : une photo retenue par lieu, dans la page du plan.
-**Peut casser** : une photo d'un autre lieu, choisie par erreur, qui part dans le pack.
-**Fiche** : « Choisir les photos » (mention de la sous-page du projet).
+	**Entrée** : les lieux classés par l'étape 3.
+	**Sortie** : une photo retenue par lieu, dans la page du plan.
+	**Peut casser** : une photo d'un autre lieu, choisie par erreur, qui part dans le pack.
+	**Fiche** : « Choisir les photos » (mention de la sous-page du projet).
 
-**🔩 Sous le capot**
+	**🔩 Sous le capot**
 
-| Sous-étape | Mécanisme | Où | Modèle | effort | Déclencheur |
-|---|---|---|---|---|---|
-| Choix d'une photo par lieu | — (geste de toi) | page du plan | — | — | après le classement, à la demande |
+	| Sous-étape | Mécanisme | Où | Modèle | effort | Déclencheur |
+	|---|---|---|---|---|---|
+	| Choix d'une photo par lieu | — (geste de toi) | page du plan | — | — | après le classement, à la demande |
 
 </details>
 
 <details>
 <summary>5 · Construction du pack — 🔁 CI</summary>
 
-**Entrée** : les lieux classés et les photos retenues.
-**Sortie** : un pack validé, prêt à être publié.
-**Peut casser** : un champ vide passe, si la liste des champs obligatoires ne le couvre pas.
-**Fiche** : « Construire un pack » (mention de la sous-page du projet).
+	**Entrée** : les lieux classés et les photos retenues.
+	**Sortie** : un pack validé, prêt à être publié.
+	**Peut casser** : un champ vide passe, si la liste des champs obligatoires ne le couvre pas.
+	**Fiche** : « Construire un pack » (mention de la sous-page du projet).
 
-**🔩 Sous le capot**
+	**🔩 Sous le capot**
 
-| Sous-étape | Mécanisme | Où | Modèle | effort | Déclencheur |
-|---|---|---|---|---|---|
-| Assemblage du pack | ⚙️ Python déterministe | `scripts/assembler_pack.py` (factice) | — | — | après le choix des photos |
-| Contrôle de forme, bloquant | ⚙️ Python déterministe | `scripts/controle_pack.py` (factice) | — | — | après l'assemblage ; un code de sortie 1 arrête la chaîne |
+	| Sous-étape | Mécanisme | Où | Modèle | effort | Déclencheur |
+	|---|---|---|---|---|---|
+	| Assemblage du pack | ⚙️ Python déterministe | `scripts/assembler_pack.py` (factice) | — | — | après le choix des photos |
+	| Contrôle de forme, bloquant | ⚙️ Python déterministe | `scripts/controle_pack.py` (factice) | — | — | après l'assemblage ; un code de sortie 1 arrête la chaîne |
 
 </details>
 
 <details>
 <summary>6 · Publication du pack — 📦 Livré</summary>
 
-**Entrée** : un pack validé par l'étape 5.
-**Sortie** : le pack disponible pour l'application (factice).
-**Peut casser** : une publication qui part avant le contrôle vert.
-**Fiche** : « Publier un pack » (mention de la sous-page du projet).
+	**Entrée** : un pack validé par l'étape 5.
+	**Sortie** : le pack disponible pour l'application (factice).
+	**Peut casser** : une publication qui part avant le contrôle vert.
+	**Fiche** : « Publier un pack » (mention de la sous-page du projet).
 
-**🔩 Sous le capot**
+	**🔩 Sous le capot**
 
-| Sous-étape | Mécanisme | Où | Modèle | effort | Déclencheur |
-|---|---|---|---|---|---|
-| Mise en ligne du pack | 🔁 CI | `.github/workflows/publier.yml` (factice) | — | — | push sur `main`, si le contrôle est vert |
+	| Sous-étape | Mécanisme | Où | Modèle | effort | Déclencheur |
+	|---|---|---|---|---|---|
+	| Mise en ligne du pack | 🔁 CI | `.github/workflows/publier.yml` (factice) | — | — | push sur `main`, si le contrôle est vert |
 
 </details>
 
