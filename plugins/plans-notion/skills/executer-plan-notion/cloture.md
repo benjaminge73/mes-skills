@@ -40,9 +40,10 @@ Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard »
 - `Journal d'exécution` clos par une entrée `État final` (H3, comme les autres,
   §4) : ce qui est livré, le verdict de la suite complète (point 1 ci-dessous),
   les écarts, le reste à faire s'il y en a — **chaque ligne avec son propriétaire** :
-  une question à Benjamin, ou le plan de suite (§7) qui la porte ; une ligne sans
-  propriétaire se règle avant `a merger` — et le lien vers le plan de suite s'il
-  y en a un. Cette entrée porte aussi :
+  la question posée dans la session (avec la réponse de Benjamin), le plan de suite
+  (§7, avec son lien) qui la porte, l'étape `D<n>` qui l'a faite, ou l'événement
+  qu'elle attend ; une ligne sans propriétaire se règle avant `a merger`
+  (`plan-de-suite.md`, « Le tri »). Cette entrée porte aussi :
   - **le décompte des découvertes, vérifié mécaniquement** — jamais recompté
     de tête : `grep -c 'découverte — trouvable' <journal>` et
     `grep -c 'découverte — pas trouvable' <journal>` sur le texte du journal,
@@ -128,6 +129,17 @@ Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard »
   projet est désactivé, ou pose la question « Doc vivante : à activer pour
   <projet> ? » quand l'encadré manque (`changelog-et-doc.md` § 5). L'entrée
   `État final` du journal reste telle quelle, comme trace complète.
+- **Avant le point 1 : trier le reste à faire.** Benjamin ne relit pas un plan
+  terminé : un reste à faire n'y reste pas en phrase. Chaque ligne passe le tri de
+  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/plan-de-suite.md` (« Le tri ») : une
+  décision ou une réponse qu'on attend de lui part **dans la session**, par
+  `AskUserQuestion`, avant `a merger` ; du travail qui reste tient en une étape
+  `D<n>` faite maintenant, ou — au-delà d'**une étape au total** — devient un plan de
+  suite (§7) ; ce qui attend un événement reste dans `La suite`, repris au Récap. Le
+  tri passe **avant** la suite complète du point 1 pour qu'un `D<n>` y soit couvert,
+  avant l'ouverture de la PR, et avant le Récap du point 7, qui en reprend le
+  résultat sans le décider. Un reste né de la suite complète elle-même repasse par
+  ce tri.
 - **Livrer la PR, prête, et la suivre jusqu'au merge.** La PR s'ouvre à la
   clôture ; c'est la CI qui la merge, jamais la session (points 5 et 8). La
   séquence de clôture est courte :

@@ -74,6 +74,9 @@ Benjamin voit ce que chaque plan change pour lui sans ouvrir sa page :
 - le pilote complète la ligne d'un plan **à chacune de ses clôtures**, dans la
   même passe que l'avancement. Tant qu'un plan n'a pas clos, sa ligne porte `—`
   dans « Ce qui change pour toi », et « Reste à faire » dit ce qui l'attend.
+  Après la clôture, « Reste à faire » cite le lien du plan de suite ou l'événement
+  attendu, jamais une décision en suspens : elle se pose dans la session
+  (`_partage/plan-de-suite.md`, « Le tri »).
 
 Elle s'écrit avec les mêmes précautions que le reste
 (`_partage/ecrire-dans-notion.md`), schéma compris (`_partage/schemas.md`).

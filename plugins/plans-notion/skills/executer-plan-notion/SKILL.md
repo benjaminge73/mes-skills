@@ -327,7 +327,7 @@ Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard »
   **vide** tant que la PR n'a pas été ouverte.
 - `Journal d'exécution` clos par une entrée `État final` (H3) : ce qui est
   livré, le verdict de la suite complète, les écarts, le reste à faire (chaque
-  ligne avec son propriétaire), plus : le décompte des découvertes **vérifié
+  ligne avec son propriétaire, §7), plus : le décompte des découvertes **vérifié
   mécaniquement** (`grep -c`, jamais de tête), le contrôle des libellés, le
   registre des outils, **un verdict par étape (`verified` ou
   `unverifiable`, jamais un troisième mot)**, une rétrospective en cinq
@@ -370,20 +370,18 @@ remontée sur `main`** : le détail de chaque point ci-dessus, la séquence de
 clôture complète, la section « La PR, puis la remontée sur `main` » et la
 ligne `Evals`.
 
-## 7. Le plan de suite, quand tout n'est pas passé
+## 7. Le reste à faire, et le plan de suite
 
-Une exécution autonome se termine parfois avec des étapes en échec, des étapes
-sautées faute de dépendance, ou une décision qui attend Benjamin. **Dans ce cas
-— et dans ce cas seulement — créer un plan de suite.** La forme de la page
-(titre suffixé, propriétés, chapitre `Reprise du plan #N-1`, sort de la
-`Branche`, lien entre les deux pages) vit dans un fichier partagé :
+Benjamin ne relit pas un plan terminé : **aucun reste à faire ne dort seul dans sa
+page.** Avant `a merger`, chaque ligne se trie — une décision qu'on attend de lui se
+pose dans la session (`AskUserQuestion`) ; une étape au plus se fait en `D<n>` ;
+au-delà, **plan de suite** (titre suffixé, propriétés, `Reprise du plan #N-1`, sort
+de la `Branche`, liens) ; ce qui attend un événement reste, repris au Récap :
 
 📄 `${CLAUDE_PLUGIN_ROOT}/skills/_partage/plan-de-suite.md`
 
-**À lire au moment de la clôture**, dès qu'il reste quelque chose que
-l'autonomie a mis de côté. Ne pas créer de plan de suite quand tout est passé :
-une page vide de contenu utile encombre la base et fait douter du statut de
-celle qui la précède.
+**À lire à chaque clôture** (`cloture.md`, « Avant le point 1 »). Rien ne reste, ou
+une étape `D<n>` suffit : pas de plan de suite, une page vide encombre la base.
 
 ## Plusieurs plans
 
