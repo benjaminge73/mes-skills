@@ -16,6 +16,9 @@ Un test de plus (7) : un en-tête sans date rend 1. La panne 5 ne la couvre pas,
 et une date absente passe inaperçue dans une page longue.
 Deux de plus, pour l'entrée datée du Changelog (« ## AAAA-MM-JJ · titre ») : une
 conforme rend 0 (8) ; une rubrique absente rend 1 (9).
+Trois de plus, pour le contrôle de forme (étape 1 du plan « fix/changelog-doc-vivante-2 ») :
+une ligne ✨ sourcée « (étape D1) » est acceptée (10) ; un en-tête sans ligne « Plan : »
+rend 1 (11) ; une entrée sans bloc « Côté technique » rend 1 (12).
 """
 from __future__ import annotations
 
@@ -28,7 +31,7 @@ from pathlib import Path
 RACINE = Path(__file__).resolve().parent.parent
 SCRIPT = RACINE / "plugins" / "plans-notion" / "skills" / "_partage" / "scripts" / "controle-changelog.py"
 
-ENTETE = "## Récap — plan « Exemple » — 2026-10-20\n\nPR : #12 — statut : prête\n\n"
+ENTETE = "## Récap — plan « Exemple » — 2026-10-20\nPlan : lien · PR : #12 — statut : prête\n\n"
 
 BLOCS = {
     "nouveau": "### ✨ Nouveau\n- Le pilote écrit le récap à chaque clôture (preuve : étape 2)\n\n",
@@ -40,9 +43,9 @@ DETAILS = "<details>\n<summary>Côté technique</summary>\n\nDétail technique.\
 ORDRE = ("nouveau", "ameliore", "corrige", "reste")
 
 
-def entree(ordre=ORDRE, blocs=None, entete=ENTETE):
+def entree(ordre=ORDRE, blocs=None, entete=ENTETE, details=DETAILS):
     corps = {**BLOCS, **(blocs or {})}
-    return entete + "".join(corps[c] for c in ordre) + DETAILS
+    return entete + "".join(corps[c] for c in ordre) + details
 
 
 def jouer(*args):
@@ -101,7 +104,7 @@ class ControleChangelog(unittest.TestCase):
         self.assertIn("Récap", erreur)
 
     def test_en_tete_sans_date_rend_un(self):
-        texte = entree(entete="## Récap — plan « Exemple »\n\nPR : #12 — statut : prête\n\n")
+        texte = entree(entete="## Récap — plan « Exemple »\nPlan : lien · PR : #12 — statut : prête\n\n")
         code, sortie, erreur = jouer(self._entree(texte))
         self.assertEqual(code, 1, erreur)
         self.assertIn("sans date", sortie)
@@ -124,6 +127,29 @@ class ControleChangelog(unittest.TestCase):
         code, sortie, erreur = jouer(self._entree(texte))
         self.assertEqual(code, 1, erreur)
         self.assertIn("« Reste à faire » absente", sortie)
+
+    def test_source_etape_d_acceptee_sur_ligne_de_nouveau(self):
+        # Panne : « (étape D1) » était refusée comme ligne sans source, le motif
+        # n'admettant que « étape N ». Attendu indépendant : une ligne ✨ qui finit
+        # par « (étape D<n>) » est sourcée, l'entrée rend 0.
+        ligne = "- Le pilote lit le plan depuis Notion (étape D1)"
+        texte = entree(blocs={"nouveau": f"### ✨ Nouveau\n{ligne}\n\n"})
+        code, sortie, erreur = jouer(self._entree(texte))
+        self.assertEqual((code, sortie), (0, ""), erreur)
+
+    def test_entete_sans_ligne_plan_rend_un_et_le_nomme(self):
+        # Panne : un en-tête sans ligne « Plan : » passait. Attendu : rend 1 et le nomme.
+        texte = entree(entete="## Récap — plan « Exemple » — 2026-10-20\n\nPR : #12 — statut : prête\n\n")
+        code, sortie, erreur = jouer(self._entree(texte))
+        self.assertEqual(code, 1, erreur)
+        self.assertIn("sans ligne Plan :", sortie)
+
+    def test_sans_bloc_cote_technique_rend_un_et_le_nomme(self):
+        # Panne : une entrée sans <details> « Côté technique » passait. Attendu : rend 1
+        # et le nomme. L'entrée n'a que le corps, sans aucun bloc après « Reste à faire ».
+        code, sortie, erreur = jouer(self._entree(entree(details="")))
+        self.assertEqual(code, 1, erreur)
+        self.assertIn("bloc Côté technique absent", sortie)
 
 
 if __name__ == "__main__":
