@@ -907,6 +907,62 @@ class RegleM_ModeleEtEffortDesAgents(Depot):
         self.assertEqual([a for a in res.refus if a.regle == "m"], [])
 
 
+class RegleN_SyntaxesNotionInterdites(Depot):
+    """Aucun ``skills/**/*.md`` n'écrit ``{color=``, ``<details>`` ni ``<summary>``.
+
+    Panne évitée (constatée le 2026-10-21, mesurée sur une page de test) : le
+    connecteur Notion de claude.ai affiche ``{color=…}`` comme texte visible et
+    convertit ``<details>`` en bloc ``<toggle>`` avec l'avertissement « legacy
+    Markdown ». Une consigne qui écrit ces syntaxes produit une page fausse sans
+    erreur.
+    """
+
+    SKILL = "plugins/p/skills/s/SKILL.md"
+    # Six lignes avant le corps : frontmatter de quatre lignes, un titre, une ligne vide.
+    # Le corps commence donc à la ligne 7.
+    ENTETE = "---\nname: s\ndescription: Un skill.\n---\n# Titre\n\n"
+
+    def setUp(self):
+        super().setUp()
+        self.plugin_conforme()
+
+    def refus_n(self):
+        return [a for a in self.controler().refus if a.regle == "n"]
+
+    def ecrire_corps(self, chemin_relatif, ligne):
+        _ecrire(self.racine / chemin_relatif, self.ENTETE + ligne + "\n")
+
+    def test_color_entre_accolades_est_refuse_avec_fichier_et_ligne(self):
+        self.ecrire_corps(self.SKILL, 'Un titre {color="blue"}')
+        refus = self.refus_n()
+        self.assertEqual([a.cible for a in refus], [self.SKILL])
+        self.assertIn("ligne 7", refus[0].message)
+
+    def test_details_est_refuse_avec_fichier_et_ligne(self):
+        self.ecrire_corps(self.SKILL, "<details>")
+        refus = self.refus_n()
+        self.assertEqual([a.cible for a in refus], [self.SKILL])
+        self.assertIn("ligne 7", refus[0].message)
+
+    def test_summary_est_refuse_avec_fichier_et_ligne(self):
+        self.ecrire_corps(self.SKILL, "<summary>Détail</summary>")
+        refus = self.refus_n()
+        self.assertEqual([a.cible for a in refus], [self.SKILL])
+        self.assertIn("ligne 7", refus[0].message)
+
+    def test_un_fichier_de_partage_est_aussi_refuse(self):
+        # Attrape un garde qui ne lirait que ``SKILL.md`` : les fichiers de
+        # ``skills/_partage/`` écrivent aussi des pages Notion (même panne, autre fichier).
+        partage = "plugins/p/skills/_partage/notion.md"
+        self.ecrire_corps(partage, '{color="red"} rouge')
+        self.assertEqual([a.cible for a in self.refus_n()], [partage])
+
+    def test_un_skill_sans_ces_syntaxes_passe(self):
+        # Témoin nul : la forme admise (couleur par attribut de balise) ne déclenche rien.
+        self.ecrire_corps(self.SKILL, 'Un titre <span color="blue">en bleu</span>')
+        self.assertEqual(self.refus_n(), [])
+
+
 ENTETE_FICHE = "| Catégorie | Cas au 2026-10-16 | Cas mesurés le 2026-09-30 | Un bras, 3 passages | Un passage |"
 SEPARATEUR_FICHE = "|---|---|---|---|---|"
 LIGNES_CONFORMES = (
