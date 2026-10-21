@@ -46,7 +46,7 @@ Plan : <lien vers la page du plan> · PR : <lien, ou « aucune (plan natif) »> 
 - ✨ Nouveau : ce qui existe désormais et n'existait pas.
 - 🔧 Amélioré : ce qui existait et marche mieux.
 - 🐛 Corrigé : un défaut connu, corrigé. Rédigé du point de vue de la personne qui s'en servait.
-- ⏭️ Reste à faire : ce qui n'est pas livré, et ce qui attend une décision de Benjamin.
+- ⏭️ Reste à faire : ce qui n'est pas livré, **avec où cela atterrit** — le lien du plan de suite, l'événement attendu, ou la décision que Benjamin vient de rendre dans la session. Une décision qu'on attend de lui n'y reste pas en phrase : elle a été posée dans la session avant la clôture (`plan-de-suite.md`, « Le tri »), ou elle est une question ouverte du plan de suite, avec son lien.
 
 ### 2.2 Règles de rédaction
 

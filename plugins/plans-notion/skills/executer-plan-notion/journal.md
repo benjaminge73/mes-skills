@@ -62,7 +62,7 @@ Sous ce titre, l'entrée d'une étape porte :
   format « POC : 8, exécuté : 39 » — ce que la mesure avait annoncé, ce que
   l'exécution a trouvé — avec un renvoi à
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/poc.md` ;
-- le **reste à faire**, s'il en reste, chaque ligne avec son propriétaire (voir « Découvertes hors plan »).
+- le **reste à faire**, s'il en reste, chaque ligne avec son propriétaire : question posée en session, plan de suite, étape `D<n>` ou événement attendu (voir « Découvertes hors plan » et `_partage/plan-de-suite.md`).
 
 Dans l'entrée, quatre champs portent ces clés, en gras et suivies de ` :` :
 `**Preuve**`, `**Commit**`, `**Découvertes**`, `**Verdict**`. La clôture les

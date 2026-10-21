@@ -134,7 +134,10 @@ Séquence, dans l'ordre :
    en arrière.
 6. Une entrée de journal **`Remontée sur main`** (H3, comme les autres, §4) : la
    PR, le commit de merge, la date, et ce qui reste à faire après le merge s'il
-   reste quelque chose. Une PR ouverte sans merge a aussi son entrée — `PR
+   reste quelque chose — **trié, pas noté** : Benjamin ne relit pas un plan
+   `execute`. Une question qu'on attend de lui se pose dans la session, un travail
+   qui dépasse une étape ouvre un plan de suite (`_partage/plan-de-suite.md`, « Le
+   tri »), et l'entrée cite la question posée ou le lien du plan. Une PR ouverte sans merge a aussi son entrée — `PR
    ouverte`, avec le numéro et le verdict de la CI — pour que la page dise où en
    est la remontée.
 
