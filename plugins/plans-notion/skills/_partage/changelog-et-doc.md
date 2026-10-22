@@ -95,7 +95,7 @@ Une PR est **documentée** seulement si son numéro figure dans l'**en-tête** d
 
 Quels numéros comptent dans un en-tête :
 
-- **Dans le titre H2**, seules les formes non ambiguës : `PR #N`, `PR N`, `pull/N`. Un `#N` nu ne compte pas : `## … · Hors plan — Revert « … » (#282)` ne documente pas la PR 282, et un numéro du titre de plan (« Vahiny - Thaïlande #4 ») ne documente pas la PR 4. Pour documenter, écrire `(PR #282)` dans le titre, ou la ligne `Plan :` (ci-dessous).
+- **Dans le titre H2**, seule la forme finale `(PR #N)`, en fin de titre : c'est celle que pose le gabarit « Hors plan » (§ 2.6). Ni un `#N` nu (`## … · Hors plan — Revert « … » (#282)` ne documente pas la PR 282), ni un `PR N` ou un `pull/N` ailleurs dans le titre ne documentent : le titre recopie celui de la PR, qui peut citer d'autres PR (« … ce que la PR #190 a fait … » ne documente pas la 190). Un numéro du titre de plan (« Vahiny - Thaïlande #4 ») ne documente pas non plus la PR 4. Hors de cette forme finale, le numéro se lit sur la ligne `Plan :` (ci-dessous).
 - **Sur la ligne `Plan :`**, seul le segment qui suit `PR :` compte, jusqu'au `·` suivant ou la fin de ligne. Le lien du plan et son titre ne comptent jamais : `Plan : [Plan … #2 - 3e passe](…) · PR : #12` ne documente ni 2 ni 3.
 - **Dans ce segment** : `#N` (frontière de mot : `#25` ne couvre pas `#258`), `pull/N`, `PR N`, et les plages `#A à #B`, `#A à B`, `#A–#B`, `#A-#B`, `#A … #B` (toutes les PR de A à B incluses).
 - **Un bloc de code** (``` ou ~~~) ne compte ni pour le Récap, ni pour un en-tête : un exemple d'entrée cité dans un bloc ne documente rien.
@@ -128,7 +128,7 @@ Plan : aucun (hors plan) · PR : <lien> · Statut : mergée
 ```
 
 - La date du titre est celle de la pose du rattrapage.
-- Le numéro de la PR figure **dans le titre**, sous la forme `(PR #N)`, et dans la ligne `Plan :` sous `PR : <lien>` : c'est la forme non ambiguë du § 2.5 qui documente la PR, un `#N` nu dans le titre ne suffirait pas.
+- Le numéro de la PR figure **dans le titre**, sous la forme `(PR #N)`, et dans la ligne `Plan :` sous `PR : <lien>` : c'est la forme finale du § 2.5 qui documente la PR, un `#N` nu dans le titre ne suffirait pas, et un `PR N` ailleurs dans le titre ne compte pas.
 - Elle passe `controle-changelog.py` comme toute entrée : quatre rubriques, source sur chaque ligne ✨ ou 🔧, bloc « Côté technique ». La source d'une PR sans plan est `(preuve : PR #N)`.
 - Elle ne s'écrit **pas** pour une PR de dépendances (auteur Dependabot, ou label `dependencies`).
 - Elle **ne remplace pas** l'obligation du plan : une PR qui a un plan doit son entrée de plan (`cloture.md`, point (c)). L'entrée « Hors plan » ne fait que couvrir la PR en attendant, et le compte rendu le dit à Benjamin.
