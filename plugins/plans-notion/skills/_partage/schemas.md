@@ -202,8 +202,8 @@ flowchart TD
 ## Le schéma de processus (doc fonctionnelle)
 
 Un processus clé de la doc fonctionnelle d'un projet (le chapitre « Processus clés »
-de sa vue d'ensemble, sous la page du projet dans `Clients / Projets`) se lit en deux
-temps : une vue courte, comprise d'un coup d'œil, puis une frise dépliable où chaque
+de la page mère `📚 Documentation`, sous la page du projet dans `Clients / Projets`)
+se lit en deux temps : une vue courte, comprise d'un coup d'œil, puis une frise dépliable où chaque
 étape dit comment elle est faite. Ce n'est pas le schéma du plan : il ne répond pas à
 *qu'est-ce qui tourne en parallèle ?*, mais à *qui fait quoi, dans quel ordre, avec
 quel outil ?*. Il sert à relire un processus sans ouvrir le code.
@@ -284,7 +284,7 @@ montrer la forme. La rétro-doc de Vahiny posera les vraies.
 	**Entrée** : le PDF du guide Routard, à déposer dans la page du plan.
 	**Sortie** : un guide à traiter, identifié par son nom court.
 	**Peut casser** : un PDF d'une autre édition du guide, et le pack part pour le mauvais guide.
-	**Fiche** : « Ajouter un routard » (mention de la sous-page du projet).
+	**Fiche** : « Ajouter un routard » (mention de la fiche, sous sa famille).
 
 	**🔩 Sous le capot**
 
@@ -299,7 +299,7 @@ montrer la forme. La rétro-doc de Vahiny posera les vraies.
 	**Entrée** : le PDF du guide Routard.
 	**Sortie** : le texte du guide en morceaux, encadrés compris, un fichier JSON par morceau.
 	**Peut casser** : un encadré sur deux colonnes, lu dans le désordre, que le contrôle de forme ne voit pas.
-	**Fiche** : « Extraire un guide » (mention de la sous-page du projet).
+	**Fiche** : « Extraire un guide » (mention de la fiche, sous sa famille).
 
 	**🔩 Sous le capot**
 
@@ -316,7 +316,7 @@ montrer la forme. La rétro-doc de Vahiny posera les vraies.
 	**Entrée** : les morceaux de l'étape 2.
 	**Sortie** : un fichier JSON par lieu, rangé dans son étape du voyage.
 	**Peut casser** : un lieu rangé dans la mauvaise étape, que la construction ne voit pas : elle contrôle la forme et non le sens.
-	**Fiche** : « Classer les lieux » (mention de la sous-page du projet).
+	**Fiche** : « Classer les lieux » (mention de la fiche, sous sa famille).
 
 	**🔩 Sous le capot**
 
@@ -331,7 +331,7 @@ montrer la forme. La rétro-doc de Vahiny posera les vraies.
 	**Entrée** : les lieux classés par l'étape 3.
 	**Sortie** : une photo retenue par lieu, dans la page du plan.
 	**Peut casser** : une photo d'un autre lieu, choisie par erreur, qui part dans le pack.
-	**Fiche** : « Choisir les photos » (mention de la sous-page du projet).
+	**Fiche** : « Choisir les photos » (mention de la fiche, sous sa famille).
 
 	**🔩 Sous le capot**
 
@@ -346,7 +346,7 @@ montrer la forme. La rétro-doc de Vahiny posera les vraies.
 	**Entrée** : les lieux classés et les photos retenues.
 	**Sortie** : un pack validé, prêt à être publié.
 	**Peut casser** : un champ vide passe, si la liste des champs obligatoires ne le couvre pas.
-	**Fiche** : « Construire un pack » (mention de la sous-page du projet).
+	**Fiche** : « Construire un pack » (mention de la fiche, sous sa famille).
 
 	**🔩 Sous le capot**
 
@@ -362,7 +362,7 @@ montrer la forme. La rétro-doc de Vahiny posera les vraies.
 	**Entrée** : un pack validé par l'étape 5.
 	**Sortie** : le pack disponible pour l'application (factice).
 	**Peut casser** : une publication qui part avant le contrôle vert.
-	**Fiche** : « Publier un pack » (mention de la sous-page du projet).
+	**Fiche** : « Publier un pack » (mention de la fiche, sous sa famille).
 
 	**🔩 Sous le capot**
 
