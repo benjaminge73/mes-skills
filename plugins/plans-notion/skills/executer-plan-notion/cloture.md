@@ -357,6 +357,9 @@ Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard »
        Chaque fichier posé passe le contrôle (b) avant qu'Hermes ne le pose par
        `composio`. Le compte rendu les signale chacun comme à poser par Hermes, avec leur
        chemin, et dit quel palier a posé quoi.
+       Au palier 3, (d) ne crée ni page mère, ni famille, ni fiche : les fiches prêtes
+       restent dans le compte rendu, et leur création attend le retour du connecteur ou de
+       `composio` (`changelog-et-doc.md` § 6, point 3).
 
      Ensuite, le journal et le compte rendu : `État final` (avec la sortie du point 6),
      `Statut` = **`a merger`**, `PR` = l'URL, et le compte rendu à Benjamin, qui est le

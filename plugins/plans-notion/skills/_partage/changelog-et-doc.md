@@ -135,6 +135,7 @@ Pour toute écriture de la clôture dans Notion (hub, et page du plan), une seul
    - `<AAAA-MM-JJ>-<plan>.md` : l'entrée du hub (titre `## AAAA-MM-JJ · <titre du plan>`). Il ne s'écrit que si l'encadré dit « activée », et jamais pour un plan couvert par un plan maître (§ 2.4).
 
    Le compte rendu signale chaque fichier posé comme à poser par Hermes. Hermes les pose par `composio` avec ce fichier, sans les recopier. L'agent qui écrit ne lance pas Hermes lui-même.
+   Au palier 3, la clôture ne crée ni page mère, ni famille, ni fiche : les fiches prêtes restent dans le compte rendu, et leur création attend le retour du connecteur ou de `composio`. Les deux fichiers ci-dessus ne changent pas.
 
 Le compte rendu dit **quel palier** a posé l'entrée. Le détail des commandes de lecture et d'écriture, et la façon dont Hermes reçoit la transmission, sont dans la fiche « Connecteurs MCP d'une session Claude Code » de `${CLAUDE_PLUGIN_ROOT}/skills/_partage/outils-et-quotas.md`. Ne pas recopier ce détail ici.
 
