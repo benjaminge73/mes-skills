@@ -6,8 +6,6 @@ tags: [lecture]
 max_turns: 30
 timeout_seconds: 600
 allowed_tools: [Read, Glob, Grep, Skill, Write, Edit, Agent]
-context:
-  scaffold_script: fixture.sh
 ---
 Utilise le skill `plan-notion` pour cette demande.
 

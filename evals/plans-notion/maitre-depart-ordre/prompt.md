@@ -6,8 +6,6 @@ tags: [execution]
 max_turns: 30
 timeout_seconds: 600
 allowed_tools: [Read, Glob, Grep, Skill, Write, Edit, Bash]
-context:
-  scaffold_script: fixture.sh
 ---
 Utilise le skill `executer-plan-notion` : Benjamin dit « go » sur le plan P2, `plan.md`, dont le `Statut` est `pret` et dont la préparation est faite. Ne code aucune étape.
 
