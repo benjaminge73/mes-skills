@@ -373,6 +373,15 @@ class DocDeCloture(unittest.TestCase):
         code, sortie, erreur = jouer("--porte", page, "--changelog", c, "--pr", 224)
         self.assertEqual((code, sortie), (0, ""), erreur)
 
+    # Panne 17 : le segment qui suit « PR : » lit « PR N » en prose, et « (voir PR 190) » documente
+    # alors la PR 190. Attendu : seuls « #N », « pull/N » et les plages comptent ; la PR 12, citée
+    # par « #12 », est documentée ; la PR 190, citée en prose, reste un trou.
+    def test_pr_citee_en_prose_dans_le_segment_pr_ne_documente_pas_la_pr(self):
+        texte = changelog(entree(ligne_plan="Plan : lien · PR : #12 (voir PR 190) · Statut : mergée"))
+        code, sortie, erreur = self.trous(texte, [pr(12), pr(190)])
+        self.assertEqual(code, 1, erreur)
+        self.assertEqual(numeros(sortie), ["#190"], sortie)
+
 
 if __name__ == "__main__":
     unittest.main()
