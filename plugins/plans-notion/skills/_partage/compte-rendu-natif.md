@@ -37,6 +37,11 @@ Le texte contient cinq rubriques, présentes même vides (« aucune » s'écrit 
   - `doc vivante désactivée` : rien n'est tenté dans Notion ;
   - `non posé — projet sans décision` : rien n'est écrit dans le hub, et la question
     « Doc vivante : à activer pour <projet> ? » part dans « Questions pour Benjamin ».
+  - `fiches non posées — palier 3` : aucun palier Notion n'a posé les fiches (la page
+    mère, la famille et la fiche ne se créent pas au palier 3). La liste des fiches
+    prêtes, avec leur titre et leur famille, suit la mention ; leur création attend le
+    retour du connecteur ou de `composio`. Cette mention vaut pour les fiches seules :
+    l'entrée du hub garde sa propre mention, qui peut être un autre palier.
 
   Dans les trois cas `non posé — …`, le texte COMPLET de l'entrée figure dans cette rubrique,
   sous la mention : un plan natif n'a pas de page où le garder prêt. L'entrée porte la mention
