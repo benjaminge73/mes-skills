@@ -34,8 +34,10 @@ prochain titre, toggle ou ligne en gras. Seuls le H2 et sa ligne Plan portent de
 les puces, le bloc « Côté technique » et les phrases d'absence ne comptent pas.
 
 Quels numéros comptent dans un en-tête :
-  - dans le titre H2, seules les formes non ambiguës : ``PR #N``, ``PR N``, ``pull/N``. Un
-    ``#N`` nu (« Revert … (#282) ») ou un numéro du titre de plan (« Thaïlande #4 ») ne compte pas ;
+  - dans le titre H2, seule la forme finale ``(PR #N)``, en fin de titre : le gabarit « Hors
+    plan » la pose ainsi. Ni un ``#N`` nu (« Revert … (#282) »), ni un ``PR N`` ou un ``pull/N``
+    ailleurs dans le titre (le titre recopie celui de la PR, qui peut citer d'autres PR), ni
+    un numéro du titre de plan (« Thaïlande #4 ») ne comptent ;
   - sur la ligne Plan, seul le segment qui suit ``PR :`` (jusqu'au ``·`` suivant, ou la fin de
     ligne) compte. Le lien du plan et son titre ne comptent jamais ;
   - dans ce segment : ``#N`` (frontière de mot, ``#25`` ne couvre pas ``#258``), ``pull/N``,
@@ -66,6 +68,7 @@ TITRE = re.compile(r"^#{1,6}\s")
 ZONE_MAX = 5
 
 PLAGE = re.compile(r"#(\d+)\s*(?:à|–|-|…)\s*#?(\d+)")
+TITRE_FINAL = re.compile(r"\(PR #?(\d+)\)\s*$")
 NUMERO = re.compile(r"#(\d+)")
 PULL = re.compile(r"pull/(\d+)")
 PR_MOT = re.compile(r"\bPR\s+#?(\d+)")
@@ -121,10 +124,13 @@ def numeros_cites(texte):
 
 
 def numeros_titre(ligne_h2):
-    """Dans un titre H2, seules les formes non ambiguës comptent : PR #N, PR N, pull/N."""
-    isoles = {int(n) for n in PR_MOT.findall(ligne_h2)}
-    isoles |= {int(n) for n in PULL.findall(ligne_h2)}
-    return isoles, []
+    """Dans un titre H2, seule la forme finale « (PR #N) », en fin de titre, compte.
+
+    Le gabarit « Hors plan » la pose en fin de titre. Un « PR N » ou un « pull/N » ailleurs
+    dans le titre ne compte pas : le titre recopie celui de la PR, qui peut citer d'autres PR.
+    """
+    m = TITRE_FINAL.search(ligne_h2)
+    return ({int(m.group(1))} if m else set()), []
 
 
 def numeros_pr(ligne_plan):
