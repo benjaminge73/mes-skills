@@ -6,8 +6,6 @@ tags: [execution]
 max_turns: 40
 timeout_seconds: 600
 allowed_tools: [Read, Glob, Grep, Skill, Write, Edit, Agent]
-context:
-  scaffold_script: fixture.sh
 ---
 Utilise le skill `executer-plan-notion` : le plan `plan.md` est exécuté, ses deux étapes sont faites et la suite complète est verte. Tu es au début de la clôture.
 

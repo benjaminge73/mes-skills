@@ -10,10 +10,13 @@ et la façon de la préparer ne vivent qu'ici.
 
 - Pourquoi ce fichier
 - La page
+- Les plans du lot, sous-éléments du maître
 - Le travail préliminaire : les règles d'un plan classique, plan par plan
 - Ce qui reste au pilote
 - Le statut du plan maître et son lot
 - Qui rejoue le calcul, et quand
+- Le maître se revérifie aussi quand le contenu d'un plan change
+- Un plan du lot ne s'exécute pas seul
 - Lancé par `executer-plan-notion`
 
 ## Pourquoi ce fichier
@@ -45,7 +48,11 @@ d'être recréée. Elle porte :
   étapes restantes, ce qui attend Benjamin) ;
 - **le croisement** : qui part ensemble, qui attend quoi, et pourquoi ; entre
   plans, le parallèle est le défaut, seule une ressource partagée à l'exécution
-  fait attendre (`executer-plan-notion`, « Plusieurs plans ») ;
+  fait attendre (`executer-plan-notion`, « Plusieurs plans »). Chaque plan du
+  tableau porte un identifiant `P1`, `P2`… et chaque contrainte s'écrit en une
+  phrase que `depart-dans-le-lot.py` lit : `P3 attend P1 jusqu'à a merger` (sans
+  « jusqu'à », `execute`) ou `P2 exclut P4` (ressource partagée, jamais en même
+  temps), suivie de sa raison ;
 - **l'ordre de merge** des plans qui touchent un même fichier ;
 - **la file des actions lourdes** (`_partage/machine-partagee.md`) ;
 - **l'avancement par plan**, une ligne datée par événement, avec un lien vers le
@@ -80,6 +87,32 @@ Benjamin voit ce que chaque plan change pour lui sans ouvrir sa page :
 
 Elle s'écrit avec les mêmes précautions que le reste
 (`_partage/ecrire-dans-notion.md`), schéma compris (`_partage/schemas.md`).
+
+## Les plans du lot, sous-éléments du maître
+
+**Chaque plan du lot est un sous-élément de la page maître**, dans la base `Plans
+Claude` : la relation de parenté de la base (« Parent item » ou « Élément parent »
+selon la langue de l'espace ; la lire dans le schéma de la base, `notion-fetch` sur sa
+`collection://`, jamais la deviner) porte l'URL de la page maître. Le plan reste une
+ligne de la base, avec ses propriétés `Statut`, `Repo`, `Branche` et `PR` dont la porte
+d'entrée et `statut-maitre.py` dépendent ; il apparaît en plus sous son maître.
+
+⚠️ **Jamais `notion-move-pages` sous la page maître** : le plan quitterait la base et
+perdrait ses propriétés, donc sa porte d'entrée et le calcul du statut du maître.
+
+- **Quand** : à la création du maître (chaque plan du lot), à l'ajout d'un plan en
+  route, et pour un plan de suite d'un plan du lot (il rejoint le lot). Un plan qui
+  sort du lot (abandon) perd son parent, dans le tour où la ligne datée est écrite
+  sur la page maître.
+- **Comment** : une écriture de propriété seule (`notion-update-page`, la relation),
+  sans toucher au corps de la page ; le relevé des cases n'a pas lieu d'être.
+- **Si la base n'a pas de relation de parenté** (les sous-éléments se activent une
+  fois, dans la vue Tableau de la base, par Benjamin), le dire en une ligne et
+  continuer : le tableau `Plans` et la puce **Orchestration** portent alors seuls le
+  lien. Ne pas créer la propriété soi-même.
+- **Portée** : la règle vaut pour les maîtres créés ou modifiés après elle. Un lot
+  existant se rattache quand Benjamin le demande, jamais de l'initiative d'une
+  session qui passe par là.
 
 ## Le travail préliminaire : les règles d'un plan classique, plan par plan
 
@@ -273,6 +306,67 @@ lui.
 rattrapage : Benjamin change des statuts à la main (`archive` en tête), et rien
 d'autre ne le voit. Un écart trouvé à ce moment se corrige tout de suite, sans
 attendre un événement, et se signale d'une ligne à Benjamin.
+
+### Le maître se revérifie aussi quand le contenu d'un plan change
+
+Le statut n'est pas la seule chose que la page maître dérive de ses plans : son
+`Croisement`, son `Ordre de merge`, sa `File des actions lourdes` et le tableau
+`Plans` (étapes restantes, ce qui attend Benjamin) disent ce que les plans disent. Un
+plan dont le contenu change sans que le maître le sache rend ces sections fausses sans
+qu'aucun statut ait bougé : un fichier ajouté à une étape crée un recoupement, une étape
+`D<n>` change ce qui reste, une question nouvelle change ce qui attend Benjamin.
+
+**Celui qui écrit la page d'un plan du lot revérifie le maître dans le même tour**, que
+ce soit un `Statut` (calcul ci-dessus) ou le contenu : les chapitres `Exécution`,
+`Questions ouvertes`, `Besoins`, `Cartes`, ou les propriétés `Branche` et `PR`. Les
+entrées du `Journal d'exécution` ne déclenchent rien de plus : leur ligne d'`Avancement`
+suffit.
+
+1. **Relire la partie du plan qui a changé** (une fiche du `lecteur`, `_partage/lecture-deleguee.md`,
+   pour ce seul plan), pas les autres.
+2. **Confronter à la page maître** : les `Fichiers touchés` aux recoupements et à
+   l'ordre de merge, les étapes aux contraintes `attend` / `exclut` du `Croisement`, la
+   ligne du plan dans le tableau `Plans` et dans le `Récap du lot`. Un plan déjà `pret`
+   dont la place change relit sa puce **Orchestration** et la corrige.
+3. **Écrire le verdict dans `Avancement`**, une ligne datée : « maître revérifié après
+   <changement> du plan <Pn> : inchangé » ou « corrigé : <ce qui a bougé> ». Un
+   changement qui rend un `Croisement` déjà appliqué faux (un plan démarré qui aurait dû
+   attendre) n'est pas corrigé en silence : il est dit à Benjamin dans la session.
+
+## Un plan du lot ne s'exécute pas seul
+
+Un plan couvert par un maître ne démarre jamais sur la seule foi de sa page : la
+session qui reçoit un « go » sur lui lit **d'abord** le maître, et ne passe le plan `en
+cours` que si le `Croisement` le permet. La raison est celle du lot entier : le pilote
+unique de `executer-plan-notion` (« Plusieurs plans ») conduit tous les plans, et une
+session qui ouvre un plan à côté d'un lot en route ne voit ni ce qu'il attend ni ce
+qu'il bloque.
+
+1. **Savoir si le plan est couvert** : sa propriété de parenté (voir « Les plans du
+   lot, sous-éléments du maître »), la puce **Orchestration** de son entrée `Ouverture`,
+   et, à défaut des deux, les maîtres du même `Repo` non `execute` ni `archive` dont le
+   tableau `Plans` le liste. Un seul de ces trois suffit : le plan est couvert.
+2. **Lire le maître** : sa page entière par le `lecteur`, puis les `Statut` actuels des
+   plans du lot par une requête sur la base (jamais la colonne de la page).
+3. **Jouer la porte du lot**, au moment de passer `pret` à `en cours` :
+
+   ```bash
+   python3 "${CLAUDE_PLUGIN_ROOT}/skills/_partage/scripts/depart-dans-le-lot.py" <maitre.md> <Pn> --statuts "P1=en cours" "P2=pret" …
+   ```
+
+   Code 0 : le départ est permis, `Statut` = `en cours` (et le maître se recalcule, plus haut).
+   **Code 1** : un motif par ligne (qui attend quoi, quel statut est lu). Le plan reste
+   `pret`, la session le dit en une ligne et ne démarre aucune étape : elle reprend
+   quand le plan attendu atteint le statut demandé. **Code 2** : le `Croisement` ne se
+   lit pas (pas d'identifiants, section absente) ; lire les contraintes à la main, et
+   demander à Benjamin dans la session si elles ne sont pas claires, plutôt que démarrer.
+4. **Le pilote du lot est l'exécutant normal.** Quand le pilote conduit le lot, la porte
+   se joue pour chaque plan à son tour de vague ; une autre session ne démarre le plan
+   que si le `Croisement` le permet **et** qu'aucun autre pilote ne tient déjà le lot (la
+   ligne d'`Avancement` dit qui).
+
+Le script vérifie les contraintes écrites, pas leur justesse : un `Croisement` oublié de
+l'orchestration ne se rattrape que par la revérification du maître ci-dessus.
 
 ## Lancé par `executer-plan-notion`
 

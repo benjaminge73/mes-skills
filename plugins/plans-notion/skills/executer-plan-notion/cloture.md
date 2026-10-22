@@ -357,10 +357,13 @@ Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard »
      `Statut` = **`a merger`**, `PR` = l'URL, et le compte rendu à Benjamin, qui est le
      récap (plus haut). `a merger` est vrai à cet instant : le code n'est pas encore sur
      `main`.
-  8. **Suivre la CI jusqu'au merge, sans jamais merger soi-même.** Une CI longue
-     (30 à 40 minutes d'e2e) ne se suit pas au premier plan : elle se surveille en
-     arrière-plan (`Bash` avec `run_in_background`, ou `Monitor` sur
-     `gh pr checks <n> --watch`), avec une attente bornée. Trois issues :
+  8. **Suivre la CI jusqu'au merge, sans jamais merger soi-même, et sans quitter la PR
+     avant son issue.** Une CI longue (30 à 40 minutes d'e2e) ne se suit pas au premier
+     plan : abonnement aux événements de la PR, ou surveillance en arrière-plan (`Bash`
+     avec `run_in_background`, ou `Monitor` sur `gh pr checks <n> --watch`), puis
+     vérification du merge sur pièce. La session ne s'arrête pas à l'ouverture : le suivi
+     et la mise à jour des plans au merge sont dans `_partage/remontee-sur-main.md`
+     (« La session ne part pas à l'ouverture de la PR »). Trois issues :
      - **(a) Verte, et mergée par la CI** → vérifier le merge sur pièce
        (`gh pr view <n> --json state,mergeCommit`, et le commit de merge présent
        dans `origin/main`), poser `execute`, ajouter une ligne datée à `État
@@ -374,10 +377,11 @@ Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard »
        de Benjamin, comme au §3 : la PR reste ouverte et rouge, et la session
        s'arrête là, comme en (c).
      - **(c) Retenue** (brouillon, workflows touchés, PR Dependabot) **ou session
-       qui doit s'arrêter avant le merge** → `Statut` reste `a merger` avec l'URL de
-       la PR, retirer le worktree, et dire dans le compte rendu que **la prochaine
+       qui ne peut vraiment pas rester** → `Statut` reste `a merger` avec l'URL de
+       la PR, la raison au journal et dans l'`Avancement` du maître, retirer le
+       worktree, et dire dans le compte rendu « PR non suivie » : **la prochaine
        session qui lit `a merger` avec une PR renseignée vérifie l'état de la PR et
-       pose `execute` si elle est mergée**. La branche reste : elle se rouvre par
+       pose `execute` si elle est mergée** (le filet, pas le plan). La branche reste : elle se rouvre par
        `git worktree add`.
 
      Retrait du worktree (issues a et c) : `git worktree remove

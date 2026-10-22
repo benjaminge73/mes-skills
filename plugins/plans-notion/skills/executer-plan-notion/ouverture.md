@@ -334,9 +334,12 @@ la justesse reste à la relecture du pilote.
 deux laisse la page à `pret` ; la suivante passe par la ligne `pret` de la porte
 d'entrée (`SKILL.md`) : relecture de la page, retour à `valide` si Benjamin y a
 répondu depuis, sinon `en cours`. Reprise d'un plan déjà `en cours` : inchangée.
-Si la puce **Orchestration** cite un plan maître, le passage à `en cours` rejoue
-`statut-maitre.py --actuel` dans le même tour (`plan-notion/plan-maitre.md`, « Qui rejoue
-le calcul, et quand ») : c'est ce geste-là qui fait passer le maître de `pret` à `en cours`.
+Si la puce **Orchestration** cite un plan maître, **un plan du lot ne passe jamais `en
+cours` seul** : avant de poser le statut, jouer `depart-dans-le-lot.py <maitre.md> <Pn>
+--statuts …` (`plan-notion/plan-maitre.md`, « Un plan du lot ne s'exécute pas seul »). Code 1 :
+le plan reste `pret`, la session dit qui attend quoi et ne démarre aucune étape. Code 0 : le
+passage à `en cours` rejoue `statut-maitre.py --actuel` dans le même tour (« Qui rejoue le
+calcul, et quand ») : c'est ce geste-là qui fait passer le maître de `pret` à `en cours`.
 
 **Une branche, la PR à la clôture.** Un plan garde **une seule branche**, et
 **pas de PR d'étape** : les étapes sont des **commits** sur la branche du plan,

@@ -505,5 +505,19 @@ class LaFumeeSeRelanceEtSeFileSansPerdreDeTemps(unittest.TestCase):
         self.assertNotIn("${{", script)  # aucune expression GitHub collée dans le script lui-même
 
 
+class FormatDesCas(unittest.TestCase):
+    def test_context_n_est_jamais_dans_le_frontmatter_d_un_prompt(self):
+        # `context.scaffold_script` ne va que dans case.yaml : dans prompt.md, `claude plugin eval`
+        # refuse le cas à son chargement (« unknown frontmatter key "context" »), et le pré-vol
+        # d'evals_ab.py ne le voit pas. Constaté le 2026-10-22 sur la fumée de la PR 92.
+        for prompt in sorted((RACINE / "evals").glob("*/*/prompt.md")):
+            texte = prompt.read_text(encoding="utf-8")
+            if not texte.startswith("---\n"):
+                continue
+            frontmatter = texte.split("\n---\n", 1)[0]
+            with self.subTest(cas=prompt.parent.name):
+                self.assertNotRegex(frontmatter, r"(?m)^context:")
+
+
 if __name__ == "__main__":
     unittest.main()
