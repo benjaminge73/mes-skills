@@ -9,7 +9,7 @@ Sommaire :
 - Dans le même tour : `Statut`, `Branche`, entrée `État final`, compte rendu
 - La séquence de clôture (suite complète locale, allègement des `CLAUDE.md`
   trop longs, preuve doc, push, PR prête, contrôle bloquant, clôture écrite
-  (Récap, hub, fiches), suivi de la CI, retrait du worktree)
+  (Récap, porte, hub, fiches, rattrapage), suivi de la CI, retrait du worktree)
 - La PR, puis la remontée sur `main`
 
 Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard »
@@ -291,6 +291,22 @@ Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard »
        mêmes (`changelog-et-doc.md` § 2), mais chaque fichier se contrôle quand même : un
        code 0 sur l'un ne prouve rien sur l'autre. Code 2 (entrée absente ou illisible,
        fichier du palier 3 introuvable) : on le dit à Benjamin, et (c) et (d) ne se font pas.
+     - **(b bis) La porte, avant `a merger`.** Le contrôle (b) regarde la forme du texte ;
+       la porte regarde la présence de la doc. Relire le miroir frais de la page, et jouer
+       `python3 ${CLAUDE_PLUGIN_ROOT}/skills/_partage/scripts/doc-de-cloture.py --porte <miroir-page>`,
+       avec, selon le cas :
+       - `--recap-fichier <fichier>` quand le Récap est parti au palier 3 (point (a)) ;
+       - `--changelog <miroir-changelog> --pr <N>`, `N` étant la PR de ce plan (point 5),
+         seulement pour un projet à encadré `📘 Doc vivante : activée` ;
+       - `--lot` pour un plan enfant d'un lot (`plan-maitre.md`) : pas d'entrée individuelle,
+         mais le Récap reste exigé.
+       Code 0 : la porte est passée. Code 1 : une ligne dit ce qui manque. **Code 1 interdit
+       `a merger`** : on écrit la pièce manquante (le Récap, ou l'entrée du hub après le
+       point (c)), on relit, et on rejoue jusqu'au code 0. Code 2 : entrée illisible, on le
+       dit à Benjamin, et `a merger` ne se pose pas.
+       L'entrée du hub n'existe qu'après le point (c) : la forme `--changelog --pr` ne peut
+       donc passer qu'une fois (c) posé. La première passe, ici, ne contrôle que le Récap ; la
+       forme complète se rejoue avant `a merger` (voir « Ensuite » plus bas).
      - **(c) L'entrée du hub.** Un plan couvert par un plan maître (la session en porte
        un : `${CLAUDE_PLUGIN_ROOT}/skills/plan-notion/plan-maitre.md`) **ne pose pas
        d'entrée individuelle** au hub : l'entrée consolidée du lot part à la fermeture du
@@ -340,7 +356,28 @@ Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard »
        que le diff du plan les touche : jamais créés, jamais réécrits au jugé (c'est le rôle
        de la rétro-doc, `changelog-et-doc.md` § 5). Les lignes « Sous le capot » des briques
        que le diff touche se mettent à jour à partir du diff (§ 9), jamais de mémoire.
-     - **Cascade.** (a), (c) et (d) suivent la cascade de repli de `changelog-et-doc.md`
+     - **(e) Le rattrapage des PR sans entrée.** Projet à encadré `📘 Doc vivante : activée`
+       seulement. Relever les PR mergées du dépôt, à la racine du dépôt du plan :
+       `gh pr list --state merged --limit 200 --json number,title,mergedAt,author,labels > <scratchpad>/prs.json`.
+       Puis, sur le miroir frais du `📰 Changelog`, jouer
+       `python3 ${CLAUDE_PLUGIN_ROOT}/skills/_partage/scripts/doc-de-cloture.py --trous --changelog <miroir-changelog> --prs <scratchpad>/prs.json --depuis <date d'activation> [--sauf <N de ce plan>]`.
+       - `--depuis` : la date d'activation lue dans l'encadré. Le format actuel de l'encadré
+         ne porte pas cette date (`changelog-et-doc.md` § 5) : si elle manque, on ne joue pas
+         `--trous`, et on le dit à Benjamin.
+       - `--sauf` : la PR de ce plan, si son entrée n'est pas encore au hub (plan couvert par
+         un plan maître, ou entrée restée au palier 3).
+       - Code 0 : aucun trou. Code 1 : chaque PR listée reçoit une entrée « Hors plan »
+         (`changelog-et-doc.md` § 2.6), contrôlée par `controle-changelog.py` avant pose, puis
+         posée par la cascade du point Cascade ci-dessous. Code 2 : on le dit à Benjamin.
+       - Rattachement : une PR qui a un plan (son numéro figure dans la ligne `Plan :` d'une
+         page de plan) va au projet de ce plan. Une PR sans plan va au projet du dépôt s'il n'a
+         qu'une page projet. Si le dépôt en a deux (cas de hermes-custom), la PR est dite
+         « à classer » au compte rendu de clôture, sans deviner son projet.
+       - Une PR de dépendances ne reçoit jamais d'entrée « Hors plan » (`--trous` les écarte).
+       - L'entrée « Hors plan » ne remplace pas l'obligation du plan lui-même : une PR qui a un
+         plan doit son entrée de plan (point (c)). Le rattrapage la couvre en attendant, et le
+         compte rendu le dit à Benjamin.
+     - **Cascade.** (a), (c), (d) et (e) suivent la cascade de repli de `changelog-et-doc.md`
        § 6 : connecteur Notion, puis la commande `composio`, puis le fichier confié à
        Hermes. Les commandes sont dans la fiche « Connecteurs MCP d'une session Claude
        Code » de `${CLAUDE_PLUGIN_ROOT}/skills/_partage/outils-et-quotas.md` : elles ne
@@ -361,10 +398,13 @@ Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard »
        restent dans le compte rendu, et leur création attend le retour du connecteur ou de
        `composio` (`changelog-et-doc.md` § 6, point 3).
 
-     Ensuite, le journal et le compte rendu : `État final` (avec la sortie du point 6),
+     Ensuite, la porte se rejoue dans sa forme complète, après (c) et (d) : `--porte` avec
+     `--changelog` et `--pr` quand le projet est activé, et `--recap-fichier` si le palier 3
+     a servi (point (b bis)). Code 0 exigé ; sinon on écrit la pièce manquante et on rejoue.
+     Puis le journal et le compte rendu : `État final` (avec la sortie du point 6),
      `Statut` = **`a merger`**, `PR` = l'URL, et le compte rendu à Benjamin, qui est le
      récap (plus haut). `a merger` est vrai à cet instant : le code n'est pas encore sur
-     `main`.
+     `main`. Le rattrapage du point (e) se pose dans le même tour, sans attendre le merge.
   8. **Suivre la CI jusqu'au merge, sans jamais merger soi-même, et sans quitter la PR
      avant son issue.** Une CI longue (30 à 40 minutes d'e2e) ne se suit pas au premier
      plan : abonnement aux événements de la PR, ou surveillance en arrière-plan (`Bash`

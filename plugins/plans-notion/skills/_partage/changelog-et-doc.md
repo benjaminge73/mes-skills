@@ -89,6 +89,45 @@ Rien du compte rendu actuel n'est perdu en le rangeant ici.
 - **Plan natif** : le titre porte `(plan natif)`, et la ligne d'en-tête dit `PR : aucune (plan natif)`. Le cas complet est au § 8.
 - **Projet désactivé ou sans décision** : le récap de la page du plan s'écrit quand même ; le hub, lui, reste intact (§ 5).
 
+### 2.5 Ce qui compte comme documentation d'une PR
+
+Une PR est **documentée** seulement si son numéro figure dans l'**en-tête** d'une entrée du `Changelog` : la ligne H2 datée (ou `Récap`), et la ligne `Plan :` qui la suit immédiatement. Partout ailleurs, la PR n'est pas documentée : ni dans un bloc `<toggle>Côté technique`, ni dans une puce ou une phrase d'une rubrique, ni dans une phrase d'absence (« pas d'entrée pour #258 »). Un numéro dans le corps d'une entrée ne vaut pas entrée.
+
+Formes reconnues dans l'en-tête : `#N`, `pull/N`, `PR N`, `PR #N`, et les plages `#A à #B`, `#A à B`, `#A–#B`, `#A-#B`, `#A … #B` (toutes les PR de A à B incluses). `#25` ne couvre pas `#258`.
+
+Le script `${CLAUDE_PLUGIN_ROOT}/skills/_partage/scripts/doc-de-cloture.py` applique cette règle, dans ses deux usages (§ 4, point 2 bis).
+
+### 2.6 L'entrée « Hors plan »
+
+Une PR mergée sans entrée au hub, et qui n'a pas de plan, se rattrape par une entrée « Hors plan ». Elle a la forme d'une entrée ordinaire :
+
+```
+## AAAA-MM-JJ · Hors plan — <titre de la PR>
+Plan : aucun (hors plan) · PR : <lien> · Statut : mergée
+
+### ✨ Nouveau
+- <phrase> (preuve : PR #N)
+
+### 🔧 Amélioré
+- rien
+
+### 🐛 Corrigé
+- rien
+
+### ⏭️ Reste à faire
+- rien
+
+<toggle>Côté technique
+	<contenu, § 2.3>
+</toggle>
+```
+
+- La date du titre est celle de la pose du rattrapage.
+- Elle passe `controle-changelog.py` comme toute entrée : quatre rubriques, source sur chaque ligne ✨ ou 🔧, bloc « Côté technique ». La source d'une PR sans plan est `(preuve : PR #N)`.
+- Elle ne s'écrit **pas** pour une PR de dépendances (auteur Dependabot, ou label `dependencies`).
+- Elle **ne remplace pas** l'obligation du plan : une PR qui a un plan doit son entrée de plan (`cloture.md`, point (c)). L'entrée « Hors plan » ne fait que couvrir la PR en attendant, et le compte rendu le dit à Benjamin.
+- Le rattachement suit `cloture.md`, point (e) : une PR avec plan va au projet de ce plan ; une PR sans plan sur un dépôt qui a deux pages projet est dite « à classer » au compte rendu, sans deviner.
+
 ## 3. Le récap et le compte rendu du chat
 
 Le compte rendu de clôture dans le chat **est** le récap, sans réécriture : les quatre rubriques, puis une ligne `PR : <lien> · Statut : <statut>`. Le bloc « Côté technique » suit. Le journal du plan garde son entrée `État final` telle quelle, comme trace complète.
@@ -99,6 +138,7 @@ Les règles de `ecrire-dans-notion.md` s'appliquent : relevé avant écriture, �
 
 1. **Relever.** Recharger la page fraîche (hub ou page du plan) avant d'écrire. Noter l'encadré d'activation, les sous-pages existantes, la page mère avec ses familles, et les fiches déjà là. Ne jamais écrire sur un miroir local. Le titre de la page se lit dans ses propriétés (`title` ou `Titre` de `notion-fetch`), jamais dans le miroir : le corps rendu par `notion-fetch` ne le porte pas, et celui de `composio` (`NOTION_GET_PAGE_MARKDOWN`) n'a ni titre ni propriétés.
 2. **Contrôler la forme.** Passer l'entrée au script `${CLAUDE_PLUGIN_ROOT}/skills/_partage/scripts/controle-changelog.py` avant pose. Il vérifie les quatre rubriques dans l'ordre, la source sur chaque ligne ✨ ou 🔧, et « rien » là où une rubrique est vide. Il vérifie aussi que l'en-tête porte sa ligne `Plan :` et que l'entrée a son bloc « Côté technique ». Sa ligne de commande est dans son en-tête. Si le contrôle échoue, corriger le texte, pas le contrôle.
+2 bis. **Deux usages du script `${CLAUDE_PLUGIN_ROOT}/skills/_partage/scripts/doc-de-cloture.py`.** `--porte` : la page du plan porte son Récap, et, pour un projet activé, l'entrée du hub cite la PR (§ 2.5) ; code 1 interdit `a merger` (`cloture.md`, point (b bis)). `--trous` : liste les PR mergées sans entrée, hors dépendances, depuis la date d'activation (`cloture.md`, point (e)) ; chacune reçoit une entrée « Hors plan » (§ 2.6). Le contrôle de forme reste `controle-changelog.py` (point 2).
 3. **Poser l'entrée en tête.** Dans le `Changelog`, l'entrée va avant l'entrée précédente, la plus récente en haut. Ancrer le texte sur la **fin complète** du dernier bloc qui précède les entrées (le titre de la page ou son intro), jamais au milieu d'un paragraphe formaté : l'insertion y casserait l'italique ou le gras, sans erreur. Dans la page du plan, le `## Récap · AAAA-MM-JJ · <titre du plan>` se pose de la même façon, en tête.
 4. **Réécrire une fiche par bloc.** Une fiche se met à jour par `update_content` sur le bloc concerné, jamais par recréation de la page. Ajouter une ligne en tête de sa liste, sous le titre `🕰️ Historique` : `- AAAA-MM-JJ · <titre du plan> — <ce qui a changé, côté utilisateur>`.
 5. **Ne jamais insérer juste avant une liste de cases à cocher.** Notion la recrée et redistribue ses cases cochées. Ancrer après la liste. Ne jamais utiliser un remplacement global (`replace_all`) sur un motif qui contient du balisage.
