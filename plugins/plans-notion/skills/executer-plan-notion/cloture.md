@@ -314,7 +314,7 @@ Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard »
      - **(d) Les fiches et les processus.** Projet activé seulement. Les fiches vivent
        sous la page mère `📚 Documentation`, elle-même sous la page `Projet`, rangées par
        famille (`changelog-et-doc.md` § 1). Trois gestes, dans cet ordre :
-       - **La page mère.** Si elle manque et qu'une fiche est à créer, elle se crée vide
+       - **La page mère.** Si elle manque, elle se crée vide
          de vue d'ensemble, avec l'encadré `🚧 Doc partielle — rétro-doc pas encore faite`
          en tête (`changelog-et-doc.md` § 5, cas sans page mère) ; elle ne déplace jamais
          une page existante. Si la page mère existe sans encadré « Doc partielle », l'ajouter
@@ -324,13 +324,13 @@ Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard »
          de la page mère, avec son emoji et sa phrase. Si aucune ne convient, en créer une
          sous la page mère, icône et phrase comprises.
        - **La fiche.** Une fiche par fonctionnalité que le plan touche, et seulement celles-là,
-         créée si elle manque, avec son icône et ses cinq titres à emoji, dans l'ordre du
-         § 9.2 : `🎯 À quoi ça sert`, `🧭 Comment l'utiliser`, `🔩 Sous le capot`,
-         `⚠️ Limites connues`, `🕰️ Historique`. Une fiche existante reçoit une ligne en tête
+         créée si elle manque, avec son icône et ses cinq titres à emoji, dans l'ordre et
+         l'orthographe du § 9.2 de `changelog-et-doc.md`. Une fiche existante reçoit une ligne en tête
          de son `🕰️ Historique`, au format du § 4, point 4, par `update_content`. Une fiche
          déjà là hors de sa famille (ancienne place) n'est jamais déplacée : elle reçoit sa
-         ligne d'historique, et son emplacement se signale dans le compte rendu. Une ligne
-         par fiche créée s'ajoute au tableau `🧩 Fonctionnalités` de la page mère (§ 9.1).
+         ligne d'historique, et son emplacement se signale dans le compte rendu. Une fiche
+         créée a sa ligne au tableau `🧩 Fonctionnalités` de la page mère, s'il existe :
+         `changelog-et-doc.md` § 5.
        La vue d'ensemble et les processus clés ne se mettent à jour que s'ils existent et
        que le diff du plan les touche : jamais créés, jamais réécrits au jugé (c'est le rôle
        de la rétro-doc, `changelog-et-doc.md` § 5). Les lignes « Sous le capot » des briques
