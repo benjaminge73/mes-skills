@@ -341,6 +341,38 @@ class DocDeCloture(unittest.TestCase):
         self.assertEqual(code, 2, sortie)
         self.assertIn("--hub-fichier exige --pr N", erreur)
 
+    # Panne 16a : un titre « Hors plan » recopie le titre de la PR, qui peut citer d'autres PR
+    # (« … ce que la PR #190 a fait … », « … PR 2 (etapes 8-22) … »). Ces numéros ne documentent
+    # rien : seule la forme finale « (PR #N) » en fin de titre compte. Attendu : 190 et 2 restent
+    # des trous ; 224 et 250 sont documentées par leur forme finale (et par leur ligne Plan).
+    def test_pr_citee_dans_le_titre_d_une_entree_ne_documente_pas_ces_pr(self):
+        texte = changelog(
+            entree(date="2026-10-21",
+                   titre="Hors plan — Corriger ce que la PR #190 a fait en amont (PR #224)",
+                   ligne_plan="Plan : aucun (hors plan) · PR : https://github.com/o/r/pull/224 · Statut : mergée"),
+            entree(date="2026-10-21",
+                   titre="Hors plan — Migration, voir PR 2 (etapes 8-22) (PR #250)",
+                   ligne_plan="Plan : aucun (hors plan) · PR : https://github.com/o/r/pull/250 · Statut : mergée"),
+        )
+        code, sortie, erreur = self.trous(texte, [pr(2), pr(190), pr(224), pr(250)])
+        self.assertEqual(code, 1, erreur)
+        self.assertEqual(numeros(sortie), ["#2", "#190"], sortie)
+
+    # Panne 16b : le même texte, côté porte. --pr 190 (cité dans un titre seulement) doit rendre
+    # 1 ; --pr 224 (forme finale « (PR #224) » dans le titre) doit rendre 0.
+    def test_porte_pr_citee_dans_le_titre_seulement_n_est_pas_documentee(self):
+        texte = changelog(
+            entree(date="2026-10-21",
+                   titre="Hors plan — Corriger ce que la PR #190 a fait en amont (PR #224)",
+                   ligne_plan="Plan : aucun (hors plan) · PR : https://github.com/o/r · Statut : mergée"))
+        page = self.ecrire("page.md", PAGE_AVEC_RECAP)
+        c = self.ecrire("changelog.md", texte)
+        code, sortie, erreur = jouer("--porte", page, "--changelog", c, "--pr", 190)
+        self.assertEqual(code, 1, erreur)
+        self.assertIn("PR #190", sortie)
+        code, sortie, erreur = jouer("--porte", page, "--changelog", c, "--pr", 224)
+        self.assertEqual((code, sortie), (0, ""), erreur)
+
 
 if __name__ == "__main__":
     unittest.main()
