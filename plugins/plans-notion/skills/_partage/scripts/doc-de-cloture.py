@@ -41,8 +41,10 @@ Quels numéros comptent dans un en-tête :
   - sur la ligne Plan, seul le segment qui suit ``PR :`` (jusqu'au ``·`` suivant, ou la fin de
     ligne) compte. Le lien du plan et son titre ne comptent jamais ;
   - dans ce segment : ``#N`` (frontière de mot, ``#25`` ne couvre pas ``#258``), ``pull/N``,
-    et les plages ``#A à #B``, ``#A à B`` (borne B sans dièse), ``#A–#B``, ``#A-#B``,
-    ``#A … #B`` (toutes les PR de A à B incluses). Un ``PR N`` en prose n'est pas lu.
+    et les plages (toutes les PR de A à B incluses) : ``#A à #B`` et ``#A à B`` (avec « à »
+    seulement, la borne B peut être sans dièse), ``#A–#B``, ``#A-#B``, ``#A … #B`` (avec ces
+    séparateurs, la borne B porte son dièse). Une plage inversée (A > B) ou de plus de 50
+    numéros (B − A > 50) ne compte pas du tout. Un ``PR N`` en prose n'est pas lu.
 
 Les blocs de code (``` ou ~~~) ne comptent ni pour le Récap, ni pour un en-tête.
 
@@ -67,8 +69,12 @@ DATE_ARG = re.compile(r"\d{4}-\d{2}-\d{2}")
 TITRE = re.compile(r"^#{1,6}\s")
 ZONE_MAX = 5
 
-PLAGE = re.compile(r"#(\d+)\s*(?:à|–|-|…)\s*#?(\d+)")
-TITRE_FINAL = re.compile(r"\(PR #?(\d+)\)\s*$")
+# Une plage : « à » admet une borne B sans dièse (« #258 à 260 ») ; les autres séparateurs
+# (–, -, …) exigent le dièse de B (« #258–#260 »). Une plage de plus de PLAGE_MAX numéros est
+# suspecte : elle est ignorée.
+PLAGE = re.compile(r"#(\d+)\s*(?:à\s*#?(\d+)|(?:–|-|…)\s*#(\d+))")
+PLAGE_MAX = 50
+TITRE_FINAL = re.compile(r"\(PR #(\d+)\)\s*$")
 NUMERO = re.compile(r"#(\d+)")
 PULL = re.compile(r"pull/(\d+)")
 CLOTURE_CODE = re.compile(r"^\s*(```|~~~)")
@@ -118,9 +124,16 @@ def numeros_cites(texte):
 
     « PR N » en prose n'est pas lu : « (voir PR 190) » ne documente pas la PR 190.
     """
-    plages = [(min(int(a), int(b)), max(int(a), int(b))) for a, b in PLAGE.findall(texte)]
-    isoles = {int(n) for n in NUMERO.findall(texte)}
-    isoles |= {int(n) for n in PULL.findall(texte)}
+    plages = []
+    for m in PLAGE.finditer(texte):
+        a, b = int(m.group(1)), int(m.group(2) or m.group(3))
+        if a <= b and b - a <= PLAGE_MAX:
+            plages.append((a, b))
+    # Une plage matchée, valide ou non, est retirée du texte : ses bornes ne se lisent pas une
+    # seconde fois comme numéros isolés.
+    reste = PLAGE.sub(" ", texte)
+    isoles = {int(n) for n in NUMERO.findall(reste)}
+    isoles |= {int(n) for n in PULL.findall(reste)}
     return isoles, plages
 
 
