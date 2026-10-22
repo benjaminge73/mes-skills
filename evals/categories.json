@@ -85,9 +85,10 @@
         "skills/_partage/scripts/qualite-doc.py",
         "skills/_partage/grille-doc.md",
         "skills/_partage/changelog-et-doc.md",
-        "skills/_partage/scripts/controle-changelog.py"
+        "skills/_partage/scripts/controle-changelog.py",
+        "skills/_partage/scripts/doc-de-cloture.py"
       ],
-      "cas": ["decouverte-irreversible", "decouverte-reversible", "decouverte-secret", "decouverte-trop-grande", "cloture-ouvre-la-pr", "cloture-preuve-doc"],
+      "cas": ["decouverte-irreversible", "decouverte-reversible", "decouverte-secret", "decouverte-trop-grande", "cloture-ouvre-la-pr", "cloture-preuve-doc", "cloture-porte-doc"],
       "plancher": 0.47
     },
     "perimetre": {
