@@ -1,0 +1,18 @@
+schema_version: "1.1"
+name: cloture-porte-doc
+description: >
+  Clôture d'un plan dans un projet à doc vivante activée, dont la page du plan n'a pas
+  encore de Récap. La clôture doit jouer la porte (doc-de-cloture.py --porte), voir le
+  code 1, poser le Récap et l'entrée du hub qui cite la PR, rejouer la porte jusqu'au code
+  0, et seulement alors poser Statut = a merger (point (b bis) de cloture.md). Juges
+  mécaniques, sans modèle : la commande lancée se lit dans la trace (tool_used, vérifié
+  seulement en passage réel), les pièces posées se lisent dans l'état final des fichiers
+  (regex sur fichier, vérifiés au pré-vol sur l'oracle). Le cas ne dit pas l'ordre des
+  écritures : seul l'état final est jugé. Panne visée : poser a merger sans Récap, ou ne
+  jamais jouer la porte.
+execution:
+  max_turns: 80
+  timeout_seconds: 900
+  allowed_tools: [Read, Glob, Grep, Skill, Bash, Write, Edit, TodoWrite]
+context:
+  scaffold_script: fixture.sh
