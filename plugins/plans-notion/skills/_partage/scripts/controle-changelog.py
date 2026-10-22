@@ -24,7 +24,9 @@ Usage : controle-changelog.py <entree.md>
   - après la rubrique « Reste à faire » et avant la fin de la section, un ``<toggle>``
     dont le titre (même ligne) commence par « Côté technique ».
   Le corps d'une rubrique s'arrête au titre suivant, à tout autre titre, ou à un
-  ``<toggle>`` (le bloc « Côté technique »).
+  ``<toggle>`` (le bloc « Côté technique »). Les titres à emoji (rubriques en H3,
+  titres de page mère et de fiche en H2) sont couverts par les tests « emoji » de
+  ``scripts/test_controle_changelog.py``.
 
 Sortie : sans défaut, rien. Sinon un défaut par ligne sur la sortie standard, avec son
 numéro de ligne.

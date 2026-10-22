@@ -22,6 +22,9 @@ rend 1 (11) ; une entrée sans bloc « Côté technique » rend 1 (12).
 Un de plus (13) : « Reste à faire » vide suivie d'un bloc « <toggle> » (la forme
 Notion du « Côté technique ») rend 1. Le corps d'une rubrique doit s'arrêter au
 toggle ; sinon son titre sert de contenu et la rubrique vide passe au vert.
+Trois de plus, pour les titres à emoji (tests « emoji ») : un H2 à emoji après l'entrée
+la borne et rend 0 (14) ; des rubriques en H3 à emoji avec les titres de fiche à emoji
+rendent 0 (15) ; un H2 « Historique » à emoji, sans Récap ni date, rend 2 (16).
 """
 from __future__ import annotations
 
@@ -162,6 +165,40 @@ class ControleChangelog(unittest.TestCase):
         code, sortie, erreur = jouer(self._entree(texte))
         self.assertEqual(code, 1, erreur)
         self.assertIn("« Reste à faire » vide", sortie)
+
+    def test_h2_a_emoji_apres_l_entree_la_borne_et_rend_zero(self):
+        # Panne : un H2 à emoji (« ## 🗺️ Processus clés ») ne borne pas l'entrée ; son
+        # « ### ✨ Nouveau » vide compte alors comme une seconde rubrique (en double, vide),
+        # et sa ligne ✨ sans source devient un défaut. Attendu indépendant : une entrée
+        # conforme suivie d'un H2 à emoji rend 0 ; ce qui suit le H2 n'est pas contrôlé.
+        apres = "## 🗺️ Processus clés\n\n### ✨ Nouveau\n\n- ✨ ligne sans source\n\n"
+        code, sortie, erreur = jouer(self._entree(entree() + apres))
+        self.assertEqual((code, sortie), (0, ""), erreur)
+
+    def test_rubriques_h3_a_emoji_et_titres_de_fiche_a_emoji_rendent_zero(self):
+        # Panne : les rubriques en H3 à emoji ne seraient plus reconnues (« Nouveau » absente,
+        # rend 1). Attendu indépendant : une entrée conforme aux rubriques à emoji, suivie des
+        # titres à emoji d'une fiche, rend 0. La borne de l'entrée par un H2 à emoji est
+        # gardée par le test précédent ; celui-ci documente le cas d'une page de fiche.
+        fiche = (
+            "## 🎯 À quoi ça sert\n\nUn plan suit une étape à la fois.\n\n"
+            "## 🧭 Comment l'utiliser\n\nOn lit le récap en premier.\n\n"
+            "## 🔩 Sous le capot\n\nLe script compte les lignes.\n\n"
+            "## ⚠️ Limites connues\n\nAucune à ce jour.\n\n"
+            "## 🕰️ Historique\n\n- création de la fiche\n"
+        )
+        code, sortie, erreur = jouer(self._entree(entree() + fiche))
+        self.assertEqual((code, sortie), (0, ""), erreur)
+
+    def test_h2_historique_a_emoji_sans_recap_n_est_pas_une_entree(self):
+        # Panne : un H2 à emoji qui n'est ni « Récap » ni daté (« ## 🕰️ Historique ») serait
+        # pris pour l'entrée ; la page sans Récap ni date rendrait 1 (rubriques absentes) au
+        # lieu de 2. Attendu indépendant : une page sans Récap ni date n'a pas d'entrée, le
+        # script rend 2 et le dit sur la sortie d'erreur.
+        texte = "# Plan\n\n## 🕰️ Historique\n\n- création du plan\n"
+        code, sortie, erreur = jouer(self._entree(texte))
+        self.assertEqual(code, 2, sortie)
+        self.assertIn("Récap", erreur)
 
 
 if __name__ == "__main__":
