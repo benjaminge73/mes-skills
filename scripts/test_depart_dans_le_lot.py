@@ -123,6 +123,14 @@ class DepartDansLeLot(unittest.TestCase):
         self.assertIn("## Les plans du lot, sous-éléments du maître", texte)
         self.assertIn("Jamais `notion-move-pages` sous la page maître", texte)
 
+    def test_le_rattachement_se_relit_des_deux_cotes_et_jamais_par_la_page(self):
+        # Vu le 2026-10-22 : un plan glissé dans le corps du maître quitte la base, et une relation
+        # à sens unique ne l'affiche pas sous lui. Le garde tient les deux phrases de la règle.
+        texte = " ".join((SKILLS / "plan-notion" / "plan-maitre.md").read_text(encoding="utf-8").split())
+        self.assertIn("devient une simple sous-page hors de la base", texte)
+        self.assertIn("Relire les deux côtés, dans le même tour", texte)
+        self.assertIn("avec la liste complète de ses enfants", texte)
+
 
 if __name__ == "__main__":
     unittest.main()

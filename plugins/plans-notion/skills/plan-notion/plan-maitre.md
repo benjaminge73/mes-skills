@@ -99,6 +99,12 @@ d'entrée et `statut-maitre.py` dépendent ; il apparaît en plus sous son maît
 
 ⚠️ **Jamais `notion-move-pages` sous la page maître** : le plan quitterait la base et
 perdrait ses propriétés, donc sa porte d'entrée et le calcul du statut du maître.
+Même piège à la main : un plan glissé dans le corps de la page maître, ou créé par
+« Nouvelle page » dans ce corps, devient une simple sous-page hors de la base (il
+n'a plus que son titre et disparaît du tableau). Le rattachement passe **toujours** par
+la propriété, jamais par la page. Vu le 2026-10-22 sur le lot micro-trading : un plan
+glissé dans le maître, remis en ligne par `notion-move-pages` vers le `data_source_id`
+de la base, a gardé ses propriétés mais n'apparaissait pas sous le maître.
 
 - **Quand** : à la création du maître (chaque plan du lot), à l'ajout d'un plan en
   route, et pour un plan de suite d'un plan du lot (il rejoint le lot). Un plan qui
@@ -106,6 +112,13 @@ perdrait ses propriétés, donc sa porte d'entrée et le calcul du statut du ma�
   sur la page maître.
 - **Comment** : une écriture de propriété seule (`notion-update-page`, la relation),
   sans toucher au corps de la page ; le relevé des cases n'a pas lieu d'être.
+- **Relire les deux côtés, dans le même tour.** Le tableau lit la relation du côté du
+  maître : après l'écriture, une requête sur la base doit montrer le parent sur le plan
+  **et** le plan dans la propriété des sous-éléments du maître. Si le maître ne le
+  liste pas (relation à sens unique, vue après un `notion-move-pages` de réparation),
+  écrire la propriété des sous-éléments **sur la page maître**, avec la liste complète
+  de ses enfants (une écriture qui n'en donnerait qu'un retirerait les autres), puis
+  relire. Un rattachement dit fait sans cette relecture n'est pas fait.
 - **Si la base n'a pas de relation de parenté** (les sous-éléments se activent une
   fois, dans la vue Tableau de la base, par Benjamin), le dire en une ligne et
   continuer : le tableau `Plans` et la puce **Orchestration** portent alors seuls le
