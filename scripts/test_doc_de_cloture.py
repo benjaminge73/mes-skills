@@ -50,6 +50,9 @@ Tests ajoutés aux relectures 2 et 3 :
   18e. Titre H2 « (PR 150) » sans dièse : la PR 150 reste un trou.
   18f. Plage de plus de 50 numéros (« #100 à #151 ») : ignorée, ses bornes ne comptent pas.
   18g. Garde, vert avant le correctif : une plage de 50 d'écart (« #100 à #150 ») reste acceptée.
+  19a/19b. Liens « pull/N » séparés par « · » dans le segment PR (groupe d'entrées réel) : toutes
+       les PR sont documentées, avec « · Statut : » ou sans.
+  19c. Garde, vert avant le correctif : un « #N » après « · Statut : » ne documente rien.
 """
 from __future__ import annotations
 
@@ -445,6 +448,33 @@ class DocDeCloture(unittest.TestCase):
         texte = changelog(entree(ligne_plan="Plan : lien · PR : #100 à #150 · Statut : mergée"))
         code, sortie, erreur = self.trous(texte, [pr(100), pr(150)])
         self.assertEqual((code, sortie), (0, ""), erreur)
+
+    # Panne 19a : le segment « PR : » s'arrêtait au premier « · », et seul le premier lien de
+    # PR d'un groupe d'entrées était lu. Attendu : le segment va jusqu'à « · Statut : », et les
+    # trois PR sont documentées.
+    def test_liens_pr_separes_par_des_points_medians_documentent_toutes_les_pr(self):
+        texte = changelog(entree(ligne_plan=(
+            "Plan : aucun (PR sans plan) · PR : [x](https://github.com/o/r/pull/262) · "
+            "[x](https://github.com/o/r/pull/263) · [x](https://github.com/o/r/pull/264) · "
+            "Statut : mergée")))
+        code, sortie, erreur = self.trous(texte, [pr(262), pr(263), pr(264)])
+        self.assertEqual((code, sortie), (0, ""), erreur)
+
+    # Panne 19b : le même groupe sans « · Statut : » : le segment va jusqu'à la fin de la ligne.
+    def test_liens_pr_sans_statut_documentent_toutes_les_pr_jusqu_a_la_fin_de_ligne(self):
+        texte = changelog(entree(ligne_plan=(
+            "Plan : aucun (PR sans plan) · PR : [x](https://github.com/o/r/pull/262) · "
+            "[x](https://github.com/o/r/pull/263) · [x](https://github.com/o/r/pull/264)")))
+        code, sortie, erreur = self.trous(texte, [pr(262), pr(263), pr(264)])
+        self.assertEqual((code, sortie), (0, ""), erreur)
+
+    # Garde 19c (vert avant le correctif) : un « #N » après « · Statut : » n'est pas dans le
+    # segment PR. Attendu : 262 est documentée, 263 (citée après le Statut) reste un trou.
+    def test_numero_apres_statut_ne_documente_rien(self):
+        texte = changelog(entree(ligne_plan="Plan : lien · PR : #262 · Statut : mergée (voir #263)"))
+        code, sortie, erreur = self.trous(texte, [pr(262), pr(263)])
+        self.assertEqual(code, 1, erreur)
+        self.assertEqual(numeros(sortie), ["#263"], sortie)
 
 
 if __name__ == "__main__":
