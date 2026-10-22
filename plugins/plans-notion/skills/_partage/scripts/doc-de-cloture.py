@@ -41,8 +41,8 @@ Quels numéros comptent dans un en-tête :
   - sur la ligne Plan, seul le segment qui suit ``PR :`` (jusqu'au ``·`` suivant, ou la fin de
     ligne) compte. Le lien du plan et son titre ne comptent jamais ;
   - dans ce segment : ``#N`` (frontière de mot, ``#25`` ne couvre pas ``#258``), ``pull/N``,
-    ``PR N``, et les plages ``#A à #B``, ``#A à B`` (borne B sans dièse), ``#A–#B``,
-    ``#A-#B``, ``#A … #B`` (toutes les PR de A à B incluses).
+    et les plages ``#A à #B``, ``#A à B`` (borne B sans dièse), ``#A–#B``, ``#A-#B``,
+    ``#A … #B`` (toutes les PR de A à B incluses). Un ``PR N`` en prose n'est pas lu.
 
 Les blocs de code (``` ou ~~~) ne comptent ni pour le Récap, ni pour un en-tête.
 
@@ -71,7 +71,6 @@ PLAGE = re.compile(r"#(\d+)\s*(?:à|–|-|…)\s*#?(\d+)")
 TITRE_FINAL = re.compile(r"\(PR #?(\d+)\)\s*$")
 NUMERO = re.compile(r"#(\d+)")
 PULL = re.compile(r"pull/(\d+)")
-PR_MOT = re.compile(r"\bPR\s+#?(\d+)")
 CLOTURE_CODE = re.compile(r"^\s*(```|~~~)")
 SEGMENT_PR = re.compile(r"\s*PR\s*:(.*)$")
 
@@ -115,11 +114,13 @@ def masquer_code(lignes):
 
 
 def numeros_cites(texte):
-    """Les numéros isolés et les plages (a, b) cités dans un texte."""
+    """Les numéros isolés (``#N``, ``pull/N``) et les plages (a, b) cités dans un texte.
+
+    « PR N » en prose n'est pas lu : « (voir PR 190) » ne documente pas la PR 190.
+    """
     plages = [(min(int(a), int(b)), max(int(a), int(b))) for a, b in PLAGE.findall(texte)]
     isoles = {int(n) for n in NUMERO.findall(texte)}
     isoles |= {int(n) for n in PULL.findall(texte)}
-    isoles |= {int(n) for n in PR_MOT.findall(texte)}
     return isoles, plages
 
 
