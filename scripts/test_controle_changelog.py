@@ -177,9 +177,9 @@ class ControleChangelog(unittest.TestCase):
 
     def test_rubriques_h3_a_emoji_et_titres_de_fiche_a_emoji_rendent_zero(self):
         # Panne : les rubriques en H3 à emoji ne seraient plus reconnues (« Nouveau » absente,
-        # rend 1), ou les H2 à emoji de la fiche seraient comptés comme rubriques ou contenu.
-        # Attendu indépendant : une entrée conforme aux rubriques à emoji, suivie des titres
-        # à emoji d'une fiche, rend 0.
+        # rend 1). Attendu indépendant : une entrée conforme aux rubriques à emoji, suivie des
+        # titres à emoji d'une fiche, rend 0. La borne de l'entrée par un H2 à emoji est
+        # gardée par le test précédent ; celui-ci documente le cas d'une page de fiche.
         fiche = (
             "## 🎯 À quoi ça sert\n\nUn plan suit une étape à la fois.\n\n"
             "## 🧭 Comment l'utiliser\n\nOn lit le récap en premier.\n\n"
