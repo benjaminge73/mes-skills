@@ -31,7 +31,8 @@ Un en-tête d'entrée : une ligne H2 dont le titre commence par une date AAAA-MM
 prochain titre, toggle ou ligne en gras. Seuls le H2 et sa ligne Plan portent des numéros :
 les puces, le bloc « Côté technique » et les phrases d'absence ne comptent pas. Formes
 reconnues : ``#N`` (frontière de mot, ``#25`` ne couvre pas ``#258``), ``pull/N``, ``PR N``,
-``PR #N``, et les plages ``#A à #B``, ``#A–#B``, ``#A-#B``, ``#A … #B`` (toutes les PR de A à B
+``PR #N``, et les plages ``#A à #B``, ``#A à B`` (borne B sans dièse), ``#A–#B``, ``#A-#B``,
+``#A … #B`` (toutes les PR de A à B
 incluses).
 
 Sortie : en mode --porte, sans défaut, rien sur la sortie standard ; sinon un défaut par
@@ -55,7 +56,7 @@ DATE_ARG = re.compile(r"\d{4}-\d{2}-\d{2}")
 TITRE = re.compile(r"^#{1,6}\s")
 ZONE_MAX = 5
 
-PLAGE = re.compile(r"#(\d+)\s*(?:à|–|-|…)\s*#(\d+)")
+PLAGE = re.compile(r"#(\d+)\s*(?:à|–|-|…)\s*#?(\d+)")
 NUMERO = re.compile(r"#(\d+)")
 PULL = re.compile(r"pull/(\d+)")
 PR_MOT = re.compile(r"\bPR\s+#?(\d+)")
