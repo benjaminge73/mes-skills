@@ -198,6 +198,16 @@ class DocDeCloture(unittest.TestCase):
         self.assertEqual(code, 1, erreur)
         self.assertEqual(numeros(sortie), ["#261"], sortie)
 
+    # Extra 9b : la borne B d'une plage s'écrit parfois sans son « # » (« #258 à 260 »). Panne :
+    # seule la borne A serait lue, et 259 et 260 resteraient des trous alors qu'elles ont leur
+    # entrée. Attendu : 258 à 260 documentées, 261 (hors plage) listée seule.
+    def test_plage_dont_la_borne_b_n_a_pas_de_diese_documente_chaque_numero(self):
+        texte = changelog(entree(ligne_plan="Plan : lien · PR : #258 à 260 · Statut : a merger"))
+        prs = [pr(n) for n in (258, 259, 260, 261)]
+        code, sortie, erreur = self.trous(texte, prs)
+        self.assertEqual(code, 1, erreur)
+        self.assertEqual(numeros(sortie), ["#261"], sortie)
+
     # Extra 10 : une recherche de sous-chaîne prendrait « #25 » dans « #258 ».
     def test_frontiere_de_mot_25_n_est_pas_couvert_par_258(self):
         texte = changelog(entree(ligne_plan="Plan : lien · PR : #258 · Statut : a merger"))
