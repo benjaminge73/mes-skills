@@ -303,20 +303,37 @@ Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard »
        fraîche, et écrire par la cascade du point (a).
        Relever la page `Projet` fraîche et lire son encadré d'activation
        (`changelog-et-doc.md` § 5) :
-       - `📘 Doc vivante : activée` : créer la sous-page `Changelog` si elle manque, et,
-         sauf plan couvert par un plan maître, poser l'entrée **en tête**, ancrée après la
-         fin complète du dernier bloc qui précède les entrées, jamais au milieu d'un
-         paragraphe formaté. Si la page n'a pas encore d'encadré « Doc partielle », en
-         ajouter un en tête ; s'il existe, le laisser en place.
+       - `📘 Doc vivante : activée` : créer la sous-page `📰 Changelog` (icône comprise)
+         sous la page `Projet` si elle manque, et, sauf plan couvert par un plan maître,
+         poser l'entrée **en tête**, ancrée après la fin complète du dernier bloc qui
+         précède les entrées, jamais au milieu d'un paragraphe formaté. L'encadré
+         « Doc partielle » ne se pose pas ici : il vit sur la page mère (point (d)).
        - `📘 Doc vivante : désactivée` : (c) et (d) sont sautés. Le Récap reste écrit.
        - Encadré absent : (c) et (d) attendent. La question « Doc vivante : à activer
          pour <projet> ? » part dans le compte rendu, à chaque clôture tant qu'il manque.
-     - **(d) Les fiches et les processus.** Projet activé seulement. Une fiche par
-       fonctionnalité que le plan touche, créée si elle manque ; une fiche existante
-       reçoit une ligne en tête de son `Historique`, par `update_content`. La vue
-       d'ensemble et les processus clés ne se mettent à jour que s'ils existent et que le
-       diff du plan les touche : jamais créés, jamais réécrits au jugé (c'est le rôle de
-       la rétro-doc, `changelog-et-doc.md` § 5). Les lignes « Sous le capot » des briques
+     - **(d) Les fiches et les processus.** Projet activé seulement. Les fiches vivent
+       sous la page mère `📚 Documentation`, elle-même sous la page `Projet`, rangées par
+       famille (`changelog-et-doc.md` § 1). Trois gestes, dans cet ordre :
+       - **La page mère.** Si elle manque, elle se crée vide
+         de vue d'ensemble, avec l'encadré `🚧 Doc partielle — rétro-doc pas encore faite`
+         en tête (`changelog-et-doc.md` § 5, cas sans page mère) ; elle ne déplace jamais
+         une page existante. Si la page mère existe sans encadré « Doc partielle », l'ajouter
+         en tête de la page mère ; s'il existe, le laisser en place. Un encadré resté sur la
+         page `Projet` par l'ancienne règle n'est pas déplacé : le dire dans le compte rendu.
+       - **La famille.** Chaque fiche se range dans la famille qui lui convient, sous-page
+         de la page mère, avec son emoji et sa phrase. Si aucune ne convient, en créer une
+         sous la page mère, icône et phrase comprises.
+       - **La fiche.** Une fiche par fonctionnalité que le plan touche, et seulement celles-là,
+         créée si elle manque, avec son icône et ses cinq titres à emoji, dans l'ordre et
+         l'orthographe du § 9.2 de `changelog-et-doc.md`. Une fiche existante reçoit une ligne en tête
+         de son `🕰️ Historique`, au format du § 4, point 4, par `update_content`. Une fiche
+         déjà là hors de sa famille (ancienne place) n'est jamais déplacée : elle reçoit sa
+         ligne d'historique, et son emplacement se signale dans le compte rendu. Une fiche
+         créée a sa ligne au tableau `🧩 Fonctionnalités` de la page mère, s'il existe :
+         `changelog-et-doc.md` § 5.
+       La vue d'ensemble et les processus clés ne se mettent à jour que s'ils existent et
+       que le diff du plan les touche : jamais créés, jamais réécrits au jugé (c'est le rôle
+       de la rétro-doc, `changelog-et-doc.md` § 5). Les lignes « Sous le capot » des briques
        que le diff touche se mettent à jour à partir du diff (§ 9), jamais de mémoire.
      - **Cascade.** (a), (c) et (d) suivent la cascade de repli de `changelog-et-doc.md`
        § 6 : connecteur Notion, puis la commande `composio`, puis le fichier confié à
