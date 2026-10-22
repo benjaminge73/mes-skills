@@ -6,8 +6,8 @@ et « je l'ai fait » se dit sans se vérifier. Une PR oubliée ne se voit pas d
 de cinquante entrées ; ça se compte. Même principe que ``controle-changelog.py``.
 
 Usage :
-  doc-de-cloture.py --porte <page.md> [--changelog <changelog.md> --pr N]
-                    [--recap-fichier <fichier>] [--lot]
+  doc-de-cloture.py --porte <page.md> [--changelog <changelog.md>] [--hub-fichier <fichier>]
+                    [--pr N] [--recap-fichier <fichier>] [--lot]
   doc-de-cloture.py --trous --changelog <changelog.md> --prs <prs.json>
                     --depuis AAAA-MM-JJ [--sauf N[,N…]]
 
@@ -15,10 +15,12 @@ Mode --porte, qui refuse le passage à « a merger » quand la doc manque :
   - la page a un H2 dont le titre commence par « Récap » (casse indifférente). Exception,
     le palier 3 : --recap-fichier existant qui porte un tel H2 (le Récap est dans un fichier
     confié à Hermes, la page ne le porte pas encore) ;
-  - si --changelog et --pr N sont donnés et que --lot n'est pas donné, une entrée du
-    Changelog cite la PR N dans son en-tête. --lot (plan enfant d'un lot : une entrée
-    consolidée à la fermeture du lot) dispense de cette seconde exigence, pas de la première.
-    --changelog sans --pr, ou --pr sans --changelog, est un usage erroné.
+  - si --pr N est donné et que --lot n'est pas donné, une entrée du hub cite la PR N dans son
+    en-tête. Les entrées lues sont celles du miroir --changelog et, au palier 3, celles de
+    --hub-fichier (l'entrée du hub confiée à Hermes, même format), avec la même règle.
+    --lot (plan enfant d'un lot : une entrée consolidée à la fermeture du lot) dispense de cette
+    seconde exigence, pas de la première. --pr exige --changelog ou --hub-fichier ;
+    --changelog ou --hub-fichier sans --pr sont des usages erronés.
 
 Mode --trous, le rattrapage : liste chaque PR mergée à la date --depuis ou après, qui n'est
 pas une PR de dépendances (auteur ``dependabot…`` ou ``app/dependabot``, ou label
@@ -29,11 +31,18 @@ pas dans --sauf. ``<prs.json>`` est la sortie de
 Un en-tête d'entrée : une ligne H2 dont le titre commence par une date AAAA-MM-JJ ou par
 « Récap », suivie de la ligne ``Plan :``, dans les cinq lignes qui suivent le H2 et avant le
 prochain titre, toggle ou ligne en gras. Seuls le H2 et sa ligne Plan portent des numéros :
-les puces, le bloc « Côté technique » et les phrases d'absence ne comptent pas. Formes
-reconnues : ``#N`` (frontière de mot, ``#25`` ne couvre pas ``#258``), ``pull/N``, ``PR N``,
-``PR #N``, et les plages ``#A à #B``, ``#A à B`` (borne B sans dièse), ``#A–#B``, ``#A-#B``,
-``#A … #B`` (toutes les PR de A à B
-incluses).
+les puces, le bloc « Côté technique » et les phrases d'absence ne comptent pas.
+
+Quels numéros comptent dans un en-tête :
+  - dans le titre H2, seules les formes non ambiguës : ``PR #N``, ``PR N``, ``pull/N``. Un
+    ``#N`` nu (« Revert … (#282) ») ou un numéro du titre de plan (« Thaïlande #4 ») ne compte pas ;
+  - sur la ligne Plan, seul le segment qui suit ``PR :`` (jusqu'au ``·`` suivant, ou la fin de
+    ligne) compte. Le lien du plan et son titre ne comptent jamais ;
+  - dans ce segment : ``#N`` (frontière de mot, ``#25`` ne couvre pas ``#258``), ``pull/N``,
+    ``PR N``, et les plages ``#A à #B``, ``#A à B`` (borne B sans dièse), ``#A–#B``,
+    ``#A-#B``, ``#A … #B`` (toutes les PR de A à B incluses).
+
+Les blocs de code (``` ou ~~~) ne comptent ni pour le Récap, ni pour un en-tête.
 
 Sortie : en mode --porte, sans défaut, rien sur la sortie standard ; sinon un défaut par
 ligne. En mode --trous, une ligne par PR en trou, ``#N <titre>``, triées par numéro.
@@ -60,6 +69,8 @@ PLAGE = re.compile(r"#(\d+)\s*(?:à|–|-|…)\s*#?(\d+)")
 NUMERO = re.compile(r"#(\d+)")
 PULL = re.compile(r"pull/(\d+)")
 PR_MOT = re.compile(r"\bPR\s+#?(\d+)")
+CLOTURE_CODE = re.compile(r"^\s*(```|~~~)")
+SEGMENT_PR = re.compile(r"\s*PR\s*:(.*)$")
 
 
 class ErreurEntree(Exception):
@@ -83,8 +94,25 @@ def _zone(lignes, i):
     return zone
 
 
+def masquer_code(lignes):
+    """Les lignes, un bloc de code (``` ou ~~~) vidé : ce qu'il contient n'est pas lu."""
+    sortie, ouvert = [], None
+    for ligne in lignes:
+        cloture = CLOTURE_CODE.match(ligne)
+        if ouvert is None and cloture:
+            ouvert = cloture.group(1)
+            sortie.append("")
+        elif ouvert is not None:
+            if cloture and cloture.group(1) == ouvert:
+                ouvert = None
+            sortie.append("")
+        else:
+            sortie.append(ligne)
+    return sortie
+
+
 def numeros_cites(texte):
-    """Les numéros isolés et les plages (a, b) cités dans un texte d'en-tête."""
+    """Les numéros isolés et les plages (a, b) cités dans un texte."""
     plages = [(min(int(a), int(b)), max(int(a), int(b))) for a, b in PLAGE.findall(texte)]
     isoles = {int(n) for n in NUMERO.findall(texte)}
     isoles |= {int(n) for n in PULL.findall(texte)}
@@ -92,8 +120,28 @@ def numeros_cites(texte):
     return isoles, plages
 
 
+def numeros_titre(ligne_h2):
+    """Dans un titre H2, seules les formes non ambiguës comptent : PR #N, PR N, pull/N."""
+    isoles = {int(n) for n in PR_MOT.findall(ligne_h2)}
+    isoles |= {int(n) for n in PULL.findall(ligne_h2)}
+    return isoles, []
+
+
+def numeros_pr(ligne_plan):
+    """Sur une ligne Plan, seul le segment qui suit « PR : » (jusqu'au « · » suivant) compte."""
+    isoles, plages = set(), []
+    for segment in ligne_plan.split("·"):
+        m = SEGMENT_PR.match(segment)
+        if m:
+            n, p = numeros_cites(m.group(1))
+            isoles |= n
+            plages += p
+    return isoles, plages
+
+
 def en_tetes(lignes):
     """Les PR documentées : numéros isolés et plages, lus dans les en-têtes d'entrée seulement."""
+    lignes = masquer_code(lignes)
     isoles, plages = set(), []
     for i, ligne in enumerate(lignes):
         if not ENTREE.match(ligne):
@@ -101,8 +149,11 @@ def en_tetes(lignes):
         plan = [ligne_zone for ligne_zone in _zone(lignes, i) if ligne_zone.startswith("Plan :")]
         if not plan:
             continue
-        for texte in [ligne, *plan]:
-            n, p = numeros_cites(texte)
+        n, p = numeros_titre(ligne)
+        isoles |= n
+        plages += p
+        for ligne_plan in plan:
+            n, p = numeros_pr(ligne_plan)
             isoles |= n
             plages += p
     return isoles, plages
@@ -114,16 +165,25 @@ def documentee(numero, isoles, plages):
 
 def porte(args):
     defauts = []
-    page = lire(args.porte, "page du plan")
-    if not any(RECAP.match(ligne) for ligne in page.splitlines()):
+    page = masquer_code(lire(args.porte, "page du plan").splitlines())
+    if not any(RECAP.match(ligne) for ligne in page):
         palier3 = False
         if args.recap_fichier and Path(args.recap_fichier).is_file():
-            texte = lire(args.recap_fichier, "--recap-fichier")
-            palier3 = any(RECAP.match(ligne) for ligne in texte.splitlines())
+            texte = masquer_code(lire(args.recap_fichier, "--recap-fichier").splitlines())
+            palier3 = any(RECAP.match(ligne) for ligne in texte)
         if not palier3:
             defauts.append("récap absent : la page n'a aucun H2 « Récap » (ni --recap-fichier qui en porte un)")
-    if args.changelog and not args.lot:
-        isoles, plages = en_tetes(lire(args.changelog, "changelog").splitlines())
+    if args.pr is not None and not args.lot:
+        sources = []
+        if args.changelog:
+            sources.append(lire(args.changelog, "changelog"))
+        if args.hub_fichier and Path(args.hub_fichier).is_file():
+            sources.append(lire(args.hub_fichier, "--hub-fichier"))
+        isoles, plages = set(), []
+        for texte in sources:
+            n, p = en_tetes(texte.splitlines())
+            isoles |= n
+            plages += p
         if not documentee(args.pr, isoles, plages):
             defauts.append(f"PR #{args.pr} : aucune entrée du Changelog ne la cite dans son en-tête")
     return defauts
@@ -184,13 +244,15 @@ def valider(args):
             raise ErreurEntree("--prs, --depuis et --sauf ne vont qu'avec --trous")
         if args.changelog and args.pr is None:
             raise ErreurEntree("--changelog exige --pr N (le numéro de la PR à contrôler)")
-        if args.pr is not None and not args.changelog:
-            raise ErreurEntree("--pr N exige --changelog <miroir-changelog.md>")
+        if args.hub_fichier and args.pr is None:
+            raise ErreurEntree("--hub-fichier exige --pr N (le numéro de la PR à contrôler)")
+        if args.pr is not None and not (args.changelog or args.hub_fichier):
+            raise ErreurEntree("--pr N exige --changelog <miroir-changelog.md> ou --hub-fichier <fichier>")
         if args.pr is not None:
             args.pr = entier(args.pr, "--pr")
         return
-    if args.pr is not None or args.recap_fichier or args.lot:
-        raise ErreurEntree("--pr, --recap-fichier et --lot ne vont qu'avec --porte")
+    if args.pr is not None or args.recap_fichier or args.lot or args.hub_fichier:
+        raise ErreurEntree("--pr, --recap-fichier, --hub-fichier et --lot ne vont qu'avec --porte")
     if not (args.changelog and args.prs and args.depuis):
         raise ErreurEntree("--trous exige --changelog, --prs et --depuis AAAA-MM-JJ")
     if not DATE_ARG.fullmatch(args.depuis):
@@ -209,6 +271,8 @@ def parseur():
     p.add_argument("--changelog", metavar="MIROIR", help="miroir du Changelog du projet")
     p.add_argument("--pr", metavar="N", help="numéro de la PR à contrôler (avec --porte)")
     p.add_argument("--recap-fichier", metavar="FICHIER", help="fichier qui porte le Récap (palier 3)")
+    p.add_argument("--hub-fichier", metavar="FICHIER",
+                   help="entrée du hub confiée à Hermes (palier 3), lue comme un Changelog (avec --pr)")
     p.add_argument("--lot", action="store_true", help="plan enfant d'un lot : pas d'entrée individuelle")
     p.add_argument("--prs", metavar="JSON", help="sortie de gh pr list --json (avec --trous)")
     p.add_argument("--depuis", metavar="AAAA-MM-JJ", help="date de merge de départ (avec --trous)")
