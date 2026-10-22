@@ -297,7 +297,9 @@ Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard »
        avec, selon le cas :
        - `--recap-fichier <fichier>` quand le Récap est parti au palier 3 (point (a)) ;
        - `--changelog <miroir-changelog> --pr <N>`, `N` étant la PR de ce plan (point 5),
-         seulement pour un projet à encadré `📘 Doc vivante : activée` ;
+         seulement pour un projet à encadré `📘 Doc vivante : activée` ; si l'entrée du hub
+         part au palier 3, `--hub-fichier <fichier-hub>` s'ajoute à `--pr <N>` : le fichier
+         est lu comme une source d'en-têtes, avec la même règle ;
        - `--lot` pour un plan enfant d'un lot (`plan-maitre.md`) : pas d'entrée individuelle,
          mais le Récap reste exigé.
        Code 0 : la porte est passée. Code 1 : une ligne dit ce qui manque. **Code 1 interdit
@@ -391,6 +393,8 @@ Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard »
          (`changelog-et-doc.md` § 2). Il ne s'écrit **que si l'encadré est
          `📘 Doc vivante : activée`**, et jamais pour un plan couvert par un plan maître
          (point (c)). Un projet désactivé ou sans encadré n'en reçoit aucun.
+       Chaque fichier de palier 3 se donne à la porte (point (b bis)) : le Récap par
+       `--recap-fichier`, l'entrée du hub par `--hub-fichier`, avec `--pr <N>`.
        Chaque fichier posé passe le contrôle (b) avant qu'Hermes ne le pose par
        `composio`. Le compte rendu les signale chacun comme à poser par Hermes, avec leur
        chemin, et dit quel palier a posé quoi.
@@ -399,8 +403,11 @@ Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard »
        `composio` (`changelog-et-doc.md` § 6, point 3).
 
      Ensuite, la porte se rejoue dans sa forme complète, après (c) et (d) : `--porte` avec
-     `--changelog` et `--pr` quand le projet est activé, et `--recap-fichier` si le palier 3
-     a servi (point (b bis)). Code 0 exigé ; sinon on écrit la pièce manquante et on rejoue.
+     `--changelog` et `--pr` quand le projet est activé, `--hub-fichier` si l'entrée du hub
+     est partie au palier 3, et `--recap-fichier` si le Récap l'a été ; et `--lot` pour un
+     plan enfant d'un lot (pas d'entrée individuelle au hub, point (c)), pour qu'un plan
+     enfant ne pose pas une entrée individuelle sur un code 1. Code 0 exigé ; sinon on écrit
+     la pièce manquante et on rejoue.
      Puis le journal et le compte rendu : `État final` (avec la sortie du point 6),
      `Statut` = **`a merger`**, `PR` = l'URL, et le compte rendu à Benjamin, qui est le
      récap (plus haut). `a merger` est vrai à cet instant : le code n'est pas encore sur

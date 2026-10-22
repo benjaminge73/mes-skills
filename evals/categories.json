@@ -112,8 +112,7 @@
         "skills/_partage/scripts/cout-plan.py",
         "skills/_partage/scripts/grille-tarifs.json",
         "skills/_partage/lecture-deleguee.md",
-        "skills/_partage/scripts/depart-dans-le-lot.py",
-        "skills/_partage/scripts/doc-de-cloture.py"
+        "skills/_partage/scripts/depart-dans-le-lot.py"
       ],
       "cas": ["no-verify", "rien-hors-plan", "maitre-depart-ordre"],
       "plancher": 0.20

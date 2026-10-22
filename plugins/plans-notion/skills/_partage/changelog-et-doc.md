@@ -93,7 +93,12 @@ Rien du compte rendu actuel n'est perdu en le rangeant ici.
 
 Une PR est **documentée** seulement si son numéro figure dans l'**en-tête** d'une entrée du `Changelog` : la ligne H2 datée (ou `Récap`), et la ligne `Plan :` qui la suit immédiatement. Partout ailleurs, la PR n'est pas documentée : ni dans un bloc `<toggle>Côté technique`, ni dans une puce ou une phrase d'une rubrique, ni dans une phrase d'absence (« pas d'entrée pour #258 »). Un numéro dans le corps d'une entrée ne vaut pas entrée.
 
-Formes reconnues dans l'en-tête : `#N`, `pull/N`, `PR N`, `PR #N`, et les plages `#A à #B`, `#A à B`, `#A–#B`, `#A-#B`, `#A … #B` (toutes les PR de A à B incluses). `#25` ne couvre pas `#258`.
+Quels numéros comptent dans un en-tête :
+
+- **Dans le titre H2**, seules les formes non ambiguës : `PR #N`, `PR N`, `pull/N`. Un `#N` nu ne compte pas : `## … · Hors plan — Revert « … » (#282)` ne documente pas la PR 282, et un numéro du titre de plan (« Vahiny - Thaïlande #4 ») ne documente pas la PR 4. Pour documenter, écrire `(PR #282)` dans le titre, ou la ligne `Plan :` (ci-dessous).
+- **Sur la ligne `Plan :`**, seul le segment qui suit `PR :` compte, jusqu'au `·` suivant ou la fin de ligne. Le lien du plan et son titre ne comptent jamais : `Plan : [Plan … #2 - 3e passe](…) · PR : #12` ne documente ni 2 ni 3.
+- **Dans ce segment** : `#N` (frontière de mot : `#25` ne couvre pas `#258`), `pull/N`, `PR N`, et les plages `#A à #B`, `#A à B`, `#A–#B`, `#A-#B`, `#A … #B` (toutes les PR de A à B incluses).
+- **Un bloc de code** (``` ou ~~~) ne compte ni pour le Récap, ni pour un en-tête : un exemple d'entrée cité dans un bloc ne documente rien.
 
 Le script `${CLAUDE_PLUGIN_ROOT}/skills/_partage/scripts/doc-de-cloture.py` applique cette règle, dans ses deux usages (§ 4, point 2 bis).
 
@@ -102,7 +107,7 @@ Le script `${CLAUDE_PLUGIN_ROOT}/skills/_partage/scripts/doc-de-cloture.py` appl
 Une PR mergée sans entrée au hub, et qui n'a pas de plan, se rattrape par une entrée « Hors plan ». Elle a la forme d'une entrée ordinaire :
 
 ```
-## AAAA-MM-JJ · Hors plan — <titre de la PR>
+## AAAA-MM-JJ · Hors plan — <titre de la PR> (PR #N)
 Plan : aucun (hors plan) · PR : <lien> · Statut : mergée
 
 ### ✨ Nouveau
@@ -123,6 +128,7 @@ Plan : aucun (hors plan) · PR : <lien> · Statut : mergée
 ```
 
 - La date du titre est celle de la pose du rattrapage.
+- Le numéro de la PR figure **dans le titre**, sous la forme `(PR #N)`, et dans la ligne `Plan :` sous `PR : <lien>` : c'est la forme non ambiguë du § 2.5 qui documente la PR, un `#N` nu dans le titre ne suffirait pas.
 - Elle passe `controle-changelog.py` comme toute entrée : quatre rubriques, source sur chaque ligne ✨ ou 🔧, bloc « Côté technique ». La source d'une PR sans plan est `(preuve : PR #N)`.
 - Elle ne s'écrit **pas** pour une PR de dépendances (auteur Dependabot, ou label `dependencies`).
 - Elle **ne remplace pas** l'obligation du plan : une PR qui a un plan doit son entrée de plan (`cloture.md`, point (c)). L'entrée « Hors plan » ne fait que couvrir la PR en attendant, et le compte rendu le dit à Benjamin.
@@ -138,7 +144,7 @@ Les règles de `ecrire-dans-notion.md` s'appliquent : relevé avant écriture, �
 
 1. **Relever.** Recharger la page fraîche (hub ou page du plan) avant d'écrire. Noter l'encadré d'activation, les sous-pages existantes, la page mère avec ses familles, et les fiches déjà là. Ne jamais écrire sur un miroir local. Le titre de la page se lit dans ses propriétés (`title` ou `Titre` de `notion-fetch`), jamais dans le miroir : le corps rendu par `notion-fetch` ne le porte pas, et celui de `composio` (`NOTION_GET_PAGE_MARKDOWN`) n'a ni titre ni propriétés.
 2. **Contrôler la forme.** Passer l'entrée au script `${CLAUDE_PLUGIN_ROOT}/skills/_partage/scripts/controle-changelog.py` avant pose. Il vérifie les quatre rubriques dans l'ordre, la source sur chaque ligne ✨ ou 🔧, et « rien » là où une rubrique est vide. Il vérifie aussi que l'en-tête porte sa ligne `Plan :` et que l'entrée a son bloc « Côté technique ». Sa ligne de commande est dans son en-tête. Si le contrôle échoue, corriger le texte, pas le contrôle.
-2 bis. **Deux usages du script `${CLAUDE_PLUGIN_ROOT}/skills/_partage/scripts/doc-de-cloture.py`.** `--porte` : la page du plan porte son Récap, et, pour un projet activé, l'entrée du hub cite la PR (§ 2.5) ; code 1 interdit `a merger` (`cloture.md`, point (b bis)). `--trous` : liste les PR mergées sans entrée, hors dépendances, depuis la date d'activation (`cloture.md`, point (e)) ; chacune reçoit une entrée « Hors plan » (§ 2.6). Le contrôle de forme reste `controle-changelog.py` (point 2).
+2 bis. **Deux usages du script `${CLAUDE_PLUGIN_ROOT}/skills/_partage/scripts/doc-de-cloture.py`.** `--porte` : la page du plan porte son Récap, et, pour un projet activé, l'entrée du hub cite la PR (§ 2.5) ; au palier 3, cette entrée se donne par `--hub-fichier` (fichier confié à Hermes, même format) ; code 1 interdit `a merger` (`cloture.md`, point (b bis)). `--trous` : liste les PR mergées sans entrée, hors dépendances, depuis la date d'activation (`cloture.md`, point (e)) ; chacune reçoit une entrée « Hors plan » (§ 2.6). Le contrôle de forme reste `controle-changelog.py` (point 2).
 3. **Poser l'entrée en tête.** Dans le `Changelog`, l'entrée va avant l'entrée précédente, la plus récente en haut. Ancrer le texte sur la **fin complète** du dernier bloc qui précède les entrées (le titre de la page ou son intro), jamais au milieu d'un paragraphe formaté : l'insertion y casserait l'italique ou le gras, sans erreur. Dans la page du plan, le `## Récap · AAAA-MM-JJ · <titre du plan>` se pose de la même façon, en tête.
 4. **Réécrire une fiche par bloc.** Une fiche se met à jour par `update_content` sur le bloc concerné, jamais par recréation de la page. Ajouter une ligne en tête de sa liste, sous le titre `🕰️ Historique` : `- AAAA-MM-JJ · <titre du plan> — <ce qui a changé, côté utilisateur>`.
 5. **Ne jamais insérer juste avant une liste de cases à cocher.** Notion la recrée et redistribue ses cases cochées. Ancrer après la liste. Ne jamais utiliser un remplacement global (`replace_all`) sur un motif qui contient du balisage.
