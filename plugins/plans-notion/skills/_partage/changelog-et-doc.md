@@ -26,7 +26,7 @@ Projet                       encadré d'activation (§ 5), lien vers la page mè
 - La page `Projet` ne porte que son encadré d'activation, un lien vers la page mère et la sous-page `📰 Changelog`.
 - La page mère `📚 Documentation`, sous-page du projet, porte la vue d'ensemble, les processus clés et le tableau des fonctionnalités (§ 9.1).
 - Sous la page mère, une sous-page par **famille**. Une famille a son emoji et une phrase qui dit ce qui s'y range. Sous chaque famille, ses fiches. Une fiche nouvelle se range dans sa famille, ou en crée une si aucune ne convient.
-- Chaque page a une icône emoji : la page mère, chaque famille, chaque fiche et le `📰 Changelog` compris. Elle se pose par le paramètre `icon` de `create-pages` ou `update-page`. Dans ce fichier, le nom d'une page s'écrit avec le même emoji.
+- Chaque page a une icône emoji : la page mère, chaque famille, chaque fiche et le `📰 Changelog` compris. Elle se pose par le paramètre `icon` de `create-pages` ou `update-page`.
 
 ## 2. L'entrée : format
 
@@ -107,7 +107,7 @@ Les règles de `ecrire-dans-notion.md` s'appliquent : relevé avant écriture, �
 
 ## 5. L'activation par projet
 
-La doc vivante est **activée projet par projet**. Un encadré en tête de la page `Projet` le dit (il ne vit plus sur la page mère) :
+La doc vivante est **activée projet par projet**. Un encadré en tête de la page `Projet` le dit :
 
 - `📘 Doc vivante : activée`, ou
 - `📘 Doc vivante : désactivée`.
@@ -116,7 +116,7 @@ Trois cas :
 
 - **Encadré absent** (projet sans décision, ou nouveau projet) : la clôture **n'écrit rien dans le hub** (ni `Changelog`, ni fiche, ni vue d'ensemble). Elle garde l'entrée prête dans le récap de la page du plan, et pose la question dans son compte rendu : « Doc vivante : à activer pour <projet> ? ». La question est posée à chaque clôture tant que l'encadré n'existe pas.
 - **Réponse de Benjamin** : le pilote pose l'encadré (`activée` ou `désactivée`). S'il active, il pose ensuite l'entrée, comme un projet activé.
-- **Projet activé** : la clôture crée la sous-page `📰 Changelog` si elle manque, et y pose l'entrée. Elle crée **une fiche par fonctionnalité que le plan touche**, et seulement celles-là, rangée dans sa famille (§ 1) ; si aucune famille ne convient, elle en crée une. Si la page mère n'a pas encore d'encadré « Doc partielle », elle en ajoute un en tête, `🚧 Doc partielle — rétro-doc pas encore faite`, et le laisse en place s'il existe déjà. Elle n'écrit **jamais** de vue d'ensemble ni de processus au jugé : c'est le rôle de la rétro-doc, plan dédié par projet.
+- **Projet activé** : la clôture crée la sous-page `📰 Changelog` si elle manque, et y pose l'entrée. Elle crée **une fiche par fonctionnalité que le plan touche**, et seulement celles-là, rangée dans sa famille (§ 1) ; si aucune famille ne convient, elle en crée une. L'encadré « Doc partielle » vit sur la page mère, plus sur la page `Projet` : si la page mère n'en a pas encore, elle en ajoute un en tête, `🚧 Doc partielle — rétro-doc pas encore faite`, et le laisse en place s'il existe déjà. Un encadré « Doc partielle » déjà posé sur la page `Projet` par l'ancienne règle n'est pas déplacé (la clôture ne déplace jamais une page existante) : elle le signale dans son compte rendu. Elle n'écrit **jamais** de vue d'ensemble ni de processus au jugé : c'est le rôle de la rétro-doc, plan dédié par projet.
 
 **Projet activé, pas de page mère** (décision Q3) : la clôture crée la page mère « 📚 Documentation » vide de vue d'ensemble, avec l'encadré « 🚧 Doc partielle — rétro-doc pas encore faite », puis la famille et la fiche ; elle ne déplace JAMAIS une page existante, et signale dans son compte rendu les fiches restées à l'ancienne place.
 
