@@ -40,6 +40,16 @@ Tests ajoutés après la relecture de l'étape 3 :
   14b. Une entrée datée citée dans un bloc de code du Changelog ne documente pas sa PR.
   15a. Palier 3 de l'entrée du hub : ``--hub-fichier`` est lu comme source d'en-têtes.
   15b. ``--hub-fichier`` sans ``--pr`` : code 2, ``--pr`` nommé.
+Tests ajoutés aux relectures 2 et 3 :
+  16a/16b. Un numéro cité dans le titre H2 hors de la forme finale « (PR #N) » ne documente rien.
+  17. « (voir PR 190) » dans le segment qui suit « PR : » ne documente pas la PR 190.
+  18a. « #284 – 2e tentative » : le « 2 » n'est pas une borne B sans dièse (seul « à » l'admet).
+  18b. Une plage inversée (« #260 à #258 ») ne documente rien, ni ses bornes.
+  18c. Garde, vert avant le correctif : « #258 à 260 » documente 258, 259 et 260.
+  18d. « #258–260 » : une borne B sans dièse n'existe qu'avec « à » ; seule 258 est documentée.
+  18e. Titre H2 « (PR 150) » sans dièse : la PR 150 reste un trou.
+  18f. Plage de plus de 50 numéros (« #100 à #151 ») : ignorée, ses bornes ne comptent pas.
+  18g. Garde, vert avant le correctif : une plage de 50 d'écart (« #100 à #150 ») reste acceptée.
 """
 from __future__ import annotations
 
@@ -381,6 +391,60 @@ class DocDeCloture(unittest.TestCase):
         code, sortie, erreur = self.trous(texte, [pr(12), pr(190)])
         self.assertEqual(code, 1, erreur)
         self.assertEqual(numeros(sortie), ["#190"], sortie)
+
+    # Panne 18a : « #284 – 2e tentative » lisait « 2 » comme borne B de la plage 2–284, et
+    # documentait les PR 3 et 100. Seul « à » admet une borne B sans dièse. Attendu : seule 284.
+    def test_tiret_suivi_de_2e_ne_fait_pas_une_plage_avec_borne_sans_diese(self):
+        texte = changelog(entree(ligne_plan="Plan : lien · PR : #284 – 2e tentative · Statut : mergée"))
+        code, sortie, erreur = self.trous(texte, [pr(3), pr(100), pr(284), pr(285)])
+        self.assertEqual(code, 1, erreur)
+        self.assertEqual(numeros(sortie), ["#3", "#100", "#285"], sortie)
+
+    # Panne 18b : une plage inversée (« #260 à #258 ») est lue comme « de 258 à 260 ». Attendu :
+    # elle ne compte pas du tout, ni ses bornes : 258, 259 et 260 restent des trous.
+    def test_plage_inversee_ne_documente_rien(self):
+        texte = changelog(entree(ligne_plan="Plan : lien · PR : #260 à #258 · Statut : mergée"))
+        code, sortie, erreur = self.trous(texte, [pr(258), pr(259), pr(260)])
+        self.assertEqual(code, 1, erreur)
+        self.assertEqual(numeros(sortie), ["#258", "#259", "#260"], sortie)
+
+    # Garde 18c (vert avant le correctif) : « à » avec une borne B sans dièse reste une plage.
+    def test_plage_a_avec_borne_b_sans_diese_documente_chaque_numero(self):
+        texte = changelog(entree(ligne_plan="Plan : lien · PR : #258 à 260 · Statut : mergée"))
+        code, sortie, erreur = self.trous(texte, [pr(258), pr(259), pr(260), pr(261)])
+        self.assertEqual(code, 1, erreur)
+        self.assertEqual(numeros(sortie), ["#261"], sortie)
+
+    # Panne 18d : « #258–260 » lisait « 260 » comme borne B, et documentait 259 et 260. Attendu :
+    # seule la borne A, qui porte son dièse, est documentée.
+    def test_plage_a_tiret_avec_borne_b_sans_diese_ne_documente_que_a(self):
+        texte = changelog(entree(ligne_plan="Plan : lien · PR : #258–260 · Statut : mergée"))
+        code, sortie, erreur = self.trous(texte, [pr(258), pr(259), pr(260)])
+        self.assertEqual(code, 1, erreur)
+        self.assertEqual(numeros(sortie), ["#259", "#260"], sortie)
+
+    # Panne 18e : le titre H2 « (PR 150) », sans dièse, documentait la PR 150. Seule la forme
+    # finale « (PR #N) » compte. Attendu : la 150 reste un trou.
+    def test_titre_avec_pr_sans_diese_ne_documente_pas_la_pr(self):
+        texte = changelog(entree(titre="Vahiny - Autre passe (PR 150)",
+                                 ligne_plan="Plan : [lien](u) · PR : aucune (plan natif)"))
+        code, sortie, erreur = self.trous(texte, [pr(150)])
+        self.assertEqual(code, 1, erreur)
+        self.assertEqual(numeros(sortie), ["#150"], sortie)
+
+    # Panne 18f : une plage de plus de 50 numéros (« #100 à #151 », écart 51) est suspecte ;
+    # elle est ignorée, ses bornes comprises.
+    def test_plage_trop_large_est_ignoree(self):
+        texte = changelog(entree(ligne_plan="Plan : lien · PR : #100 à #151 · Statut : mergée"))
+        code, sortie, erreur = self.trous(texte, [pr(100), pr(151)])
+        self.assertEqual(code, 1, erreur)
+        self.assertEqual(numeros(sortie), ["#100", "#151"], sortie)
+
+    # Garde 18g (vert avant le correctif) : un écart de 50 (« #100 à #150 ») reste accepté.
+    def test_plage_d_ecart_cinquante_reste_acceptee(self):
+        texte = changelog(entree(ligne_plan="Plan : lien · PR : #100 à #150 · Statut : mergée"))
+        code, sortie, erreur = self.trous(texte, [pr(100), pr(150)])
+        self.assertEqual((code, sortie), (0, ""), erreur)
 
 
 if __name__ == "__main__":
