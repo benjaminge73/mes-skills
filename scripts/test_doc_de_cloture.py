@@ -28,6 +28,18 @@ Extras, chacun pour une panne que les cinq ci-dessus ne couvrent pas :
   12a. Fichier absent : code 2, le nom du fichier sur la sortie d'erreur.
   12b. JSON invalide : code 2, le nom du fichier sur la sortie d'erreur.
   12c. ``--changelog`` sans ``--pr`` (et l'inverse) : code 2, l'option manquante nommée.
+Tests ajoutés après la relecture de l'étape 3 :
+  13a. Un numéro nu dans le titre H2 (« (#282) ») ne documente pas la PR ; la PR de la ligne Plan
+       reste documentée.
+  13b. Un numéro du titre du plan (« Vahiny - Thaïlande #4 ») ne documente pas la PR 4.
+  13c. Le lien du plan sur la ligne Plan (« [Plan … #2 - 3e passe](url) ») ne documente ni 2 ni
+       3 : seul le segment qui suit « PR : » compte.
+  13d. Garde de non-régression (vert avant le correctif) : « (PR #258) » dans le titre H2
+       documente 258. La forme non ambiguë reste lue.
+  14a. Un Récap cité dans un bloc de code de la page ne rend pas la porte conforme.
+  14b. Une entrée datée citée dans un bloc de code du Changelog ne documente pas sa PR.
+  15a. Palier 3 de l'entrée du hub : ``--hub-fichier`` est lu comme source d'en-têtes.
+  15b. ``--hub-fichier`` sans ``--pr`` : code 2, ``--pr`` nommé.
 """
 from __future__ import annotations
 
@@ -50,10 +62,11 @@ PAGE_AVEC_RECAP = (
 PAGE_SANS_RECAP = "# Plan exemple\n\n## Exécution\n\nDu texte.\n"
 
 
-def entree(date="2026-10-20", ligne_plan="Plan : lien · PR : #12 · Statut : a merger", corps=""):
+def entree(date="2026-10-20", ligne_plan="Plan : lien · PR : #12 · Statut : a merger", corps="",
+           titre="Plan exemple"):
     """Une entrée du Changelog : H2 daté, ligne Plan, une rubrique, puis le corps donné."""
     return (
-        f"## {date} · Plan exemple\n{ligne_plan}\n\n"
+        f"## {date} · {titre}\n{ligne_plan}\n\n"
         "### ✨ Nouveau\n- Une ligne (Étape 1)\n\n"
         + corps
     )
@@ -246,6 +259,87 @@ class DocDeCloture(unittest.TestCase):
         code, sortie, erreur = jouer("--porte", page, "--pr", 12)
         self.assertEqual(code, 2, sortie)
         self.assertIn("--changelog", erreur)
+
+    # Panne 13a : un numéro nu dans le titre H2 (« (#282) ») compterait comme documenté.
+    # Attendu : dans le titre, seules les formes non ambiguës comptent (PR #N, PR N, pull/N).
+    # La PR 290, sur la ligne Plan, est documentée ; la 282 reste un trou.
+    def test_numero_nu_dans_le_titre_h2_ne_documente_pas_la_pr(self):
+        texte = changelog(entree(
+            titre="Hors plan — Revert « Fixer le socle » (#282)",
+            ligne_plan="Plan : aucun (hors plan) · PR : https://github.com/o/r/pull/290 · Statut : mergée"))
+        code, sortie, erreur = self.trous(texte, [pr(282), pr(290)])
+        self.assertEqual(code, 1, erreur)
+        self.assertEqual(numeros(sortie), ["#282"], sortie)
+
+    # Panne 13b : le numéro du titre du plan (« Vahiny - Thaïlande #4 ») documenterait la PR 4.
+    # Attendu : la PR 4 reste un trou ; la PR 12, citée sur la ligne Plan, est documentée.
+    def test_numero_du_titre_de_plan_ne_documente_pas_la_pr(self):
+        texte = changelog(entree(titre="Vahiny - Thaïlande #4"))
+        code, sortie, erreur = self.trous(texte, [pr(4), pr(12)])
+        self.assertEqual(code, 1, erreur)
+        self.assertEqual(numeros(sortie), ["#4"], sortie)
+
+    # Panne 13c : le lien du plan sur la ligne Plan (« [Plan … #2 - 3e passe](url) ») : la plage
+    # « #2 - 3 » documenterait 2 et 3. Attendu : seul le segment qui suit « PR : » compte.
+    def test_lien_du_plan_sur_la_ligne_plan_ne_documente_pas_ses_numeros(self):
+        texte = changelog(entree(ligne_plan=(
+            "Plan : [Plan Vahiny #2 - 3e passe](https://www.notion.so/exemple) · PR : #12 · Statut : a merger")))
+        code, sortie, erreur = self.trous(texte, [pr(2), pr(3), pr(12)])
+        self.assertEqual(code, 1, erreur)
+        self.assertEqual(numeros(sortie), ["#2", "#3"], sortie)
+
+    # Panne 13d, garde de non-régression (vert avant le correctif) : « (PR #258) » dans le titre
+    # H2 doit documenter 258. La forme non ambiguë reste lue une fois la règle resserrée.
+    def test_pr_dans_le_titre_h2_avec_forme_non_ambigue_documente_la_pr(self):
+        texte = changelog(entree(
+            titre="Hors plan — Titre de la PR (PR #258)",
+            ligne_plan="Plan : aucun (hors plan) · PR : https://github.com/o/r · Statut : mergée"))
+        code, sortie, erreur = self.trous(texte, [pr(258)])
+        self.assertEqual((code, sortie), (0, ""), erreur)
+
+    # Panne 14a : un Récap cité dans un bloc de code (« ``` ») passerait la porte. Attendu : le
+    # contenu d'un bloc de code n'est pas une section de la page ; code 1, Récap nommé.
+    def test_recap_cite_dans_un_bloc_de_code_ne_compte_pas(self):
+        page = self.ecrire("page.md", "# Plan exemple\n\n## Exécution\n\n"
+                           "```markdown\n## Récap · 2026-10-20 · Plan exemple\nPlan : lien\n```\n")
+        code, sortie, erreur = jouer("--porte", page)
+        self.assertEqual(code, 1, erreur)
+        self.assertIn("Récap", sortie)
+
+    # Panne 14b : une entrée datée citée dans un bloc de code du Changelog documenterait sa PR.
+    # Attendu : la PR 258 n'est pas documentée par l'exemple, et reste un trou.
+    def test_entree_citee_dans_un_bloc_de_code_ne_documente_pas_la_pr(self):
+        exemple = "```\n## 2026-10-20 · Exemple\nPlan : lien · PR : #258 · Statut : a merger\n```\n"
+        code, sortie, erreur = self.trous(changelog(entree(), exemple), [pr(258)])
+        self.assertEqual(code, 1, erreur)
+        self.assertEqual(numeros(sortie), ["#258"], sortie)
+
+    # Panne 15a : le palier 3 de l'entrée du hub. Sans --hub-fichier, la PR 290 n'est dans aucun
+    # en-tête lu (miroir vide) : code 1. Avec --hub-fichier (entrée confiée à Hermes), elle l'est.
+    def test_hub_fichier_tient_lieu_d_entree_au_palier_trois(self):
+        page = self.ecrire("nue.md", PAGE_SANS_RECAP)
+        recap = self.ecrire("recap.md", "## Récap · 2026-10-20 · Plan exemple\nPlan : lien\n\n"
+                                        "### ✨ Nouveau\n- rien\n")
+        vide = self.ecrire("cl-vide.md", "# Changelog\n")
+        hub = self.ecrire("hub.md", entree(
+            ligne_plan="Plan : lien · PR : https://github.com/o/r/pull/290 · Statut : a merger"))
+        code, sortie, erreur = jouer("--porte", page, "--recap-fichier", recap, "--changelog", vide,
+                                     "--pr", 290, "--hub-fichier", hub)
+        self.assertEqual((code, sortie), (0, ""), erreur)
+        code, sortie, erreur = jouer("--porte", page, "--recap-fichier", recap, "--changelog", vide,
+                                     "--pr", 290)
+        self.assertEqual(code, 1, erreur)
+        self.assertIn("PR #290", sortie)
+
+    # Panne 15b : --hub-fichier sans --pr n'a rien à contrôler : usage erroné, code 2, et le
+    # message du script nomme la règle. Le texte d'usage d'argparse contient « --pr N » : une
+    # assertion sur « --pr » seul passerait au rouge. On exige donc la phrase du script.
+    def test_hub_fichier_sans_pr_rend_deux(self):
+        page = self.ecrire("page.md", PAGE_AVEC_RECAP)
+        hub = self.ecrire("hub.md", entree())
+        code, sortie, erreur = jouer("--porte", page, "--hub-fichier", hub)
+        self.assertEqual(code, 2, sortie)
+        self.assertIn("--hub-fichier exige --pr N", erreur)
 
 
 if __name__ == "__main__":
