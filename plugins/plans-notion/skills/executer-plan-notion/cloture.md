@@ -307,18 +307,23 @@ Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard »
          sous la page `Projet` si elle manque, et, sauf plan couvert par un plan maître,
          poser l'entrée **en tête**, ancrée après la fin complète du dernier bloc qui
          précède les entrées, jamais au milieu d'un paragraphe formaté. L'encadré
-         « Doc partielle » ne se pose pas ici : il vit sur la page mère (point (d)).
+         « Doc partielle » ne se pose pas ici : il vit sur la page mère (point (d)). Relever
+         aussi si la ligne `📘 Rétro-doc : faite AAAA-MM-JJ` figure sous l'encadré : elle
+         conditionne l'encadré du point (d).
        - `📘 Doc vivante : désactivée` : (c) et (d) sont sautés. Le Récap reste écrit.
        - Encadré absent : (c) et (d) attendent. La question « Doc vivante : à activer
          pour <projet> ? » part dans le compte rendu, à chaque clôture tant qu'il manque.
      - **(d) Les fiches et les processus.** Projet activé seulement. Les fiches vivent
        sous la page mère `📚 Documentation`, elle-même sous la page `Projet`, rangées par
        famille (`changelog-et-doc.md` § 1). Trois gestes, dans cet ordre :
-       - **La page mère.** Si elle manque, elle se crée vide
-         de vue d'ensemble, avec l'encadré `🚧 Doc partielle — rétro-doc pas encore faite`
-         en tête (`changelog-et-doc.md` § 5, cas sans page mère) ; elle ne déplace jamais
-         une page existante. Si la page mère existe sans encadré « Doc partielle », l'ajouter
-         en tête de la page mère ; s'il existe, le laisser en place. Un encadré resté sur la
+       - **La page mère.** Lire d'abord la ligne `📘 Rétro-doc : faite` de l'encadré
+         d'activation (point (c)). Si elle est absente, l'encadré `🚧 Doc partielle —
+         rétro-doc pas encore faite` se pose ; si elle est présente, la rétro-doc est faite
+         et l'encadré ne se pose pas (`changelog-et-doc.md` § 5). Si la page mère manque, elle
+         se crée vide de vue d'ensemble, avec ou sans cet encadré selon cette même ligne
+         (§ 5, cas sans page mère) ; elle ne déplace jamais une page existante. Si la page
+         mère existe sans encadré « Doc partielle », et la ligne est absente, l'ajouter en
+         tête de la page mère ; s'il existe, le laisser en place. Un encadré resté sur la
          page `Projet` par l'ancienne règle n'est pas déplacé : le dire dans le compte rendu.
        - **La famille.** Chaque fiche se range dans la famille qui lui convient, sous-page
          de la page mère, avec son emoji et sa phrase. Si aucune ne convient, en créer une
