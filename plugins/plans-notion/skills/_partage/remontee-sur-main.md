@@ -64,8 +64,8 @@ Séquence, dans l'ordre :
      ouvrir en brouillon, attendre). Sans PR, `PR` reste vide et la page reste à
      `a merger`.
    - `PR` renseignée sur la page dès l'ouverture.
-2. **Attendre la CI, et lire son verdict.** La CI se suit en arrière-plan, avec
-   une attente bornée (`cloture.md`, point 8). Verte → point 3. Rouge : corriger
+2. **Attendre la CI, et lire son verdict.** La CI se suit en arrière-plan, sans
+   abandon avant le verdict (`cloture.md`, point 8). Verte → point 3. Rouge : corriger
    **tout** en local, rejouer la suite complète, puis repousser une seule fois
    (chaque `push` sur la PR relance un run). Correctif structurant, ou échec
    qu'on ne sait plus diagnostiquer : même arbitrage qu'en cours de route
@@ -140,6 +140,40 @@ Séquence, dans l'ordre :
    tri »), et l'entrée cite la question posée ou le lien du plan. Une PR ouverte sans merge a aussi son entrée — `PR
    ouverte`, avec le numéro et le verdict de la CI — pour que la page dise où en
    est la remontée.
+
+**La session ne part pas à l'ouverture de la PR : elle la suit jusqu'au merge.** Une PR
+ouverte n'est pas un plan livré, et le statut `a merger` n'est vrai que tant que
+quelqu'un regarde la PR : sans cela, le merge arrive dans le vide, les points 4 à 6
+ne se jouent jamais et les plans (le sien, son maître, le Récap du lot) restent en
+retard sur `main`. Retour de Benjamin du 2026-10-22 : « une session ne peut pas s'arrêter
+à l'ouverture d'une PR sans surveiller scrupuleusement le merge et mettre ensuite à jour
+le ou les plan concernés ».
+
+- **Comment suivre.** Si la session a l'outil d'abonnement aux PR
+  (`subscribe_pr_activity`, session cloud) : s'abonner dès l'ouverture, puis finir le
+  tour ; les événements (CI, revue, merge) la réveillent, et attendre ne coûte rien.
+  Sinon, une surveillance en arrière-plan (`Monitor`, ou `Bash` avec
+  `run_in_background`, sur `gh pr checks <n> --watch`) qui la ramène à la sortie,
+  puis `gh pr view <n> --json state,mergeCommit`. Pas de boucle de sommeil dans un tour.
+- **À chaque réveil**, on lit la PR avant de conclure : CI rouge → point 2 ; verte et
+  non mergée → quelque chose la retient (brouillon, label, conflit avec `main`,
+  workflows touchés) : le nommer, le lever si c'est dans le périmètre du plan (un
+  conflit se résout en fusionnant `main`), sinon le dire à Benjamin ; mergée → points
+  4 à 6, et 4 bis, **dans le même tour**.
+- **Mettre à jour « le ou les plans concernés »**, au merge : `Statut` = `execute` du
+  plan ; son entrée `Remontée sur main` ; pour un plan du lot, le calcul du maître
+  rejoué (`statut-maitre.py --actuel`), sa ligne d'`Avancement`, la ligne du plan dans
+  le `Récap du lot` et, lot fermé, l'`État final` ; un plan de suite né de ce plan
+  reçoit le lien du merge. Une PR qui couvre plusieurs plans met à jour chacun.
+- **Les arrêts qui restent légitimes sont des états, pas des oublis** : PR en
+  brouillon à la demande de Benjamin, PR retenue par un humain, CI rouge qu'on ne sait
+  plus diagnostiquer, correctif structurant. Le plan reste `a merger`, et la raison
+  s'écrit dans le journal **et** dans l'`Avancement` du maître, datée, avec ce qui
+  relancerait le suivi.
+- **Une session qui ne peut vraiment pas rester** (Benjamin la ferme, le quota tombe)
+  dit dans son dernier message « PR non suivie » et écrit la même ligne au journal : la
+  règle de la session suivante (point 4 : lire `a merger` avec une PR renseignée,
+  vérifier, poser `execute`) est le filet, pas le plan. Elle ne remplace pas le suivi.
 
 **Le point 5 est celui qui saute**, et il saute toujours pour la même raison : le
 merge est un moment de fin. La CI est verte, le compte rendu est écrit,

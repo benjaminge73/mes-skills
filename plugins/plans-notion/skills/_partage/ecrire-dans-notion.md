@@ -209,3 +209,10 @@ du plan maître est dérivé de ceux de ses plans : qui change l'un (`en cours`,
 tour et réécrit le maître si le code rendu est 3. Sinon le maître reste sur son
 dernier calcul, et annonce `pret` un lot déjà sur `main`. Les gestes sont dans
 `plan-notion/plan-maitre.md`, « Qui rejoue le calcul, et quand ».
+
+**Il en va de même quand le contenu d'un plan du lot change** (chapitres `Exécution`,
+`Questions ouvertes`, `Besoins`, `Cartes`, propriétés `Branche` et `PR`) : le maître
+est revérifié dans le même tour, `Croisement`, `Ordre de merge` et tableau `Plans`
+compris, et une ligne datée d'`Avancement` dit le verdict. Les gestes sont dans
+`plan-notion/plan-maitre.md`, « Le maître se revérifie aussi quand le contenu d'un plan
+change ».

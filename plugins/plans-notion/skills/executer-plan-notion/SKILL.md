@@ -29,7 +29,9 @@ détaille.
 - **La clôture ouvre la PR vers `main`, prête** (brouillon seulement sur demande
   de Benjamin) ; la CI la merge, la session ne merge jamais (§6, « La PR, puis
   la remontée sur `main` »). Un trou e2e non couvert par la CI se pose à Benjamin
-  avant l'ouverture.
+  avant l'ouverture. **La session suit la PR jusqu'au merge**, puis met à jour le
+  plan, le maître et le Récap dans le même tour.
+- **Un plan d'un lot ne démarre jamais seul** : `depart-dans-le-lot.py` à 0 (§2).
 - **Aucune clôture sans preuve de chaque étape** : `preuves-des-etapes.py
   --avant` à l'ouverture, `--apres` avant le push (§2, §6).
 - **Découvertes hors plan** : une seule règle de tri, dans
@@ -68,8 +70,8 @@ protège à partir de la version qui la porte. (Historique : `docs/retex/execute
 - `pret` → la préparation est faite : relire la page et les fils non résolus
   (§1). Une case, un texte libre ou un commentaire postérieur à l'entrée
   `Ouverture` du journal renvoie à `valide` et refait la préparation ; sinon
-  `preparation-prete.py` rend 0 (mêmes arguments) et `Statut` = `en cours`, première
-  étape.
+  `preparation-prete.py` rend 0 (mêmes arguments) et, pour un plan du lot,
+  `depart-dans-le-lot.py` aussi ; `Statut` = `en cours`, première étape.
 - `a merger` ou `execute` → **le travail est déjà fait**, sa PR en attente de
   merge pour le premier, `main` pour le second. S'arrêter et le
   dire : refaire une exécution terminée est le plus coûteux des malentendus.
