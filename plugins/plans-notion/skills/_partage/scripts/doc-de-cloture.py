@@ -38,8 +38,9 @@ Quels numéros comptent dans un en-tête :
     plan » la pose ainsi. Ni un ``#N`` nu (« Revert … (#282) »), ni un ``PR N`` ou un ``pull/N``
     ailleurs dans le titre (le titre recopie celui de la PR, qui peut citer d'autres PR), ni
     un numéro du titre de plan (« Thaïlande #4 ») ne comptent ;
-  - sur la ligne Plan, seul le segment qui suit ``PR :`` (jusqu'au ``·`` suivant, ou la fin de
-    ligne) compte. Le lien du plan et son titre ne comptent jamais ;
+  - sur la ligne Plan, seul le segment qui suit ``PR :`` compte : il va jusqu'à ``· Statut :``
+    (exclu), ou jusqu'à la fin de la ligne. Il tient ainsi un groupe de liens séparés par ``·``
+    (``PR : [x](pull/262) · [x](pull/263)``). Le lien du plan et son titre ne comptent jamais ;
   - dans ce segment : ``#N`` (frontière de mot, ``#25`` ne couvre pas ``#258``), ``pull/N``,
     et les plages (toutes les PR de A à B incluses) : ``#A à #B`` et ``#A à B`` (avec « à »
     seulement, la borne B peut être sans dièse), ``#A–#B``, ``#A-#B``, ``#A … #B`` (avec ces
@@ -78,7 +79,9 @@ TITRE_FINAL = re.compile(r"\(PR #(\d+)\)\s*$")
 NUMERO = re.compile(r"#(\d+)")
 PULL = re.compile(r"pull/(\d+)")
 CLOTURE_CODE = re.compile(r"^\s*(```|~~~)")
-SEGMENT_PR = re.compile(r"\s*PR\s*:(.*)$")
+# Le segment PR va de « PR : » jusqu'à « · Statut : » (exclu), ou jusqu'à la fin de la ligne.
+# Il peut contenir plusieurs liens séparés par « · » (« PR : [x](pull/262) · [x](pull/263) »).
+SEGMENT_PR = re.compile(r"(?:^|·)\s*PR\s*:(.*?)(?=\s*·\s*Statut\s*:|$)")
 
 
 class ErreurEntree(Exception):
@@ -148,15 +151,11 @@ def numeros_titre(ligne_h2):
 
 
 def numeros_pr(ligne_plan):
-    """Sur une ligne Plan, seul le segment qui suit « PR : » (jusqu'au « · » suivant) compte."""
-    isoles, plages = set(), []
-    for segment in ligne_plan.split("·"):
-        m = SEGMENT_PR.match(segment)
-        if m:
-            n, p = numeros_cites(m.group(1))
-            isoles |= n
-            plages += p
-    return isoles, plages
+    """Sur une ligne Plan, seul le segment qui suit « PR : » compte, jusqu'à « · Statut : »."""
+    m = SEGMENT_PR.search(ligne_plan)
+    if not m:
+        return set(), []
+    return numeros_cites(m.group(1))
 
 
 def en_tetes(lignes):
