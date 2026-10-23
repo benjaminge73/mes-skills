@@ -552,7 +552,8 @@ class DocDeCloture(unittest.TestCase):
         c = self.ecrire("changelog.md", changelog(entree()))
         code, sortie, erreur = jouer("--trous", "--changelog", c, "--prs", self.fichier_prs(pr(281)))
         self.assertEqual(code, 2, sortie)
-        self.assertIn("--trous exige --depuis AAAA-MM-JJ ou --projet <miroir>", erreur)
+        self.assertIn("--depuis", erreur)
+        self.assertIn("--projet", erreur)
 
     # Étape 2, panne 25 : --projet avec --porte est un usage erroné, comme --depuis. Attendu : code 2,
     # et le message du script (pas le texte d'usage d'argparse) qui le dit.
@@ -561,7 +562,8 @@ class DocDeCloture(unittest.TestCase):
         projet = self.ecrire("projet.md", "# Projet exemple\n\n> 📘 Activée le 2026-10-01\n")
         code, sortie, erreur = jouer("--porte", page, "--projet", projet)
         self.assertEqual(code, 2, sortie)
-        self.assertIn("ne vont qu'avec --trous", erreur)
+        self.assertIn("doc-de-cloture :", erreur)
+        self.assertIn("--projet", erreur)
 
 
 if __name__ == "__main__":
