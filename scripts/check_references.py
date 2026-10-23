@@ -15,6 +15,11 @@ qui en portait cinq, et ça, aucun script ne le voit sans lire le contenu des
 deux côtés. Il attrape le cran d'avant, strictement mécanique : le fichier
 cité n'existe plus, ou n'a jamais existé.
 
+Un fichier à phases (des titres ``### Phase N``) a le même défaut : un renvoi
+« Phase 4.5 » vers une section qui n'existe pas ne casse rien, et le lecteur le
+découvre au mauvais moment. Ce script refuse donc, dans un tel fichier, toute
+mention « Phase N » qui ne désigne aucun de ses titres.
+
 Il vérifie aussi, dans la foulée et pour la même raison de coût nul, une
 deuxième invariant que ``claude plugin validate`` ne couvre pas dans le détail
 qui nous intéresse ici : chaque ``SKILL.md`` et chaque agent commence par un
@@ -40,6 +45,12 @@ PLUGINS_DIR = REPO_ROOT / "plugins"
 # lui dans la classe exclue, `cat "${CLAUDE_PLUGIN_ROOT}/x.json"` capturait
 # `x.json"` et signalait un fichier introuvable qui existait (2026-09-08).
 REFERENCE_RE = re.compile(r"\$\{CLAUDE_PLUGIN_ROOT\}/([^`\s)\"']+)")
+
+# Titre d'une phase (« ### Phase 4: … ») et renvoi à une phase (« Phase 4.5 »).
+# Le numéro peut porter une décimale : sans elle, « Phase 4.5 » se lirait
+# « Phase 4 » et passerait dès que la phase 4 existe.
+PHASE_TITRE_RE = re.compile(r"^#+ Phase (\d+(?:\.\d+)?)\b")
+PHASE_RENVOI_RE = re.compile(r"\bPhase (\d+(?:\.\d+)?)\b")
 
 
 def _relatif(chemin: Path) -> str:
@@ -193,17 +204,88 @@ def verifier_frontmatters() -> tuple[list[str], int]:
     return problemes, verifies
 
 
+def _titres_phase(lignes: list[str]) -> set[str]:
+    """Les numéros des titres « Phase N » du fichier."""
+    titres: set[str] = set()
+    for ligne in lignes:
+        correspondance = PHASE_TITRE_RE.match(ligne)
+        if correspondance:
+            titres.add(correspondance.group(1))
+    return titres
+
+
+def renvois_phase(lignes: list[str]) -> list[tuple[int, str]]:
+    """Rend (ligne, numéro) de chaque mention « Phase N » hors titre.
+
+    Un fichier sans aucun titre « Phase N » n'est pas un fichier à phases : la
+    mention y est une formule libre, rien n'est rendu.
+    """
+    if not _titres_phase(lignes):
+        return []
+
+    renvois: list[tuple[int, str]] = []
+    for numero, ligne in enumerate(lignes, start=1):
+        if PHASE_TITRE_RE.match(ligne):
+            continue
+        for correspondance in PHASE_RENVOI_RE.finditer(ligne):
+            renvois.append((numero, correspondance.group(1)))
+    return renvois
+
+
+def phases_absentes(lignes: list[str]) -> list[tuple[int, str]]:
+    """Rend (ligne, numéro) des renvois « Phase N » sans titre correspondant.
+
+    Un renvoi peut précéder le titre qu'il désigne (c'est le cas dans un skill
+    qui cite « Phase 1 » dans son introduction) : on lit les titres d'abord.
+    """
+    titres = _titres_phase(lignes)
+    return [
+        (numero, phase)
+        for numero, phase in renvois_phase(lignes)
+        if phase not in titres
+    ]
+
+
+def verifier_phases() -> tuple[list[str], int]:
+    """Dans un fichier à phases, chaque renvoi « Phase N » désigne un titre."""
+    problemes: list[str] = []
+    verifies = 0
+
+    if not PLUGINS_DIR.is_dir():
+        return problemes, verifies
+
+    for md_file in sorted(PLUGINS_DIR.rglob("*.md")):
+        rel = _relatif(md_file)
+        try:
+            lignes = md_file.read_text(encoding="utf-8").splitlines()
+        except OSError as erreur:
+            problemes.append(f"{rel}:1 — illisible ({erreur})")
+            continue
+
+        verifies += len(renvois_phase(lignes))
+        for numero, phase in phases_absentes(lignes):
+            problemes.append(
+                f"{rel}:{numero} — renvoi à une phase absente : Phase {phase}"
+            )
+
+    return problemes, verifies
+
+
 def main() -> int:
     problemes_renvois, nb_renvois = verifier_renvois()
     problemes_frontmatters, nb_frontmatters = verifier_frontmatters()
-    problemes = problemes_renvois + problemes_frontmatters
+    problemes_phases, nb_phases = verifier_phases()
+    problemes = problemes_renvois + problemes_frontmatters + problemes_phases
 
     if problemes:
         for probleme in problemes:
             print(probleme)
         return 1
 
-    print(f"Renvois : {nb_renvois} vérifiés, frontmatters : {nb_frontmatters} vérifiés")
+    print(
+        f"Renvois : {nb_renvois} vérifiés, frontmatters : {nb_frontmatters} "
+        f"vérifiés, phases : {nb_phases} vérifiées"
+    )
     return 0
 
 

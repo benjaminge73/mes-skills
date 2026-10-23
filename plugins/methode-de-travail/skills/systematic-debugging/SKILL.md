@@ -256,7 +256,7 @@ If you catch yourself thinking:
 
 **ALL of these mean: STOP. Return to Phase 1.**
 
-**If 3+ fixes failed:** Question the architecture (see Phase 4.5)
+**If 3+ fixes failed:** Question architecture (Phase 4, step 5)
 
 ## Signals From Your Human Partner That You're Doing It Wrong
 
