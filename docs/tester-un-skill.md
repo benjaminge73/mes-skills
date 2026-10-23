@@ -496,7 +496,7 @@ Quand une PR touche un skill, un agent, un hook ou `_partage/` sans porter le
 label `evals`, la CI joue une **fumée** : la tête seule, en **un passage**, sur
 Sonnet, sur les catégories que les fichiers touchés exercent. Ces catégories
 sont **calculées** par `scripts/evals_selection.py`, pas choisies ; tout le banc
-part pour les hooks et pour un fichier qu'aucune catégorie n'exerce. Mesurée le 2026-09-30 sur un banc de 16 cas, elle coûtait 0,54 $ à 2,38 $ par
+part pour les hooks et pour un fichier qu'aucune catégorie n'exerce. Elle ne joue que les cas des catégories touchées : jusqu'à 22 pour `plans-notion` au 2026-10-23. Mesurée le 2026-09-30 sur un banc de 16 cas, elle coûtait 0,54 $ à 2,38 $ par
 catégorie et environ 9,2 $ pour tout le banc ; le banc compte 27 cas au 2026-10-16
 (26 pour `plans-notion`, 1 pour `voyages`) et ce total n'a pas été remesuré : le
 job annonce son coût avant de jouer. La fumée ne remplace pas l'A/B : c'est le label `evals`
@@ -605,13 +605,15 @@ cas (2026-10-15) ; maintenant, la relance ne rejoue que la catégorie sans vert.
 `evals_ab.py --garder-vertes <json>` écrit cette liste, et la CI range les verts avec
 `!cancelled()` : un job annulé ne range rien.
 
-**La fumée joue huit sessions en parallèle** (`EVALS_CONCURRENCE: '8'` dans le job
-`fumee`, le maximum de `claude plugin eval -j`), contre cinq pour l'A/B dont les
-planchers et le bruit ont été mesurés. La fumée est une traîne : le 2026-10-15
+**La fumée joue deux lots de huit sessions en parallèle** (`EVALS_CONCURRENCE: '8'` dans
+le job `fumee`, par lanceur : le maximum de `claude plugin eval -j`), donc seize sessions
+sur le même jeton, contre cinq pour l'A/B dont les planchers et le bruit ont été mesurés.
+Le POC du 2026-10-23 (run `39917669835`) a joué 20 cas en 9,5 min, contre 14,3 min à huit
+sessions seules, sans session en erreur. La fumée est une traîne : le 2026-10-15
 (run `38738755670`, 19 cas à 5 sessions), 10 cas étaient finis à 7 min, 17 à 13 min et
 le dernier à 17 min, avec quatre places vides sur cinq à la fin. Les sessions partagent
-une seule limite de débit : si le résumé d'un job montre des sessions en erreur à 8,
-c'est le signal pour redescendre à 5. Le tableau de la fumée donne aussi **la durée de
+une seule limite de débit : si le résumé d'un job montre des sessions en erreur à 8 par
+lanceur, c'est le signal pour redescendre à 5. Le tableau de la fumée donne aussi **la durée de
 chaque cas, du plus long au plus court** : c'est la mesure qui manquait pour savoir quoi
 couper d'une fumée trop longue.
 

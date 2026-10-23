@@ -837,9 +837,10 @@ jobs:
     # donc pas de `merge-auto`.
     if: needs.evals-portee.outputs.fumee_plugins != ''
     runs-on: ubuntu-latest
-    # Au plus 16 cas x 1 passage, soit ≈ 3 passages par agent à ≈ 2,7 min (voir
-    # la mesure du job `evals`), plus ≈ 1 min 30 de préparation. 45 min gardent
-    # une marge large sans tolérer une boucle.
+    # La fumée joue les cas des catégories touchées (au plus 22 pour `plans-notion` à
+    # ce jour, un passage chacun), en deux lots de 8 sessions lancés en parallèle dans
+    # ce job. Le POC du 2026-10-23 (20 cas) : 9,5 min. Plus ≈ 1 min 30 de préparation.
+    # 45 min gardent une marge large sans tolérer une boucle.
     timeout-minutes: 45
     permissions:
       contents: read
@@ -860,14 +861,20 @@ jobs:
       # Le modèle et l'effort sont ceux du job `evals` : un autre modèle ou un autre
       # effort changerait les scores, donc les planchers de `evals/categories.json`,
       # qui ont été mesurés avec ceux-ci. La concurrence, elle, ne change pas un score :
-      # 8 sessions en parallèle (le maximum de `claude plugin eval -j`) au lieu de 5, parce
+      # 8 sessions par lanceur (le maximum de `claude plugin eval -j`) au lieu de 5, parce
       # que la fumée est une traîne (2026-10-15, run 38738755670 : 10 cas sur 19 finis à
-      # 7 min, le dernier à 17 min, avec 4 places vides sur 5 pendant la fin). Les sessions
-      # partagent une seule limite de débit : si des sessions tombent en erreur (code 4), on le
-      # voit dans le résumé du job, et c'est le signal pour redescendre à 5. La relance, elle,
-      # ne rejoue que les catégories qui n'ont pas de vert au cache.
+      # 7 min, le dernier à 17 min, avec 4 places vides sur 5 pendant la fin). La fumée lance
+      # deux lanceurs en parallèle dans ce job (`evals_ab.py`, deux lots équilibrés par durée),
+      # donc 16 sessions sur le même jeton ; le POC du 2026-10-23 (run 39917669835) a joué
+      # 20 cas en 9,5 min, contre 14,3 min à 8 sessions seules, sans session en erreur.
+      # Les sessions partagent une seule limite de débit : si des sessions tombent en erreur
+      # (code 4), on le voit dans le résumé du job, et c'est le signal pour redescendre à 5
+      # par lanceur. La relance, elle, ne rejoue que les catégories qui n'ont pas de vert au cache.
       EVALS_MODELE: claude-sonnet-5-5
       EVALS_EFFORT: high
+      # Plafond de coût passé à chaque appel de lanceur : chaque lot et chaque relance ont le
+      # leur, donc jusqu'à 45 $ par appel. Ce n'est pas une dépense : une relance ne rejoue que
+      # les cas en erreur (≈ 2 $), et la dépense réelle reste ≈ 12 $ plus les relances.
       EVALS_MAX_COUT_USD: '45'
       EVALS_CONCURRENCE: '8'
     steps:
