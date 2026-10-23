@@ -1,9 +1,9 @@
 # Travailler sur `mes-skills`
 
-Ce dépôt **est** la marketplace `atelier` : trois plugins Claude Code,
-`plans-notion` (skills `plan-notion`, `executer-plan-notion` et `deleguer-a-haiku`, agents
-`enqueteur`, `executant`, `relecteur`, `chercheur`, `sondeur` et `evaluateur`, fichiers `_partage/`),
-`methode-de-travail` (`brainstorming`, `systematic-debugging`, `verification-before-completion`)
+Ce dépôt **est** la marketplace `atelier` : trois plugins Claude Code, `plans-notion` (skills
+`plan-notion`, `executer-plan-notion` et `deleguer-a-haiku`, agents : voir `plugins/plans-notion/agents/`,
+fichiers `_partage/`), `methode-de-travail` (`brainstorming`, `systematic-debugging`,
+`verification-before-completion` ; agents : voir `plugins/methode-de-travail/agents/`)
 et `voyages` (skill `organiser-voyage`). Les deux premiers sont installés en scope `user`
 sur le poste et arrivent dans **toutes** les sessions, cloud comprise ; `voyages` ne
 s'installe que là où on l'utilise. Le README dit l'installation, la mise à jour automatique
