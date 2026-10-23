@@ -148,7 +148,7 @@ def numeros_cites(texte):
 def numeros_titre(ligne_h2):
     """Dans un titre H2, seule la forme finale « (PR #N) », en fin de titre, compte.
 
-    Le gabarit « Hors plan » la pose en fin de titre. Un « PR N » ou un « pull/N » ailleurs
+    Le gabarit « Sans plan » la pose en fin de titre. Un « PR N » ou un « pull/N » ailleurs
     dans le titre ne compte pas : le titre recopie celui de la PR, qui peut citer d'autres PR.
     """
     m = TITRE_FINAL.search(ligne_h2)
