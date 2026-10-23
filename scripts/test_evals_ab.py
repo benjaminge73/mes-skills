@@ -1817,7 +1817,10 @@ class RelanceUniqueDesSessionsEnErreur(DepotEtLanceur):
         return tirages
 
     def fumee_jouee(self, *extra: str):
-        return jouer(self.argv("--fumee", *extra), self.env)
+        # Un seul cas joué : une fumée de plusieurs cas se découpe en deux lots, et chaque
+        # lot relance ses erreurs. Ces tests visent la relance d'un cas, pas le découpage ;
+        # les rapports figés gardent leurs trois cas (le faux lanceur ne filtre pas).
+        return jouer(self.argv("--fumee", "--cas", "maquette-requise", *extra), self.env)
 
     def test_une_session_en_erreur_puis_reussie_au_second_tirage_rend_la_fumee_verte(self):
         # Panne visée : une session coupée rendait le code 4 au premier passage, alors
@@ -2258,6 +2261,7 @@ lot=$(basename "$(dirname "$dossier")")
 cas=$(cd "$dossier/evals" && for d in */; do [ -f "$d/prompt.md" ] && echo "${d%/}"; done | sort)
 {
   echo "APPEL $lot"
+  echo "TMPDIR ${TMPDIR:-}"
   for c in $cas; do echo "CAS $c"; done
 } >> "$FAUX_JOURNAL.$lot"
 for c in $cas; do
@@ -2359,6 +2363,36 @@ class FumeeEnDeuxLots(DepotEtLanceur):
         self.assertEqual(code, 3, sortie + erreur)
         self.assertIn("code 9", erreur)
         self.assertNotIn("| catégorie", sortie)  # rien n'a été jugé
+
+    def test_chaque_appel_du_lanceur_a_son_propre_tmpdir(self):
+        # Panne visée : deux lanceurs qui écrivent leurs traces (--keep-temp) dans le même
+        # TMPDIR. En CI, ci.yml pose TMPDIR="$RUNNER_TEMP/evals-traces" pour la fumée : les
+        # deux lots s'y marcheraient dessus. Chaque appel doit recevoir un TMPDIR distinct.
+        # Vrai aussi sur un seul appel (rien à comparer) : le test ne mord que sur deux.
+        self.env = {**self.env, "TMPDIR": str(self.racine / "traces")}
+        code, sortie, erreur = self.fumee()
+        self.assertEqual(code, 0, sortie + erreur)
+        valeurs = []
+        for journal in sorted(self.racine.glob(f"{self.journal_appels.name}.*")):
+            valeurs += [l.split(" ", 1)[1] for l in journal.read_text("utf-8").splitlines()
+                        if l.startswith("TMPDIR ")]
+        self.assertTrue(valeurs)
+        self.assertEqual(len(set(valeurs)), len(valeurs), valeurs)
+
+    def test_le_rapport_recolle_est_garde_et_conserve_avec_chaque_cas_une_fois(self):
+        # Panne visée : --garder-tete ou --conserver écrit un lot seul, ou les deux lots
+        # sans recollage (cas perdus, ou comptés deux fois). La copie conservée doit porter
+        # le rapport recollé sous son nom habituel, tete.json.
+        garde = self.racine / "tete-gardee.json"
+        code, sortie, erreur = self.fumee("--garder-tete", str(garde), "--conserver")
+        self.assertEqual(code, 0, sortie + erreur)
+        noms_gardes = [c["name"] for c in json.loads(garde.read_text("utf-8"))["cases"]]
+        self.assertEqual(sorted(noms_gardes), sorted(self.CAS))
+        ligne = next(l for l in erreur.splitlines() if l.startswith("copies conservées : "))
+        conservee = Path(ligne.removeprefix("copies conservées : "))
+        self.addCleanup(shutil.rmtree, conservee, True)
+        noms_conserves = [c["name"] for c in json.loads((conservee / "tete.json").read_text("utf-8"))["cases"]]
+        self.assertEqual(sorted(noms_conserves), sorted(self.CAS))
 
 
 if __name__ == "__main__":
