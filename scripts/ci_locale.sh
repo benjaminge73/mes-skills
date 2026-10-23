@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# La seule liste des contrôles de ce dépôt : ce que la CI joue dans ses jobs
-# `garde` et `validation`, dans l'ordre. La CI APPELLE ce script au lieu de
+# La seule liste des contrôles de ce dépôt : ce que la CI joue dans son job
+# `validation` (sections `garde` puis `validation`, dans l'ordre). La CI APPELLE ce script au lieu de
 # recopier ses commandes ; CLAUDE.md et README.md disent « lancer
 # scripts/ci_locale.sh » au lieu de les énumérer. Ajouter un contrôle, c'est
 # l'ajouter ICI, une seule fois.

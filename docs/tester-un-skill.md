@@ -441,10 +441,15 @@ sauvée sous sa propre clé `-sel-…`.
 **Le coût est annoncé avant de payer**, en tête du résumé du job. Avec une base
 en cache, c'est `--estimer` (bras de tête seul, lu dans le rapport de la base).
 Sans base en cache, aucun rapport ne dit les coûts, et la CI annonce le pire :
-au plus 90 $, soit deux bras au plafond. **Le plafond est de 45 $ par bras**
-(`EVALS_MAX_COUT_USD`, passé à `claude plugin eval --max-cost-usd`) ; un bras
-complet coûtait 27,53 $ sur Sonnet (mesure du 2026-09-30 sur 16 cas, non remesurée : le banc compte 26 cas au 2026-10-16). Le plafond de 45 $ a été fixé sur une extrapolation, pas sur une mesure : 23 cas le 2026-10-15, soit ~39,6 $ au coût par cas du 2026-09-30, d'où le relèvement. Aucune nouvelle extrapolation n'est faite. Un bras qui dépasse est
-rendu partiel et refusé (code 3), et la facture s'arrête là.
+au plus deux fois ce plafond, soit deux bras au plafond. **Le plafond se calcule
+dans le job, par bras : n cas × 2,2 $, au moins 10 $** (`EVALS_MAX_COUT_USD`, passé
+à `claude plugin eval --max-cost-usd`) ; 45 $ en repli si la sélection est vide.
+Le 2,2 $ par cas vient d'une mesure sur Sonnet (≈ 1,72 $ par cas à 3 passages, + 30 %
+de marge) ; le plancher de 10 $ existe parce qu'un cas coûte jusqu'à 3,57 $. Le
+repli de 45 $ a été fixé sur une extrapolation (un bras complet de 16 cas coûtait
+27,53 $ le 2026-09-30, non remesuré), pas sur une mesure. Aucune nouvelle extrapolation
+n'est faite. Un bras qui dépasse est rendu partiel et refusé (code 3), et la facture
+s'arrête là.
 
 ## Lancer une évaluation
 
@@ -462,9 +467,10 @@ d'un skill si une session se trompe encore de geste.
    joue deux bras (base et tête), un bras complet coûtait 27,53 $ sur Sonnet (mesure du 2026-09-30 sur 16 cas, non remesurée ; le banc compte 26 cas au 2026-10-16),
    et une catégorie 1,61 $ à 7,13 $ par bras (tableau de la fiche
    `claude plugin eval` de `outils-et-quotas.md`, mesuré le 2026-09-30 sur 16 cas ; pour `decouvertes`, voir sa mesure du 2026-10-16 plus bas, 18,68 $ pour deux bras). **Annoncer ce coût à
-   Benjamin avant de lancer.** Le plafond est de 45 $ par bras
-   (`EVALS_MAX_COUT_USD=45`) ; il valait 120 $ avant le 2026-10-01, puis 35 $
-   jusqu'au 2026-10-15. Le 120 $ n'a jamais été atteint.
+   Benjamin avant de lancer.** Le plafond se calcule dans le job :
+   n cas × 2,2 $ par bras, au moins 10 $ (`EVALS_MAX_COUT_USD`, 45 $ en repli) ;
+   avant le 2026-10-23 il était fixe à 45 $, et il valait 120 $ avant le 2026-10-01,
+   puis 35 $ jusqu'au 2026-10-15. Le 120 $ n'a jamais été atteint.
 2. **Vérifier le verrou.** Un seul banc à la fois : toutes les sessions d'un
    appel partagent la limite de débit de leur compte, et trois bancs ensemble
    ont rendu des scores inexploitables. En CI, le groupe de concurrence

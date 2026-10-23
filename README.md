@@ -325,7 +325,7 @@ de ses commits précédents (job `annuler-perimes`) au lieu de les attendre. La
 fumée joue huit sessions en parallèle et range au cache chaque catégorie verte
 même quand le job est rouge : une relance ne rejoue que les autres. Le rapport de la base est repris du cache selon
 son contenu (`--base-rapport`) au lieu d'être rejoué. Le coût est annoncé avant
-de jouer (`--estimer`), avec un plafond de 45 $ par bras. Des sessions en erreur
+de jouer (`--estimer`), avec un plafond calculé dans le job : n cas × 2,2 $, au moins 10 $ (45 $ de repli). Des sessions en erreur
 rendent « non concluant » (code 4), jamais un recul. Un label étranger ajouté à
 la PR ne relance rien et ne blanchit pas le verdict (« Verdict des évals »).
 `scripts/ci_locale.sh` ne joue ni `evals` ni `fumee`. Côté poste,
@@ -356,7 +356,7 @@ scripts/ci_locale.sh
 ```
 
 Ce script est la **seule** liste des contrôles : c'est exactement ce que la CI
-joue dans ses jobs `garde` et `validation`, dans l'ordre. Rien à énumérer ici —
+joue dans son job `validation` (sections `garde` puis `validation`). Rien à énumérer ici —
 un contrôle ajouté au dépôt s'ajoute dans ce script, et la CI comme les
 contributeurs le reprennent. Il ne joue ni le job `evals`, payant, ni `fumee` : ils tournent
 sur le runner GitHub. Sur une branche de PR il compare à `origin/main` (une

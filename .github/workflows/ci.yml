@@ -493,11 +493,11 @@ jobs:
       EVALS_MODELE: claude-sonnet-5-5
       EVALS_EFFORT: high
       # Plafond par appel de `claude plugin eval`, donc par bras (base puis tête).
-      # Fixe à 45 $ par défaut (repli : A/A, et tout pas hors `jeu`) ; le pas `jeu`
-      # le remplace par n cas x 2,2 $ (≈ 1,72 $ mesuré par cas à 3 passages + 30 %
-      # de marge ; décision de Benjamin 2026-10-23, Q6). Un bras qui dépasse est
-      # rendu partiel, refusé par `evals_ab.py` (code 3) : le job est rouge, et la
-      # facture s'arrête là. Le coût attendu s'écrit en tête du résumé (`--estimer`).
+      # Repli fixe à 45 $ (A/A, et tout pas hors `jeu`) ; le pas `jeu` le remplace
+      # par n cas x 2,2 $, plancher 10 $ (un cas coûte jusqu'à 3,57 $, un petit banc
+      # ne doit pas plafonner dessous). Décision de Benjamin 2026-10-23, Q6. Un bras
+      # qui dépasse est rendu partiel, refusé par `evals_ab.py` (code 3) : le job est
+      # rouge, la facture s'arrête là. Le coût attendu s'écrit en tête du résumé.
       EVALS_MAX_COUT_USD: '45'
       EVALS_RUNS: '3'
       # Décision de Benjamin (étape B9) : 5 agents en parallèle.
@@ -602,21 +602,31 @@ jobs:
                 --conserver --journal "$sortie/journal.md")
           # Les cas joués : ceux de la sélection, ou tous quand elle dit « tout »
           # (ou qu'elle manque : le défaut est le banc entier, jamais moins).
+          # Compte les cas d'un plugin comme evals_ab.py (est_un_cas) : un dossier qui
+          # a case.yaml ou prompt.md. nullglob : sans dossier, 0, sans erreur.
+          compter_cas() {
+            local d k=0
+            shopt -s nullglob
+            for d in evals/"$PLUGIN"/*/; do
+              if [ -f "$d/case.yaml" ] || [ -f "$d/prompt.md" ]; then k=$((k + 1)); fi
+            done
+            echo "$k"
+          }
           if [ "$(jq -r --arg p "$PLUGIN" '(.[$p] // {"tout": true}) | .tout' <<<"$SELECTION")" = "true" ]; then
             echo "Tous les cas du banc sont joués."
-            # Compte des dossiers de cas (nullglob : aucun dossier donne 0, sans erreur).
-            n=$(shopt -s nullglob; dossiers=(evals/"$PLUGIN"/*/case.yaml); echo "${#dossiers[@]}")
+            n=$(compter_cas)
           else
             mapfile -t cas < <(jq -r --arg p "$PLUGIN" '.[$p].cas[]' <<<"$SELECTION")
             for c in "${cas[@]}"; do args+=(--cas "$c"); done
             echo "Cas joués (${#cas[@]}) : ${cas[*]}"
             n=${#cas[@]}
           fi
-          # Plafond de ce passage : n cas x 2,2 $, arrondi au dollar supérieur
-          # (entier, car lancer.sh le passe tel quel à --max-cost-usd). Si n vaut 0,
-          # on garde le repli du job (45 $) : jamais un plafond nul.
+          # Plafond de ce passage : n cas x 2,2 $, arrondi au dollar supérieur, avec un
+          # plancher de 10 $ (entier : lancer.sh le passe tel quel à --max-cost-usd).
+          # Si n vaut 0, on garde le repli du job (45 $) : jamais un plafond nul.
           if [ "$n" -gt 0 ]; then
             EVALS_MAX_COUT_USD=$(( (n * 22 + 9) / 10 ))
+            if [ "$EVALS_MAX_COUT_USD" -lt 10 ]; then EVALS_MAX_COUT_USD=10; fi
           fi
           export EVALS_MAX_COUT_USD
           # Le bruit mesuré n'est utilisé que s'il porte le modèle joué (EVALS_MODELE) :
@@ -649,7 +659,7 @@ jobs:
           {
             echo "## Évals — $PLUGIN"
             echo
-            echo "Plafond de coût : $EVALS_MAX_COUT_USD \$ par bras ($n cas x 2,2 \$)."
+            echo "Plafond de coût : $EVALS_MAX_COUT_USD \$ par bras ($n cas x 2,2 \$, plancher 10 \$)."
             if [ -n "$CACHE_TROUVE" ]; then
               python3 scripts/evals_ab.py "${args[@]}" --estimer -- --runs "$EVALS_RUNS" \
                 || echo "Coût estimé : indisponible (voir le journal du job)."
