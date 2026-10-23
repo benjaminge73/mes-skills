@@ -100,7 +100,7 @@ cite un fichier de `scripts/`, `evals/` ou `.github/`, jamais une consigne en pr
 | L'alias `haiku` désigne Haiku 5.5 depuis la 2.1.293 (API Anthropic seulement) | « `haiku` resolves to Haiku 5.5 on the Anthropic API » | https://code.claude.com/docs/en/model-config.md | 2026-10-08 | `evals/outillage/lancer.sh` |
 | Le `model` du frontmatter l'emporte sur `CLAUDE_CODE_SUBAGENT_MODEL` | « `CLAUDE_CODE_SUBAGENT_MODEL` is a default, so a subagent's definition or a model Claude passes still takes precedence over it. » | https://code.claude.com/docs/en/sub-agents.md | 2026-10-08 | `evals/outillage/lancer.sh` |
 | Un `CLAUDE.md` vise moins de 200 lignes | « target under 200 lines per CLAUDE.md file » | https://code.claude.com/docs/en/memory.md | 2026-10-12 | `scripts/test_taille_claude_md.py` (plafond de `taille-claude-md.py`, joué par `scripts/ci_locale.sh`, section `garde`) |
-| Pour alléger un `CLAUDE.md`, on sort la consigne vers un skill ou une règle à portée de chemin | « move it to a [skill](/docs/en/skills) or a [path-scoped rule](#organize-rules-with-claude/rules/) instead » | https://code.claude.com/docs/en/memory.md | 2026-10-12 | `scripts/test_taille_claude_md.py` (le guide `_partage/ranger-claude-md.md` reprend cette consigne) |
+| Pour alléger un `CLAUDE.md`, on sort la consigne vers un skill ou une règle à portée de chemin | « move it to a [skill](/docs/en/skills.md) or a [path-scoped rule](#organize-rules-with-claude/rules/) instead » | https://code.claude.com/docs/en/memory.md | 2026-10-12 | `scripts/test_taille_claude_md.py` (le guide `_partage/ranger-claude-md.md` reprend cette consigne) |
 | Sur Opus 5.5 et Sonnet 5.5, une lecture de cache coûte 0,05 × le prix d'entrée (0,20 $ et 0,10 $) | « On Claude Opus 5.5 and Claude Sonnet 5.5, a cache hit costs 5% of the standard input price ($0.20 USD per million tokens on Claude Opus 5.5, $0.10 USD on Claude Sonnet 5.5). » | https://platform.claude.com/docs/en/about-claude/pricing.md | 2026-10-12 | `scripts/test_cout_plan.py` (classe `GrilleReelle`, lit `plugins/plans-notion/skills/_partage/scripts/grille-tarifs.json`) |
 | `maxTurns` arrête un sous-agent et marque sa sortie partielle | « Maximum number of agentic turns before the subagent stops. » | https://code.claude.com/docs/en/sub-agents.md | 2026-10-16 | `evals/plans-notion/escalade-bornee/case.yaml` (le cas qui joue l'escalade après l'arrêt d'un exécutant ; `maxTurns: 90` est posé dans `plugins/plans-notion/agents/executant.md`, `scripts/check_skills.py` (règle k) exige qu'il soit fixé) |
 | Les skills réattachés après compaction se partagent 25 000 jetons | « Re-attached skills share a combined budget of 25,000 tokens. » | https://code.claude.com/docs/en/skills.md | 2026-10-16 | `scripts/check_skills.py` règle c (même mécanisme que les 5 000 premiers jetons ; c'est la raison de « ré-invoquer le skill après un compactage ») |
@@ -456,3 +456,35 @@ Une entrée par passe, la plus récente en dernier. Le titre est
   Anthropic » (13 octobre), `spec/` d'`anthropics/skills`, les dates des versions 2.1.301 à 2.1.306.
 - **Verdict de `scripts/veille_faits.py`** (2026-10-21) : 22 faits vérifiés, 0 citation à
   signaler, 0 page injoignable (code 0).
+
+### 2026-10-23 — passe avant la PR « rétro des écarts de doc et CBM_NODE du hook de réindexation »
+
+- **Sources lues** : les pages de doc Claude Code de la partie 1 (hooks, plugins et chargement
+  des plugins, skills, sous-agents, évals de plugin, bac à sable, mémoire, réglages, variables
+  d'environnement, model-config), le changelog des versions 2.1.302 à 2.1.309, « What's new »,
+  claude.dev, anthropic.com/engineering, `anthropics/skills` et l'issue `sandbox-runtime#74`.
+  Lecture partielle, à reprendre : la fin des pages hooks, env-vars, model-config, skills et
+  sous-agents (pages tronquées par l'outil de lecture), `plugins/components.md` et la référence
+  des réglages.
+- **Ce qui a changé** : rien de daté après le 2026-10-21 dans les pages de doc, les blogs, le
+  dépôt `anthropics/skills` ni l'issue (toujours ouverte, sans correctif). Les contrats d'un hook
+  `SessionStart` (sortie ajoutée au contexte, délai par défaut, exécution en arrière-plan,
+  variables d'environnement du hook) n'ont pas bougé : c'est ce que touche la PR, et rien
+  n'impose de la changer. Nouveau côté changelog, sans effet ici : 2.1.307 à 2.1.309
+  (événement de sécurité sur un appel arrêté par un hook, un `env` de réglages de projet
+  écarté pour une variable donnée, un `CLAUDE.md` imbriqué trop long qui ne charge que son
+  début).
+- **Faits porteurs** : la lecture de l'agent a cru trois citations absentes (« Bash dans une éval
+  exige un bac à sable », l'alias `haiku`, la seconde phrase des champs ignorés d'un agent de
+  plugin) ; le contrôle mécanique les retrouve. Une seule citation était réellement
+  périmée, et c'était la forme du lien : la page `memory.md` écrit désormais
+  `[skill](/docs/en/skills.md)` là où le tableau avait `[skill](/docs/en/skills)`. Le sens
+  est le même ; la citation du tableau est mise à jour à l'identique de la page.
+- **Ce qu'on en fait** : rien ne s'applique à la PR. Le hook lit sa variable dans l'environnement
+  du processus, ce que la doc n'écrit pas pour un hook `SessionStart` (elle dit seulement que
+  le hook tourne avec l'environnement de Claude Code) : la PR ne fait donc que lire une
+  variable que l'utilisateur pose lui-même, et un hook qui ne la reçoit pas retombe sur le
+  défaut d'origine. Aucune règle n'en dépend, donc aucun fait n'entre au tableau.
+- **Verdict de `scripts/veille_faits.py`** (2026-10-23) : 22 faits vérifiés, 0 citation à
+  signaler, 0 page injoignable (code 0), après la mise à jour de la citation de `memory.md`
+  (la veille du jour avait relevé 1 citation à signaler avant elle).
