@@ -476,6 +476,21 @@ class DocDeCloture(unittest.TestCase):
         self.assertEqual(code, 1, erreur)
         self.assertEqual(numeros(sortie), ["#263"], sortie)
 
+    # Panne 20 : la zone d'en-tête ne s'arrêtait pas sur « <details » (forme composio du bloc
+    # « Côté technique »). Une ligne Plan placée après ce bloc était lue comme en-tête, et la PR 258
+    # passait pour documentée. Attendu : la zone s'arrête au <details> comme au <toggle> ; la ligne
+    # Plan n'est pas un en-tête, et la PR 258 reste un trou.
+    def test_details_coupe_la_zone_d_en_tete_comme_toggle(self):
+        texte = changelog(
+            "## 2026-10-20 · Plan exemple\n"
+            "<details>\n<summary>Côté technique</summary>\n\n"
+            "Plan : lien · PR : #258 · Statut : a merger\n\n"
+            "### ✨ Nouveau\n- Une ligne (Étape 1)\n\n"
+        )
+        code, sortie, erreur = self.trous(texte, [pr(258)])
+        self.assertEqual(code, 1, erreur)
+        self.assertEqual(numeros(sortie), ["#258"], sortie)
+
 
 if __name__ == "__main__":
     unittest.main()

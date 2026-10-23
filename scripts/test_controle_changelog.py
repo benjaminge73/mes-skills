@@ -46,6 +46,9 @@ BLOCS = {
     "reste": "### ⏭️ Reste à faire\n- Brancher le contrôle sur la clôture (Étape 5)\n\n",
 }
 DETAILS = "<toggle>Côté technique\n\nDétail technique.\n</toggle>\n"
+# Forme que rend la lecture composio d'une page Notion : un <details>, puis une ligne
+# <summary>, puis le contenu, puis </details>.
+DETAILS_COMPOSIO = "<details>\n<summary>Côté technique</summary>\n\nDétail technique.\n</details>\n"
 ORDRE = ("nouveau", "ameliore", "corrige", "reste")
 
 
@@ -162,6 +165,32 @@ class ControleChangelog(unittest.TestCase):
         # bloc « <toggle> », son titre passait pour du contenu et la rubrique vide était
         # jugée remplie. Attendu : rend 1 et nomme « Reste à faire » vide.
         texte = entree(blocs={"reste": "### ⏭️ Reste à faire\n\n"})
+        code, sortie, erreur = jouer(self._entree(texte))
+        self.assertEqual(code, 1, erreur)
+        self.assertIn("« Reste à faire » vide", sortie)
+
+    def test_bloc_cote_technique_en_details_composio_rend_zero(self):
+        # Panne : le bloc « Côté technique » rendu par composio (<details> puis <summary>) n'était
+        # pas reconnu, et l'entrée rendait 1 « bloc Côté technique absent ». Attendu indépendant :
+        # une entrée conforme dont le bloc est cette forme rend 0.
+        code, sortie, erreur = jouer(self._entree(entree(details=DETAILS_COMPOSIO)))
+        self.assertEqual((code, sortie), (0, ""), erreur)
+
+    def test_details_dont_le_summary_n_est_pas_cote_technique_rend_un(self):
+        # Panne : un <details> quelconque, ou le mot « Côté technique » dans son contenu,
+        # aurait suffi à faire passer le contrôle. Attendu : le summary doit porter ce titre ;
+        # ici il porte « Détails techniques », et le mot n'apparaît que dans le contenu.
+        details = ("<details>\n<summary>Détails techniques</summary>\n\n"
+                   "Le Côté technique est plus bas.\n</details>\n")
+        code, sortie, erreur = jouer(self._entree(entree(details=details)))
+        self.assertEqual(code, 1, erreur)
+        self.assertIn("bloc Côté technique absent", sortie)
+
+    def test_reste_a_faire_vide_suivie_d_un_details_rend_un(self):
+        # Panne : le corps d'une rubrique ne s'arrêtait pas sur « <details » ; le <summary> et le
+        # contenu du bloc servaient alors de corps, et « Reste à faire » vide passait au vert.
+        # Attendu : rend 1 et nomme « Reste à faire » vide.
+        texte = entree(blocs={"reste": "### ⏭️ Reste à faire\n\n"}, details=DETAILS_COMPOSIO)
         code, sortie, erreur = jouer(self._entree(texte))
         self.assertEqual(code, 1, erreur)
         self.assertIn("« Reste à faire » vide", sortie)
