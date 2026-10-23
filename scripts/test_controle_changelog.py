@@ -25,6 +25,9 @@ toggle ; sinon son titre sert de contenu et la rubrique vide passe au vert.
 Trois de plus, pour les titres à emoji (tests « emoji ») : un H2 à emoji après l'entrée
 la borne et rend 0 (14) ; des rubriques en H3 à emoji avec les titres de fiche à emoji
 rendent 0 (15) ; un H2 « Historique » à emoji, sans Récap ni date, rend 2 (16).
+Deux de plus, pour la forme réelle du bloc « Côté technique » (lecture composio, D2) : le
+contenu sur la ligne du <summary> rend 0 (17) ; un <summary> qui commence par un autre titre
+rend 1, même si « Côté technique » figure plus loin dans son contenu (18).
 """
 from __future__ import annotations
 
@@ -49,6 +52,15 @@ DETAILS = "<toggle>Côté technique\n\nDétail technique.\n</toggle>\n"
 # Forme que rend la lecture composio d'une page Notion : un <details>, puis une ligne
 # <summary>, puis le contenu, puis </details>.
 DETAILS_COMPOSIO = "<details>\n<summary>Côté technique</summary>\n\nDétail technique.\n</details>\n"
+# Forme réelle, copiée d'une entrée du Changelog lue par composio : le contenu du bloc suit le
+# titre sur la même ligne du <summary>, séparé par <br>, et le </summary> ferme cette ligne.
+DETAILS_COMPOSIO_REEL = (
+    "<details>\n"
+    "<summary>Côté technique<br>- Plan : [exemple](https://app.notion.com/p/exemple), statut de la page : `archive`.<br>"
+    "- Fichiers : `changelog-et-doc.md` (§ 5 et § 6).<br>"
+    "- Coût réel : 89,60 \\$ d'équivalent API.</summary>\n"
+    "</details>\n"
+)
 ORDRE = ("nouveau", "ameliore", "corrige", "reste")
 
 
@@ -228,6 +240,24 @@ class ControleChangelog(unittest.TestCase):
         code, sortie, erreur = jouer(self._entree(texte))
         self.assertEqual(code, 2, sortie)
         self.assertIn("Récap", erreur)
+
+    def test_bloc_cote_technique_en_forme_reelle_composio_rend_zero(self):
+        # Panne D2 : le bloc rendu par composio porte son contenu sur la ligne du <summary>
+        # (« Côté technique<br>- Plan : … ») et n'a pas de </summary> juste après le titre.
+        # Le contrôle ne reconnaissait que « <summary>Côté technique</summary> » : une entrée
+        # réelle rendait 1 « bloc Côté technique absent ». Attendu indépendant : une entrée
+        # conforme dont le bloc est cette forme réelle rend 0.
+        code, sortie, erreur = jouer(self._entree(entree(details=DETAILS_COMPOSIO_REEL)))
+        self.assertEqual((code, sortie), (0, ""), erreur)
+
+    def test_summary_qui_commence_par_un_autre_titre_rend_un(self):
+        # Garde de D2 : le titre doit commencer le <summary>. Ici il commence par « Autre chose » ;
+        # « Côté technique » n'apparaît que plus loin, dans le contenu. Attendu : rend 1 et le dit.
+        details = ("<details>\n<summary>Autre chose<br>- Détail : voir le Côté technique plus bas."
+                   "</summary>\n</details>\n")
+        code, sortie, erreur = jouer(self._entree(entree(details=details)))
+        self.assertEqual(code, 1, erreur)
+        self.assertIn("bloc Côté technique absent", sortie)
 
 
 if __name__ == "__main__":
