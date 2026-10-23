@@ -322,7 +322,7 @@ des planchers par catégorie (`evals/categories.json`), pour 0,54 à 9,2 $ (mesu
 Le banc est sobre. Un seul banc tourne par plugin à la fois
 (`concurrency: evals-<plugin>`), et un push sur une PR arrête les runs non finis
 de ses commits précédents (job `annuler-perimes`) au lieu de les attendre. La
-fumée joue huit sessions en parallèle et range au cache chaque catégorie verte
+fumée joue deux lots de huit sessions en parallèle (en CI) et range au cache chaque catégorie verte
 même quand le job est rouge : une relance ne rejoue que les autres. Le rapport de la base est repris du cache selon
 son contenu (`--base-rapport`) au lieu d'être rejoué. Le coût est annoncé avant
 de jouer (`--estimer`), avec un plafond calculé dans le job : n cas × 2,2 $, au moins 10 $ (45 $ de repli). Des sessions en erreur
