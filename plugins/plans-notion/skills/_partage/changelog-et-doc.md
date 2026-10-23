@@ -16,7 +16,7 @@ La forme est la même pour chaque projet :
 Projet                       encadré d'activation (§ 5), lien vers la page mère
 ├── 📰 Changelog             sous-page DIRECTE du projet, pas de la page mère
 └── 📚 Documentation         page mère (§ 9.1)
-    ├── 📱 <famille>         une phrase ; de 3 à 5 familles par projet
+    ├── 📱 <famille>         une phrase ; de 3 à 10 familles par projet
     │   ├── <fiche>          une fiche par fonctionnalité (§ 9.2)
     │   └── <fiche>
     └── 🏭 <famille>
