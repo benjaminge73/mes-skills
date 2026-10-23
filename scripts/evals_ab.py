@@ -1413,6 +1413,19 @@ def tableau_fumee(f: Fumee, etiquette_tete: str, motif_panne_texte: str) -> str:
     return "\n".join(sortie)
 
 
+def sans_report(options: list[str]) -> list[str]:
+    """Les options du lanceur sans ``--report`` : la relance n'écrase pas le report du banc."""
+    reste, saute = [], False
+    for o in options:
+        if saute:
+            saute = False
+        elif o == "--report":
+            saute = True
+        elif not o.startswith("--report="):
+            reste.append(o)
+    return reste
+
+
 def options_une_passe(options: list[str]) -> list[str]:
     """Les options du lanceur, avec un seul passage : la fumée n'en paie jamais plus."""
     reste, saute = [], False
@@ -1471,8 +1484,8 @@ def jouer_reference(
     cas: list[str] | None = None,
 ) -> dict:
     """Joue un bras. Les cas portant une session en erreur sont relancés **une fois**,
-    seuls, dans le même job ; leur relance remplace leur entrée. Si l'erreur persiste,
-    le rapport la garde et le code 4 sort comme avant."""
+    seuls, dans le même job, sans ``--report`` ; leur relance remplace leur entrée, et
+    ``sortie`` reçoit le rapport fusionné. Si l'erreur persiste, le code 4 sort comme avant."""
     copie = racine / nom / plugin
     extraire(depot, ref, plugin, copie)
     assembler(copie, sources, cas)
@@ -1488,8 +1501,10 @@ def jouer_reference(
     extraire(depot, ref, plugin, copie_relance)
     assembler(copie_relance, sources, relancer)
     sortie_relance = racine / f"{nom}-relance.json"
-    lancer(lanceur, copie_relance, sortie_relance, options)
-    return remplacer_cas(rapport, lire_rapport(sortie_relance, etiquette_rapport))
+    lancer(lanceur, copie_relance, sortie_relance, sans_report(options))
+    fusion = remplacer_cas(rapport, lire_rapport(sortie_relance, etiquette_rapport))
+    sortie.write_text(json.dumps(fusion), "utf-8")  # ci.yml recueille ce fichier, pas le brut
+    return fusion
 
 
 def construire_parseur() -> argparse.ArgumentParser:

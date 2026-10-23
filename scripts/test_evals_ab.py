@@ -1882,7 +1882,47 @@ class RelanceUniqueDesSessionsEnErreur(DepotEtLanceur):
         cache = self.racine / "cache-base.json"
         code, sortie, erreur = jouer(self.argv("--garder-base", str(cache)), self.env)
         self.assertNotEqual(code, 4, sortie + erreur)
-        self.assertEqual(evals_ab.sessions_en_erreur(json.loads(cache.read_text("utf-8")))[0], [])
+        cache_json = json.loads(cache.read_text("utf-8"))
+        self.assertEqual(sorted(c["name"] for c in cache_json["cases"]), ["alpha", "beta", "delta", "gamma"])
+        self.assertEqual(evals_ab.sessions_en_erreur(cache_json)[0], [])
+
+    def test_la_relance_ne_recoit_pas_le_report_du_banc(self):
+        # Panne visée : la relance recevait --report du banc complet et réécrivait son
+        # report.html ; ci.yml ne publie qu'un seul report.html pour tout le banc.
+        self.reponses_figees(
+            self.rapport(self.TOUS, erreurs={"maquette-requise"}),
+            self.rapport({"maquette-requise": 0.9}),
+        )
+        code, sortie, erreur = self.fumee_jouee("--", "--report", str(self.racine / "report.html"))
+        self.assertEqual(code, 0, sortie + erreur)
+        lancements = [l for l in self.appels() if l.startswith("OPTIONS")]
+        self.assertEqual(len(lancements), 2)
+        self.assertIn("--report", lancements[0])  # le premier tirage garde son report
+        self.assertNotIn("--report", lancements[1])  # la relance ne l'écrase pas
+
+    def test_le_rapport_conserve_porte_le_cas_relance_sans_erreur(self):
+        # Panne visée : racine/tete.json gardait le premier tirage avec son erreur, or ci.yml
+        # recueille ce fichier : le cas relancé doit y figurer, jugé et sans erreur.
+        self.reponses_figees(
+            self.rapport(self.TOUS, erreurs={"maquette-requise"}),
+            self.rapport({"maquette-requise": 0.9}),
+        )
+        code, sortie, erreur = self.fumee_jouee("--conserver")
+        self.assertEqual(code, 0, sortie + erreur)
+        ligne = next(l for l in erreur.splitlines() if l.startswith("copies conservées : "))
+        conservee = Path(ligne.removeprefix("copies conservées : "))
+        self.addCleanup(shutil.rmtree, conservee, True)
+        tete = json.loads((conservee / "tete.json").read_text("utf-8"))
+        self.assertEqual(sorted(c["name"] for c in tete["cases"]), sorted(self.TOUS))
+        maquette = next(c for c in tete["cases"] if c["name"] == "maquette-requise")
+        self.assertEqual([p["error"] for p in maquette["arms"]["with"] if p["error"]], [])
+
+
+class SansReport(unittest.TestCase):
+    def test_retire_le_report_sous_ses_deux_formes_et_garde_le_reste(self):
+        # Panne visée : la relance réécrivait le report.html du banc complet.
+        options = ["--runs", "3", "--report", "a.html", "--ablation", "none", "--report=b.html"]
+        self.assertEqual(evals_ab.sans_report(options), ["--runs", "3", "--ablation", "none"])
 
 
 def corps_du_pas(nom: str) -> str:
