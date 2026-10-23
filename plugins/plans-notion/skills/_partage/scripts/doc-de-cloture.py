@@ -30,7 +30,7 @@ pas dans --sauf. ``<prs.json>`` est la sortie de
 
 Un en-tête d'entrée : une ligne H2 dont le titre commence par une date AAAA-MM-JJ ou par
 « Récap », suivie de la ligne ``Plan :``, dans les cinq lignes qui suivent le H2 et avant le
-prochain titre, toggle ou ligne en gras. Seuls le H2 et sa ligne Plan portent des numéros :
+prochain titre, toggle, <details> ou ligne en gras. Seuls le H2 et sa ligne Plan portent des numéros :
 les puces, le bloc « Côté technique » et les phrases d'absence ne comptent pas.
 
 Quels numéros comptent dans un en-tête :
@@ -96,10 +96,10 @@ def lire(chemin, role):
 
 
 def _zone(lignes, i):
-    """Les lignes d'en-tête après le H2 d'indice i : jusqu'au titre, toggle ou gras suivant."""
+    """Les lignes d'en-tête après le H2 d'indice i : jusqu'au titre, toggle, details ou gras suivant."""
     zone = []
     for ligne in lignes[i + 1:i + 1 + ZONE_MAX]:
-        if TITRE.match(ligne) or ligne.startswith(("<toggle", "**")):
+        if TITRE.match(ligne) or ligne.startswith(("<toggle", "<details", "**")):
             break
         zone.append(ligne)
     return zone

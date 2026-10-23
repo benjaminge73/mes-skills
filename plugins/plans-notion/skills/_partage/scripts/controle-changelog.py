@@ -22,9 +22,11 @@ Usage : controle-changelog.py <entree.md>
     finit par une source entre parenthèses qui cite « Étape N », « Étape D<n> » ou
     « preuve : ». Une ligne « rien » n'en demande pas ;
   - après la rubrique « Reste à faire » et avant la fin de la section, un ``<toggle>``
-    dont le titre (même ligne) commence par « Côté technique ».
+    dont le titre (même ligne) commence par « Côté technique », ou un ``<details>`` dont
+    le ``<summary>`` (ligne suivante) porte ce titre : c'est la forme que rend la lecture
+    composio d'une page.
   Le corps d'une rubrique s'arrête au titre suivant, à tout autre titre, ou à un
-  ``<toggle>`` (le bloc « Côté technique »). Les titres à emoji (rubriques en H3,
+  ``<toggle>`` ou un ``<details>`` (le bloc « Côté technique »). Les titres à emoji (rubriques en H3,
   titres de page mère et de fiche en H2) sont couverts par les tests « emoji » de
   ``scripts/test_controle_changelog.py``.
 
@@ -55,7 +57,10 @@ SOURCE = re.compile(
     r"\((?=[^()]*(?:étape\s+D?\d+|preuve\s*:))[^()]*\)\s*$", re.IGNORECASE
 )
 DATE = re.compile(r"\b\d{4}-\d{2}-\d{2}\b|\b\d{2}/\d{2}/\d{4}\b")
-COTE_TECHNIQUE = re.compile(r"<toggle[^>]*>\s*Côté technique")
+COTE_TECHNIQUE = re.compile(
+    r"<toggle[^>]*>\s*Côté technique"
+    r"|<details[^>]*>\s*<summary>\s*Côté technique\s*</summary>"
+)
 
 
 def _contenu(ligne: str) -> str:
@@ -119,7 +124,7 @@ def controler(texte: str) -> list[str]:
         fin_corps = titres[k + 1][0] if k + 1 < len(titres) else fin
         corps = []
         for j in range(i + 1, fin_corps):
-            if lignes[j].startswith("<toggle") or TITRE.match(lignes[j]):
+            if lignes[j].startswith(("<toggle", "<details")) or TITRE.match(lignes[j]):
                 break
             corps.append(j)
 
@@ -142,7 +147,7 @@ def controler(texte: str) -> list[str]:
     debut_reste = next((i for i, libelle in titres if libelle == "Reste à faire"), debut)
     if not COTE_TECHNIQUE.search("\n".join(lignes[debut_reste:fin])):
         defauts.append(
-            f"ligne {debut + 1} : bloc Côté technique absent (un <toggle> intitulé « Côté "
+            f"ligne {debut + 1} : bloc Côté technique absent (un <toggle> ou <details> intitulé « Côté "
             "technique », après « Reste à faire »)"
         )
     return defauts
