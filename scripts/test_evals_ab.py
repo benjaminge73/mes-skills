@@ -1741,6 +1741,153 @@ class FumeeEtPlanchers(DepotEtLanceur):
                 self.assertEqual(self.appels(), [])  # rien n'est joué
 
 
+# Faux lanceur à réponses numérotées : le n-ième appel copie $FAUX_REPONSES/n.json.
+# Le journal reçoit une ligne APPEL par appel, puis une ligne CAS par cas posé dans la copie.
+LANCEUR_PAR_APPEL = """#!/bin/sh
+dossier="$1"; sortie="$2"; shift 2
+compteur="$FAUX_JOURNAL.n"
+n=$(($(cat "$compteur" 2>/dev/null || echo 0) + 1))
+echo "$n" > "$compteur"
+{
+  echo "APPEL $n"
+  echo "OPTIONS $*"
+  (cd "$dossier" && find evals -name prompt.md | sort | sed 's|^evals/||; s|/prompt.md$||; s/^/CAS /')
+} >> "$FAUX_JOURNAL"
+reponse="$FAUX_REPONSES/$n.json"
+if [ ! -f "$reponse" ]; then echo "faux lanceur : pas de réponse pour l'appel $n" >&2; exit 9; fi
+cp "$reponse" "$sortie"
+exit 0
+"""
+
+
+class RelanceUniqueDesSessionsEnErreur(DepotEtLanceur):
+    """Une session en erreur est relancée une fois, seule, dans le même job.
+
+    Trois catégories à la main (``depart``, ``existant``, ``maquette``, planchers
+    0,82 / 0,65 / 0,80) sur trois cas posés dans le dépôt : la relance ne peut
+    nommer qu'un cas posé. Le faux lanceur rend les rapports que le test fige,
+    appel par appel.
+    """
+
+    ERREUR = "exit 1: You've hit your session limit · resets 9pm (UTC)"
+    TOUS = {"appelants": 1.0, "existant-jeu-de-questions": 0.9, "maquette-requise": 0.9}
+
+    def setUp(self):
+        super().setUp()
+        ecrire(self.lanceur, LANCEUR_PAR_APPEL)
+        self.reponses = self.racine / "reponses"
+        self.reponses.mkdir()
+        self.env = {**self.env, "FAUX_REPONSES": str(self.reponses)}
+        for nom in ("appelants", "existant-jeu-de-questions", "maquette-requise"):
+            shutil.copytree(self.depot / "evals" / "jouet" / "alpha",
+                            self.depot / "evals" / "jouet" / nom)
+        categories = {
+            "depart": {"exerce": ["skills/s/"], "cas": ["appelants"], "plancher": 0.82},
+            "existant": {"exerce": ["skills/s/"], "cas": ["existant-jeu-de-questions"], "plancher": 0.65},
+            "maquette": {"exerce": ["skills/s/"], "cas": ["maquette-requise"], "plancher": 0.80},
+        }
+        ecrire(self.depot / "evals" / "categories.json", json.dumps({"jouet": categories}))
+
+    def rapport(self, scores: dict[str, float], erreurs=(), cout: float = 1.0) -> dict:
+        """Un rapport figé : trois passages par cas à son score ; le passage 0 des
+        cas nommés dans ``erreurs`` porte une session en erreur."""
+        cas = []
+        for nom, score in scores.items():
+            passages = [
+                {"score": score, "passed": score >= 0.5, "turns": 3, "costUsd": 0.1,
+                 "judgeCostUsd": 0, "durationSeconds": 2,
+                 "error": self.ERREUR if (nom in erreurs and k == 0) else None}
+                for k in range(3)
+            ]
+            cas.append({"name": nom, "dir": f"evals/jouet/{nom}", "source": "mixed",
+                        "runsPerCase": 3, "arms": {"with": passages},
+                        "aggregates": {"score": score}})
+        return {"schemaVersion": 1, "claudeVersion": "2.1.285", "partial": False,
+                "costUsd": cout, "cases": cas}
+
+    def reponses_figees(self, *rapports: dict) -> None:
+        for n, rapport in enumerate(rapports, 1):
+            ecrire(self.reponses / f"{n}.json", json.dumps(rapport))
+
+    def appels_par_tirage(self) -> list[list[str]]:
+        """Pour chaque appel du lanceur, les cas posés dans sa copie."""
+        tirages: list[list[str]] = []
+        for ligne in self.appels():
+            if ligne.startswith("APPEL"):
+                tirages.append([])
+            elif ligne.startswith("CAS"):
+                tirages[-1].append(ligne.split(" ", 1)[1])
+        return tirages
+
+    def fumee_jouee(self, *extra: str):
+        return jouer(self.argv("--fumee", *extra), self.env)
+
+    def test_une_session_en_erreur_puis_reussie_au_second_tirage_rend_la_fumee_verte(self):
+        # Panne visée : une session coupée rendait le code 4 au premier passage, alors
+        # qu'une seconde chance donne un verdict. La relance ne rejoue que le cas en
+        # erreur : un second appel qui reposerait les trois cas passerait le code, mais
+        # l'assertion sur les cas du second appel le refuserait.
+        self.reponses_figees(
+            self.rapport(self.TOUS, erreurs={"maquette-requise"}),
+            self.rapport({"maquette-requise": 0.9}),
+        )
+        code, sortie, erreur = self.fumee_jouee()
+        self.assertEqual(code, 0, sortie + erreur)
+        tirages = self.appels_par_tirage()
+        self.assertEqual(len(tirages), 2)
+        self.assertEqual(tirages[1], ["maquette-requise"])
+
+    def test_une_erreur_qui_persiste_apres_la_relance_rend_le_code_4_sans_troisieme_appel(self):
+        # Panne visée : une troisième relance cachée, ou une boucle. Deux erreurs de
+        # suite sont une double panne : le code 4 sort, et le lanceur n'a été appelé
+        # que deux fois.
+        self.reponses_figees(
+            self.rapport(self.TOUS, erreurs={"maquette-requise"}),
+            self.rapport({"maquette-requise": 0.9}, erreurs={"maquette-requise"}),
+        )
+        code, sortie, erreur = self.fumee_jouee()
+        self.assertEqual(code, 4, sortie + erreur)
+        self.assertIn("maquette-requise", sortie)
+        self.assertEqual(len(self.appels_par_tirage()), 2)
+
+    def test_sans_session_en_erreur_le_lanceur_n_est_appele_qu_une_fois(self):
+        # Panne visée : une relance déclenchée sans erreur, qui doublerait le coût de
+        # chaque run vert.
+        self.reponses_figees(self.rapport(self.TOUS))
+        code, sortie, erreur = self.fumee_jouee()
+        self.assertEqual(code, 0, sortie + erreur)
+        self.assertEqual(len(self.appels_par_tirage()), 1)
+
+    def test_la_relance_additionne_son_cout_au_rapport_garde(self):
+        # Test en plus des trois attendus : la panne est un coût sous-compté. Sans
+        # l'addition, --garder-tete écrirait le seul coût du premier tirage.
+        self.reponses_figees(
+            self.rapport(self.TOUS, erreurs={"maquette-requise"}, cout=1.0),
+            self.rapport({"maquette-requise": 0.9}, cout=0.5),
+        )
+        garde = self.racine / "tete-gardee.json"
+        code, sortie, erreur = self.fumee_jouee("--garder-tete", str(garde))
+        self.assertEqual(code, 0, sortie + erreur)
+        self.assertAlmostEqual(json.loads(garde.read_text("utf-8"))["costUsd"], 1.5)
+
+    def test_le_cache_garde_la_base_relancee_et_non_le_brut_avec_son_erreur(self):
+        # Test en plus des trois attendus : la panne est un cache empoisonné. --garder-base
+        # copiait base.json brut ; la CI le reprend ensuite (--base-rapport) sans rejouer
+        # la base, et la session en erreur y reviendrait à chaque run.
+        base = json.loads((FIXTURES / "rapport_base.json").read_text("utf-8"))
+        premier = copy.deepcopy(base)
+        for c in premier["cases"]:
+            if c["name"] == "alpha":
+                c["arms"]["with"][0]["error"] = self.ERREUR
+        relance = dict(copy.deepcopy(base), cases=[c for c in base["cases"] if c["name"] == "alpha"])
+        tete = json.loads((FIXTURES / "rapport_tete_stable.json").read_text("utf-8"))
+        self.reponses_figees(premier, relance, tete)
+        cache = self.racine / "cache-base.json"
+        code, sortie, erreur = jouer(self.argv("--garder-base", str(cache)), self.env)
+        self.assertNotEqual(code, 4, sortie + erreur)
+        self.assertEqual(evals_ab.sessions_en_erreur(json.loads(cache.read_text("utf-8")))[0], [])
+
+
 def corps_du_pas(nom: str) -> str:
     """Le corps ``run:`` du pas ``nom`` de ci.yml, tel que bash l'exécutera."""
     import textwrap
