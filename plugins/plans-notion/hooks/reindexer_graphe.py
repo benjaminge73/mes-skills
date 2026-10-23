@@ -93,6 +93,10 @@ def bin_js() -> Path:
     return Path(defini) if defini else Path.home() / ".npm-global/lib/node_modules/codebase-memory-mcp/bin.js"
 
 
+def node() -> str:
+    return os.environ.get("CBM_NODE") or NODE
+
+
 def _morceau_du_serveur(car: str) -> str:
     """Un point de code du chemin, tel que le serveur l'écrit dans le nom du .db."""
     if re.fullmatch(r"[A-Za-z0-9._-]", car):
@@ -136,7 +140,7 @@ def prendre_verrou(chemin: Path) -> bool:
 
 
 def indexer(racine: str, script: Path) -> bool:
-    cmd = [NODE, str(script), "cli", "index_repository", "--repo-path", racine, "--mode", "full"]
+    cmd = [node(), str(script), "cli", "index_repository", "--repo-path", racine, "--mode", "full"]
     code, _ = executer(cmd, DELAI_INDEXATION)
     return code == 0
 
@@ -170,7 +174,7 @@ def _reindexer_la_session() -> int:
         if lire_head(cache / f"{projet}.head") == head:
             return 0
         script = bin_js()
-        if not (Path(NODE).is_file() and script.is_file()):
+        if not (Path(node()).is_file() and script.is_file()):
             return 0  # autre machine (VPS, sans node ou sans le paquet) : silence
         verrou = cache / f"{projet}.lock"
         if not prendre_verrou(verrou):

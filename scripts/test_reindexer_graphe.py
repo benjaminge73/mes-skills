@@ -250,6 +250,32 @@ class ReindexerGraphe(unittest.TestCase):
                 self.assertEqual(erreur, "")
                 self.assertEqual(self.lire_head(), ANCIEN_SHA)
 
+    def test_cbm_node_surcharge_le_chemin_de_node(self):
+        # Panne : le chemin de node est figé sur une machine Homebrew macOS. Ailleurs, le
+        # hook ne lançait jamais rien, en silence. Ici le chemin figé est absent, et seule
+        # la variable CBM_NODE désigne un node présent : l'indexation doit partir avec lui.
+        absent = self.base / "absent"
+        self.depot_suivi(head_indexe=ANCIEN_SHA)
+        executeur = Executeur(head=NOUVEAU_SHA)
+        with mock.patch.object(self.hook, "NODE", str(absent)), \
+                mock.patch.dict(os.environ, {"CBM_NODE": str(self.node)}):
+            code, _, _ = self.lancer(executeur)
+        self.assertEqual(code, 0)
+        self.assertEqual(len(executeur.lancements), 1)
+        self.assertEqual(executeur.lancements[0][0], str(self.node))
+        self.assertEqual(self.lire_head(), NOUVEAU_SHA)
+
+    def test_sans_cbm_node_le_defaut_est_celui_de_la_constante(self):
+        # Panne : une dérive du défaut (chemin changé, ou node() qui ne retombe pas sur
+        # NODE) ferait lancer un autre binaire sur les machines qui n'ont pas CBM_NODE.
+        defaut = "/opt/homebrew/opt/node@24/bin/node"
+        with mock.patch.dict(os.environ):
+            os.environ.pop("CBM_NODE", None)
+            self.assertEqual(self.hook.node(), self.hook.NODE)
+            module_neuf = charger_hook()
+            self.assertEqual(module_neuf.NODE, defaut)
+            self.assertEqual(module_neuf.node(), defaut)
+
     def test_verrou_frais_empeche_le_lancement_et_reste_en_place(self):
         self.depot_suivi(head_indexe=ANCIEN_SHA)
         verrou = self.cache / f"{PROJET}.lock"
