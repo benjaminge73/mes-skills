@@ -53,6 +53,14 @@ Tests ajoutés aux relectures 2 et 3 :
   19a/19b. Liens « pull/N » séparés par « · » dans le segment PR (groupe d'entrées réel) : toutes
        les PR sont documentées, avec « · Statut : » ou sans.
   19c. Garde, vert avant le correctif : un « #N » après « · Statut : » ne documente rien.
+Étape 2 (date d'activation lue dans le miroir de la page projet, ligne « Activée le AAAA-MM-JJ ») :
+  21. ``--trous`` sans ``--depuis`` lit la date dans ``--projet`` : la PR mergée le jour
+      de l'activation est listée, celle d'avant ne l'est pas.
+  22a. Miroir projet sans la ligne « Activée le » : code 2, la ligne et l'encadré nommés.
+  22b. ``--projet`` illisible : code 2, le fichier nommé comme illisible.
+  23. ``--depuis`` explicite l'emporte : un ``--projet`` illisible n'est même pas lu.
+  24. Ni ``--depuis`` ni ``--projet`` : code 2, les deux issues nommées.
+  25. ``--projet`` avec ``--porte`` : usage erroné, code 2 (comme ``--depuis``).
 """
 from __future__ import annotations
 
@@ -490,6 +498,70 @@ class DocDeCloture(unittest.TestCase):
         code, sortie, erreur = self.trous(texte, [pr(258)])
         self.assertEqual(code, 1, erreur)
         self.assertEqual(numeros(sortie), ["#258"], sortie)
+
+    # Étape 2, panne 21 : sans --depuis, --trous ne lisait aucune date. Attendu : la date est lue
+    # dans la ligne « 📘 Activée le AAAA-MM-JJ » du miroir projet (ici en gras, « insensible au gras
+    # autour ») ; la PR 280, mergée la veille, n'est pas listée ; la PR 281, mergée le jour même, l'est ;
+    # la PR 282 est documentée.
+    def test_trous_lit_la_date_d_activation_dans_le_miroir_projet(self):
+        projet = self.ecrire("projet.md", "# Projet exemple\n\n> **📘 Activée le 2026-10-01**\n")
+        c = self.ecrire("changelog.md", changelog(entree(ligne_plan="Plan : lien · PR : #282 · Statut : a merger")))
+        prs = self.fichier_prs(pr(280, merge="2026-09-30"), pr(281, merge="2026-10-01"),
+                               pr(282, merge="2026-10-05"))
+        code, sortie, erreur = jouer("--trous", "--changelog", c, "--prs", prs, "--projet", projet)
+        self.assertEqual(code, 1, erreur)
+        self.assertEqual(numeros(sortie), ["#281"], sortie)
+
+    # Étape 2, panne 22a : un miroir projet sans la ligne « Activée le » ne donne aucune date.
+    # Attendu : code 2, sans sortie standard, et le message nomme la ligne attendue et l'encadré,
+    # pour que Benjamin sache quoi poser. La ligne « Rétro-doc » (date présente) ne compte pas.
+    def test_projet_sans_ligne_activee_le_rend_deux_et_nomme_la_ligne(self):
+        projet = self.ecrire("projet.md", "# Projet exemple\n\n> 📘 Doc vivante : activée\n"
+                                          "> 📘 Rétro-doc : faite 2026-10-02\n")
+        c = self.ecrire("changelog.md", changelog(entree()))
+        code, sortie, erreur = jouer("--trous", "--changelog", c, "--prs", self.fichier_prs(pr(281)),
+                                     "--projet", projet)
+        self.assertEqual(code, 2, sortie)
+        self.assertEqual(sortie, "")
+        self.assertIn("Activée le AAAA-MM-JJ", erreur)
+        self.assertIn("📘 Doc vivante : activée", erreur)
+
+    # Étape 2, panne 22b : un --projet pointant vers un fichier absent. Attendu : code 2, le
+    # fichier nommé comme illisible (et non un simple rejet d'option par argparse).
+    def test_projet_illisible_rend_deux_et_le_nomme(self):
+        c = self.ecrire("changelog.md", changelog(entree()))
+        code, sortie, erreur = jouer("--trous", "--changelog", c, "--prs", self.fichier_prs(pr(281)),
+                                     "--projet", self.dossier / "absent-projet.md")
+        self.assertEqual(code, 2, sortie)
+        self.assertIn("illisible", erreur)
+        self.assertIn("absent-projet.md", erreur)
+
+    # Étape 2, panne 23 : --depuis explicite doit l'emporter ; un --projet illisible ne doit donc
+    # pas être lu, ni faire échouer l'appel. Attendu : la date donnée sert, la PR 281 est listée.
+    def test_depuis_explicite_l_emporte_sur_un_projet_illisible(self):
+        c = self.ecrire("changelog.md", changelog(entree()))
+        prs = self.fichier_prs(pr(280, merge="2026-09-30"), pr(281, merge="2026-10-01"))
+        code, sortie, erreur = jouer("--trous", "--changelog", c, "--prs", prs, "--depuis", "2026-10-01",
+                                     "--projet", self.dossier / "absent-projet.md")
+        self.assertEqual(code, 1, erreur)
+        self.assertEqual(numeros(sortie), ["#281"], sortie)
+
+    # Étape 2, panne 24 : --trous sans date ni miroir n'a pas de borne. Attendu : code 2, et le
+    # message nomme les deux issues, --depuis ou --projet.
+    def test_trous_sans_depuis_ni_projet_rend_deux(self):
+        c = self.ecrire("changelog.md", changelog(entree()))
+        code, sortie, erreur = jouer("--trous", "--changelog", c, "--prs", self.fichier_prs(pr(281)))
+        self.assertEqual(code, 2, sortie)
+        self.assertIn("--trous exige --depuis AAAA-MM-JJ ou --projet <miroir>", erreur)
+
+    # Étape 2, panne 25 : --projet avec --porte est un usage erroné, comme --depuis. Attendu : code 2,
+    # et le message du script (pas le texte d'usage d'argparse) qui le dit.
+    def test_projet_avec_porte_rend_deux(self):
+        page = self.ecrire("page.md", PAGE_AVEC_RECAP)
+        projet = self.ecrire("projet.md", "# Projet exemple\n\n> 📘 Activée le 2026-10-01\n")
+        code, sortie, erreur = jouer("--porte", page, "--projet", projet)
+        self.assertEqual(code, 2, sortie)
+        self.assertIn("ne vont qu'avec --trous", erreur)
 
 
 if __name__ == "__main__":
