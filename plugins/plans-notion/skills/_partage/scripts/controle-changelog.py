@@ -23,8 +23,9 @@ Usage : controle-changelog.py <entree.md>
     « preuve : ». Une ligne « rien » n'en demande pas ;
   - après la rubrique « Reste à faire » et avant la fin de la section, un ``<toggle>``
     dont le titre (même ligne) commence par « Côté technique », ou un ``<details>`` dont
-    le ``<summary>`` (ligne suivante) porte ce titre : c'est la forme que rend la lecture
-    composio d'une page.
+    le ``<summary>`` commence par ce titre, avec ou sans ``</summary>`` avant le contenu :
+    c'est la forme que rend la lecture composio d'une page, où le contenu du bloc suit le
+    titre sur la même ligne, séparé par ``<br>``.
   Le corps d'une rubrique s'arrête au titre suivant, à tout autre titre, ou à un
   ``<toggle>`` ou un ``<details>`` (le bloc « Côté technique »). Les titres à emoji (rubriques en H3,
   titres de page mère et de fiche en H2) sont couverts par les tests « emoji » de
@@ -59,7 +60,7 @@ SOURCE = re.compile(
 DATE = re.compile(r"\b\d{4}-\d{2}-\d{2}\b|\b\d{2}/\d{2}/\d{4}\b")
 COTE_TECHNIQUE = re.compile(
     r"<toggle[^>]*>\s*Côté technique"
-    r"|<details[^>]*>\s*<summary>\s*Côté technique\s*</summary>"
+    r"|<details[^>]*>\s*<summary[^>]*>\s*Côté technique\b"
 )
 
 
