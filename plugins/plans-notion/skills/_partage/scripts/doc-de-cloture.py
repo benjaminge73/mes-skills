@@ -37,7 +37,7 @@ prochain titre, toggle, <details> ou ligne en gras. Seuls le H2 et sa ligne Plan
 les puces, le bloc « Côté technique » et les phrases d'absence ne comptent pas.
 
 Quels numéros comptent dans un en-tête :
-  - dans le titre H2, seule la forme finale ``(PR #N)``, en fin de titre : le gabarit « Hors
+  - dans le titre H2, seule la forme finale ``(PR #N)``, en fin de titre : le gabarit « Sans
     plan » la pose ainsi. Ni un ``#N`` nu (« Revert … (#282) »), ni un ``PR N`` ou un ``pull/N``
     ailleurs dans le titre (le titre recopie celui de la PR, qui peut citer d'autres PR), ni
     un numéro du titre de plan (« Thaïlande #4 ») ne comptent ;

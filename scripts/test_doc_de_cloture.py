@@ -318,6 +318,18 @@ class DocDeCloture(unittest.TestCase):
         code, sortie, erreur = self.trous(texte, [pr(258)])
         self.assertEqual((code, sortie), (0, ""), erreur)
 
+    # Étape D1 : garde de coexistence, verte d'emblée (la garde protège la coexistence des deux
+    # gabarits, pas une panne présente). Une entrée au nouveau gabarit « Sans plan » (titre
+    # « Sans plan — … (PR #N) », ligne Plan « aucun (sans plan) ») documente sa PR comme l'ancien
+    # « Hors plan » : la forme finale « (PR #N) » du nouveau gabarit doit rester lue, sinon la PR 258
+    # redevient un trou.
+    def test_gabarit_sans_plan_documente_sa_pr_comme_l_ancien_hors_plan(self):
+        texte = changelog(entree(
+            titre="Sans plan — Titre de la PR (PR #258)",
+            ligne_plan="Plan : aucun (sans plan) · PR : https://github.com/o/r · Statut : mergée"))
+        code, sortie, erreur = self.trous(texte, [pr(258)])
+        self.assertEqual((code, sortie), (0, ""), erreur)
+
     # Panne 14a : un Récap cité dans un bloc de code (« ``` ») passerait la porte. Attendu : le
     # contenu d'un bloc de code n'est pas une section de la page ; code 1, Récap nommé.
     def test_recap_cite_dans_un_bloc_de_code_ne_compte_pas(self):
