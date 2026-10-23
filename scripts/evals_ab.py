@@ -1667,7 +1667,8 @@ def repartir_en_deux(cas: list[str], durees: dict[str, float]) -> tuple[list[str
 
     Tri décroissant par durée, puis glouton : chaque cas va dans le lot dont la somme
     est la plus petite (égalité : le premier lot). Un cas inconnu pèse la médiane de
-    ``durees`` ; sans ``durees``, chaque cas pèse 1,0. Chaque lot garde l'ordre de tri.
+    ``durees`` ; sans ``durees``, chaque cas pèse 1,0. Seule la somme compte : l'ordre
+    de jeu, lui, est celui de ``assembler`` (alphabétique), pas celui de ce tri.
     Un seul cas laisse le second lot vide.
     """
     poids_inconnu = median(durees.values()) if durees else 1.0
@@ -1692,6 +1693,15 @@ def _noms_des_cas(sources: list[Path]) -> list[str]:
                 raise ErreurRefus(f"cas « {dossier.name} » présent dans deux sources")
             noms.append(dossier.name)
     return noms
+
+
+def _en_ci() -> bool:
+    """Vrai sur un runner GitHub, le seul endroit où la fumée se découpe en deux lanceurs.
+
+    En local, chaque lanceur prend sa place lourde (``lancer.sh``, ``--pid``) : deux lots
+    prendraient deux places, et pourraient payer la moitié du banc avant de refuser.
+    """
+    return os.environ.get("GITHUB_ACTIONS") == "true"
 
 
 def _jouer_en_deux_lots(args, depot: Path, plugin: str, sources: list[Path], racine: Path,
@@ -1735,7 +1745,7 @@ def _fumee(args, options_lanceur: list[str], depot: Path, plugin: str,
         try:
             options = options_une_passe(options_lanceur)
             noms = list(dict.fromkeys(args.cas)) if args.cas else _noms_des_cas(sources)
-            if len(noms) < 2:
+            if len(noms) < 2 or not _en_ci():
                 rapport = jouer_reference(
                     depot, args.tete, plugin, sources, racine, "tete", lanceur,
                     options, "de tête", args.cas,

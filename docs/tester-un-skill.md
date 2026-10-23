@@ -605,9 +605,11 @@ cas (2026-10-15) ; maintenant, la relance ne rejoue que la catégorie sans vert.
 `evals_ab.py --garder-vertes <json>` écrit cette liste, et la CI range les verts avec
 `!cancelled()` : un job annulé ne range rien.
 
-**La fumée joue deux lots de huit sessions en parallèle** (`EVALS_CONCURRENCE: '8'` dans
-le job `fumee`, par lanceur : le maximum de `claude plugin eval -j`), donc seize sessions
-sur le même jeton, contre cinq pour l'A/B dont les planchers et le bruit ont été mesurés.
+**En CI, la fumée joue deux lots de huit sessions en parallèle** (`EVALS_CONCURRENCE: '8'`
+dans le job `fumee`, par lanceur : le maximum de `claude plugin eval -j`), donc seize
+sessions sur le même jeton. En local, elle ne se découpe pas : un seul lanceur, une seule
+place lourde (`lancer.sh` en prend une par appel). L'A/B, lui, reste à cinq sessions, dont
+les planchers et le bruit ont été mesurés.
 Le POC du 2026-10-23 (run `39917669835`) a joué 20 cas en 9,5 min, contre 14,3 min à huit
 sessions seules, sans session en erreur. La fumée est une traîne : le 2026-10-15
 (run `38738755670`, 19 cas à 5 sessions), 10 cas étaient finis à 7 min, 17 à 13 min et

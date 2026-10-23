@@ -2210,14 +2210,6 @@ class RepartirEnDeuxLots(unittest.TestCase):
         self.assertLess(abs(somme(a) - somme(b)), min(DUREES_VINGT.values()), (a, b))
         self.assertEqual(sorted(a + b), sorted(cas))
 
-    def test_chaque_lot_garde_l_ordre_decroissant_des_durees(self):
-        # Panne visée : un lot rendu dans l'ordre d'entrée (alphabétique) : le lanceur
-        # démarre alors le cas le plus long après des cas courts, et la fin traîne.
-        a, b = evals_ab.repartir_en_deux(sorted(DUREES_VINGT), DUREES_VINGT)
-        for lot in (a, b):
-            durees = [DUREES_VINGT[c] for c in lot]
-            self.assertEqual(durees, sorted(durees, reverse=True), lot)
-
     def test_un_cas_inconnu_compte_la_mediane_de_la_table_et_n_est_jamais_refuse(self):
         # Panne visée : un cas ajouté au banc sans durée compté 0 (il irait toujours dans
         # le lot le plus léger, sans rien dire) ou refusé (la fumée tomberait en panne).
@@ -2292,6 +2284,11 @@ class FumeeEnDeuxLots(DepotEtLanceur):
 
     def setUp(self):
         super().setUp()
+        # Le découpage n'a lieu que sur un runner GitHub : on le pose pour ces tests, sans
+        # toucher au reste de l'environnement (le patch est défait à l'arrêt du test).
+        environnement = mock.patch.dict(os.environ, {"GITHUB_ACTIONS": "true"})
+        environnement.start()
+        self.addCleanup(environnement.stop)
         ecrire(self.lanceur, LANCEUR_PAR_CAS)
         self.lanceur.chmod(0o755)
         poser_cas(self.depot, ["c1", "c2", "c3", "c4"])
@@ -2393,6 +2390,18 @@ class FumeeEnDeuxLots(DepotEtLanceur):
         self.addCleanup(shutil.rmtree, conservee, True)
         noms_conserves = [c["name"] for c in json.loads((conservee / "tete.json").read_text("utf-8"))["cases"]]
         self.assertEqual(sorted(noms_conserves), sorted(self.CAS))
+
+    def test_hors_github_une_fumee_de_cinq_cas_appelle_le_lanceur_une_seule_fois(self):
+        # Panne visée : en local, deux lanceurs prennent chacun une place lourde (lancer.sh,
+        # --pid) : une fumée paierait la moitié du banc avant de refuser, ou prendrait deux
+        # places. Hors GITHUB_ACTIONS, un seul appel, sur tous les cas, sans découpage.
+        os.environ.pop("GITHUB_ACTIONS", None)  # défait à l'arrêt par le patch de setUp
+        code, sortie, erreur = self.fumee()
+        self.assertEqual(code, 0, sortie + erreur)
+        lots = self.lots_joues()
+        self.assertEqual(len(lots), 1, erreur)
+        self.assertEqual(sorted(lots[0]), sorted(self.CAS))
+        self.assertNotIn("fumée en deux lots", erreur)
 
 
 if __name__ == "__main__":
