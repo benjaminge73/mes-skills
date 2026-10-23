@@ -79,6 +79,13 @@ def jouer(argv: list[str], env: dict | None = None) -> tuple[int, str, str]:
     return code, sortie.getvalue(), erreur.getvalue()
 
 
+def poser_cas(depot: Path, noms: list[str]) -> None:
+    """Pose dans le dépôt de test un cas par nom (copie de ``alpha``) : une relance ne
+    peut nommer qu'un cas posé, et le rapport figé nomme ceux de la fixture."""
+    for nom in noms:
+        shutil.copytree(depot / "evals" / "jouet" / "alpha", depot / "evals" / "jouet" / nom)
+
+
 # --------------------------------------------------------------------------
 # Lecteur du sous-ensemble YAML des cas
 # --------------------------------------------------------------------------
@@ -825,33 +832,21 @@ class BoutEnBout(DepotEtLanceur):
         code, _, _ = jouer(self.argv(), self.env)  # sans bruit mesuré : recul
         self.assertEqual(code, 1)
 
-    def test_une_aa_dont_un_jeu_a_des_sessions_en_erreur_rend_quatre_et_n_ecrit_pas_de_bruit(self):
-        # Un jeu perd 6 sessions sur 9 à une limite de session : ses scores s'effondrent,
-        # le rms de l'écart entre les deux jeux est gonflé, et toute A/B qui lirait ce
-        # fichier jugerait avec un seuil faux. Même règle que l'A/B : code 4, aucun bruit.
-        # Le faux lanceur de la classe rend le même rapport aux deux passages ; celui-ci
-        # rend la fixture en panne au premier et sa copie sans erreur au second.
-        sain = rapport("tete_session_limite")
-        for c in sain["cases"]:
-            for passage in c["arms"]["with"]:
-                passage["error"] = None
-        ecrire(self.racine / "jeu-sain.json", json.dumps(sain))
-        ecrire(
-            self.lanceur,
-            FAUX_LANCEUR.replace(
-                'if [ "$marqueur" = "base" ]; then cp "$FAUX_RAPPORT_BASE" "$sortie"; '
-                'else cp "$FAUX_RAPPORT_TETE" "$sortie"; fi',
-                'if [ "$(grep -c "^APPEL" "$FAUX_JOURNAL")" = "1" ]; '
-                'then cp "$FAUX_RAPPORT_TETE" "$sortie"; else cp "$FAUX_RAPPORT_BASE" "$sortie"; fi',
-            ),
-        )
+    def test_une_aa_dont_un_jeu_garde_ses_sessions_en_erreur_apres_relance_rend_quatre_et_n_ecrit_pas_de_bruit(self):
+        # Un jeu perd 6 sessions sur 9 à une limite de session, et la relance unique ne les
+        # répare pas : ses scores s'effondrent, le rms de l'écart entre les deux jeux est
+        # gonflé, et toute A/B qui lirait ce fichier jugerait avec un seuil faux. Même règle
+        # que l'A/B : code 4, aucun bruit. Le faux lanceur de la classe rend la même fixture
+        # en panne à chaque appel (passage et relance, pour les deux jeux de l'A/A).
+        poser_cas(self.depot, ["existant-jeu-de-questions", "maquette-requise"])
         self.env["FAUX_RAPPORT_TETE"] = str(FIXTURES / "rapport_tete_session_limite.json")
-        self.env["FAUX_RAPPORT_BASE"] = str(self.racine / "jeu-sain.json")
         sortie_bruit = self.racine / "bruit.json"
         code, sortie, erreur = jouer(
             self.argv("--sortie-bruit", str(sortie_bruit), mode="aa"), self.env
         )
         self.assertEqual(code, 4, sortie + erreur)
+        # Quatre appels : chaque jeu, puis la relance de chacun ; jamais une troisième.
+        self.assertEqual(len([l for l in self.appels() if l.startswith("APPEL")]), 4)
         self.assertFalse(sortie_bruit.exists())
         self.assertIn("non concluant", sortie.lower())
         self.assertIn("panne d'infrastructure, à relancer", sortie)
@@ -1672,7 +1667,9 @@ class FumeeEtPlanchers(DepotEtLanceur):
         # Test construit pour la panne réelle de la PR #19 : la tête a perdu 6 sessions
         # sur 9 à une limite de session, ses scores s'effondrent. Sans la règle, cet
         # effondrement se lirait « RECUL » (code 1) alors que rien n'a été mesuré.
-        base = json.loads((FIXTURES / "rapport_tete_session_limite.json").read_text("utf-8"))
+        # La relance unique rejoue les deux cas en erreur : ils doivent être posés.
+        poser_cas(self.depot, ["existant-jeu-de-questions", "maquette-requise"])
+        base =json.loads((FIXTURES / "rapport_tete_session_limite.json").read_text("utf-8"))
         for c in base["cases"]:
             for passage in c["arms"]["with"]:
                 passage["error"], passage["score"] = None, 1.0
@@ -1739,6 +1736,196 @@ class FumeeEtPlanchers(DepotEtLanceur):
                 depuis = lambda s: s[s.index("| catégorie"):]
                 self.assertEqual(depuis(sortie), depuis(sortie_bloc))
                 self.assertEqual(self.appels(), [])  # rien n'est joué
+
+
+# Faux lanceur à réponses numérotées : le n-ième appel copie $FAUX_REPONSES/n.json.
+# Le journal reçoit une ligne APPEL par appel, puis une ligne CAS par cas posé dans la copie.
+LANCEUR_PAR_APPEL = """#!/bin/sh
+dossier="$1"; sortie="$2"; shift 2
+compteur="$FAUX_JOURNAL.n"
+n=$(($(cat "$compteur" 2>/dev/null || echo 0) + 1))
+echo "$n" > "$compteur"
+{
+  echo "APPEL $n"
+  echo "OPTIONS $*"
+  (cd "$dossier" && find evals -name prompt.md | sort | sed 's|^evals/||; s|/prompt.md$||; s/^/CAS /')
+} >> "$FAUX_JOURNAL"
+reponse="$FAUX_REPONSES/$n.json"
+if [ ! -f "$reponse" ]; then echo "faux lanceur : pas de réponse pour l'appel $n" >&2; exit 9; fi
+cp "$reponse" "$sortie"
+exit 0
+"""
+
+
+class RelanceUniqueDesSessionsEnErreur(DepotEtLanceur):
+    """Une session en erreur est relancée une fois, seule, dans le même job.
+
+    Trois catégories à la main (``depart``, ``existant``, ``maquette``, planchers
+    0,82 / 0,65 / 0,80) sur trois cas posés dans le dépôt : la relance ne peut
+    nommer qu'un cas posé. Le faux lanceur rend les rapports que le test fige,
+    appel par appel.
+    """
+
+    ERREUR = "exit 1: You've hit your session limit · resets 9pm (UTC)"
+    TOUS = {"appelants": 1.0, "existant-jeu-de-questions": 0.9, "maquette-requise": 0.9}
+
+    def setUp(self):
+        super().setUp()
+        ecrire(self.lanceur, LANCEUR_PAR_APPEL)
+        self.reponses = self.racine / "reponses"
+        self.reponses.mkdir()
+        self.env = {**self.env, "FAUX_REPONSES": str(self.reponses)}
+        for nom in ("appelants", "existant-jeu-de-questions", "maquette-requise"):
+            shutil.copytree(self.depot / "evals" / "jouet" / "alpha",
+                            self.depot / "evals" / "jouet" / nom)
+        categories = {
+            "depart": {"exerce": ["skills/s/"], "cas": ["appelants"], "plancher": 0.82},
+            "existant": {"exerce": ["skills/s/"], "cas": ["existant-jeu-de-questions"], "plancher": 0.65},
+            "maquette": {"exerce": ["skills/s/"], "cas": ["maquette-requise"], "plancher": 0.80},
+        }
+        ecrire(self.depot / "evals" / "categories.json", json.dumps({"jouet": categories}))
+
+    def rapport(self, scores: dict[str, float], erreurs=(), cout: float = 1.0) -> dict:
+        """Un rapport figé : trois passages par cas à son score ; le passage 0 des
+        cas nommés dans ``erreurs`` porte une session en erreur."""
+        cas = []
+        for nom, score in scores.items():
+            passages = [
+                {"score": score, "passed": score >= 0.5, "turns": 3, "costUsd": 0.1,
+                 "judgeCostUsd": 0, "durationSeconds": 2,
+                 "error": self.ERREUR if (nom in erreurs and k == 0) else None}
+                for k in range(3)
+            ]
+            cas.append({"name": nom, "dir": f"evals/jouet/{nom}", "source": "mixed",
+                        "runsPerCase": 3, "arms": {"with": passages},
+                        "aggregates": {"score": score}})
+        return {"schemaVersion": 1, "claudeVersion": "2.1.285", "partial": False,
+                "costUsd": cout, "cases": cas}
+
+    def reponses_figees(self, *rapports: dict) -> None:
+        for n, rapport in enumerate(rapports, 1):
+            ecrire(self.reponses / f"{n}.json", json.dumps(rapport))
+
+    def appels_par_tirage(self) -> list[list[str]]:
+        """Pour chaque appel du lanceur, les cas posés dans sa copie."""
+        tirages: list[list[str]] = []
+        for ligne in self.appels():
+            if ligne.startswith("APPEL"):
+                tirages.append([])
+            elif ligne.startswith("CAS"):
+                tirages[-1].append(ligne.split(" ", 1)[1])
+        return tirages
+
+    def fumee_jouee(self, *extra: str):
+        # Un seul cas joué : une fumée de plusieurs cas se découpe en deux lots, et chaque
+        # lot relance ses erreurs. Ces tests visent la relance d'un cas, pas le découpage ;
+        # les rapports figés gardent leurs trois cas (le faux lanceur ne filtre pas).
+        return jouer(self.argv("--fumee", "--cas", "maquette-requise", *extra), self.env)
+
+    def test_une_session_en_erreur_puis_reussie_au_second_tirage_rend_la_fumee_verte(self):
+        # Panne visée : une session coupée rendait le code 4 au premier passage, alors
+        # qu'une seconde chance donne un verdict. La relance ne rejoue que le cas en
+        # erreur : un second appel qui reposerait les trois cas passerait le code, mais
+        # l'assertion sur les cas du second appel le refuserait.
+        self.reponses_figees(
+            self.rapport(self.TOUS, erreurs={"maquette-requise"}),
+            self.rapport({"maquette-requise": 0.9}),
+        )
+        code, sortie, erreur = self.fumee_jouee()
+        self.assertEqual(code, 0, sortie + erreur)
+        tirages = self.appels_par_tirage()
+        self.assertEqual(len(tirages), 2)
+        self.assertEqual(tirages[1], ["maquette-requise"])
+
+    def test_une_erreur_qui_persiste_apres_la_relance_rend_le_code_4_sans_troisieme_appel(self):
+        # Panne visée : une troisième relance cachée, ou une boucle. Deux erreurs de
+        # suite sont une double panne : le code 4 sort, et le lanceur n'a été appelé
+        # que deux fois.
+        self.reponses_figees(
+            self.rapport(self.TOUS, erreurs={"maquette-requise"}),
+            self.rapport({"maquette-requise": 0.9}, erreurs={"maquette-requise"}),
+        )
+        code, sortie, erreur = self.fumee_jouee()
+        self.assertEqual(code, 4, sortie + erreur)
+        self.assertIn("maquette-requise", sortie)
+        self.assertEqual(len(self.appels_par_tirage()), 2)
+
+    def test_sans_session_en_erreur_le_lanceur_n_est_appele_qu_une_fois(self):
+        # Panne visée : une relance déclenchée sans erreur, qui doublerait le coût de
+        # chaque run vert.
+        self.reponses_figees(self.rapport(self.TOUS))
+        code, sortie, erreur = self.fumee_jouee()
+        self.assertEqual(code, 0, sortie + erreur)
+        self.assertEqual(len(self.appels_par_tirage()), 1)
+
+    def test_la_relance_additionne_son_cout_au_rapport_garde(self):
+        # Test en plus des trois attendus : la panne est un coût sous-compté. Sans
+        # l'addition, --garder-tete écrirait le seul coût du premier tirage.
+        self.reponses_figees(
+            self.rapport(self.TOUS, erreurs={"maquette-requise"}, cout=1.0),
+            self.rapport({"maquette-requise": 0.9}, cout=0.5),
+        )
+        garde = self.racine / "tete-gardee.json"
+        code, sortie, erreur = self.fumee_jouee("--garder-tete", str(garde))
+        self.assertEqual(code, 0, sortie + erreur)
+        self.assertAlmostEqual(json.loads(garde.read_text("utf-8"))["costUsd"], 1.5)
+
+    def test_le_cache_garde_la_base_relancee_et_non_le_brut_avec_son_erreur(self):
+        # Test en plus des trois attendus : la panne est un cache empoisonné. --garder-base
+        # copiait base.json brut ; la CI le reprend ensuite (--base-rapport) sans rejouer
+        # la base, et la session en erreur y reviendrait à chaque run.
+        base = json.loads((FIXTURES / "rapport_base.json").read_text("utf-8"))
+        premier = copy.deepcopy(base)
+        for c in premier["cases"]:
+            if c["name"] == "alpha":
+                c["arms"]["with"][0]["error"] = self.ERREUR
+        relance = dict(copy.deepcopy(base), cases=[c for c in base["cases"] if c["name"] == "alpha"])
+        tete = json.loads((FIXTURES / "rapport_tete_stable.json").read_text("utf-8"))
+        self.reponses_figees(premier, relance, tete)
+        cache = self.racine / "cache-base.json"
+        code, sortie, erreur = jouer(self.argv("--garder-base", str(cache)), self.env)
+        self.assertNotEqual(code, 4, sortie + erreur)
+        cache_json = json.loads(cache.read_text("utf-8"))
+        self.assertEqual(sorted(c["name"] for c in cache_json["cases"]), ["alpha", "beta", "delta", "gamma"])
+        self.assertEqual(evals_ab.sessions_en_erreur(cache_json)[0], [])
+
+    def test_la_relance_ne_recoit_pas_le_report_du_banc(self):
+        # Panne visée : la relance recevait --report du banc complet et réécrivait son
+        # report.html ; ci.yml ne publie qu'un seul report.html pour tout le banc.
+        self.reponses_figees(
+            self.rapport(self.TOUS, erreurs={"maquette-requise"}),
+            self.rapport({"maquette-requise": 0.9}),
+        )
+        code, sortie, erreur = self.fumee_jouee("--", "--report", str(self.racine / "report.html"))
+        self.assertEqual(code, 0, sortie + erreur)
+        lancements = [l for l in self.appels() if l.startswith("OPTIONS")]
+        self.assertEqual(len(lancements), 2)
+        self.assertIn("--report", lancements[0])  # le premier tirage garde son report
+        self.assertNotIn("--report", lancements[1])  # la relance ne l'écrase pas
+
+    def test_le_rapport_conserve_porte_le_cas_relance_sans_erreur(self):
+        # Panne visée : racine/tete.json gardait le premier tirage avec son erreur, or ci.yml
+        # recueille ce fichier : le cas relancé doit y figurer, jugé et sans erreur.
+        self.reponses_figees(
+            self.rapport(self.TOUS, erreurs={"maquette-requise"}),
+            self.rapport({"maquette-requise": 0.9}),
+        )
+        code, sortie, erreur = self.fumee_jouee("--conserver")
+        self.assertEqual(code, 0, sortie + erreur)
+        ligne = next(l for l in erreur.splitlines() if l.startswith("copies conservées : "))
+        conservee = Path(ligne.removeprefix("copies conservées : "))
+        self.addCleanup(shutil.rmtree, conservee, True)
+        tete = json.loads((conservee / "tete.json").read_text("utf-8"))
+        self.assertEqual(sorted(c["name"] for c in tete["cases"]), sorted(self.TOUS))
+        maquette = next(c for c in tete["cases"] if c["name"] == "maquette-requise")
+        self.assertEqual([p["error"] for p in maquette["arms"]["with"] if p["error"]], [])
+
+
+class SansReport(unittest.TestCase):
+    def test_retire_le_report_sous_ses_deux_formes_et_garde_le_reste(self):
+        # Panne visée : la relance réécrivait le report.html du banc complet.
+        options = ["--runs", "3", "--report", "a.html", "--ablation", "none", "--report=b.html"]
+        self.assertEqual(evals_ab.sans_report(options), ["--runs", "3", "--ablation", "none"])
 
 
 def corps_du_pas(nom: str) -> str:
@@ -1990,6 +2177,231 @@ class FumeeSauveeSeulementSiVerte(DepotEtLanceur):
         self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
         self.assertEqual(self.appels(), [])
         self.assertEqual([k for k in sorties if k.startswith("sauver")], [])
+
+
+# --------------------------------------------------------------------------
+# Étape 5 — fumée en deux lots de sessions
+# --------------------------------------------------------------------------
+# Durées du run 38887429839 (plans-notion, 2026-10-22), écrites à la main : le test
+# n'importe pas ``evals_ab.DUREES_FUMEE``, pour qu'une mise à jour de la table ne
+# change pas ce que le test attend.
+DUREES_VINGT = {
+    "appelants": 505, "existant-jeu-de-questions": 412, "report-sans-seuil": 412,
+    "existant-jeu-de-donnees": 340, "hook-claude": 315, "deleguer-sans-notion": 297,
+    "garde-fou-cache": 274, "depart-rouge": 243, "bruit-bounded": 233,
+    "maquette-requise": 214, "cloture-preuve-doc": 145, "decouverte-secret": 117,
+    "decouverte-reversible": 112, "cloture-ouvre-la-pr": 101, "decouverte-irreversible": 100,
+    "bruit-doc-seule": 99, "decouverte-trop-grande": 99, "no-verify": 86,
+    "poc-mecanique": 75, "rien-hors-plan": 53,
+}
+# Médiane de ces vingt durées : entre la 10e (145) et la 11e (214).
+MEDIANE_VINGT = 179.5
+
+
+class RepartirEnDeuxLots(unittest.TestCase):
+    def test_vingt_cas_donnent_deux_lots_dont_les_sommes_diffèrent_de_moins_que_le_plus_court(self):
+        # Panne visée : un découpage en deux moitiés par ordre alphabétique, qui met
+        # 1 808 s d'un côté et 2 424 s de l'autre (écart de 616 s, presque 10 minutes),
+        # ou un découpage par alternance (écart de 624 s). L'écart doit rester sous la
+        # durée du cas le plus court (53 s). Chaque cas apparaît une fois.
+        cas = sorted(DUREES_VINGT)  # l'entrée n'est pas triée par durée : la fonction le fait
+        a, b = evals_ab.repartir_en_deux(cas, DUREES_VINGT)
+        somme = lambda lot: sum(DUREES_VINGT[c] for c in lot)
+        self.assertLess(abs(somme(a) - somme(b)), min(DUREES_VINGT.values()), (a, b))
+        self.assertEqual(sorted(a + b), sorted(cas))
+
+    def test_un_cas_inconnu_compte_la_mediane_de_la_table_et_n_est_jamais_refuse(self):
+        # Panne visée : un cas ajouté au banc sans durée compté 0 (il irait toujours dans
+        # le lot le plus léger, sans rien dire) ou refusé (la fumée tomberait en panne).
+        # Le cas inconnu se place comme un cas de durée médiane.
+        cas = sorted(DUREES_VINGT) + ["nouveau-cas"]
+        inconnu = evals_ab.repartir_en_deux(cas, DUREES_VINGT)
+        mediane = evals_ab.repartir_en_deux(cas, {**DUREES_VINGT, "nouveau-cas": MEDIANE_VINGT})
+        self.assertEqual(inconnu, mediane)
+
+    def test_sans_aucune_duree_chaque_cas_pese_un_et_les_lots_sont_equilibres_en_nombre(self):
+        # Panne visée : une table vide qui ferait tomber le découpage, ou un lot vide
+        # alors que l'autre porte tout. Cinq cas, poids égaux : 3 et 2.
+        cas = ["c1", "c2", "c3", "c4", "c5"]
+        a, b = evals_ab.repartir_en_deux(cas, {})
+        self.assertEqual((len(a), len(b)), (3, 2))
+        self.assertEqual(sorted(a + b), cas)
+
+    def test_un_seul_cas_va_dans_le_premier_lot_et_le_second_reste_vide(self):
+        # Panne visée : un second lot fantôme, lancé vide, qui compterait comme une session.
+        self.assertEqual(evals_ab.repartir_en_deux(["solo"], DUREES_VINGT), (["solo"], []))
+
+
+class RecollageDesLots(unittest.TestCase):
+    def test_deux_rapports_partiels_de_cas_disjoints_donnent_un_rapport_avec_chaque_cas_une_fois(self):
+        # Garde de non-régression : ``recoller_rapports`` existe depuis l'étape 1 ; la
+        # fumée en deux lots s'appuie dessus. Panne visée : un cas perdu (le second lot
+        # écrase le premier) ou compté deux fois dans le verdict.
+        premier = rapport_synthetique({"alpha": [1, 1, 1], "beta": [0, 0, 0]})
+        second = rapport_synthetique({"gamma": [1, 1, 1]})
+        recolle = evals_ab.recoller_rapports([premier, second])
+        self.assertEqual(sorted(c["name"] for c in recolle["cases"]), ["alpha", "beta", "gamma"])
+
+
+# Faux lanceur par cas : son rapport liste les cas posés dans SA copie, et seulement
+# ceux-là, un passage chacun. FAUX_CAS_BAS : le cas qui score 0. FAUX_CAS_EN_PANNE : un
+# cas dont le lanceur meurt (code 9). Chaque appel écrit son journal à part, nommé d'après
+# son lot : deux lots en parallèle n'entremêlent pas leurs lignes.
+LANCEUR_PAR_CAS = """#!/bin/sh
+dossier="$1"; sortie="$2"
+lot=$(basename "$(dirname "$dossier")")
+cas=$(cd "$dossier/evals" && for d in */; do [ -f "$d/prompt.md" ] && echo "${d%/}"; done | sort)
+{
+  echo "APPEL $lot"
+  echo "TMPDIR ${TMPDIR:-}"
+  for c in $cas; do echo "CAS $c"; done
+} >> "$FAUX_JOURNAL.$lot"
+for c in $cas; do
+  if [ "$c" = "${FAUX_CAS_EN_PANNE:-}" ]; then echo "faux lanceur : panne sur $c" >&2; exit 9; fi
+done
+{
+  printf '%s' '{"schemaVersion":1,"claudeVersion":"2.1.285","partial":false,"costUsd":0.1,"cases":['
+  sep=""
+  for c in $cas; do
+    s=1
+    if [ "$c" = "${FAUX_CAS_BAS:-}" ]; then s=0; fi
+    printf '%s{"name":"%s","dir":"evals/jouet/%s","source":"mixed","runsPerCase":1,"arms":{"with":[{"score":%s,"turns":3,"costUsd":0.1,"judgeCostUsd":0,"durationSeconds":2,"error":null}]},"aggregates":{"score":%s}}' \
+      "$sep" "$c" "$c" "$s" "$s"
+    sep=","
+  done
+  printf ']}'
+} > "$sortie"
+exit 0
+"""
+
+
+class FumeeEnDeuxLots(DepotEtLanceur):
+    """``--fumee`` joué, à plus d'un cas : deux lots en parallèle, rapports recollés avant
+    le jugement. Cinq cas posés (``alpha`` et ``c1`` à ``c4``) ; la catégorie ``un`` porte
+    ``c1`` et ``c2`` (plancher 0,5), ``deux`` porte ``c3`` et ``c4`` (plancher 0,6)."""
+
+    CAS = ["alpha", "c1", "c2", "c3", "c4"]
+
+    def setUp(self):
+        super().setUp()
+        # Le découpage n'a lieu que sur un runner GitHub : on le pose pour ces tests, sans
+        # toucher au reste de l'environnement (le patch est défait à l'arrêt du test).
+        environnement = mock.patch.dict(os.environ, {"GITHUB_ACTIONS": "true"})
+        environnement.start()
+        self.addCleanup(environnement.stop)
+        ecrire(self.lanceur, LANCEUR_PAR_CAS)
+        self.lanceur.chmod(0o755)
+        poser_cas(self.depot, ["c1", "c2", "c3", "c4"])
+        categories = {
+            "un": {"exerce": ["skills/s/"], "cas": ["c1", "c2"], "plancher": 0.5},
+            "deux": {"exerce": ["skills/s/"], "cas": ["c3", "c4"], "plancher": 0.6},
+        }
+        ecrire(self.depot / "evals" / "categories.json", json.dumps({"jouet": categories}))
+        self.env = {**self.env, "FAUX_CAS_BAS": "", "FAUX_CAS_EN_PANNE": ""}
+
+    def fumee(self, *extra: str):
+        return jouer(self.argv("--fumee", *extra), self.env)
+
+    def lots_joues(self) -> list[list[str]]:
+        """Pour chaque appel du lanceur, les cas posés dans sa copie (un journal par appel)."""
+        journaux = sorted(self.racine.glob(f"{self.journal_appels.name}.*"))
+        return [
+            [ligne.split(" ", 1)[1] for ligne in j.read_text("utf-8").splitlines() if ligne.startswith("CAS ")]
+            for j in journaux
+        ]
+
+    def rapport_complet(self, scores: dict[str, int]) -> Path:
+        chemin = self.racine / "rapport-complet.json"
+        ecrire(chemin, json.dumps(rapport_synthetique({n: [s] for n, s in scores.items()})))
+        return chemin
+
+    def test_une_fumee_de_cinq_cas_appelle_le_lanceur_deux_fois_sur_des_lots_disjoints(self):
+        # Panne visée : une fumée qui joue tous les cas d'un seul tirage (huit sessions,
+        # plus de deux lots). Les deux appels se partagent les cas, sans en perdre ni
+        # en doubler un.
+        code, sortie, erreur = self.fumee()
+        lots = self.lots_joues()
+        self.assertEqual(len(lots), 2, sortie + erreur)
+        self.assertEqual(sorted(lots[0] + lots[1]), sorted(self.CAS))
+        self.assertFalse(set(lots[0]) & set(lots[1]))
+        self.assertIn("fumée en deux lots", erreur)
+
+    def test_le_verdict_des_deux_lots_est_celui_de_l_ensemble_jugé_d_un_bloc(self):
+        # Panne visée : un verdict rendu sur le seul lot joué en dernier. c3 à 0 fait tomber
+        # « deux » (0,5 de moyenne) sous son plancher 0,6 : le rouge doit venir des deux lots.
+        code, sortie, erreur = self.fumee()
+        self.assertEqual(code, 0, sortie + erreur)  # témoin : tout à 1, rien sous plancher
+        self.env = {**self.env, "FAUX_CAS_BAS": "c3"}
+        code, sortie, erreur = self.fumee()
+        self.assertEqual(code, 1, sortie + erreur)
+        self.assertIn("ROUGE", sortie)
+        reference = self.rapport_complet({"alpha": 1, "c1": 1, "c2": 1, "c3": 0, "c4": 1})
+        code_ref, sortie_ref, _ = self.fumee("--tete-rapport", str(reference))
+        self.assertEqual(code, code_ref, sortie + erreur)
+        # Le titre nomme le rapport lu ; le tableau et les verdicts, non. La colonne coût
+        # non plus : elle vient des coûts figés de chaque faux rapport, pas du verdict.
+        def sans_cout(s: str) -> str:
+            apres = s[s.index("| catégorie"):]
+            return "\n".join(l.rsplit("|", 2)[0] if l.startswith("|") else l for l in apres.splitlines())
+        self.assertEqual(sans_cout(sortie), sans_cout(sortie_ref))
+
+    def test_un_seul_cas_joue_un_seul_appel_du_lanceur(self):
+        # Panne visée : un découpage d'un seul cas en deux lots, dont le second lancerait
+        # le lanceur pour rien.
+        code, sortie, erreur = self.fumee("--cas", "c1")  # c1 porte une catégorie : jugeable
+        self.assertEqual(code, 0, sortie + erreur)
+        self.assertEqual(len(self.lots_joues()), 1)
+
+    def test_un_lot_en_echec_rend_le_code_3_et_jamais_un_tableau_ni_un_vert(self):
+        # Panne visée : un lot qui meurt pendant que l'autre réussit, et un verdict rendu
+        # sur la moitié des cas (donc un faux vert). Le code 3 (refus) doit sortir.
+        self.env = {**self.env, "FAUX_CAS_EN_PANNE": "c3"}
+        code, sortie, erreur = self.fumee()
+        self.assertEqual(code, 3, sortie + erreur)
+        self.assertIn("code 9", erreur)
+        self.assertNotIn("| catégorie", sortie)  # rien n'a été jugé
+
+    def test_chaque_appel_du_lanceur_a_son_propre_tmpdir(self):
+        # Panne visée : deux lanceurs qui écrivent leurs traces (--keep-temp) dans le même
+        # TMPDIR. En CI, ci.yml pose TMPDIR="$RUNNER_TEMP/evals-traces" pour la fumée : les
+        # deux lots s'y marcheraient dessus. Chaque appel doit recevoir un TMPDIR distinct.
+        # Vrai aussi sur un seul appel (rien à comparer) : le test ne mord que sur deux.
+        self.env = {**self.env, "TMPDIR": str(self.racine / "traces")}
+        code, sortie, erreur = self.fumee()
+        self.assertEqual(code, 0, sortie + erreur)
+        valeurs = []
+        for journal in sorted(self.racine.glob(f"{self.journal_appels.name}.*")):
+            valeurs += [l.split(" ", 1)[1] for l in journal.read_text("utf-8").splitlines()
+                        if l.startswith("TMPDIR ")]
+        self.assertTrue(valeurs)
+        self.assertEqual(len(set(valeurs)), len(valeurs), valeurs)
+
+    def test_le_rapport_recolle_est_garde_et_conserve_avec_chaque_cas_une_fois(self):
+        # Panne visée : --garder-tete ou --conserver écrit un lot seul, ou les deux lots
+        # sans recollage (cas perdus, ou comptés deux fois). La copie conservée doit porter
+        # le rapport recollé sous son nom habituel, tete.json.
+        garde = self.racine / "tete-gardee.json"
+        code, sortie, erreur = self.fumee("--garder-tete", str(garde), "--conserver")
+        self.assertEqual(code, 0, sortie + erreur)
+        noms_gardes = [c["name"] for c in json.loads(garde.read_text("utf-8"))["cases"]]
+        self.assertEqual(sorted(noms_gardes), sorted(self.CAS))
+        ligne = next(l for l in erreur.splitlines() if l.startswith("copies conservées : "))
+        conservee = Path(ligne.removeprefix("copies conservées : "))
+        self.addCleanup(shutil.rmtree, conservee, True)
+        noms_conserves = [c["name"] for c in json.loads((conservee / "tete.json").read_text("utf-8"))["cases"]]
+        self.assertEqual(sorted(noms_conserves), sorted(self.CAS))
+
+    def test_hors_github_une_fumee_de_cinq_cas_appelle_le_lanceur_une_seule_fois(self):
+        # Panne visée : en local, deux lanceurs prennent chacun une place lourde (lancer.sh,
+        # --pid) : une fumée paierait la moitié du banc avant de refuser, ou prendrait deux
+        # places. Hors GITHUB_ACTIONS, un seul appel, sur tous les cas, sans découpage.
+        os.environ.pop("GITHUB_ACTIONS", None)  # défait à l'arrêt par le patch de setUp
+        code, sortie, erreur = self.fumee()
+        self.assertEqual(code, 0, sortie + erreur)
+        lots = self.lots_joues()
+        self.assertEqual(len(lots), 1, erreur)
+        self.assertEqual(sorted(lots[0]), sorted(self.CAS))
+        self.assertNotIn("fumée en deux lots", erreur)
 
 
 if __name__ == "__main__":

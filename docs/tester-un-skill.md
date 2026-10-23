@@ -241,7 +241,10 @@ session en erreur n'a rien mesuré du plugin, son score est celui d'une panne.
 C'est « panne d'infrastructure, à relancer », jamais un recul ; le `4` prime sur
 le `1`, en A/B comme en A/A et en fumée. Sans lui, le rapport d'une tête qui avait
 perdu 21 sessions sur 48 à une limite de session se serait lu comme un plugin qui
-régresse.
+régresse. Depuis l'étape 1, `evals_ab.py` relance une fois, seuls et dans le même
+job, les cas qui portent une session en erreur : le `4` ne sort plus que si cette
+relance casse aussi (double panne), et c'est alors seulement qu'on relance le job
+à la main.
 
 **Les traces se lisent après un `chmod`.** Le lanceur passe `--keep-temp`, qui
 garde les dossiers de passage, mais **scellés** (mode `000`) : pour les lire,
@@ -410,8 +413,8 @@ gh workflow run ci.yml --ref <branche> -f mode=aa
 
 Le lancement manuel joue la tête deux fois sur tout le banc, sans lire ni écrire
 le cache de la base (décrit ci-dessous), puis publie le bruit en artefact
-`evals-bruit-<plugin>` (le résumé du job le rappelle). Si un des deux jeux a des
-sessions en erreur, le job est rouge (code 4) et aucun bruit n'est publié. Le télécharger (`gh run download <id> -n
+`evals-bruit-<plugin>` (le résumé du job le rappelle). Si un des deux jeux a encore des
+sessions en erreur après la relance unique du script, le job est rouge (code 4) et aucun bruit n'est publié. Le télécharger (`gh run download <id> -n
 evals-bruit-<plugin>`), le commiter en `evals/bruit-<plugin>.json` dans la PR,
 et pousser : la CI suivante l'utilise. Sans `-f mode=aa`, le lancement manuel
 joue l'A/B habituel (`mode=ab`, le défaut).
@@ -438,10 +441,15 @@ sauvée sous sa propre clé `-sel-…`.
 **Le coût est annoncé avant de payer**, en tête du résumé du job. Avec une base
 en cache, c'est `--estimer` (bras de tête seul, lu dans le rapport de la base).
 Sans base en cache, aucun rapport ne dit les coûts, et la CI annonce le pire :
-au plus 90 $, soit deux bras au plafond. **Le plafond est de 45 $ par bras**
-(`EVALS_MAX_COUT_USD`, passé à `claude plugin eval --max-cost-usd`) ; un bras
-complet coûtait 27,53 $ sur Sonnet (mesure du 2026-09-30 sur 16 cas, non remesurée : le banc compte 26 cas au 2026-10-16). Le plafond de 45 $ a été fixé sur une extrapolation, pas sur une mesure : 23 cas le 2026-10-15, soit ~39,6 $ au coût par cas du 2026-09-30, d'où le relèvement. Aucune nouvelle extrapolation n'est faite. Un bras qui dépasse est
-rendu partiel et refusé (code 3), et la facture s'arrête là.
+au plus deux fois ce plafond, soit deux bras au plafond. **Le plafond se calcule
+dans le job, par bras : n cas × 2,2 $, au moins 10 $** (`EVALS_MAX_COUT_USD`, passé
+à `claude plugin eval --max-cost-usd`) ; 45 $ en repli si la sélection est vide.
+Le 2,2 $ par cas vient d'une mesure sur Sonnet (≈ 1,72 $ par cas à 3 passages, + 30 %
+de marge) ; le plancher de 10 $ existe parce qu'un cas coûte jusqu'à 3,57 $. Le
+repli de 45 $ a été fixé sur une extrapolation (un bras complet de 16 cas coûtait
+27,53 $ le 2026-09-30, non remesuré), pas sur une mesure. Aucune nouvelle extrapolation
+n'est faite. Un bras qui dépasse est rendu partiel et refusé (code 3), et la facture
+s'arrête là.
 
 ## Lancer une évaluation
 
@@ -459,9 +467,10 @@ d'un skill si une session se trompe encore de geste.
    joue deux bras (base et tête), un bras complet coûtait 27,53 $ sur Sonnet (mesure du 2026-09-30 sur 16 cas, non remesurée ; le banc compte 26 cas au 2026-10-16),
    et une catégorie 1,61 $ à 7,13 $ par bras (tableau de la fiche
    `claude plugin eval` de `outils-et-quotas.md`, mesuré le 2026-09-30 sur 16 cas ; pour `decouvertes`, voir sa mesure du 2026-10-16 plus bas, 18,68 $ pour deux bras). **Annoncer ce coût à
-   Benjamin avant de lancer.** Le plafond est de 45 $ par bras
-   (`EVALS_MAX_COUT_USD=45`) ; il valait 120 $ avant le 2026-10-01, puis 35 $
-   jusqu'au 2026-10-15. Le 120 $ n'a jamais été atteint.
+   Benjamin avant de lancer.** Le plafond se calcule dans le job :
+   n cas × 2,2 $ par bras, au moins 10 $ (`EVALS_MAX_COUT_USD`, 45 $ en repli) ;
+   avant le 2026-10-23 il était fixe à 45 $, et il valait 120 $ avant le 2026-10-01,
+   puis 35 $ jusqu'au 2026-10-15. Le 120 $ n'a jamais été atteint.
 2. **Vérifier le verrou.** Un seul banc à la fois : toutes les sessions d'un
    appel partagent la limite de débit de leur compte, et trois bancs ensemble
    ont rendu des scores inexploitables. En CI, le groupe de concurrence
@@ -487,7 +496,7 @@ Quand une PR touche un skill, un agent, un hook ou `_partage/` sans porter le
 label `evals`, la CI joue une **fumée** : la tête seule, en **un passage**, sur
 Sonnet, sur les catégories que les fichiers touchés exercent. Ces catégories
 sont **calculées** par `scripts/evals_selection.py`, pas choisies ; tout le banc
-part pour les hooks et pour un fichier qu'aucune catégorie n'exerce. Mesurée le 2026-09-30 sur un banc de 16 cas, elle coûtait 0,54 $ à 2,38 $ par
+part pour les hooks et pour un fichier qu'aucune catégorie n'exerce. Elle ne joue que les cas des catégories touchées : jusqu'à 22 pour `plans-notion` au 2026-10-23. Mesurée le 2026-09-30 sur un banc de 16 cas, elle coûtait 0,54 $ à 2,38 $ par
 catégorie et environ 9,2 $ pour tout le banc ; le banc compte 27 cas au 2026-10-16
 (26 pour `plans-notion`, 1 pour `voyages`) et ce total n'a pas été remesuré : le
 job annonce son coût avant de jouer. La fumée ne remplace pas l'A/B : c'est le label `evals`
@@ -501,7 +510,7 @@ tête du résumé avant de jouer, et compte dans `Verdict des évals`. Un label
 
 **Le job est rouge dans deux cas, que son message distingue.** Une catégorie
 passe sous son plancher (code 1) : c'est un recul. Ou des sessions plantent
-(code 4, « non concluant — panne d'infrastructure, à relancer ») : ce n'est pas un
+encore après leur relance unique par le script (code 4, « non concluant — panne d'infrastructure, à relancer ») : ce n'est pas un
 recul, parce qu'un score tiré vers le bas par des sessions en erreur ne dit rien
 du skill ; le 4 prime sur le 1. Le plancher est le plus bas tirage sain mesuré,
 moins 0,10 (15 tirages sains sur Sonnet et Opus, 2026-10-01 ; `decouvertes` remesurée le 2026-10-16, voir plus bas) :
@@ -596,17 +605,22 @@ cas (2026-10-15) ; maintenant, la relance ne rejoue que la catégorie sans vert.
 `evals_ab.py --garder-vertes <json>` écrit cette liste, et la CI range les verts avec
 `!cancelled()` : un job annulé ne range rien.
 
-**La fumée joue huit sessions en parallèle** (`EVALS_CONCURRENCE: '8'` dans le job
-`fumee`, le maximum de `claude plugin eval -j`), contre cinq pour l'A/B dont les
-planchers et le bruit ont été mesurés. La fumée est une traîne : le 2026-10-15
+**En CI, la fumée joue deux lots de huit sessions en parallèle** (`EVALS_CONCURRENCE: '8'`
+dans le job `fumee`, par lanceur : le maximum de `claude plugin eval -j`), donc seize
+sessions sur le même jeton. En local, elle ne se découpe pas : un seul lanceur, une seule
+place lourde (`lancer.sh` en prend une par appel). L'A/B, lui, reste à cinq sessions, dont
+les planchers et le bruit ont été mesurés.
+Le POC du 2026-10-23 (run `39917669835`) a joué 20 cas en 9,5 min, contre 14,3 min à huit
+sessions seules, sans session en erreur. La fumée est une traîne : le 2026-10-15
 (run `38738755670`, 19 cas à 5 sessions), 10 cas étaient finis à 7 min, 17 à 13 min et
 le dernier à 17 min, avec quatre places vides sur cinq à la fin. Les sessions partagent
-une seule limite de débit : si le résumé d'un job montre des sessions en erreur à 8,
-c'est le signal pour redescendre à 5. Le tableau de la fumée donne aussi **la durée de
+une seule limite de débit : si le résumé d'un job montre des sessions en erreur à 8 par
+lanceur, c'est le signal pour redescendre à 5. Le tableau de la fumée donne aussi **la durée de
 chaque cas, du plus long au plus court** : c'est la mesure qui manquait pour savoir quoi
 couper d'une fumée trop longue.
 
-**Un rouge à tort se relance une fois** ; au second rouge, on le signale à
+**Un rouge à tort se relance une fois** (les sessions en erreur ont déjà leur
+relance unique, dans le job) ; au second rouge, on le signale à
 Benjamin, qui décide de poser `evals` pour trancher par l'A/B. Attention à la file : le groupe `evals-<plugin>` ne
 garde qu'un run en attente, et **une fumée en attente peut annuler un A/B en
 attente**. Un run annulé se relance, il ne vaut pas verdict.

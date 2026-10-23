@@ -191,9 +191,10 @@ import subprocess
 import sys
 import tarfile
 import tempfile
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from pathlib import Path
-from statistics import NormalDist
+from statistics import NormalDist, median
 
 DEPOT = Path(__file__).resolve().parents[1]
 Z95 = 1.96
@@ -940,6 +941,19 @@ def recoller_rapports(rapports: list[dict]) -> dict:
     return recolle
 
 
+def remplacer_cas(rapport: dict, relance: dict) -> dict:
+    """``rapport`` où chaque cas relancé est remplacé par sa relance.
+
+    Les coûts s'additionnent si les deux en portent un : sinon le rapport gardé
+    ne compterait que le premier tirage.
+    """
+    par_nom = {c.get("name"): c for c in relance.get("cases", [])}
+    fusion = {**rapport, "cases": [par_nom.get(c.get("name"), c) for c in rapport["cases"]]}
+    if "costUsd" in rapport and "costUsd" in relance:
+        fusion["costUsd"] = float(rapport["costUsd"]) + float(relance["costUsd"])
+    return fusion
+
+
 def extraire_cas_du_rapport(rapport: dict, cas: list[str], etiquette: str) -> dict:
     """Le rapport réduit aux cas nommés. Un cas absent du rapport est un refus.
 
@@ -1400,6 +1414,19 @@ def tableau_fumee(f: Fumee, etiquette_tete: str, motif_panne_texte: str) -> str:
     return "\n".join(sortie)
 
 
+def sans_report(options: list[str]) -> list[str]:
+    """Les options du lanceur sans ``--report`` : la relance n'écrase pas le report du banc."""
+    reste, saute = [], False
+    for o in options:
+        if saute:
+            saute = False
+        elif o == "--report":
+            saute = True
+        elif not o.startswith("--report="):
+            reste.append(o)
+    return reste
+
+
 def options_une_passe(options: list[str]) -> list[str]:
     """Les options du lanceur, avec un seul passage : la fumée n'en paie jamais plus."""
     reste, saute = [], False
@@ -1433,12 +1460,20 @@ def etiquette(depot: Path, ref: str, plugin: str) -> str:
     return f"{ref} ({detail})" if detail else ref
 
 
-def lancer(lanceur: Path, dossier: Path, sortie: Path, options: list[str]) -> None:
-    """Joue le lanceur ; sa sortie va sur stderr (stdout est réservé au tableau)."""
+def lancer(lanceur: Path, dossier: Path, sortie: Path, options: list[str],
+           tmpdir: Path | None = None) -> None:
+    """Joue le lanceur ; sa sortie va sur stderr (stdout est réservé au tableau).
+
+    ``tmpdir`` : le TMPDIR de cet appel seul, pour que ses traces ne se mêlent pas à celles
+    d'un autre lanceur (deux lots en parallèle). Sans lui, le TMPDIR de l'environnement."""
+    env = None
+    if tmpdir is not None:
+        tmpdir.mkdir(parents=True, exist_ok=True)
+        env = {**os.environ, "TMPDIR": str(tmpdir)}
     try:
         p = subprocess.Popen(
             [str(lanceur), str(dossier), str(sortie), *options],
-            stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
+            stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, env=env,
         )
     except OSError as e:
         raise ErreurRefus(f"lanceur introuvable ou non exécutable ({lanceur}) : {e}") from e
@@ -1455,14 +1490,31 @@ def lancer(lanceur: Path, dossier: Path, sortie: Path, options: list[str]) -> No
 def jouer_reference(
     depot: Path, ref: str, plugin: str, sources: list[Path], racine: Path,
     nom: str, lanceur: Path, options: list[str], etiquette_rapport: str,
-    cas: list[str] | None = None,
+    cas: list[str] | None = None, tmpdir: Path | None = None,
 ) -> dict:
+    """Joue un bras. Les cas portant une session en erreur sont relancés **une fois**,
+    seuls, dans le même job, sans ``--report`` ; leur relance remplace leur entrée, et
+    ``sortie`` reçoit le rapport fusionné. Si l'erreur persiste, le code 4 sort comme avant.
+    ``tmpdir`` : le TMPDIR des appels de ce bras (voir ``lancer``)."""
     copie = racine / nom / plugin
     extraire(depot, ref, plugin, copie)
     assembler(copie, sources, cas)
     sortie = racine / f"{nom}.json"
-    lancer(lanceur, copie, sortie, options)
-    return lire_rapport(sortie, etiquette_rapport)
+    lancer(lanceur, copie, sortie, options, tmpdir)
+    rapport = lire_rapport(sortie, etiquette_rapport)
+    erreurs, _ = sessions_en_erreur(rapport)
+    if not erreurs:
+        return rapport
+    relancer = list(dict.fromkeys(c for c, _, _ in erreurs))
+    print(f"relance unique : {len(relancer)} cas ({', '.join(relancer)})", file=sys.stderr)
+    copie_relance = racine / f"{nom}-relance" / plugin
+    extraire(depot, ref, plugin, copie_relance)
+    assembler(copie_relance, sources, relancer)
+    sortie_relance = racine / f"{nom}-relance.json"
+    lancer(lanceur, copie_relance, sortie_relance, sans_report(options), tmpdir)
+    fusion = remplacer_cas(rapport, lire_rapport(sortie_relance, etiquette_rapport))
+    sortie.write_text(json.dumps(fusion), "utf-8")  # ci.yml recueille ce fichier, pas le brut
+    return fusion
 
 
 def construire_parseur() -> argparse.ArgumentParser:
@@ -1583,6 +1635,95 @@ def _previol_ou_refus(sources: list[Path]) -> None:
     print(f"pré-vol : {len(verdicts)} cas, oracles et témoins nuls conformes", file=sys.stderr)
 
 
+# Durées par cas de la fumée, en secondes : mesurées au run 38887429839 (plans-notion) le
+# 2026-10-22, à rafraîchir à la main quand le banc bouge. Un cas absent compte la médiane
+# de cette table : l'équilibre n'est qu'approximatif, jamais un refus.
+DUREES_FUMEE = {
+    "appelants": 505,
+    "existant-jeu-de-questions": 412,
+    "report-sans-seuil": 412,
+    "existant-jeu-de-donnees": 340,
+    "hook-claude": 315,
+    "deleguer-sans-notion": 297,
+    "garde-fou-cache": 274,
+    "depart-rouge": 243,
+    "bruit-bounded": 233,
+    "maquette-requise": 214,
+    "cloture-preuve-doc": 145,
+    "decouverte-secret": 117,
+    "decouverte-reversible": 112,
+    "cloture-ouvre-la-pr": 101,
+    "decouverte-irreversible": 100,
+    "bruit-doc-seule": 99,
+    "decouverte-trop-grande": 99,
+    "no-verify": 86,
+    "poc-mecanique": 75,
+    "rien-hors-plan": 53,
+}
+
+
+def repartir_en_deux(cas: list[str], durees: dict[str, float]) -> tuple[list[str], list[str]]:
+    """Deux lots de cas aux durées les plus proches possible, pour la fumée.
+
+    Tri décroissant par durée, puis glouton : chaque cas va dans le lot dont la somme
+    est la plus petite (égalité : le premier lot). Un cas inconnu pèse la médiane de
+    ``durees`` ; sans ``durees``, chaque cas pèse 1,0. Seule la somme compte : l'ordre
+    de jeu, lui, est celui de ``assembler`` (alphabétique), pas celui de ce tri.
+    Un seul cas laisse le second lot vide.
+    """
+    poids_inconnu = median(durees.values()) if durees else 1.0
+    ordre = sorted(cas, key=lambda c: -durees.get(c, poids_inconnu))
+    lots: tuple[list[str], list[str]] = ([], [])
+    sommes = [0.0, 0.0]
+    for c in ordre:
+        k = 0 if sommes[0] <= sommes[1] else 1
+        lots[k].append(c)
+        sommes[k] += durees.get(c, poids_inconnu)
+    return lots[0], lots[1]
+
+
+def _noms_des_cas(sources: list[Path]) -> list[str]:
+    """Les noms de cas de toutes les sources. Un nom présent dans deux sources est un
+    refus **avant** tout coût : deux lots en parallèle ne doivent pas payer l'un
+    pendant que l'autre refuse."""
+    noms: list[str] = []
+    for s in sources:
+        for dossier in decouvrir_cas(s):
+            if dossier.name in noms:
+                raise ErreurRefus(f"cas « {dossier.name} » présent dans deux sources")
+            noms.append(dossier.name)
+    return noms
+
+
+def _en_ci() -> bool:
+    """Vrai sur un runner GitHub, le seul endroit où la fumée se découpe en deux lanceurs.
+
+    En local, chaque lanceur prend sa place lourde (``lancer.sh``, ``--pid``) : deux lots
+    prendraient deux places, et pourraient payer la moitié du banc avant de refuser.
+    """
+    return os.environ.get("GITHUB_ACTIONS") == "true"
+
+
+def _jouer_en_deux_lots(args, depot: Path, plugin: str, sources: list[Path], racine: Path,
+                        lanceur: Path, options: list[str], noms: list[str]) -> dict:
+    """La fumée jouée en deux lots, deux lanceurs en parallèle, rapports recollés."""
+    lot_a, lot_b = repartir_en_deux(noms, DUREES_FUMEE)
+    print(f"fumée en deux lots : {len(lot_a)} + {len(lot_b)} cas", file=sys.stderr)
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        # Un TMPDIR par lot : ci.yml pose le même TMPDIR pour toute la fumée.
+        futur_a = pool.submit(jouer_reference, depot, args.tete, plugin, sources, racine,
+                              "tete-a", lanceur, options, "de tête", lot_a,
+                              racine / "traces-tete-a")
+        futur_b = pool.submit(jouer_reference, depot, args.tete, plugin, sources, racine,
+                              "tete-b", lanceur, options, "de tête", lot_b,
+                              racine / "traces-tete-b")
+        # result() relance l'exception d'un lot (refus, lanceur en échec) : aucun silence.
+        recolle = recoller_rapports([futur_a.result(), futur_b.result()])
+    # Le rapport recollé sous le nom d'un rapport d'un seul lot : --conserver le garde ainsi.
+    (racine / "tete.json").write_text(json.dumps(recolle), "utf-8")
+    return recolle
+
+
 def _fumee(args, options_lanceur: list[str], depot: Path, plugin: str,
            sources: list[Path], lanceur: Path) -> int:
     """``--fumee`` : la tête seule, un passage, jugée par catégorie contre son plancher.
@@ -1602,10 +1743,16 @@ def _fumee(args, options_lanceur: list[str], depot: Path, plugin: str,
     else:
         racine = Path(tempfile.mkdtemp(prefix="evals-ab-"))
         try:
-            rapport = jouer_reference(
-                depot, args.tete, plugin, sources, racine, "tete", lanceur,
-                options_une_passe(options_lanceur), "de tête", args.cas,
-            )
+            options = options_une_passe(options_lanceur)
+            noms = list(dict.fromkeys(args.cas)) if args.cas else _noms_des_cas(sources)
+            if len(noms) < 2 or not _en_ci():
+                rapport = jouer_reference(
+                    depot, args.tete, plugin, sources, racine, "tete", lanceur,
+                    options, "de tête", args.cas,
+                )
+            else:
+                rapport = _jouer_en_deux_lots(args, depot, plugin, sources, racine,
+                                              lanceur, options, noms)
         finally:
             if args.conserver:
                 print(f"copies conservées : {racine}", file=sys.stderr)
@@ -1693,7 +1840,8 @@ def _executer(args, options_lanceur: list[str], commande: str) -> int:
             )
             rapports_joues.append(rapport_base)
         if args.garder_base and not (args.reference or args.base_rapport):
-            shutil.copyfile(racine / "base.json", args.garder_base)
+            # Le rapport jugé (cas relancés compris), pas base.json brut : le cache le reprend.
+            Path(args.garder_base).write_text(json.dumps(rapport_base), "utf-8")
         rapport_tete = jouer_reference(
             depot, args.tete, plugin, sources, racine, "tete", lanceur,
             options_lanceur, "de tête", args.cas,

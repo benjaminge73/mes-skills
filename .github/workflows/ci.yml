@@ -57,44 +57,34 @@ permissions:
   contents: read
 
 jobs:
-  garde:
-    name: Gardes de distribution
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          # Le garde de version lit l'état de la branche de base avec
-          # `git show` : à profondeur 1, ce commit n'est pas dans le clone et
-          # tout plugin passerait pour naissant — donc vert sur rien.
-          fetch-depth: 0
-
-      - name: Contrôles de garde (scripts/ci_locale.sh)
-        # La liste des contrôles vit dans `scripts/ci_locale.sh`, et nulle part
-        # ailleurs : la CI l'appelle au lieu de recopier ses commandes, pour que
-        # « ce qui passe en local » et « ce qui passe ici » soient la même liste.
-        # Sur une PR, la base est la branche visée ; sur une poussée sur main,
-        # il n'y a rien à comparer et les contrôles qui en dépendent sont sautés.
-        env:
-          BASE_REF: origin/${{ github.base_ref }}
-          CI_LOCALE_SANS_BASE: ${{ github.event_name != 'pull_request' && '1' || '' }}
-        run: scripts/ci_locale.sh garde
-
   validation:
     name: Validation des plugins
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Le garde de version (step des gardes, plus bas) lit l'état de la
+          # branche de base avec `git show` : à profondeur 1, ce commit n'est pas
+          # dans le clone et tout plugin passerait pour naissant — donc vert sur rien.
+          fetch-depth: 0
 
       - uses: actions/setup-node@v4
         with:
           node-version: 20
 
       - name: Installer la CLI Claude Code
-        # Non épinglée volontairement : si le format des manifestes de plugin
-        # change en amont, on veut que cette étape le dise (schéma qui bouge,
-        # validation qui échoue) plutôt que de valider indéfiniment contre un
-        # schéma qu'on aurait figé et qui serait devenu périmé.
-        run: npm install -g @anthropic-ai/claude-code
+        # Version lue dans evals/outillage/preparer-runner.sh, la seule source de
+        # vérité (celle des évals et de la fumée) : une montée se fait là, en PR
+        # revue, jamais ici. Si la lecture rend vide, `npm install` installerait
+        # « latest » : on échoue net à la place.
+        run: |
+          set -euo pipefail
+          version=$(sed -n 's/^CLAUDE_CODE_VERSION=//p' evals/outillage/preparer-runner.sh)
+          if [ -z "$version" ]; then
+            echo "::error title=Version de la CLI::CLAUDE_CODE_VERSION introuvable dans evals/outillage/preparer-runner.sh."
+            exit 1
+          fi
+          npm install -g "@anthropic-ai/claude-code@$version"
 
       - uses: actions/setup-python@v5
         with:
@@ -110,13 +100,26 @@ jobs:
           done
 
       - name: Validation, tests et renvois (scripts/ci_locale.sh)
-        # Même liste que `garde` : scripts/ci_locale.sh, section `validation`.
+        # La liste des contrôles vit dans `scripts/ci_locale.sh`, et nulle part
+        # ailleurs : la CI l'appelle au lieu de recopier ses commandes, pour que
+        # « ce qui passe en local » et « ce qui passe ici » soient la même liste.
         env:
           PYTHON_PLUGINS: python
           # Les tests du plugin voyages lancent Chromium sur des fixtures
           # locales ; sur le runner jetable, il démarre sans bac à sable.
           VOYAGES_CHROMIUM_SANS_BAC_A_SABLE: "1"
         run: scripts/ci_locale.sh validation
+
+      - name: Contrôles de garde (scripts/ci_locale.sh)
+        # Joués après la validation, et non avant : `!cancelled()` fait qu'un rouge
+        # de la validation ne cache pas les gardes (même visibilité qu'avec un job
+        # à part). Sur une PR, la base est la branche visée ; sur une poussée sur
+        # main, il n'y a rien à comparer et les contrôles qui en dépendent sont sautés.
+        if: ${{ !cancelled() }}
+        env:
+          BASE_REF: origin/${{ github.base_ref }}
+          CI_LOCALE_SANS_BASE: ${{ github.event_name != 'pull_request' && '1' || '' }}
+        run: scripts/ci_locale.sh garde
 
   annuler-perimes:
     name: Annuler les runs périmés de la PR
@@ -496,17 +499,12 @@ jobs:
       # EVALS_EFFORT. Changer l'un des deux, c'est remesurer le bruit (mode `aa`).
       EVALS_MODELE: claude-sonnet-5-5
       EVALS_EFFORT: high
-      # Plafond par appel de `claude plugin eval` (une fois pour la base, une fois
-      # pour la tête), donc par bras. Mesuré avec Sonnet, le modèle joué ici (run
-      # 36758086456) : un bras complet de 16 cas x 3 passages coûte 27,53 $, et un
-      # cas entre 0,98 et 3,57 $. Décision de Benjamin (Q5, 2026-10-01) : 35 $, soit
-      # un quart de marge au-dessus du bras complet de l'époque (16 cas). Décision
-      # de Benjamin (2026-10-15) : le banc compte désormais 23 cas, donc un bras
-      # complet coûte ~39,6 $ au même coût par cas, et 35 $ refuserait un passage
-      # complet. Relevé à 45 $ (~14 % de marge au-dessus de ce bras), sans remesure.
-      # Un bras qui dépasse est rendu partiel, refusé par `evals_ab.py` (code 3) :
-      # le job est rouge, et la facture s'arrête là. Le coût attendu s'écrit en
-      # tête du résumé avant de payer (`--estimer`).
+      # Plafond par appel de `claude plugin eval`, donc par bras (base puis tête).
+      # Repli fixe à 45 $ (A/A, et tout pas hors `jeu`) ; le pas `jeu` le remplace
+      # par n cas x 2,2 $, plancher 10 $ (un cas coûte jusqu'à 3,57 $, un petit banc
+      # ne doit pas plafonner dessous). Décision de Benjamin 2026-10-23, Q6. Un bras
+      # qui dépasse est rendu partiel, refusé par `evals_ab.py` (code 3) : le job est
+      # rouge, la facture s'arrête là. Le coût attendu s'écrit en tête du résumé.
       EVALS_MAX_COUT_USD: '45'
       EVALS_RUNS: '3'
       # Décision de Benjamin (étape B9) : 5 agents en parallèle.
@@ -611,13 +609,33 @@ jobs:
                 --conserver --journal "$sortie/journal.md")
           # Les cas joués : ceux de la sélection, ou tous quand elle dit « tout »
           # (ou qu'elle manque : le défaut est le banc entier, jamais moins).
+          # Compte les cas d'un plugin comme evals_ab.py (est_un_cas) : un dossier qui
+          # a case.yaml ou prompt.md. nullglob : sans dossier, 0, sans erreur.
+          compter_cas() {
+            local d k=0
+            shopt -s nullglob
+            for d in evals/"$PLUGIN"/*/; do
+              if [ -f "$d/case.yaml" ] || [ -f "$d/prompt.md" ]; then k=$((k + 1)); fi
+            done
+            echo "$k"
+          }
           if [ "$(jq -r --arg p "$PLUGIN" '(.[$p] // {"tout": true}) | .tout' <<<"$SELECTION")" = "true" ]; then
             echo "Tous les cas du banc sont joués."
+            n=$(compter_cas)
           else
             mapfile -t cas < <(jq -r --arg p "$PLUGIN" '.[$p].cas[]' <<<"$SELECTION")
             for c in "${cas[@]}"; do args+=(--cas "$c"); done
             echo "Cas joués (${#cas[@]}) : ${cas[*]}"
+            n=${#cas[@]}
           fi
+          # Plafond de ce passage : n cas x 2,2 $, arrondi au dollar supérieur, avec un
+          # plancher de 10 $ (entier : lancer.sh le passe tel quel à --max-cost-usd).
+          # Si n vaut 0, on garde le repli du job (45 $) : jamais un plafond nul.
+          if [ "$n" -gt 0 ]; then
+            EVALS_MAX_COUT_USD=$(( (n * 22 + 9) / 10 ))
+            if [ "$EVALS_MAX_COUT_USD" -lt 10 ]; then EVALS_MAX_COUT_USD=10; fi
+          fi
+          export EVALS_MAX_COUT_USD
           # Le bruit mesuré n'est utilisé que s'il porte le modèle joué (EVALS_MODELE) :
           # evals_ab.py l'ignore sinon, et le dit dans le tableau.
           if [ -f "evals/bruit-$PLUGIN.json" ]; then
@@ -648,6 +666,7 @@ jobs:
           {
             echo "## Évals — $PLUGIN"
             echo
+            echo "Plafond de coût : $EVALS_MAX_COUT_USD \$ par bras ($n cas x 2,2 \$, plancher 10 \$)."
             if [ -n "$CACHE_TROUVE" ]; then
               python3 scripts/evals_ab.py "${args[@]}" --estimer -- --runs "$EVALS_RUNS" \
                 || echo "Coût estimé : indisponible (voir le journal du job)."
@@ -818,9 +837,10 @@ jobs:
     # donc pas de `merge-auto`.
     if: needs.evals-portee.outputs.fumee_plugins != ''
     runs-on: ubuntu-latest
-    # Au plus 16 cas x 1 passage, soit ≈ 3 passages par agent à ≈ 2,7 min (voir
-    # la mesure du job `evals`), plus ≈ 1 min 30 de préparation. 45 min gardent
-    # une marge large sans tolérer une boucle.
+    # La fumée joue les cas des catégories touchées (au plus 22 pour `plans-notion` à
+    # ce jour, un passage chacun), en deux lots de 8 sessions lancés en parallèle dans
+    # ce job. Le POC du 2026-10-23 (20 cas) : 9,5 min. Plus ≈ 1 min 30 de préparation.
+    # 45 min gardent une marge large sans tolérer une boucle.
     timeout-minutes: 45
     permissions:
       contents: read
@@ -841,14 +861,20 @@ jobs:
       # Le modèle et l'effort sont ceux du job `evals` : un autre modèle ou un autre
       # effort changerait les scores, donc les planchers de `evals/categories.json`,
       # qui ont été mesurés avec ceux-ci. La concurrence, elle, ne change pas un score :
-      # 8 sessions en parallèle (le maximum de `claude plugin eval -j`) au lieu de 5, parce
+      # 8 sessions par lanceur (le maximum de `claude plugin eval -j`) au lieu de 5, parce
       # que la fumée est une traîne (2026-10-15, run 38738755670 : 10 cas sur 19 finis à
-      # 7 min, le dernier à 17 min, avec 4 places vides sur 5 pendant la fin). Les sessions
-      # partagent une seule limite de débit : si des sessions tombent en erreur (code 4), on le
-      # voit dans le résumé du job, et c'est le signal pour redescendre à 5. La relance, elle,
-      # ne rejoue que les catégories qui n'ont pas de vert au cache.
+      # 7 min, le dernier à 17 min, avec 4 places vides sur 5 pendant la fin). La fumée lance
+      # deux lanceurs en parallèle dans ce job (`evals_ab.py`, deux lots équilibrés par durée),
+      # donc 16 sessions sur le même jeton ; le POC du 2026-10-23 (run 39917669835) a joué
+      # 20 cas en 9,5 min, contre 14,3 min à 8 sessions seules, sans session en erreur.
+      # Les sessions partagent une seule limite de débit : si des sessions tombent en erreur
+      # (code 4), on le voit dans le résumé du job, et c'est le signal pour redescendre à 5
+      # par lanceur. La relance, elle, ne rejoue que les catégories qui n'ont pas de vert au cache.
       EVALS_MODELE: claude-sonnet-5-5
       EVALS_EFFORT: high
+      # Plafond de coût passé à chaque appel de lanceur : chaque lot et chaque relance ont le
+      # leur, donc jusqu'à 45 $ par appel. Ce n'est pas une dépense : une relance ne rejoue que
+      # les cas en erreur (≈ 2 $), et la dépense réelle reste ≈ 12 $ plus les relances.
       EVALS_MAX_COUT_USD: '45'
       EVALS_CONCURRENCE: '8'
     steps:
@@ -1323,7 +1349,7 @@ jobs:
   merge-auto:
     name: Merge automatique si tout est vert
     # Sur ce dépôt, merger c'est publier : les postes tirent `main` et le bump
-    # de version que le job `garde` impose est la mise à disposition. Ce job
+    # de version que les gardes de `validation` imposent est la mise à disposition. Ce job
     # n'ajoute donc pas une commodité, il retire un geste — celui qui séparait
     # « la CI est verte » de « c'est en ligne ». Trois garde-fous le bornent :
     # l'auteur (une PR venant d'ailleurs ne se merge jamais seule), le brouillon
@@ -1340,10 +1366,9 @@ jobs:
     # est sauté, et sans lui ce saut passerait pour un feu vert.
     # `evals-verdict` y est aussi : c'est le contrôle que le verrou de `main`
     # exigera, et le merge automatique ne doit pas être plus permissif que lui.
-    needs: [garde, validation, evals-portee, evals, evals-verdict]
+    needs: [validation, evals-portee, evals, evals-verdict]
     if: >-
       always()
-      && (needs.garde.result == 'success' || needs.garde.result == 'skipped')
       && (needs.validation.result == 'success' || needs.validation.result == 'skipped')
       && (needs.evals-portee.result == 'success' || needs.evals-portee.result == 'skipped')
       && (needs.evals.result == 'success' || needs.evals.result == 'skipped')
