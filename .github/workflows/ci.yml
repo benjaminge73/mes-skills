@@ -57,44 +57,27 @@ permissions:
   contents: read
 
 jobs:
-  garde:
-    name: Gardes de distribution
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          # Le garde de version lit l'état de la branche de base avec
-          # `git show` : à profondeur 1, ce commit n'est pas dans le clone et
-          # tout plugin passerait pour naissant — donc vert sur rien.
-          fetch-depth: 0
-
-      - name: Contrôles de garde (scripts/ci_locale.sh)
-        # La liste des contrôles vit dans `scripts/ci_locale.sh`, et nulle part
-        # ailleurs : la CI l'appelle au lieu de recopier ses commandes, pour que
-        # « ce qui passe en local » et « ce qui passe ici » soient la même liste.
-        # Sur une PR, la base est la branche visée ; sur une poussée sur main,
-        # il n'y a rien à comparer et les contrôles qui en dépendent sont sautés.
-        env:
-          BASE_REF: origin/${{ github.base_ref }}
-          CI_LOCALE_SANS_BASE: ${{ github.event_name != 'pull_request' && '1' || '' }}
-        run: scripts/ci_locale.sh garde
-
   validation:
     name: Validation des plugins
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Le garde de version (step des gardes, plus bas) lit l'état de la
+          # branche de base avec `git show` : à profondeur 1, ce commit n'est pas
+          # dans le clone et tout plugin passerait pour naissant — donc vert sur rien.
+          fetch-depth: 0
 
       - uses: actions/setup-node@v4
         with:
           node-version: 20
 
       - name: Installer la CLI Claude Code
-        # Non épinglée volontairement : si le format des manifestes de plugin
-        # change en amont, on veut que cette étape le dise (schéma qui bouge,
-        # validation qui échoue) plutôt que de valider indéfiniment contre un
-        # schéma qu'on aurait figé et qui serait devenu périmé.
-        run: npm install -g @anthropic-ai/claude-code
+        # Épinglée sur la version de evals/outillage/preparer-runner.sh
+        # (CLAUDE_CODE_VERSION) : les évals et cette validation jouent la même CLI.
+        # Les deux se montent ensemble, dans une PR revue : une montée de version
+        # est un changement revu, jamais une dérive silencieuse.
+        run: npm install -g @anthropic-ai/claude-code@2.1.285
 
       - uses: actions/setup-python@v5
         with:
@@ -110,13 +93,26 @@ jobs:
           done
 
       - name: Validation, tests et renvois (scripts/ci_locale.sh)
-        # Même liste que `garde` : scripts/ci_locale.sh, section `validation`.
+        # La liste des contrôles vit dans `scripts/ci_locale.sh`, et nulle part
+        # ailleurs : la CI l'appelle au lieu de recopier ses commandes, pour que
+        # « ce qui passe en local » et « ce qui passe ici » soient la même liste.
         env:
           PYTHON_PLUGINS: python
           # Les tests du plugin voyages lancent Chromium sur des fixtures
           # locales ; sur le runner jetable, il démarre sans bac à sable.
           VOYAGES_CHROMIUM_SANS_BAC_A_SABLE: "1"
         run: scripts/ci_locale.sh validation
+
+      - name: Contrôles de garde (scripts/ci_locale.sh)
+        # Joués après la validation, et non avant : `!cancelled()` fait qu'un rouge
+        # de la validation ne cache pas les gardes (même visibilité qu'avec un job
+        # à part). Sur une PR, la base est la branche visée ; sur une poussée sur
+        # main, il n'y a rien à comparer et les contrôles qui en dépendent sont sautés.
+        if: ${{ !cancelled() }}
+        env:
+          BASE_REF: origin/${{ github.base_ref }}
+          CI_LOCALE_SANS_BASE: ${{ github.event_name != 'pull_request' && '1' || '' }}
+        run: scripts/ci_locale.sh garde
 
   annuler-perimes:
     name: Annuler les runs périmés de la PR
@@ -1329,7 +1325,7 @@ jobs:
   merge-auto:
     name: Merge automatique si tout est vert
     # Sur ce dépôt, merger c'est publier : les postes tirent `main` et le bump
-    # de version que le job `garde` impose est la mise à disposition. Ce job
+    # de version que les gardes de `validation` imposent est la mise à disposition. Ce job
     # n'ajoute donc pas une commodité, il retire un geste — celui qui séparait
     # « la CI est verte » de « c'est en ligne ». Trois garde-fous le bornent :
     # l'auteur (une PR venant d'ailleurs ne se merge jamais seule), le brouillon
@@ -1346,10 +1342,9 @@ jobs:
     # est sauté, et sans lui ce saut passerait pour un feu vert.
     # `evals-verdict` y est aussi : c'est le contrôle que le verrou de `main`
     # exigera, et le merge automatique ne doit pas être plus permissif que lui.
-    needs: [garde, validation, evals-portee, evals, evals-verdict]
+    needs: [validation, evals-portee, evals, evals-verdict]
     if: >-
       always()
-      && (needs.garde.result == 'success' || needs.garde.result == 'skipped')
       && (needs.validation.result == 'success' || needs.validation.result == 'skipped')
       && (needs.evals-portee.result == 'success' || needs.evals-portee.result == 'skipped')
       && (needs.evals.result == 'success' || needs.evals.result == 'skipped')

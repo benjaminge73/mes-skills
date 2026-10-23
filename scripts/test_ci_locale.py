@@ -60,20 +60,27 @@ class ListeUnique(unittest.TestCase):
 
     def test_la_ci_appelle_le_script_au_lieu_de_recopier_les_commandes(self):
         ci = CI.read_text(encoding="utf-8")
-        for job in ("garde", "validation"):
+        for job in ("validation",):
             with self.subTest(job=job):
                 corps = _job(ci, job)
                 self.assertIn("scripts/ci_locale.sh", corps)
                 self.assertNotRegex(corps, r"python3 scripts/(check_|plugin_version_guard)")
                 self.assertNotIn("unittest discover", corps)
                 self.assertNotIn("claude plugin validate", corps)
+        # Les gardes sont un step de `validation` depuis la fusion avec `garde` :
+        # les deux appels au script doivent y être.
+        corps = _job(ci, "validation")
+        self.assertIn("ci_locale.sh garde", corps)
+        self.assertIn("ci_locale.sh validation", corps)
 
     def test_les_jobs_de_la_ci_qui_ne_relevent_pas_du_script_sont_intacts(self):
         ci = CI.read_text(encoding="utf-8")
         for job in ("evals-portee", "evals", "evals-verdict", "merge-auto"):
             self.assertRegex(ci, rf"(?m)^  {job}:\n", f"job {job} disparu de ci.yml")
         # Étape B9 : `merge-auto` attend aussi le verdict des évals (nom fixe).
-        self.assertIn("needs: [garde, validation, evals-portee, evals, evals-verdict]", ci)
+        self.assertIn("needs: [validation, evals-portee, evals, evals-verdict]", ci)
+        # Le job `garde` a été fusionné dans `validation` : il ne doit plus exister.
+        self.assertNotRegex(ci, r"(?m)^  garde:\n")
 
     def test_claude_md_et_readme_renvoient_au_script_sans_enumerer(self):
         for nom in ("CLAUDE.md", "README.md"):
