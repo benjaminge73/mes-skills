@@ -79,6 +79,13 @@ def jouer(argv: list[str], env: dict | None = None) -> tuple[int, str, str]:
     return code, sortie.getvalue(), erreur.getvalue()
 
 
+def poser_cas(depot: Path, noms: list[str]) -> None:
+    """Pose dans le dépôt de test un cas par nom (copie de ``alpha``) : une relance ne
+    peut nommer qu'un cas posé, et le rapport figé nomme ceux de la fixture."""
+    for nom in noms:
+        shutil.copytree(depot / "evals" / "jouet" / "alpha", depot / "evals" / "jouet" / nom)
+
+
 # --------------------------------------------------------------------------
 # Lecteur du sous-ensemble YAML des cas
 # --------------------------------------------------------------------------
@@ -825,33 +832,21 @@ class BoutEnBout(DepotEtLanceur):
         code, _, _ = jouer(self.argv(), self.env)  # sans bruit mesuré : recul
         self.assertEqual(code, 1)
 
-    def test_une_aa_dont_un_jeu_a_des_sessions_en_erreur_rend_quatre_et_n_ecrit_pas_de_bruit(self):
-        # Un jeu perd 6 sessions sur 9 à une limite de session : ses scores s'effondrent,
-        # le rms de l'écart entre les deux jeux est gonflé, et toute A/B qui lirait ce
-        # fichier jugerait avec un seuil faux. Même règle que l'A/B : code 4, aucun bruit.
-        # Le faux lanceur de la classe rend le même rapport aux deux passages ; celui-ci
-        # rend la fixture en panne au premier et sa copie sans erreur au second.
-        sain = rapport("tete_session_limite")
-        for c in sain["cases"]:
-            for passage in c["arms"]["with"]:
-                passage["error"] = None
-        ecrire(self.racine / "jeu-sain.json", json.dumps(sain))
-        ecrire(
-            self.lanceur,
-            FAUX_LANCEUR.replace(
-                'if [ "$marqueur" = "base" ]; then cp "$FAUX_RAPPORT_BASE" "$sortie"; '
-                'else cp "$FAUX_RAPPORT_TETE" "$sortie"; fi',
-                'if [ "$(grep -c "^APPEL" "$FAUX_JOURNAL")" = "1" ]; '
-                'then cp "$FAUX_RAPPORT_TETE" "$sortie"; else cp "$FAUX_RAPPORT_BASE" "$sortie"; fi',
-            ),
-        )
+    def test_une_aa_dont_un_jeu_garde_ses_sessions_en_erreur_apres_relance_rend_quatre_et_n_ecrit_pas_de_bruit(self):
+        # Un jeu perd 6 sessions sur 9 à une limite de session, et la relance unique ne les
+        # répare pas : ses scores s'effondrent, le rms de l'écart entre les deux jeux est
+        # gonflé, et toute A/B qui lirait ce fichier jugerait avec un seuil faux. Même règle
+        # que l'A/B : code 4, aucun bruit. Le faux lanceur de la classe rend la même fixture
+        # en panne à chaque appel (passage et relance, pour les deux jeux de l'A/A).
+        poser_cas(self.depot, ["existant-jeu-de-questions", "maquette-requise"])
         self.env["FAUX_RAPPORT_TETE"] = str(FIXTURES / "rapport_tete_session_limite.json")
-        self.env["FAUX_RAPPORT_BASE"] = str(self.racine / "jeu-sain.json")
         sortie_bruit = self.racine / "bruit.json"
         code, sortie, erreur = jouer(
             self.argv("--sortie-bruit", str(sortie_bruit), mode="aa"), self.env
         )
         self.assertEqual(code, 4, sortie + erreur)
+        # Quatre appels : chaque jeu, puis la relance de chacun ; jamais une troisième.
+        self.assertEqual(len([l for l in self.appels() if l.startswith("APPEL")]), 4)
         self.assertFalse(sortie_bruit.exists())
         self.assertIn("non concluant", sortie.lower())
         self.assertIn("panne d'infrastructure, à relancer", sortie)
@@ -1672,7 +1667,9 @@ class FumeeEtPlanchers(DepotEtLanceur):
         # Test construit pour la panne réelle de la PR #19 : la tête a perdu 6 sessions
         # sur 9 à une limite de session, ses scores s'effondrent. Sans la règle, cet
         # effondrement se lirait « RECUL » (code 1) alors que rien n'a été mesuré.
-        base = json.loads((FIXTURES / "rapport_tete_session_limite.json").read_text("utf-8"))
+        # La relance unique rejoue les deux cas en erreur : ils doivent être posés.
+        poser_cas(self.depot, ["existant-jeu-de-questions", "maquette-requise"])
+        base =json.loads((FIXTURES / "rapport_tete_session_limite.json").read_text("utf-8"))
         for c in base["cases"]:
             for passage in c["arms"]["with"]:
                 passage["error"], passage["score"] = None, 1.0
