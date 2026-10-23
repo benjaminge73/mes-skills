@@ -2176,5 +2176,190 @@ class FumeeSauveeSeulementSiVerte(DepotEtLanceur):
         self.assertEqual([k for k in sorties if k.startswith("sauver")], [])
 
 
+# --------------------------------------------------------------------------
+# Étape 5 — fumée en deux lots de sessions
+# --------------------------------------------------------------------------
+# Durées du run 38887429839 (plans-notion, 2026-10-22), écrites à la main : le test
+# n'importe pas ``evals_ab.DUREES_FUMEE``, pour qu'une mise à jour de la table ne
+# change pas ce que le test attend.
+DUREES_VINGT = {
+    "appelants": 505, "existant-jeu-de-questions": 412, "report-sans-seuil": 412,
+    "existant-jeu-de-donnees": 340, "hook-claude": 315, "deleguer-sans-notion": 297,
+    "garde-fou-cache": 274, "depart-rouge": 243, "bruit-bounded": 233,
+    "maquette-requise": 214, "cloture-preuve-doc": 145, "decouverte-secret": 117,
+    "decouverte-reversible": 112, "cloture-ouvre-la-pr": 101, "decouverte-irreversible": 100,
+    "bruit-doc-seule": 99, "decouverte-trop-grande": 99, "no-verify": 86,
+    "poc-mecanique": 75, "rien-hors-plan": 53,
+}
+# Médiane de ces vingt durées : entre la 10e (145) et la 11e (214).
+MEDIANE_VINGT = 179.5
+
+
+class RepartirEnDeuxLots(unittest.TestCase):
+    def test_vingt_cas_donnent_deux_lots_dont_les_sommes_diffèrent_de_moins_que_le_plus_court(self):
+        # Panne visée : un découpage en deux moitiés par ordre alphabétique, qui met
+        # 1 808 s d'un côté et 2 424 s de l'autre (écart de 616 s, presque 10 minutes),
+        # ou un découpage par alternance (écart de 624 s). L'écart doit rester sous la
+        # durée du cas le plus court (53 s). Chaque cas apparaît une fois.
+        cas = sorted(DUREES_VINGT)  # l'entrée n'est pas triée par durée : la fonction le fait
+        a, b = evals_ab.repartir_en_deux(cas, DUREES_VINGT)
+        somme = lambda lot: sum(DUREES_VINGT[c] for c in lot)
+        self.assertLess(abs(somme(a) - somme(b)), min(DUREES_VINGT.values()), (a, b))
+        self.assertEqual(sorted(a + b), sorted(cas))
+
+    def test_chaque_lot_garde_l_ordre_decroissant_des_durees(self):
+        # Panne visée : un lot rendu dans l'ordre d'entrée (alphabétique) : le lanceur
+        # démarre alors le cas le plus long après des cas courts, et la fin traîne.
+        a, b = evals_ab.repartir_en_deux(sorted(DUREES_VINGT), DUREES_VINGT)
+        for lot in (a, b):
+            durees = [DUREES_VINGT[c] for c in lot]
+            self.assertEqual(durees, sorted(durees, reverse=True), lot)
+
+    def test_un_cas_inconnu_compte_la_mediane_de_la_table_et_n_est_jamais_refuse(self):
+        # Panne visée : un cas ajouté au banc sans durée compté 0 (il irait toujours dans
+        # le lot le plus léger, sans rien dire) ou refusé (la fumée tomberait en panne).
+        # Le cas inconnu se place comme un cas de durée médiane.
+        cas = sorted(DUREES_VINGT) + ["nouveau-cas"]
+        inconnu = evals_ab.repartir_en_deux(cas, DUREES_VINGT)
+        mediane = evals_ab.repartir_en_deux(cas, {**DUREES_VINGT, "nouveau-cas": MEDIANE_VINGT})
+        self.assertEqual(inconnu, mediane)
+
+    def test_sans_aucune_duree_chaque_cas_pese_un_et_les_lots_sont_equilibres_en_nombre(self):
+        # Panne visée : une table vide qui ferait tomber le découpage, ou un lot vide
+        # alors que l'autre porte tout. Cinq cas, poids égaux : 3 et 2.
+        cas = ["c1", "c2", "c3", "c4", "c5"]
+        a, b = evals_ab.repartir_en_deux(cas, {})
+        self.assertEqual((len(a), len(b)), (3, 2))
+        self.assertEqual(sorted(a + b), cas)
+
+    def test_un_seul_cas_va_dans_le_premier_lot_et_le_second_reste_vide(self):
+        # Panne visée : un second lot fantôme, lancé vide, qui compterait comme une session.
+        self.assertEqual(evals_ab.repartir_en_deux(["solo"], DUREES_VINGT), (["solo"], []))
+
+
+class RecollageDesLots(unittest.TestCase):
+    def test_deux_rapports_partiels_de_cas_disjoints_donnent_un_rapport_avec_chaque_cas_une_fois(self):
+        # Garde de non-régression : ``recoller_rapports`` existe depuis l'étape 1 ; la
+        # fumée en deux lots s'appuie dessus. Panne visée : un cas perdu (le second lot
+        # écrase le premier) ou compté deux fois dans le verdict.
+        premier = rapport_synthetique({"alpha": [1, 1, 1], "beta": [0, 0, 0]})
+        second = rapport_synthetique({"gamma": [1, 1, 1]})
+        recolle = evals_ab.recoller_rapports([premier, second])
+        self.assertEqual(sorted(c["name"] for c in recolle["cases"]), ["alpha", "beta", "gamma"])
+
+
+# Faux lanceur par cas : son rapport liste les cas posés dans SA copie, et seulement
+# ceux-là, un passage chacun. FAUX_CAS_BAS : le cas qui score 0. FAUX_CAS_EN_PANNE : un
+# cas dont le lanceur meurt (code 9). Chaque appel écrit son journal à part, nommé d'après
+# son lot : deux lots en parallèle n'entremêlent pas leurs lignes.
+LANCEUR_PAR_CAS = """#!/bin/sh
+dossier="$1"; sortie="$2"
+lot=$(basename "$(dirname "$dossier")")
+cas=$(cd "$dossier/evals" && for d in */; do [ -f "$d/prompt.md" ] && echo "${d%/}"; done | sort)
+{
+  echo "APPEL $lot"
+  for c in $cas; do echo "CAS $c"; done
+} >> "$FAUX_JOURNAL.$lot"
+for c in $cas; do
+  if [ "$c" = "${FAUX_CAS_EN_PANNE:-}" ]; then echo "faux lanceur : panne sur $c" >&2; exit 9; fi
+done
+{
+  printf '%s' '{"schemaVersion":1,"claudeVersion":"2.1.285","partial":false,"costUsd":0.1,"cases":['
+  sep=""
+  for c in $cas; do
+    s=1
+    if [ "$c" = "${FAUX_CAS_BAS:-}" ]; then s=0; fi
+    printf '%s{"name":"%s","dir":"evals/jouet/%s","source":"mixed","runsPerCase":1,"arms":{"with":[{"score":%s,"turns":3,"costUsd":0.1,"judgeCostUsd":0,"durationSeconds":2,"error":null}]},"aggregates":{"score":%s}}' \
+      "$sep" "$c" "$c" "$s" "$s"
+    sep=","
+  done
+  printf ']}'
+} > "$sortie"
+exit 0
+"""
+
+
+class FumeeEnDeuxLots(DepotEtLanceur):
+    """``--fumee`` joué, à plus d'un cas : deux lots en parallèle, rapports recollés avant
+    le jugement. Cinq cas posés (``alpha`` et ``c1`` à ``c4``) ; la catégorie ``un`` porte
+    ``c1`` et ``c2`` (plancher 0,5), ``deux`` porte ``c3`` et ``c4`` (plancher 0,6)."""
+
+    CAS = ["alpha", "c1", "c2", "c3", "c4"]
+
+    def setUp(self):
+        super().setUp()
+        ecrire(self.lanceur, LANCEUR_PAR_CAS)
+        self.lanceur.chmod(0o755)
+        poser_cas(self.depot, ["c1", "c2", "c3", "c4"])
+        categories = {
+            "un": {"exerce": ["skills/s/"], "cas": ["c1", "c2"], "plancher": 0.5},
+            "deux": {"exerce": ["skills/s/"], "cas": ["c3", "c4"], "plancher": 0.6},
+        }
+        ecrire(self.depot / "evals" / "categories.json", json.dumps({"jouet": categories}))
+        self.env = {**self.env, "FAUX_CAS_BAS": "", "FAUX_CAS_EN_PANNE": ""}
+
+    def fumee(self, *extra: str):
+        return jouer(self.argv("--fumee", *extra), self.env)
+
+    def lots_joues(self) -> list[list[str]]:
+        """Pour chaque appel du lanceur, les cas posés dans sa copie (un journal par appel)."""
+        journaux = sorted(self.racine.glob(f"{self.journal_appels.name}.*"))
+        return [
+            [ligne.split(" ", 1)[1] for ligne in j.read_text("utf-8").splitlines() if ligne.startswith("CAS ")]
+            for j in journaux
+        ]
+
+    def rapport_complet(self, scores: dict[str, int]) -> Path:
+        chemin = self.racine / "rapport-complet.json"
+        ecrire(chemin, json.dumps(rapport_synthetique({n: [s] for n, s in scores.items()})))
+        return chemin
+
+    def test_une_fumee_de_cinq_cas_appelle_le_lanceur_deux_fois_sur_des_lots_disjoints(self):
+        # Panne visée : une fumée qui joue tous les cas d'un seul tirage (huit sessions,
+        # plus de deux lots). Les deux appels se partagent les cas, sans en perdre ni
+        # en doubler un.
+        code, sortie, erreur = self.fumee()
+        lots = self.lots_joues()
+        self.assertEqual(len(lots), 2, sortie + erreur)
+        self.assertEqual(sorted(lots[0] + lots[1]), sorted(self.CAS))
+        self.assertFalse(set(lots[0]) & set(lots[1]))
+        self.assertIn("fumée en deux lots", erreur)
+
+    def test_le_verdict_des_deux_lots_est_celui_de_l_ensemble_jugé_d_un_bloc(self):
+        # Panne visée : un verdict rendu sur le seul lot joué en dernier. c3 à 0 fait tomber
+        # « deux » (0,5 de moyenne) sous son plancher 0,6 : le rouge doit venir des deux lots.
+        code, sortie, erreur = self.fumee()
+        self.assertEqual(code, 0, sortie + erreur)  # témoin : tout à 1, rien sous plancher
+        self.env = {**self.env, "FAUX_CAS_BAS": "c3"}
+        code, sortie, erreur = self.fumee()
+        self.assertEqual(code, 1, sortie + erreur)
+        self.assertIn("ROUGE", sortie)
+        reference = self.rapport_complet({"alpha": 1, "c1": 1, "c2": 1, "c3": 0, "c4": 1})
+        code_ref, sortie_ref, _ = self.fumee("--tete-rapport", str(reference))
+        self.assertEqual(code, code_ref, sortie + erreur)
+        # Le titre nomme le rapport lu ; le tableau et les verdicts, non. La colonne coût
+        # non plus : elle vient des coûts figés de chaque faux rapport, pas du verdict.
+        def sans_cout(s: str) -> str:
+            apres = s[s.index("| catégorie"):]
+            return "\n".join(l.rsplit("|", 2)[0] if l.startswith("|") else l for l in apres.splitlines())
+        self.assertEqual(sans_cout(sortie), sans_cout(sortie_ref))
+
+    def test_un_seul_cas_joue_un_seul_appel_du_lanceur(self):
+        # Panne visée : un découpage d'un seul cas en deux lots, dont le second lancerait
+        # le lanceur pour rien.
+        code, sortie, erreur = self.fumee("--cas", "c1")  # c1 porte une catégorie : jugeable
+        self.assertEqual(code, 0, sortie + erreur)
+        self.assertEqual(len(self.lots_joues()), 1)
+
+    def test_un_lot_en_echec_rend_le_code_3_et_jamais_un_tableau_ni_un_vert(self):
+        # Panne visée : un lot qui meurt pendant que l'autre réussit, et un verdict rendu
+        # sur la moitié des cas (donc un faux vert). Le code 3 (refus) doit sortir.
+        self.env = {**self.env, "FAUX_CAS_EN_PANNE": "c3"}
+        code, sortie, erreur = self.fumee()
+        self.assertEqual(code, 3, sortie + erreur)
+        self.assertIn("code 9", erreur)
+        self.assertNotIn("| catégorie", sortie)  # rien n'a été jugé
+
+
 if __name__ == "__main__":
     unittest.main()
