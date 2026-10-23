@@ -83,6 +83,8 @@ Le bloc `<toggle>` est replié. Il contient tout ce qui sert à la relecture et 
 
 Rien du compte rendu actuel n'est perdu en le rangeant ici.
 
+La lecture d'une page par `composio` (§ 6, point 2) rend ce bloc sous la forme repliable à balise `details` dont le titre est porté par `summary`, au lieu de `toggle` ; les deux formes sont acceptées par `controle-changelog.py` et par `doc-de-cloture.py`.
+
 ### 2.4 Trois variantes
 
 - **Lot de plan maître** : une seule entrée consolidée au `Changelog`, titre `## AAAA-MM-JJ · Lot <titre du plan maître>`. Le condensé de la page maître (§ 7) reprend chaque plan du lot avec son lien.
@@ -95,20 +97,20 @@ Une PR est **documentée** seulement si son numéro figure dans l'**en-tête** d
 
 Quels numéros comptent dans un en-tête :
 
-- **Dans le titre H2**, seule la forme finale `(PR #N)`, en fin de titre : c'est celle que pose le gabarit « Hors plan » (§ 2.6). Ni un `#N` nu (`## … · Hors plan — Revert « … » (#282)` ne documente pas la PR 282), ni un `PR N` ou un `pull/N` ailleurs dans le titre ne documentent : le titre recopie celui de la PR, qui peut citer d'autres PR (« … ce que la PR #190 a fait … » ne documente pas la 190). Un `(PR N)` sans dièse (« (PR 150) ») ne documente pas non plus la 150. Un numéro du titre de plan (« Vahiny - Thaïlande #4 ») ne documente pas non plus la PR 4. Hors de cette forme finale, le numéro se lit sur la ligne `Plan :` (ci-dessous).
+- **Dans le titre H2**, seule la forme finale `(PR #N)`, en fin de titre : c'est celle que pose le gabarit « Sans plan » (§ 2.6). Ni un `#N` nu (`## … · Sans plan — Revert « … » (#282)` ne documente pas la PR 282), ni un `PR N` ou un `pull/N` ailleurs dans le titre ne documentent : le titre recopie celui de la PR, qui peut citer d'autres PR (« … ce que la PR #190 a fait … » ne documente pas la 190). Un `(PR N)` sans dièse (« (PR 150) ») ne documente pas non plus la 150. Un numéro du titre de plan (« Vahiny - Thaïlande #4 ») ne documente pas non plus la PR 4. Hors de cette forme finale, le numéro se lit sur la ligne `Plan :` (ci-dessous).
 - **Sur la ligne `Plan :`**, seul le segment qui suit `PR :` compte, jusqu'à `· Statut :` (exclu) ou la fin de ligne ; il tient ainsi un groupe de liens séparés par `·` (`PR : [x](pull/262) · [x](pull/263)`). Le lien du plan et son titre ne comptent jamais : `Plan : [Plan … #2 - 3e passe](…) · PR : #12` ne documente ni 2 ni 3.
 - **Dans ce segment** : `#N` (frontière de mot : `#25` ne couvre pas `#258`), `pull/N`, et les plages (toutes les PR de A à B incluses) : `#A à #B` et `#A à B` (avec « à » seulement, la borne B peut être sans dièse), `#A–#B`, `#A-#B`, `#A … #B` (avec ces séparateurs, la borne B porte son dièse). Une plage inversée (A > B) ou de plus de 50 numéros (B − A > 50) ne compte pas du tout. Un `PR N` en prose n'est pas lu : `PR : #12 (voir PR 190)` ne documente que la 12. Limite assumée : un `#N` cité entre parenthèses dans ce segment compte encore (`PR : #12 (voir #190)` documente 190 ; le relecteur le voit à l'œil).
 - **Un bloc de code** (``` ou ~~~) ne compte ni pour le Récap, ni pour un en-tête : un exemple d'entrée cité dans un bloc ne documente rien.
 
 Le script `${CLAUDE_PLUGIN_ROOT}/skills/_partage/scripts/doc-de-cloture.py` applique cette règle, dans ses deux usages (§ 4, point 2 bis).
 
-### 2.6 L'entrée « Hors plan »
+### 2.6 L'entrée « Sans plan »
 
-Une PR mergée sans entrée au hub, et qui n'a pas de plan, se rattrape par une entrée « Hors plan ». Elle a la forme d'une entrée ordinaire :
+Une PR mergée sans entrée au hub, et qui n'a pas de plan, se rattrape par une entrée « Sans plan ». Elle a la forme d'une entrée ordinaire :
 
 ```
-## AAAA-MM-JJ · Hors plan — <titre de la PR> (PR #N)
-Plan : aucun (hors plan) · PR : <lien> · Statut : mergée
+## AAAA-MM-JJ · Sans plan — <titre de la PR> (PR #N)
+Plan : aucun (sans plan) · PR : <lien> · Statut : mergée
 
 ### ✨ Nouveau
 - <phrase> (preuve : PR #N)
@@ -128,10 +130,11 @@ Plan : aucun (hors plan) · PR : <lien> · Statut : mergée
 ```
 
 - La date du titre est celle de la pose du rattrapage.
+- Les entrées déjà écrites sous l'ancien intitulé de ce gabarit (avant la 0.49.0) restent valides : les scripts ne lisent que `(PR #N)` dans le titre et `Plan : aucun` sur la ligne `Plan :`, jamais la parenthèse qui suit ; on les renomme à la main si on veut l'homogénéité.
 - Le numéro de la PR figure **dans le titre**, sous la forme `(PR #N)`, et dans la ligne `Plan :` sous `PR : <lien>` : c'est la forme finale du § 2.5 qui documente la PR, un `#N` nu dans le titre ne suffirait pas, et un `PR N` ailleurs dans le titre ne compte pas.
 - Elle passe `controle-changelog.py` comme toute entrée : quatre rubriques, source sur chaque ligne ✨ ou 🔧, bloc « Côté technique ». La source d'une PR sans plan est `(preuve : PR #N)`.
 - Elle ne s'écrit **pas** pour une PR de dépendances (auteur Dependabot, ou label `dependencies`).
-- Elle **ne remplace pas** l'obligation du plan : une PR qui a un plan doit son entrée de plan (`cloture.md`, point (c)). L'entrée « Hors plan » ne fait que couvrir la PR en attendant, et le compte rendu le dit à Benjamin.
+- Elle **ne remplace pas** l'obligation du plan : une PR qui a un plan doit son entrée de plan (`cloture.md`, point (c)). L'entrée « Sans plan » ne fait que couvrir la PR en attendant, et le compte rendu le dit à Benjamin.
 - Le rattachement suit `cloture.md`, point (e) : une PR avec plan va au projet de ce plan ; une PR sans plan sur un dépôt qui a deux pages projet est dite « à classer » au compte rendu, sans deviner.
 
 ## 3. Le récap et le compte rendu du chat
@@ -144,7 +147,7 @@ Les règles de `ecrire-dans-notion.md` s'appliquent : relevé avant écriture, �
 
 1. **Relever.** Recharger la page fraîche (hub ou page du plan) avant d'écrire. Noter l'encadré d'activation, les sous-pages existantes, la page mère avec ses familles, et les fiches déjà là. Ne jamais écrire sur un miroir local. Le titre de la page se lit dans ses propriétés (`title` ou `Titre` de `notion-fetch`), jamais dans le miroir : le corps rendu par `notion-fetch` ne le porte pas, et celui de `composio` (`NOTION_GET_PAGE_MARKDOWN`) n'a ni titre ni propriétés.
 2. **Contrôler la forme.** Passer l'entrée au script `${CLAUDE_PLUGIN_ROOT}/skills/_partage/scripts/controle-changelog.py` avant pose. Il vérifie les quatre rubriques dans l'ordre, la source sur chaque ligne ✨ ou 🔧, et « rien » là où une rubrique est vide. Il vérifie aussi que l'en-tête porte sa ligne `Plan :` et que l'entrée a son bloc « Côté technique ». Sa ligne de commande est dans son en-tête. Si le contrôle échoue, corriger le texte, pas le contrôle.
-2 bis. **Deux usages du script `${CLAUDE_PLUGIN_ROOT}/skills/_partage/scripts/doc-de-cloture.py`.** `--porte` : la page du plan porte son Récap, et, pour un projet activé, l'entrée du hub cite la PR (§ 2.5) ; au palier 3, cette entrée se donne par `--hub-fichier` (fichier confié à Hermes, même format) ; code 1 interdit `a merger` (`cloture.md`, point (b bis)). `--trous` : liste les PR mergées sans entrée, hors dépendances, depuis la date d'activation (`cloture.md`, point (e)) ; chacune reçoit une entrée « Hors plan » (§ 2.6). Le contrôle de forme reste `controle-changelog.py` (point 2).
+2 bis. **Deux usages du script `${CLAUDE_PLUGIN_ROOT}/skills/_partage/scripts/doc-de-cloture.py`.** `--porte` : la page du plan porte son Récap, et, pour un projet activé, l'entrée du hub cite la PR (§ 2.5) ; au palier 3, cette entrée se donne par `--hub-fichier` (fichier confié à Hermes, même format) ; code 1 interdit `a merger` (`cloture.md`, point (b bis)). `--trous` : liste les PR mergées sans entrée, hors dépendances, depuis la date d'activation (`cloture.md`, point (e)) ; chacune reçoit une entrée « Sans plan » (§ 2.6). Le contrôle de forme reste `controle-changelog.py` (point 2).
 3. **Poser l'entrée en tête.** Dans le `Changelog`, l'entrée va avant l'entrée précédente, la plus récente en haut. Ancrer le texte sur la **fin complète** du dernier bloc qui précède les entrées (le titre de la page ou son intro), jamais au milieu d'un paragraphe formaté : l'insertion y casserait l'italique ou le gras, sans erreur. Dans la page du plan, le `## Récap · AAAA-MM-JJ · <titre du plan>` se pose de la même façon, en tête.
 4. **Réécrire une fiche par bloc.** Une fiche se met à jour par `update_content` sur le bloc concerné, jamais par recréation de la page. Ajouter une ligne en tête de sa liste, sous le titre `🕰️ Historique` : `- AAAA-MM-JJ · <titre du plan> — <ce qui a changé, côté utilisateur>`.
 5. **Ne jamais insérer juste avant une liste de cases à cocher.** Notion la recrée et redistribue ses cases cochées. Ancrer après la liste. Ne jamais utiliser un remplacement global (`replace_all`) sur un motif qui contient du balisage.
@@ -160,10 +163,12 @@ La doc vivante est **activée projet par projet**. Un encadré en tête de la pa
 
 L'encadré d'activation peut porter une seconde ligne, sous `📘 Doc vivante : activée` : `📘 Rétro-doc : faite AAAA-MM-JJ`. Elle s'écrit dans l'encadré d'activation de la page `Projet`, et c'est le plan de rétro-doc qui la pose à sa fin, en retirant dans le même geste l'encadré « 🚧 Doc partielle » de la page mère. Sans cette ligne, retirer l'encadré ne laisserait aucune trace : la clôture suivante le reposerait. Si la page mère n'a pas d'encadré mais que la ligne est présente, la clôture ne le pose pas.
 
+L'encadré d'activation porte aussi, à l'activation, une ligne `📘 Activée le AAAA-MM-JJ` : la date du jour où l'encadré `📘 Doc vivante : activée` est posé. C'est elle que `doc-de-cloture.py --trous --projet` lit pour borner le rattrapage (`cloture.md`, point (e)) ; le script la cherche comme le motif `Activée le AAAA-MM-JJ`, insensible au gras ou à l'emoji qui l'entoure. Sans elle, `--trous` sans `--depuis` refuse (code 2) : la date ne se devine pas à partir du premier Changelog. Un projet activé avant l'existence de cette ligne ne la porte pas ; Benjamin l'ajoute à la main, avec la date d'activation.
+
 Trois cas :
 
 - **Encadré absent** (projet sans décision, ou nouveau projet) : la clôture **n'écrit rien dans le hub** (ni `Changelog`, ni fiche, ni vue d'ensemble). Elle garde l'entrée prête dans le récap de la page du plan, et pose la question dans son compte rendu : « Doc vivante : à activer pour <projet> ? ». La question est posée à chaque clôture tant que l'encadré n'existe pas.
-- **Réponse de Benjamin** : le pilote pose l'encadré (`activée` ou `désactivée`). S'il active, il pose ensuite l'entrée, comme un projet activé.
+- **Réponse de Benjamin** : le pilote pose l'encadré (`activée` ou `désactivée`). S'il active, il y ajoute la ligne `📘 Activée le <date du jour>`, puis pose l'entrée, comme un projet activé.
 - **Projet activé** : la clôture crée la sous-page `📰 Changelog` si elle manque, et y pose l'entrée. Elle crée **une fiche par fonctionnalité que le plan touche**, et seulement celles-là, rangée dans sa famille (§ 1) ; si aucune famille ne convient, elle en crée une. Chaque fiche créée ajoute une ligne au tableau `🧩 Fonctionnalités` de la page mère (§ 9.1) — son nom, sa famille, une phrase, un lien vers la fiche — **si ce tableau existe**. S'il n'existe pas, la clôture ne le crée pas et n'en invente pas : c'est le rôle de la rétro-doc, comme pour la vue d'ensemble. Une fiche déjà là ne reçoit qu'une ligne d'historique, jamais de ligne de tableau. L'encadré « Doc partielle » vit sur la page mère, plus sur la page `Projet` : si la page mère n'en a pas encore, elle en ajoute un en tête, `🚧 Doc partielle — rétro-doc pas encore faite`, et le laisse en place s'il existe déjà. Elle ne le pose que si la ligne `📘 Rétro-doc : faite` manque dans l'encadré d'activation (ci-dessus) : si elle est là, la rétro-doc est faite et l'encadré n'est pas posé. Un encadré « Doc partielle » déjà posé sur la page `Projet` par l'ancienne règle n'est pas déplacé (la clôture ne déplace jamais une page existante) : elle le signale dans son compte rendu. Elle n'écrit **jamais** de vue d'ensemble ni de processus au jugé : c'est le rôle de la rétro-doc, plan dédié par projet.
 
 **Projet activé, pas de page mère** (décision Q3) : la clôture crée la page mère « 📚 Documentation » vide de vue d'ensemble, avec, si la ligne « 📘 Rétro-doc : faite » manque dans l'encadré d'activation, l'encadré « 🚧 Doc partielle — rétro-doc pas encore faite » (sinon la page naît sans encadré), puis la famille et la fiche ; cette page neuve n'a pas de tableau `🧩 Fonctionnalités`, donc la fiche n'y a pas de ligne (règle du § 5, puce « Projet activé »). Elle ne déplace JAMAIS une page existante, et signale dans son compte rendu les fiches restées à l'ancienne place.

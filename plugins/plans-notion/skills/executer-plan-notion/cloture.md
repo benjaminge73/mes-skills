@@ -362,21 +362,23 @@ Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard »
        seulement. Relever les PR mergées du dépôt, à la racine du dépôt du plan :
        `gh pr list --state merged --limit 200 --json number,title,mergedAt,author,labels > <scratchpad>/prs.json`.
        Puis, sur le miroir frais du `📰 Changelog`, jouer
-       `python3 ${CLAUDE_PLUGIN_ROOT}/skills/_partage/scripts/doc-de-cloture.py --trous --changelog <miroir-changelog> --prs <scratchpad>/prs.json --depuis <date d'activation> [--sauf <N de ce plan>]`.
-       - `--depuis` : la date d'activation lue dans l'encadré. Le format actuel de l'encadré
-         ne porte pas cette date (`changelog-et-doc.md` § 5) : si elle manque, on ne joue pas
-         `--trous`, et on le dit à Benjamin.
+       `python3 ${CLAUDE_PLUGIN_ROOT}/skills/_partage/scripts/doc-de-cloture.py --trous --changelog <miroir-changelog> --prs <scratchpad>/prs.json --projet <miroir-page-projet> [--sauf <N de ce plan>]`.
+       - `--projet` : le miroir frais de la page projet. La date d'activation s'y lit, sur la
+         ligne `📘 Activée le AAAA-MM-JJ` de l'encadré `📘 Doc vivante : activée`
+         (`changelog-et-doc.md` § 5). `--depuis <date>` reste possible à sa place, et l'emporte
+         (`--projet` n'est alors pas requis). Si la ligne manque (code 2), on ne devine pas la
+         date : on ne joue pas `--trous`, et on le dit à Benjamin.
        - `--sauf` : la PR de ce plan, si son entrée n'est pas encore au hub (plan couvert par
          un plan maître, ou entrée restée au palier 3).
-       - Code 0 : aucun trou. Code 1 : chaque PR listée reçoit une entrée « Hors plan »
+       - Code 0 : aucun trou. Code 1 : chaque PR listée reçoit une entrée « Sans plan »
          (`changelog-et-doc.md` § 2.6), contrôlée par `controle-changelog.py` avant pose, puis
          posée par la cascade du point Cascade ci-dessous. Code 2 : on le dit à Benjamin.
        - Rattachement : une PR qui a un plan (son numéro figure dans la ligne `Plan :` d'une
          page de plan) va au projet de ce plan. Une PR sans plan va au projet du dépôt s'il n'a
          qu'une page projet. Si le dépôt en a deux (cas de hermes-custom), la PR est dite
          « à classer » au compte rendu de clôture, sans deviner son projet.
-       - Une PR de dépendances ne reçoit jamais d'entrée « Hors plan » (`--trous` les écarte).
-       - L'entrée « Hors plan » ne remplace pas l'obligation du plan lui-même : une PR qui a un
+       - Une PR de dépendances ne reçoit jamais d'entrée « Sans plan » (`--trous` les écarte).
+       - L'entrée « Sans plan » ne remplace pas l'obligation du plan lui-même : une PR qui a un
          plan doit son entrée de plan (point (c)). Le rattrapage la couvre en attendant, et le
          compte rendu le dit à Benjamin.
      - **Cascade.** (a), (c), (d) et (e) suivent la cascade de repli de `changelog-et-doc.md`

@@ -9,7 +9,7 @@ Usage :
   doc-de-cloture.py --porte <page.md> [--changelog <changelog.md>] [--hub-fichier <fichier>]
                     [--pr N] [--recap-fichier <fichier>] [--lot]
   doc-de-cloture.py --trous --changelog <changelog.md> --prs <prs.json>
-                    --depuis AAAA-MM-JJ [--sauf N[,N…]]
+                    (--depuis AAAA-MM-JJ | --projet <miroir-page-projet>) [--sauf N[,N…]]
 
 Mode --porte, qui refuse le passage à « a merger » quand la doc manque :
   - la page a un H2 dont le titre commence par « Récap » (casse indifférente). Exception,
@@ -22,19 +22,22 @@ Mode --porte, qui refuse le passage à « a merger » quand la doc manque :
     seconde exigence, pas de la première. --pr exige --changelog ou --hub-fichier ;
     --changelog ou --hub-fichier sans --pr sont des usages erronés.
 
-Mode --trous, le rattrapage : liste chaque PR mergée à la date --depuis ou après, qui n'est
+Mode --trous, le rattrapage : liste chaque PR mergée à la date de départ ou après, qui n'est
 pas une PR de dépendances (auteur ``dependabot…`` ou ``app/dependabot``, ou label
 ``dependencies``), dont le numéro n'est cité dans aucun en-tête du Changelog, et qui n'est
 pas dans --sauf. ``<prs.json>`` est la sortie de
 ``gh pr list --state merged --limit 200 --json number,title,mergedAt,author,labels``.
+La date de départ vient de ``--depuis`` ; sans lui, elle se lit dans ``--projet`` (miroir de la
+page projet) : la ligne ``📘 Activée le AAAA-MM-JJ`` de l'encadré ``📘 Doc vivante : activée``. Si
+``--depuis`` est donné, il l'emporte et ``--projet`` n'est pas lu.
 
 Un en-tête d'entrée : une ligne H2 dont le titre commence par une date AAAA-MM-JJ ou par
 « Récap », suivie de la ligne ``Plan :``, dans les cinq lignes qui suivent le H2 et avant le
-prochain titre, toggle ou ligne en gras. Seuls le H2 et sa ligne Plan portent des numéros :
+prochain titre, toggle, <details> ou ligne en gras. Seuls le H2 et sa ligne Plan portent des numéros :
 les puces, le bloc « Côté technique » et les phrases d'absence ne comptent pas.
 
 Quels numéros comptent dans un en-tête :
-  - dans le titre H2, seule la forme finale ``(PR #N)``, en fin de titre : le gabarit « Hors
+  - dans le titre H2, seule la forme finale ``(PR #N)``, en fin de titre : le gabarit « Sans
     plan » la pose ainsi. Ni un ``#N`` nu (« Revert … (#282) »), ni un ``PR N`` ou un ``pull/N``
     ailleurs dans le titre (le titre recopie celui de la PR, qui peut citer d'autres PR), ni
     un numéro du titre de plan (« Thaïlande #4 ») ne comptent ;
@@ -67,6 +70,8 @@ RECAP = re.compile(r"^##\s+récap", re.IGNORECASE)
 ENTREE = re.compile(r"^##\s+(?:\d{4}-\d{2}-\d{2}\b|récap)", re.IGNORECASE)
 DATE_ISO = re.compile(r"^\d{4}-\d{2}-\d{2}")
 DATE_ARG = re.compile(r"\d{4}-\d{2}-\d{2}")
+# La date d'activation, dans le miroir de la page projet (changelog-et-doc.md § 5).
+ACTIVATION = re.compile(r"Activée le (\d{4}-\d{2}-\d{2})")
 TITRE = re.compile(r"^#{1,6}\s")
 ZONE_MAX = 5
 
@@ -96,10 +101,10 @@ def lire(chemin, role):
 
 
 def _zone(lignes, i):
-    """Les lignes d'en-tête après le H2 d'indice i : jusqu'au titre, toggle ou gras suivant."""
+    """Les lignes d'en-tête après le H2 d'indice i : jusqu'au titre, toggle, details ou gras suivant."""
     zone = []
     for ligne in lignes[i + 1:i + 1 + ZONE_MAX]:
-        if TITRE.match(ligne) or ligne.startswith(("<toggle", "**")):
+        if TITRE.match(ligne) or ligne.startswith(("<toggle", "<details", "**")):
             break
         zone.append(ligne)
     return zone
@@ -143,7 +148,7 @@ def numeros_cites(texte):
 def numeros_titre(ligne_h2):
     """Dans un titre H2, seule la forme finale « (PR #N) », en fin de titre, compte.
 
-    Le gabarit « Hors plan » la pose en fin de titre. Un « PR N » ou un « pull/N » ailleurs
+    Le gabarit « Sans plan » la pose en fin de titre. Un « PR N » ou un « pull/N » ailleurs
     dans le titre ne compte pas : le titre recopie celui de la PR, qui peut citer d'autres PR.
     """
     m = TITRE_FINAL.search(ligne_h2)
@@ -248,6 +253,19 @@ def trous(args):
     return sorted(restantes, key=lambda pr: pr["number"])
 
 
+def date_activation(chemin):
+    """La date d'activation : la première ligne « Activée le AAAA-MM-JJ » du miroir projet.
+
+    Sans elle, la date n'est pas devinée : code 2, et le message nomme la ligne attendue.
+    """
+    m = ACTIVATION.search(lire(chemin, "--projet"))
+    if not m:
+        raise ErreurEntree(
+            f"--projet : {chemin} ne porte pas la ligne « Activée le AAAA-MM-JJ » de l'encadré "
+            "« 📘 Doc vivante : activée » ; sans date, --trous exige --depuis AAAA-MM-JJ")
+    return m.group(1)
+
+
 def entier(texte, option):
     t = texte.lstrip("#")
     if not re.fullmatch(r"\d+", t):
@@ -259,8 +277,8 @@ def valider(args):
     if bool(args.porte) == args.trous:
         raise ErreurEntree("usage : --porte <page.md> OU --trous (pas les deux, pas aucun)")
     if args.porte:
-        if args.prs or args.depuis or args.sauf:
-            raise ErreurEntree("--prs, --depuis et --sauf ne vont qu'avec --trous")
+        if args.prs or args.depuis or args.sauf or args.projet:
+            raise ErreurEntree("--prs, --depuis, --sauf et --projet ne vont qu'avec --trous")
         if args.changelog and args.pr is None:
             raise ErreurEntree("--changelog exige --pr N (le numéro de la PR à contrôler)")
         if args.hub_fichier and args.pr is None:
@@ -272,8 +290,13 @@ def valider(args):
         return
     if args.pr is not None or args.recap_fichier or args.lot or args.hub_fichier:
         raise ErreurEntree("--pr, --recap-fichier, --hub-fichier et --lot ne vont qu'avec --porte")
-    if not (args.changelog and args.prs and args.depuis):
-        raise ErreurEntree("--trous exige --changelog, --prs et --depuis AAAA-MM-JJ")
+    if not (args.changelog and args.prs):
+        raise ErreurEntree("--trous exige --changelog et --prs")
+    if not args.depuis:
+        # --depuis, s'il est donné, l'emporte : --projet n'est pas lu.
+        if not args.projet:
+            raise ErreurEntree("--trous exige --depuis AAAA-MM-JJ ou --projet <miroir>")
+        args.depuis = date_activation(args.projet)
     if not DATE_ARG.fullmatch(args.depuis):
         raise ErreurEntree(f"--depuis : une date AAAA-MM-JJ attendue, reçu « {args.depuis} »")
     args.sauf = {
@@ -295,6 +318,9 @@ def parseur():
     p.add_argument("--lot", action="store_true", help="plan enfant d'un lot : pas d'entrée individuelle")
     p.add_argument("--prs", metavar="JSON", help="sortie de gh pr list --json (avec --trous)")
     p.add_argument("--depuis", metavar="AAAA-MM-JJ", help="date de merge de départ (avec --trous)")
+    p.add_argument("--projet", metavar="MIROIR",
+                   help="miroir de la page projet, dont la ligne « Activée le AAAA-MM-JJ » donne la date "
+                        "de départ (avec --trous, sans --depuis)")
     p.add_argument("--sauf", action="append", metavar="N[,N…]", help="PR à exclure (avec --trous)")
     return p
 
