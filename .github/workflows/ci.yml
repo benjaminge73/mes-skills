@@ -73,11 +73,18 @@ jobs:
           node-version: 20
 
       - name: Installer la CLI Claude Code
-        # Épinglée sur la version de evals/outillage/preparer-runner.sh
-        # (CLAUDE_CODE_VERSION) : les évals et cette validation jouent la même CLI.
-        # Les deux se montent ensemble, dans une PR revue : une montée de version
-        # est un changement revu, jamais une dérive silencieuse.
-        run: npm install -g @anthropic-ai/claude-code@2.1.285
+        # Version lue dans evals/outillage/preparer-runner.sh, la seule source de
+        # vérité (celle des évals et de la fumée) : une montée se fait là, en PR
+        # revue, jamais ici. Si la lecture rend vide, `npm install` installerait
+        # « latest » : on échoue net à la place.
+        run: |
+          set -euo pipefail
+          version=$(sed -n 's/^CLAUDE_CODE_VERSION=//p' evals/outillage/preparer-runner.sh)
+          if [ -z "$version" ]; then
+            echo "::error title=Version de la CLI::CLAUDE_CODE_VERSION introuvable dans evals/outillage/preparer-runner.sh."
+            exit 1
+          fi
+          npm install -g "@anthropic-ai/claude-code@$version"
 
       - uses: actions/setup-python@v5
         with:

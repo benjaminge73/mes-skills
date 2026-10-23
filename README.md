@@ -292,9 +292,9 @@ de base à dépasser) et un plugin qui disparaît.
 
 ### La CI, et pourquoi il n'y a pas de CD
 
-`.github/workflows/ci.yml` joue deux jobs de contrôle, et les deux appellent
-`scripts/ci_locale.sh`, la liste unique des contrôles (voir « Vérifier avant de
-pousser »). `garde` tient les invariants du dépôt : la marketplace et le disque
+`.github/workflows/ci.yml` joue un job de contrôle, `validation`, en deux steps qui
+appellent `scripts/ci_locale.sh`, la liste unique des contrôles (voir « Vérifier avant de
+pousser »). Le step des gardes (`garde`) tient les invariants du dépôt : la marketplace et le disque
 concordent, la version d'un plugin touché a bougé (la règle ci-dessus), les
 règles de forme des skills et le registre des garde-fous
 ([docs/garde-fous.md](docs/garde-fous.md)) sont respectés, une leçon ajoutée à un
@@ -356,7 +356,8 @@ scripts/ci_locale.sh
 ```
 
 Ce script est la **seule** liste des contrôles : c'est exactement ce que la CI
-joue dans son job `validation` (sections `garde` puis `validation`). Rien à énumérer ici —
+joue dans son job `validation`, en deux steps : la validation, puis les gardes (sections
+`validation` et `garde`). En local, le script joue `garde` d'abord ; l'ordre change, pas la liste. Rien à énumérer ici —
 un contrôle ajouté au dépôt s'ajoute dans ce script, et la CI comme les
 contributeurs le reprennent. Il ne joue ni le job `evals`, payant, ni `fumee` : ils tournent
 sur le runner GitHub. Sur une branche de PR il compare à `origin/main` (une

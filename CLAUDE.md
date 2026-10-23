@@ -135,16 +135,16 @@ que la CI tient déjà, et le garde de chacune).
   workflow hebdomadaire ouvre une issue quand une citation du tableau des faits
   n'est plus sur sa page.
 - **Avant de pousser : lancer `scripts/ci_locale.sh`.** C'est la **seule** liste des
-  contrôles : ce que la CI joue dans ses jobs `garde` et `validation`, dans
-  l'ordre, et rien d'autre à énumérer ici. Sur une branche de PR, il compare à
-  `origin/main` ; une autre base se passe par `BASE_REF=<réf>`. Il ne joue ni
-  le job `evals` (payant, sur le runner GitHub seulement) ni `fumee`. Un contrôle ajouté au
-  dépôt s'ajoute **dans ce script**, une fois.
+  contrôles : ce que la CI joue dans son job `validation` (deux steps : validation,
+  puis gardes ; en local, le script joue les gardes d'abord), et rien d'autre à
+  énumérer ici. Sur une branche de PR, il compare à `origin/main` ; une autre base
+  se passe par `BASE_REF=<réf>`. Il ne joue ni le job `evals` (payant, sur le runner
+  GitHub seulement) ni `fumee`. Un contrôle ajouté au dépôt s'ajoute **dans ce script**, une fois.
 
-La CI appelle ce même script, avec la **dernière** CLI Claude Code publiée, non
-épinglée. Deux conséquences vérifiées le 2026-09-08 : elle valide des choses que
-la CLI du poste ne valide pas encore, et un job rouge sans changement dans la PR
-peut signaler une dérive du format en amont plutôt qu'une régression locale.
+La CI appelle ce même script, avec la CLI Claude Code épinglée dans
+`evals/outillage/preparer-runner.sh` (`CLAUDE_CODE_VERSION`, la même que les évals) :
+une montée se fait dans ce fichier, en PR revue. Une CLI du poste plus récente peut
+valider autre chose que la CI : un écart de version se regarde d'abord là.
 
 **Aucune éval sans demande explicite de Benjamin, dans son message courant** (décision du
 2026-10-16 : trop de jetons et de temps). Ni `claude plugin eval`, ni `evals_ab.py`, ni
