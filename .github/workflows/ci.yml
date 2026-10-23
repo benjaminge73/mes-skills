@@ -496,17 +496,12 @@ jobs:
       # EVALS_EFFORT. Changer l'un des deux, c'est remesurer le bruit (mode `aa`).
       EVALS_MODELE: claude-sonnet-5-5
       EVALS_EFFORT: high
-      # Plafond par appel de `claude plugin eval` (une fois pour la base, une fois
-      # pour la tête), donc par bras. Mesuré avec Sonnet, le modèle joué ici (run
-      # 36758086456) : un bras complet de 16 cas x 3 passages coûte 27,53 $, et un
-      # cas entre 0,98 et 3,57 $. Décision de Benjamin (Q5, 2026-10-01) : 35 $, soit
-      # un quart de marge au-dessus du bras complet de l'époque (16 cas). Décision
-      # de Benjamin (2026-10-15) : le banc compte désormais 23 cas, donc un bras
-      # complet coûte ~39,6 $ au même coût par cas, et 35 $ refuserait un passage
-      # complet. Relevé à 45 $ (~14 % de marge au-dessus de ce bras), sans remesure.
-      # Un bras qui dépasse est rendu partiel, refusé par `evals_ab.py` (code 3) :
-      # le job est rouge, et la facture s'arrête là. Le coût attendu s'écrit en
-      # tête du résumé avant de payer (`--estimer`).
+      # Plafond par appel de `claude plugin eval`, donc par bras (base puis tête).
+      # Fixe à 45 $ par défaut (repli : A/A, et tout pas hors `jeu`) ; le pas `jeu`
+      # le remplace par n cas x 2,2 $ (≈ 1,72 $ mesuré par cas à 3 passages + 30 %
+      # de marge ; décision de Benjamin 2026-10-23, Q6). Un bras qui dépasse est
+      # rendu partiel, refusé par `evals_ab.py` (code 3) : le job est rouge, et la
+      # facture s'arrête là. Le coût attendu s'écrit en tête du résumé (`--estimer`).
       EVALS_MAX_COUT_USD: '45'
       EVALS_RUNS: '3'
       # Décision de Benjamin (étape B9) : 5 agents en parallèle.
@@ -613,11 +608,21 @@ jobs:
           # (ou qu'elle manque : le défaut est le banc entier, jamais moins).
           if [ "$(jq -r --arg p "$PLUGIN" '(.[$p] // {"tout": true}) | .tout' <<<"$SELECTION")" = "true" ]; then
             echo "Tous les cas du banc sont joués."
+            # Compte des dossiers de cas (nullglob : aucun dossier donne 0, sans erreur).
+            n=$(shopt -s nullglob; dossiers=(evals/"$PLUGIN"/*/case.yaml); echo "${#dossiers[@]}")
           else
             mapfile -t cas < <(jq -r --arg p "$PLUGIN" '.[$p].cas[]' <<<"$SELECTION")
             for c in "${cas[@]}"; do args+=(--cas "$c"); done
             echo "Cas joués (${#cas[@]}) : ${cas[*]}"
+            n=${#cas[@]}
           fi
+          # Plafond de ce passage : n cas x 2,2 $, arrondi au dollar supérieur
+          # (entier, car lancer.sh le passe tel quel à --max-cost-usd). Si n vaut 0,
+          # on garde le repli du job (45 $) : jamais un plafond nul.
+          if [ "$n" -gt 0 ]; then
+            EVALS_MAX_COUT_USD=$(( (n * 22 + 9) / 10 ))
+          fi
+          export EVALS_MAX_COUT_USD
           # Le bruit mesuré n'est utilisé que s'il porte le modèle joué (EVALS_MODELE) :
           # evals_ab.py l'ignore sinon, et le dit dans le tableau.
           if [ -f "evals/bruit-$PLUGIN.json" ]; then
@@ -648,6 +653,7 @@ jobs:
           {
             echo "## Évals — $PLUGIN"
             echo
+            echo "Plafond de coût : $EVALS_MAX_COUT_USD \$ par bras ($n cas x 2,2 \$)."
             if [ -n "$CACHE_TROUVE" ]; then
               python3 scripts/evals_ab.py "${args[@]}" --estimer -- --runs "$EVALS_RUNS" \
                 || echo "Coût estimé : indisponible (voir le journal du job)."
