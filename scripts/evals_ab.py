@@ -940,6 +940,19 @@ def recoller_rapports(rapports: list[dict]) -> dict:
     return recolle
 
 
+def remplacer_cas(rapport: dict, relance: dict) -> dict:
+    """``rapport`` où chaque cas relancé est remplacé par sa relance.
+
+    Les coûts s'additionnent si les deux en portent un : sinon le rapport gardé
+    ne compterait que le premier tirage.
+    """
+    par_nom = {c.get("name"): c for c in relance.get("cases", [])}
+    fusion = {**rapport, "cases": [par_nom.get(c.get("name"), c) for c in rapport["cases"]]}
+    if "costUsd" in rapport and "costUsd" in relance:
+        fusion["costUsd"] = float(rapport["costUsd"]) + float(relance["costUsd"])
+    return fusion
+
+
 def extraire_cas_du_rapport(rapport: dict, cas: list[str], etiquette: str) -> dict:
     """Le rapport réduit aux cas nommés. Un cas absent du rapport est un refus.
 
@@ -1457,12 +1470,26 @@ def jouer_reference(
     nom: str, lanceur: Path, options: list[str], etiquette_rapport: str,
     cas: list[str] | None = None,
 ) -> dict:
+    """Joue un bras. Les cas portant une session en erreur sont relancés **une fois**,
+    seuls, dans le même job ; leur relance remplace leur entrée. Si l'erreur persiste,
+    le rapport la garde et le code 4 sort comme avant."""
     copie = racine / nom / plugin
     extraire(depot, ref, plugin, copie)
     assembler(copie, sources, cas)
     sortie = racine / f"{nom}.json"
     lancer(lanceur, copie, sortie, options)
-    return lire_rapport(sortie, etiquette_rapport)
+    rapport = lire_rapport(sortie, etiquette_rapport)
+    erreurs, _ = sessions_en_erreur(rapport)
+    if not erreurs:
+        return rapport
+    relancer = list(dict.fromkeys(c for c, _, _ in erreurs))
+    print(f"relance unique : {len(relancer)} cas ({', '.join(relancer)})", file=sys.stderr)
+    copie_relance = racine / f"{nom}-relance" / plugin
+    extraire(depot, ref, plugin, copie_relance)
+    assembler(copie_relance, sources, relancer)
+    sortie_relance = racine / f"{nom}-relance.json"
+    lancer(lanceur, copie_relance, sortie_relance, options)
+    return remplacer_cas(rapport, lire_rapport(sortie_relance, etiquette_rapport))
 
 
 def construire_parseur() -> argparse.ArgumentParser:
@@ -1693,7 +1720,8 @@ def _executer(args, options_lanceur: list[str], commande: str) -> int:
             )
             rapports_joues.append(rapport_base)
         if args.garder_base and not (args.reference or args.base_rapport):
-            shutil.copyfile(racine / "base.json", args.garder_base)
+            # Le rapport jugé (cas relancés compris), pas base.json brut : le cache le reprend.
+            Path(args.garder_base).write_text(json.dumps(rapport_base), "utf-8")
         rapport_tete = jouer_reference(
             depot, args.tete, plugin, sources, racine, "tete", lanceur,
             options_lanceur, "de tête", args.cas,

@@ -241,7 +241,10 @@ session en erreur n'a rien mesuré du plugin, son score est celui d'une panne.
 C'est « panne d'infrastructure, à relancer », jamais un recul ; le `4` prime sur
 le `1`, en A/B comme en A/A et en fumée. Sans lui, le rapport d'une tête qui avait
 perdu 21 sessions sur 48 à une limite de session se serait lu comme un plugin qui
-régresse.
+régresse. Depuis l'étape 1, `evals_ab.py` relance une fois, seuls et dans le même
+job, les cas qui portent une session en erreur : le `4` ne sort plus que si cette
+relance casse aussi (double panne), et c'est alors seulement qu'on relance le job
+à la main.
 
 **Les traces se lisent après un `chmod`.** Le lanceur passe `--keep-temp`, qui
 garde les dossiers de passage, mais **scellés** (mode `000`) : pour les lire,
@@ -410,8 +413,8 @@ gh workflow run ci.yml --ref <branche> -f mode=aa
 
 Le lancement manuel joue la tête deux fois sur tout le banc, sans lire ni écrire
 le cache de la base (décrit ci-dessous), puis publie le bruit en artefact
-`evals-bruit-<plugin>` (le résumé du job le rappelle). Si un des deux jeux a des
-sessions en erreur, le job est rouge (code 4) et aucun bruit n'est publié. Le télécharger (`gh run download <id> -n
+`evals-bruit-<plugin>` (le résumé du job le rappelle). Si un des deux jeux a encore des
+sessions en erreur après la relance unique du script, le job est rouge (code 4) et aucun bruit n'est publié. Le télécharger (`gh run download <id> -n
 evals-bruit-<plugin>`), le commiter en `evals/bruit-<plugin>.json` dans la PR,
 et pousser : la CI suivante l'utilise. Sans `-f mode=aa`, le lancement manuel
 joue l'A/B habituel (`mode=ab`, le défaut).
@@ -501,7 +504,7 @@ tête du résumé avant de jouer, et compte dans `Verdict des évals`. Un label
 
 **Le job est rouge dans deux cas, que son message distingue.** Une catégorie
 passe sous son plancher (code 1) : c'est un recul. Ou des sessions plantent
-(code 4, « non concluant — panne d'infrastructure, à relancer ») : ce n'est pas un
+encore après leur relance unique par le script (code 4, « non concluant — panne d'infrastructure, à relancer ») : ce n'est pas un
 recul, parce qu'un score tiré vers le bas par des sessions en erreur ne dit rien
 du skill ; le 4 prime sur le 1. Le plancher est le plus bas tirage sain mesuré,
 moins 0,10 (15 tirages sains sur Sonnet et Opus, 2026-10-01 ; `decouvertes` remesurée le 2026-10-16, voir plus bas) :
@@ -606,7 +609,8 @@ c'est le signal pour redescendre à 5. Le tableau de la fumée donne aussi **la 
 chaque cas, du plus long au plus court** : c'est la mesure qui manquait pour savoir quoi
 couper d'une fumée trop longue.
 
-**Un rouge à tort se relance une fois** ; au second rouge, on le signale à
+**Un rouge à tort se relance une fois** (les sessions en erreur ont déjà leur
+relance unique, dans le job) ; au second rouge, on le signale à
 Benjamin, qui décide de poser `evals` pour trancher par l'A/B. Attention à la file : le groupe `evals-<plugin>` ne
 garde qu'un run en attente, et **une fumée en attente peut annuler un A/B en
 attente**. Un run annulé se relance, il ne vaut pas verdict.
