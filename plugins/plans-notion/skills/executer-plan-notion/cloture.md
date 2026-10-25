@@ -373,10 +373,11 @@ Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard »
        - Code 0 : aucun trou. Code 1 : chaque PR listée reçoit une entrée « Sans plan »
          (`changelog-et-doc.md` § 2.6), contrôlée par `controle-changelog.py` avant pose, puis
          posée par la cascade du point Cascade ci-dessous. Code 2 : on le dit à Benjamin.
-       - Rattachement : une PR qui a un plan (son numéro figure dans la ligne `Plan :` d'une
-         page de plan) va au projet de ce plan. Une PR sans plan va au projet du dépôt s'il n'a
-         qu'une page projet. Si le dépôt en a deux (cas de hermes-custom), la PR est dite
-         « à classer » au compte rendu de clôture, sans deviner son projet.
+       - Rattachement : pour `hermes-custom`, la doc va toujours au hub Hermes (`changelog-et-doc.md`
+         § 1), avec ou sans plan. Ailleurs, une PR qui a un plan (son numéro figure dans la ligne
+         `Plan :` d'une page de plan) va au projet de ce plan. Une PR sans plan va au projet du dépôt
+         s'il n'a qu'une page projet. Si un autre dépôt en a deux sans hub fixé, on ne devine pas :
+         on demande à Benjamin.
        - Une PR de dépendances ne reçoit jamais d'entrée « Sans plan » (`--trous` les écarte).
        - L'entrée « Sans plan » ne remplace pas l'obligation du plan lui-même : une PR qui a un
          plan doit son entrée de plan (point (c)). Le rattrapage la couvre en attendant, et le
