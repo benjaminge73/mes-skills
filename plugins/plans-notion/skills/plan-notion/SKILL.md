@@ -185,9 +185,9 @@ donc **dans les plans déjà écrits**.
    sur le nouveau plan** — c'est ce qui rendra la fois suivante directe.
 
 ⚠️ Un même dépôt peut pointer vers **deux pages projet différentes** selon le
-sujet — sur `hermes-custom`, l'infrastructure du VPS et l'automatisation des
-dépôts ne vivent pas au même endroit. Regarder les titres des plans rattachés à
-chaque URL avant de choisir, plutôt que de prendre la première trouvée.
+sujet — sur `hermes-custom`, l'infrastructure du VPS et l'automatisation ne vivent
+pas au même endroit. Regarder les titres des plans rattachés à chaque URL avant de
+choisir. La doc vivante de `hermes-custom`, elle, va toujours au hub Hermes (`_partage/changelog-et-doc.md` § 1).
 
 ## 2. Créer la page du plan
 

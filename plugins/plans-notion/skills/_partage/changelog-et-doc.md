@@ -8,7 +8,7 @@ Les règles d'écriture détaillées (relevé des cases, pièges de l'API Notion
 
 ## 1. Le hub : où la doc d'un projet vit
 
-Le **hub** est la page `Projet`, sous `Clients / Projets`, et tout ce qui est dessous. Pour un plan rattaché à une page `Projet`, c'est celle du plan qu'on clôt. Pour un plan natif, c'est la page `Projet` du plan le plus récent du même `Repo` dans la base. Un dépôt rattaché à deux pages (`hermes-custom`) suit cette règle : le hub est celle du plan.
+Le **hub** est la page `Projet`, sous `Clients / Projets`, et tout ce qui est dessous. Pour un plan rattaché à une page `Projet`, c'est celle du plan qu'on clôt. Pour un plan natif, c'est la page `Projet` du plan le plus récent du même `Repo` dans la base. Pour `hermes-custom`, le hub est toujours la page projet « Hermes » (sous `Clients / Projets`) et son `📰 Changelog`, quel que soit le `Projet` du plan (décision de Benjamin du 2026-10-25) ; la session la retrouve par recherche Notion.
 
 La forme est la même pour chaque projet :
 
@@ -135,7 +135,7 @@ Plan : aucun (sans plan) · PR : <lien> · Statut : mergée
 - Elle passe `controle-changelog.py` comme toute entrée : quatre rubriques, source sur chaque ligne ✨ ou 🔧, bloc « Côté technique ». La source d'une PR sans plan est `(preuve : PR #N)`.
 - Elle ne s'écrit **pas** pour une PR de dépendances (auteur Dependabot, ou label `dependencies`).
 - Elle **ne remplace pas** l'obligation du plan : une PR qui a un plan doit son entrée de plan (`cloture.md`, point (c)). L'entrée « Sans plan » ne fait que couvrir la PR en attendant, et le compte rendu le dit à Benjamin.
-- Le rattachement suit `cloture.md`, point (e) : une PR avec plan va au projet de ce plan ; une PR sans plan sur un dépôt qui a deux pages projet est dite « à classer » au compte rendu, sans deviner.
+- Le rattachement suit `cloture.md`, point (e) : une PR avec plan va au projet de ce plan, sauf `hermes-custom` (hub Hermes, § 1) ; une PR sans plan sur `hermes-custom` va au Changelog du hub Hermes (§ 1) ; sur un autre dépôt qui aurait deux pages projet sans hub fixé, on demande à Benjamin plutôt que de deviner.
 
 ## 3. Le récap et le compte rendu du chat
 
