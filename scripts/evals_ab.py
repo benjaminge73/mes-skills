@@ -1533,7 +1533,8 @@ def construire_parseur() -> argparse.ArgumentParser:
     p.add_argument("--prive", action="append", default=[], metavar="CHEMIN",
                    help="banc privé : dossier de cas ajoutés (répétable)")
     p.add_argument("--cas", action="append", default=[], metavar="NOM",
-                   help="ne jouer que ce cas (répétable) ; sans --cas, tous les cas")
+                   help="ne jouer que ce cas (répétable) ; sans --cas, tous les cas, sauf "
+                        "--fumee hors CI où c'est refusé (la CI le fait)")
     p.add_argument("--bruit", metavar="FICHIER",
                    help="bruit mesuré en A/A (écrit par --mode aa --sortie-bruit) ; "
                         "ignoré s'il mesure un autre modèle que EVALS_MODELE")
