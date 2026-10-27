@@ -29,9 +29,14 @@ on:
   # contraignante. Une ligne `Evals: aucun — <raison>` reste une documentation
   # acceptée ; seule une ligne `aucun` mal formée (sans raison, ou avec une
   # catégorie) rend `evals-portee` rouge. Une PR qui touche un skill, un agent,
-  # un hook ou un `_partage/` passe alors par le job `fumee` : la tête seule, un
-  # passage, sur les catégories que les fichiers touchés exercent. Le label
-  # `evals` la remplace par l'A/B complet.
+  # un hook ou un `_partage/` ne passe par le job `fumee` que si elle porte le
+  # label `fumee` (décision du 2026-10-27, qui remplace celle du 2026-10-16) : la
+  # tête seule, un passage, sur les catégories que les fichiers touchés exercent.
+  # Le label `evals` la remplace par l'A/B complet. La fumée coûte ~6 min
+  # d'Actions et des jetons Claude, d'où le label. Une PR en brouillon ne joue
+  # rien (`evals-portee` est sauté) : on ouvre la PR avec le label, puis on la
+  # passe prête, `ready_for_review` voit le label, et `merge-auto` merge dès que
+  # tout est vert.
   #
   # `ready_for_review` est indispensable : `merge-auto` saute une PR en brouillon,
   # et sans ce type, sortir la PR du brouillon ne relance aucun run — elle reste
@@ -198,8 +203,9 @@ jobs:
       # `selection`, tirée de `evals_selection.py --fumee`. Vides sans fumée.
       fumee_plugins: ${{ steps.portee.outputs.fumee_plugins }}
       fumee_selection: ${{ steps.portee.outputs.fumee_selection }}
-      # 1 quand le run vient d'un label ajouté autre que `evals` : rien n'y est
-      # rejoué, et `evals-verdict` recopie alors le verdict déjà rendu sur ce SHA.
+      # 1 quand le run vient d'un label ajouté qui ne joue rien : autre que `evals` et
+      # que `fumee`, ou `fumee` sur une PR qui porte déjà `evals`. Rien n'y est rejoué,
+      # et `evals-verdict` recopie alors le verdict déjà rendu sur ce SHA.
       label_etranger: ${{ steps.portee.outputs.label_etranger }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -248,7 +254,8 @@ jobs:
           # --- corps de la PR (fin)
           # --- labels (début)
           # Les évals se jouent à la demande : sans le label `evals`, `touche` vaut
-          # `false`. Relus par l'API, pour la même raison que le corps (un
+          # `false` (la fumée, elle, se décide plus bas, par le label `fumee`).
+          # Relus par l'API, pour la même raison que le corps (un
           # « Re-run » rejoue le payload d'origine, dont les labels sont périmés), et
           # un échec de l'appel est un échec du job : ni « le label est là » (on
           # paierait le banc), ni « il n'y est pas » (on sauterait des évals
@@ -321,9 +328,10 @@ jobs:
           # de la PR dans PR_BODY ; en lancement manuel il n'y en a pas, donc
           # « tout ». Un refus (code 1) ou une panne (code 2) rend le job rouge :
           # `evals` est alors sauté, et `evals-verdict` le voit.
-          # Sans le label `evals`, rien ne se joue ; le script tourne quand même pour
-          # chaque plugin dont un skill, un agent ou un hook change, mais ne refuse
-          # plus la PR pour son silence (2026-10-16) : `Eval-cas:`
+          # Sans le label `evals`, rien ne se joue (la fumée se décide plus bas, par
+          # le label `fumee`) ; le script tourne quand même pour chaque plugin dont
+          # un skill, un agent ou un hook change, mais ne refuse plus la PR pour son
+          # silence (2026-10-16) : `Eval-cas:`
           # (scripts/check_lecon_a_son_cas.py) est l'unique garde contraignante,
           # `Evals: aucun — <raison>` reste une documentation acceptée.
           if grep -qixF evals <<<"$LABELS"; then
@@ -339,15 +347,19 @@ jobs:
           # --- label ajouté (début)
           # Un `labeled` dont le label n'est pas `evals` (`review-required` posé sur
           # une PR qui porte déjà `evals`) ne doit pas relancer le banc payant : on
-          # ne joue rien. La boucle ci-dessous tourne quand même, pour calculer
-          # `selection` et `touche` ; depuis 2026-10-16, elle ne peut plus refuser
-          # la PR (voir plus haut).
+          # ne joue rien. `fumee` fait pareil sur une PR qui porte déjà `evals` (l'A/B
+          # est là et remplace la fumée) ; posé seul, c'est lui qui fait partir la
+          # fumée, et ce run-là n'est pas un label étranger. La boucle ci-dessous
+          # tourne quand même, pour calculer `selection` et `touche` ; depuis
+          # 2026-10-16, elle ne peut plus refuser la PR (voir plus haut).
           joue=1
           label_etranger=0
           if [ -n "${LABEL_AJOUTE-}" ] && [ "${LABEL_AJOUTE,,}" != "evals" ]; then
-            joue=0
-            label_etranger=1
-            echo "Label « $LABEL_AJOUTE » ajouté : ce n'est pas « evals », les évals ne sont pas relancées."
+            if [ "${LABEL_AJOUTE,,}" != "fumee" ] || [ "$a_le_label" = 1 ]; then
+              joue=0
+              label_etranger=1
+              echo "Label « $LABEL_AJOUTE » ajouté : ce n'est pas « evals », les évals ne sont pas relancées."
+            fi
           fi
           # --- label ajouté (fin)
           liste="$RUNNER_TEMP/fichiers-touches.txt"
@@ -367,13 +379,16 @@ jobs:
 
           # --- fumée (début)
           # Sans le label `evals`, une PR qui change un skill, un agent, un hook ou un
-          # `_partage/` passe par la fumée : la tête seule, sur les catégories que les
+          # `_partage/` ne passe par la fumée que si elle porte le label `fumee`
+          # (décision du 2026-10-27) : la tête seule, sur les catégories que les
           # fichiers touchés exercent (la ligne `Evals:` du corps n'y change rien). Avec
-          # le label, l'A/B la remplace ; un label étranger ajouté ne la relance pas, comme
-          # il ne relance pas le banc. Un plugin dont aucun fichier n'est exercé n'y entre pas.
+          # le label `evals`, l'A/B la remplace ; un label étranger ajouté ne la relance
+          # pas, comme il ne relance pas le banc. Un plugin dont aucun fichier n'est
+          # exercé n'y entre pas.
           fumee_plugins=""
           fumee_selection='{}'
-          if [ "$a_le_label" = 0 ] && [ "$joue" = 1 ]; then
+          if grep -qixF fumee <<<"$LABELS"; then a_la_fumee=1; else a_la_fumee=0; fi
+          if [ "$a_le_label" = 0 ] && [ "$joue" = 1 ] && [ "$a_la_fumee" = 1 ]; then
             en_fumee=()
             for nom in "${jouables[@]}"; do
               for t in "${touches[@]}"; do
@@ -829,12 +844,13 @@ jobs:
   fumee:
     name: Fumée (${{ matrix.plugin }})
     needs: evals-portee
-    # Sans le label `evals`, une PR qui touche un skill, un agent, un hook ou un
-    # `_partage/` joue la tête seule, un passage, sur les catégories que ses
-    # fichiers exercent (`evals_selection.py --fumee`, calculé par `evals-portee`).
-    # Avec le label, l'A/B la remplace. Sauté quand rien n'est à jouer : un job
-    # sauté compte comme réussi. Une fumée rouge ou annulée rend le verdict rouge,
-    # donc pas de `merge-auto`.
+    # La fumée ne part que sur le label `fumee` (décision du 2026-10-27), coût ~6 min
+    # d'Actions et des jetons Claude. Sans le label `evals`, une PR qui touche un
+    # skill, un agent, un hook ou un `_partage/` joue alors la tête seule, un
+    # passage, sur les catégories que ses fichiers exercent (`evals_selection.py
+    # --fumee`, calculé par `evals-portee`). Avec le label `evals`, l'A/B la
+    # remplace. Sauté quand rien n'est à jouer : un job sauté compte comme réussi.
+    # Une fumée rouge ou annulée rend le verdict rouge, donc pas de `merge-auto`.
     if: needs.evals-portee.outputs.fumee_plugins != ''
     runs-on: ubuntu-latest
     # La fumée joue les cas des catégories touchées (au plus 22 pour `plans-notion` à
