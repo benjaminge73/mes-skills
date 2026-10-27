@@ -364,7 +364,7 @@ jobs:
               label_etranger=1
               echo "Label « $LABEL_AJOUTE » ajouté alors que « evals » est posé : l'A/B « evals » remplace la fumée, poser « fumee » ne relance rien."
             else
-              echo "Label « $LABEL_AJOUTE » ajouté sans « evals » : la fumée part, pour les catégories que les fichiers touchés exercent."
+              echo "Label « $LABEL_AJOUTE » ajouté sans « evals » : la fumée est demandée ; elle ne part que si les fichiers touchés exercent un plugin jouable."
             fi
           fi
           # --- label ajouté (fin)
