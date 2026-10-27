@@ -157,8 +157,9 @@ quand une autre catégorie est rouge ou en panne, pour qu'une relance ne rejoue 
 Une catégorie sans
 plancher n'est pas jugée : la fumée la saute et la nomme (stderr et sous le
 tableau), sans plancher implicite à 0 qui la ferait passer en VERT. Un plancher
-**invalide** fait refuser le mode (code 3). Le plancher d'une catégorie est mesuré
-par un banc ``aa``, sur décision de Benjamin seulement.
+**invalide** fait refuser le mode (code 3). Hors CI, un ``--fumee`` sans ``--cas``
+est refusé (code 3) avant tout jeu : il jouerait tout le banc. Le plancher d'une
+catégorie est mesuré par un banc ``aa``, sur décision de Benjamin seulement.
 
 Codes de sortie
 ---------------
@@ -1532,7 +1533,8 @@ def construire_parseur() -> argparse.ArgumentParser:
     p.add_argument("--prive", action="append", default=[], metavar="CHEMIN",
                    help="banc privé : dossier de cas ajoutés (répétable)")
     p.add_argument("--cas", action="append", default=[], metavar="NOM",
-                   help="ne jouer que ce cas (répétable) ; sans --cas, tous les cas")
+                   help="ne jouer que ce cas (répétable) ; sans --cas, tous les cas, sauf "
+                        "--fumee hors CI où c'est refusé (la CI le fait)")
     p.add_argument("--bruit", metavar="FICHIER",
                    help="bruit mesuré en A/A (écrit par --mode aa --sortie-bruit) ; "
                         "ignoré s'il mesure un autre modèle que EVALS_MODELE")
@@ -1741,6 +1743,15 @@ def _fumee(args, options_lanceur: list[str], depot: Path, plugin: str,
         noms = ", ".join(Path(c).name for c in args.tete_rapport)
         etiq = f"{'rapports' if len(args.tete_rapport) > 1 else 'rapport'} {noms}"
     else:
+        # Hors CI, sans --cas, la fumée jouerait tout le banc : refus avant tout jeu. La CI
+        # l'appelle sans --cas quand sa sélection dit « tout » (GITHUB_ACTIONS=true).
+        if not args.cas and not _en_ci():
+            raise ErreurRefus(
+                "--fumee sans --cas : hors CI, la fumée ne joue pas le banc entier. Choisir les "
+                f"cas avec « python3 scripts/evals_selection.py --fumee --plugin {plugin} "
+                "--fichiers <liste> » (un chemin touché par ligne), puis relancer avec un "
+                "--cas <nom> par cas retenu."
+            )
         racine = Path(tempfile.mkdtemp(prefix="evals-ab-"))
         try:
             options = options_une_passe(options_lanceur)

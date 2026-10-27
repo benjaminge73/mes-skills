@@ -355,10 +355,16 @@ jobs:
           joue=1
           label_etranger=0
           if [ -n "${LABEL_AJOUTE-}" ] && [ "${LABEL_AJOUTE,,}" != "evals" ]; then
-            if [ "${LABEL_AJOUTE,,}" != "fumee" ] || [ "$a_le_label" = 1 ]; then
+            if [ "${LABEL_AJOUTE,,}" != "fumee" ]; then
               joue=0
               label_etranger=1
-              echo "Label « $LABEL_AJOUTE » ajouté : ce n'est pas « evals », les évals ne sont pas relancées."
+              echo "Label « $LABEL_AJOUTE » ajouté : ni « evals » ni « fumee », rien n'est relancé."
+            elif [ "$a_le_label" = 1 ]; then
+              joue=0
+              label_etranger=1
+              echo "Label « $LABEL_AJOUTE » ajouté alors que « evals » est posé : l'A/B « evals » remplace la fumée, poser « fumee » ne relance rien."
+            else
+              echo "Label « $LABEL_AJOUTE » ajouté sans « evals » : la fumée est demandée ; elle ne part que si les fichiers touchés exercent un plugin jouable."
             fi
           fi
           # --- label ajouté (fin)
@@ -443,7 +449,7 @@ jobs:
             echo
             if [ "$selection" = '{}' ]; then
               if [ "$joue" = 0 ]; then
-                echo "Aucun plugin à jouer (label « $LABEL_AJOUTE » ajouté, pas « evals »)."
+                echo "Aucun plugin à jouer : le label « $LABEL_AJOUTE » ajouté ne relance pas le banc « evals » (seul le label « evals » le lance)."
               elif [ "$a_le_label" = 0 ]; then
                 echo "Aucun plugin à jouer (pas de label evals sur la PR)."
               else
