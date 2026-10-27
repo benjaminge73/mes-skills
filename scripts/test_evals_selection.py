@@ -943,7 +943,9 @@ class CiYml(unittest.TestCase):
 
 @sauter_sans_bash4
 class PorteeDuLabelAjoute(unittest.TestCase):
-    """Un ``labeled`` dont le label ajouté n'est pas ``evals`` ne relance pas le banc.
+    """Un ``labeled`` dont le label ajouté n'est ni ``evals`` ni ``fumee`` ne relance pas le banc.
+
+    Le label ``fumee``, lui, lance la fumée (seule) quand ``evals`` n'est pas posé.
 
     Le pas ``portee`` d'``evals-portee`` est joué pour de bon, dans un dépôt jetable
     (deux commits, le second change un skill), avec un faux ``gh`` qui répond ce
@@ -1038,27 +1040,55 @@ class PorteeDuLabelAjoute(unittest.TestCase):
         self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
         self.assertEqual(sorties["touche"], "false")
 
-    def test_sans_label_evals_une_pr_qui_touche_un_skill_part_en_fumee_et_le_label_la_remplace(self):
-        # `fumee_plugins` / `fumee_selection` : ce que le job `fumee` lit. Sans label, le
-        # corps dit « aucun » (le contrôle label-ou-aucun passe) : la fumée part quand même.
-        sans_label, avec_label = "Evals: aucun — essai", "Evals: bruit — essai"
-        cas = [
-            # (labels, label ajouté, plugins en fumée)
-            ("", "", ["jouet"]),                                  # sans label : fumée
-            ("evals", "", []),                                    # l'A/B remplace la fumée
-            ("evals", "evals", []),                               # label posé à l'instant
-            ("review-required", "review-required", []),           # label étranger : on ne repaie pas
-        ]
-        for labels, ajoute, attendus in cas:
-            with self.subTest(labels=labels, label_ajoute=ajoute):
-                corps = avec_label if "evals" in labels else sans_label
-                r, sorties = self.jouer(labels, ajoute, corps=corps)
-                self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
-                plugins = json.loads(sorties["fumee_plugins"]) if sorties["fumee_plugins"] else []
-                self.assertEqual(plugins, attendus)
-        r, sorties = self.jouer("", "", corps=sans_label)
+    def test_sans_label_fumee_une_pr_qui_touche_un_skill_ne_part_pas_en_fumee(self):
+        # La fumée se décide par le label `fumee` (décision du 2026-10-27, qui remplace celle
+        # du 2026-10-16) : sans lui, une PR qui touche un skill ne joue ni fumée ni banc.
+        # Le corps dit « aucun » pour que le contrôle label-ou-aucun passe.
+        r, sorties = self.jouer("", "", corps="Evals: aucun — essai")
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        self.assertEqual(sorties["fumee_plugins"], "")
+        self.assertEqual(sorties["fumee_selection"], "{}")
+        self.assertEqual(sorties["touche"], "false")
+
+    def test_avec_label_fumee_la_fumee_part_sans_le_banc_et_le_label_evals_la_remplace(self):
+        # Le label `fumee` seul : la fumée part (les trois catégories qui exercent le skill),
+        # et le banc A/B ne part pas : `touche` reste faux.
+        r, sorties = self.jouer("fumee", "", corps="Evals: aucun — essai")
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        self.assertEqual(json.loads(sorties["fumee_plugins"] or "[]"), ["jouet"])
         categories = json.loads(sorties["fumee_selection"])["jouet"]["categories"]
         self.assertEqual(sorted(categories), ["bruit", "depart", "recherche"])
+        self.assertEqual(sorties["touche"], "false")
+        self.assertEqual(sorties["selection"], "{}")
+        # `evals` posé en plus : l'A/B remplace la fumée, qui ne part plus.
+        r, sorties = self.jouer("evals\nfumee", "", corps="Evals: bruit — essai")
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        self.assertEqual(sorties["fumee_plugins"], "")
+        self.assertEqual(sorties["touche"], "true")
+
+    def test_un_label_ajoute_ne_relance_que_la_fumee_qui_vient_d_etre_demandee(self):
+        # Trois pannes distinctes, chacune par son sous-cas : un `labeled` de `fumee` ne doit
+        # pas être traité en label étranger (la fumée part) ; posé sur une PR qui porte déjà
+        # `evals`, il ne relance ni le banc ni la fumée ; et un label étranger posé sur une PR
+        # qui porte `fumee` ne relance pas la fumée.
+        sans_label, avec_label = "Evals: aucun — essai", "Evals: bruit — essai"
+        with self.subTest("fumée posé seul : la fumée part, le banc non"):
+            r, sorties = self.jouer("fumee", "fumee", corps=sans_label)
+            self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+            self.assertEqual(json.loads(sorties["fumee_plugins"] or "[]"), ["jouet"])
+            self.assertEqual(sorties["label_etranger"], "0")
+            self.assertEqual(sorties["touche"], "false")
+        with self.subTest("fumée posé sur une PR qui porte evals : rien ne se relance"):
+            r, sorties = self.jouer("evals\nfumee", "fumee", corps=avec_label)
+            self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+            self.assertEqual(sorties["touche"], "false")
+            self.assertEqual(sorties["fumee_plugins"], "")
+            self.assertEqual(sorties["label_etranger"], "1")  # le verdict recopie le précédent
+        with self.subTest("label étranger posé sur une PR qui porte fumée : la fumée ne repart pas"):
+            r, sorties = self.jouer("fumee\nreview-required", "review-required", corps=sans_label)
+            self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+            self.assertEqual(sorties["fumee_plugins"], "")
+            self.assertEqual(sorties["touche"], "false")
 
 
 class VerdictDUnLabelEtranger(unittest.TestCase):
