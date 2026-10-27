@@ -17,9 +17,10 @@ justifie en une ligne.
         Evals: existant, bruit — la PR ne touche que la recherche de l'existant
   2. Ne pas les jouer : écrire « aucun » et la raison (obligatoire), sans label.
         Evals: aucun — doc seule, aucun comportement ne change
-Sans label et sans cette ligne, rien ne se joue (hors fumée) : cette ligne documente le
-choix, elle ne rend plus la CI rouge à elle seule (voir `Eval-cas:` plus bas, qui lui,
-bloque). -->
+Sans label et sans cette ligne, rien ne se joue (hors fumée, qui ne part que sur le label
+`fumee`) : cette ligne documente le choix, elle ne rend plus la CI rouge à elle seule (voir
+`Eval-cas:` plus bas, qui lui, bloque). La fumée se demande par le label `fumee` : ouvrir la
+PR en brouillon avec ce label, puis la passer prête (docs/tester-un-skill.md). -->
 Evals: 
 
 ## Avant de merger
@@ -36,8 +37,8 @@ Evals:
       est au journal (la CI refuse un journal de plus de 30 jours).
 - [ ] **Évals** : l'A/B se joue à la demande (label `evals` posé, résultat collé plus
       bas), ou la ligne `Evals: aucun — <raison>` plus haut dit pourquoi il n'y en a
-      pas. Sans label, la fumée tourne seule (job `fumee`) ; son verdict se lit
-      dans « Verdict des évals ».
+      pas. La fumée ne tourne que si la PR porte le label `fumee` (job `fumee`) ; son
+      verdict se lit dans « Verdict des évals ».
 - [ ] **`scripts/ci_locale.sh`** est vert en local.
 
 ## Résultat A/B

@@ -11,8 +11,9 @@ comment on la prouve.
 > Hors CI, `evals/outillage/lancer.sh` refuse (code 64) sans `EVALS_DEMANDE_PAR_BENJAMIN=1`,
 > variable à ne poser que sur cette demande. Le pré-vol et `--estimer` sont gratuits.
 > En CI, le banc (A/B) ne part que sur le label `evals` ou en lancement manuel ; la **fumée**
-> (la tête seule, quelques dollars) part sans label sur une PR qui touche un skill : seul
-> départ automatique restant, conservé par choix de Benjamin le 2026-10-16.
+> (la tête seule, quelques dollars) ne part que sur le label `fumee`, à la demande : elle ne
+> part plus seule sur une PR qui touche un skill (décision du 2026-10-27, qui remplace celle du
+> 2026-10-16, qui la gardait sans label). [La fumée](#la-fumée--ce-quelle-voit-ce-quelle-ne-voit-pas) dit comment la demander.
 
 La règle vit ici, à la racine, et non dans un plugin : elle concerne qui
 **modifie** un skill de ce dépôt, pas qui s'en sert ailleurs. Un fichier
@@ -37,7 +38,7 @@ montée de version à chaque retouche.
 
 | Palier | Où | Quand | Ce qu'il prouve |
 |---|---|---|---|
-| **Cas simulés**, publics | `evals/<plugin>/` dans ce dépôt | joués en CI **à la demande** (label `evals`, [voir plus bas](#choisir-les-évals-dune-pr)) ; sans le label, une [fumée](#la-fumée--ce-quelle-voit-ce-quelle-ne-voit-pas) à chaque PR qui touche `skills/`, `agents/`, un hook ou `_partage/` | qu'une consigne produit le bon état final sur une situation inventée |
+| **Cas simulés**, publics | `evals/<plugin>/` dans ce dépôt | joués en CI **à la demande** (label `evals`, [voir plus bas](#choisir-les-évals-dune-pr)) ; une [fumée](#la-fumée--ce-quelle-voit-ce-quelle-ne-voit-pas) part aussi à la demande, sur le label `fumee`, pour une PR qui touche `skills/`, `agents/`, un hook ou `_partage/` | qu'une consigne produit le bon état final sur une situation inventée |
 | **Cas réels**, privés | `bancs/skills/` dans le dépôt privé `hermes-custom` | rejoués **en local** pour tout changement de doctrine | que la consigne tient sur de vraies situations, qu'on ne publie pas |
 
 Le second palier est privé parce que les cas réels contiennent des noms de
@@ -291,15 +292,16 @@ La colonne ne nomme que les skills et les agents. Les fichiers de `skills/_parta
 
 **Les évals se jouent à la demande, et l'A/B est l'exception.** La CI ne joue
 l'A/B que si la PR porte le label `evals`. Sans ce label, rien ne se joue (hors
-fumée) quels que soient les fichiers touchés : `evals_selection.py` ne refuse
+fumée, qui ne part que sur le label `fumee`) quels que soient les fichiers touchés : `evals_selection.py` ne refuse
 plus une PR pour son silence (2026-10-16), pour ne pas tomber à deux reprises sur
 la même omission avec « Une leçon a son cas » (`Eval-cas:`, voir plus bas), qui
 elle reste contraignante. `Evals: aucun — <raison>` documente le choix si on le
 veut. Choisir des catégories implique le label ; `aucun` ne le pose pas.
 
-**Le défaut est `Evals: aucun — la fumée suffit`.** La [fumée](#la-fumée--ce-quelle-voit-ce-quelle-ne-voit-pas)
-tourne de toute façon sur les catégories touchées, pour quelques dollars, et voit
-un recul franc. Des catégories (donc le label `evals`) ne se choisissent que sur
+**Le défaut est `Evals: aucun — <raison>`.** Sans label, rien ne part sur la PR.
+Pour un signal franc sur les catégories touchées, il y a la [fumée](#la-fumée--ce-quelle-voit-ce-quelle-ne-voit-pas),
+qui se demande par le label `fumee` (quelques dollars, et elle voit un recul franc).
+Des catégories (donc le label `evals`) ne se choisissent que sur
 demande de Benjamin, et seulement pour deux cas :
 
 - **un changement de règle de comportement** dans un skill, un agent ou un
@@ -320,7 +322,8 @@ labels par `gh api`, comme le corps de la PR, et non dans l'événement : un
 `labeled` fait partie des déclencheurs de `ci.yml`, pour que poser `evals` lance le
 banc sans rien pousser. **Un label étranger ne relance ni le banc ni la fumée** :
 poser `review-required` sur une PR qui porte déjà `evals` ne doit pas payer un
-second banc. Le contrôle « label ou `aucun` » tourne quand même sur ce run, mais
+second banc. `fumee` n'est pas étranger : il lance la fumée seule, et ne relance
+rien sur une PR qui porte déjà `evals`. Le contrôle « label ou `aucun` » tourne quand même sur ce run, mais
 le verdict n'y est pas rendu à la légère : voir plus bas.
 
 **La ligne `Evals:` du corps de la PR** porte le choix :
@@ -492,8 +495,8 @@ d'un skill si une session se trompe encore de geste.
 
 ## La fumée : ce qu'elle voit, ce qu'elle ne voit pas
 
-Quand une PR touche un skill, un agent, un hook ou `_partage/` sans porter le
-label `evals`, la CI joue une **fumée** : la tête seule, en **un passage**, sur
+Quand une PR touche un skill, un agent, un hook ou `_partage/` et porte le label
+`fumee` (sans `evals`), la CI joue une **fumée** : la tête seule, en **un passage**, sur
 Sonnet, sur les catégories que les fichiers touchés exercent. Ces catégories
 sont **calculées** par `scripts/evals_selection.py`, pas choisies ; tout le banc
 part pour les hooks et pour un fichier qu'aucune catégorie n'exerce. Elle ne joue que les cas des catégories touchées : jusqu'à 22 pour `plans-notion` au 2026-10-23. Mesurée le 2026-09-30 sur un banc de 16 cas, elle coûtait 0,54 $ à 2,38 $ par
@@ -506,7 +509,21 @@ Elle est jouée par le job `fumee` de `ci.yml`, qui partage le groupe de
 concurrence `evals-<plugin>` de l'A/B (un seul banc à la fois, voir
 [Choisir les évals d'une PR](#choisir-les-évals-dune-pr)), annonce son coût en
 tête du résumé avant de jouer, et compte dans `Verdict des évals`. Un label
-étranger ne la relance pas.
+étranger ne la relance pas, et `fumee` ne la relance pas non plus sur une PR qui porte déjà `evals`.
+
+**Comment la demander.** Le label `fumee` est une demande, comme `evals` : une session
+Claude ne le pose que sur la demande de Benjamin dans son message courant. Il part en
+deux temps, parce que `merge-auto` merge dès que tout est vert, et qu'une fumée sautée
+laisse le verdict vert : ouvrir la PR **en brouillon** avec le label
+(`gh pr create --draft --label fumee`), puis la passer prête (`gh pr ready`). Le run
+`ready_for_review` voit le label ; en brouillon, `evals-portee` est sauté, rien ne part
+avant. Poser `fumee` sur une PR déjà prête relance un run `labeled` qui joue la fumée,
+mais ce n'est pas le chemin à suivre : le merge peut être passé entre-temps. Le coût,
+c'est ~6 min Actions par plugin (médiane mesurée 374 s) + jetons Claude.
+
+**Jouer la fumée en local.** Même demande, même garde :
+`EVALS_DEMANDE_PAR_BENJAMIN=1 python3 scripts/evals_ab.py --plugin <p> --fumee --tete HEAD`.
+Sans la variable, `lancer.sh` refuse (code 64). Ne se lance que sur la demande de Benjamin.
 
 **Le job est rouge dans deux cas, que son message distingue.** Une catégorie
 passe sous son plancher (code 1) : c'est un recul. Ou des sessions plantent

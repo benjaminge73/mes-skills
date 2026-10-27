@@ -315,9 +315,15 @@ label `evals`. Sans ce label, rien n'est exigé dans le corps de la PR (depuis l
 2026-10-16 : `Eval-cas:`, trailer de commit, est l'unique garde qui tient
 « cette leçon a son cas », pour éviter deux gardes jumelles sur la même
 omission) ; `Evals: aucun — <raison>` reste une façon acceptée de le documenter.
-Elle passe alors par le job `fumee` : la tête
-seule, en un passage, sur les catégories que ses fichiers exercent, jugée sur
-des planchers par catégorie (`evals/categories.json`), pour 0,54 à 9,2 $ (mesurés le 2026-09-30 sur un banc de 16 cas, qui a grandi depuis : `evals/categories.json` en tient le compte).
+La fumée, elle, ne part que sur le label `fumee` (décision du 2026-10-27, qui
+remplace celle du 2026-10-16 : elle partait sans label). Elle passe alors par le job
+`fumee` : la tête seule, en un passage, sur les catégories que ses fichiers exercent,
+jugée sur des planchers par catégorie (`evals/categories.json`). Elle coûte ~6 min
+Actions par plugin (médiane mesurée 374 s) + jetons Claude (0,54 à 9,2 $ mesurés le
+2026-09-30 sur un banc de 16 cas, qui a grandi depuis : `evals/categories.json` en tient
+le compte). Le label `evals` la remplace par l'A/B. Pour la demander : ouvrir la PR en
+brouillon avec le label `fumee`, puis la passer prête (détail dans
+[docs/tester-un-skill.md](docs/tester-un-skill.md)).
 
 Le banc est sobre. Un seul banc tourne par plugin à la fois
 (`concurrency: evals-<plugin>`), et un push sur une PR arrête les runs non finis
