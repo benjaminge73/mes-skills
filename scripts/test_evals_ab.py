@@ -1701,7 +1701,7 @@ class FumeeEtPlanchers(DepotEtLanceur):
             self.depot / "evals" / "categories.json",
             json.dumps({"jouet": {"unique": {"exerce": ["skills/s/"], "cas": ["alpha"], "plancher": 0.5}}}),
         )
-        code, sortie, erreur = jouer(self.argv("--fumee"), self.env)
+        code, sortie, erreur = jouer(self.argv("--fumee", "--cas", "alpha"), self.env)
         self.assertEqual(code, 0, sortie + erreur)
         self.assertEqual([l for l in self.appels() if l.startswith("APPEL")], ["APPEL tete"])
         self.assertEqual([l for l in self.appels() if l.startswith("OPTIONS")], ["OPTIONS --runs 1"])
@@ -2116,7 +2116,10 @@ class FumeeSauveeSeulementSiVerte(DepotEtLanceur):
                    json.dumps(rapport_synthetique({nom_du_cas: [1]})))
         sortie = self.racine / "sortie-jeu.txt"
         sortie.write_text("", "utf-8")
+        # Un runner GitHub pose GITHUB_ACTIONS=true, que jouer_le_pas retire : sans lui, ce
+        # pas se lirait comme une fumée locale (refusée sans --cas, voir FumeeSansCas).
         r = jouer_le_pas(corps_du_pas("Jouer la fumée, juger les catégories"), self.depot, dict(
+            GITHUB_ACTIONS="true",
             PLUGIN="jouet", SELECTION=selection, CATEGORIES=lire_sorties(sortie_cle)["categories"],
             CACHE_TROUVE="", CLAUDE_CODE_OAUTH_TOKEN="", EVALS_CONCURRENCE="5",
             EVALS_MAX_COUT_USD="35", RUNNER_TEMP=str(self.temp),
@@ -2394,14 +2397,62 @@ class FumeeEnDeuxLots(DepotEtLanceur):
     def test_hors_github_une_fumee_de_cinq_cas_appelle_le_lanceur_une_seule_fois(self):
         # Panne visée : en local, deux lanceurs prennent chacun une place lourde (lancer.sh,
         # --pid) : une fumée paierait la moitié du banc avant de refuser, ou prendrait deux
-        # places. Hors GITHUB_ACTIONS, un seul appel, sur tous les cas, sans découpage.
+        # places. Hors GITHUB_ACTIONS, un seul appel, sur les cinq cas, sans découpage. Les
+        # cinq sont nommés : hors CI, un --fumee sans --cas est refusé (voir FumeeSansCas).
         os.environ.pop("GITHUB_ACTIONS", None)  # défait à l'arrêt par le patch de setUp
-        code, sortie, erreur = self.fumee()
+        code, sortie, erreur = self.fumee(*[x for c in self.CAS for x in ("--cas", c)])
         self.assertEqual(code, 0, sortie + erreur)
         lots = self.lots_joues()
         self.assertEqual(len(lots), 1, erreur)
         self.assertEqual(sorted(lots[0]), sorted(self.CAS))
         self.assertNotIn("fumée en deux lots", erreur)
+
+
+class FumeeSansCas(DepotEtLanceur):
+    """``--fumee`` joué sans ``--cas`` : hors CI, le script refuse avant tout jeu ; sur un
+    runner GitHub (``GITHUB_ACTIONS=true``), il joue le banc entier, comme ci.yml le demande
+    quand sa sélection dit « tout ». Hérite de ``DepotEtLanceur`` seul : les tests de
+    ``FumeeEtPlanchers`` ne sont pas rejoués ici.
+
+    Hors CI, ``--fumee`` sans ``--cas`` jouait tous les cas du plugin : un banc entier payé
+    avec la seule variable ``EVALS_DEMANDE_PAR_BENJAMIN=1``. Chaque test pose la variable
+    d'environnement explicitement : le test passe sur un runner, où elle vaut ``true``.
+    """
+
+    HORS_CI = {"GITHUB_ACTIONS": "false"}
+    SUR_CI = {"GITHUB_ACTIONS": "true"}
+
+    def setUp(self):
+        super().setUp()
+        ecrire(self.depot / "evals" / "categories.json", json.dumps(
+            {"jouet": {"unique": {"exerce": ["skills/s/"], "cas": ["alpha"], "plancher": 0.5}}}))
+
+    def fumee(self, *extra: str, ci: bool):
+        return jouer(self.argv("--fumee", *extra), {**self.env, **(self.SUR_CI if ci else self.HORS_CI)})
+
+    def test_hors_ci_un_fumee_sans_cas_est_refusee_avant_tout_jeu(self):
+        # Panne visée : un --fumee local sans --cas paie le banc entier. Le refus rend 3 (le
+        # code des autres refus du script), et le lanceur n'est jamais appelé. Le message dit
+        # comment choisir les cas : il nomme la commande de sélection du plugin.
+        code, sortie, erreur = self.fumee(ci=False)
+        self.assertEqual(code, 3, sortie + erreur)
+        self.assertIn("--cas", erreur)
+        self.assertIn("python3 scripts/evals_selection.py --fumee --plugin jouet", erreur)
+        self.assertEqual(self.appels(), [])
+
+    def test_hors_ci_un_fumee_avec_un_cas_joue_ce_cas(self):
+        # Témoin : le refus ne vise que le --fumee sans --cas, pas la fumée locale en général.
+        code, sortie, erreur = self.fumee("--cas", "alpha", ci=False)
+        self.assertEqual(code, 0, sortie + erreur)
+        self.assertEqual([l for l in self.appels() if l.startswith("APPEL")], ["APPEL tete"])
+
+    def test_sur_ci_un_fumee_sans_cas_joue_le_banc_entier_comme_avant(self):
+        # Témoin : sur un runner, ci.yml appelle --fumee sans --cas quand la sélection dit
+        # « tout ». Le refus ne doit pas l'atteindre : le lanceur est appelé une fois.
+        code, sortie, erreur = self.fumee(ci=True)
+        self.assertEqual(code, 0, sortie + erreur)
+        self.assertNotIn("REFUS", erreur)
+        self.assertEqual([l for l in self.appels() if l.startswith("APPEL")], ["APPEL tete"])
 
 
 if __name__ == "__main__":
