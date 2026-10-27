@@ -1090,6 +1090,17 @@ class PorteeDuLabelAjoute(unittest.TestCase):
             self.assertEqual(sorties["fumee_plugins"], "")
             self.assertEqual(sorties["touche"], "false")
 
+    def test_fumee_ajoute_sur_une_pr_qui_porte_evals_dit_que_l_ab_remplace_la_fumee(self):
+        # Panne visée : le log disait « ce n'est pas « evals », les évals ne sont pas
+        # relancées » pour un `fumee` posé sur une PR qui porte déjà `evals` : un lecteur
+        # comprenait que `fumee` n'a aucun effet. Le log doit dire que l'A/B remplace la
+        # fumée, et que poser `fumee` ne relance rien.
+        r, sorties = self.jouer("evals\nfumee", "fumee", corps="Evals: bruit — essai")
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        self.assertEqual(sorties["label_etranger"], "1")
+        self.assertIn("l'A/B « evals » remplace la fumée", r.stdout)
+        self.assertIn("poser « fumee » ne relance rien", r.stdout)
+
 
 class VerdictDUnLabelEtranger(unittest.TestCase):
     """Un label étranger ne relance rien : le verdict recopie alors le précédent du SHA.
