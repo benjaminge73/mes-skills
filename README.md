@@ -8,6 +8,7 @@ dépôts, en local comme en session cloud, et mis à jour tout seuls.
 | `plans-notion` | Écrit, exécute et fait évoluer des plans de travail dans Notion plutôt que dans le chat. Skills, agents et hooks : voir [`plugin.json`](plugins/plans-notion/.claude-plugin/plugin.json) et le dossier [`plugins/plans-notion/`](plugins/plans-notion/). |
 | `methode-de-travail` | Skills `brainstorming`, `systematic-debugging`, `verification-before-completion`. Agents : voir le dossier [`plugins/methode-de-travail/agents/`](plugins/methode-de-travail/agents/). Dialoguer avant de créer, avec l'outil de question natif, chercher la cause racine avant de corriger, prouver avant d'annoncer que c'est fini : `brainstorming` route désormais chaque demande en Spike / Bounded / Architectural et proportionne la sortie — réponse dans le chat, page de plan allégée, ou page complète ; `verification-before-completion` exige la preuve du rouge sur un test de fonctionnalité neuve, vu échouer avant le code et inchangé jusqu'au vert. |
 | `voyages` | Skill `organiser-voyage`. La méthode pour organiser un voyage : qualifier les mails de réservation, récupérer les billets quel que soit leur support (PDF joint, lien de téléchargement, QR code dans le corps du mail), les nommer et les ranger sans jamais écraser un fichier existant, et rappeler chaque visite 30 minutes avant. Les scripts sont testés hors ligne. Aucune donnée personnelle dans le dépôt, un garde de la CI y veille : la configuration de chaque voyage vit chez l'appelant. |
+| `nommage-sessions` | Hook `UserPromptSubmit` qui nomme chaque session « [Projet] sujet ». Projet = nom du dépôt git (un worktree porte le nom de son dépôt). Sujet = titre de 2 à 6 mots demandé à Haiku (`claude -p`) au premier message ; si la CLI n'est pas connectée (cas de l'app desktop, qui ne transmet pas son auth aux processus enfants), le titre natif est préfixé au message suivant. Un titre qui commence déjà par « [ » n'est jamais touché. |
 
 `voyages` ne figure pas dans les commandes d'installation ci-dessous : il sert un usage précis et non toutes les sessions, `claude plugin install voyages@atelier` l'installe là où on le veut.
 
@@ -35,6 +36,7 @@ d'infrastructure, qui reste dans les dépôts privés.
 claude plugin marketplace add benjaminge73/mes-skills
 claude plugin install plans-notion@atelier
 claude plugin install methode-de-travail@atelier
+claude plugin install nommage-sessions@atelier
 ```
 
 Le scope par défaut est `user` : la marketplace est enregistrée dans
@@ -59,6 +61,7 @@ sélecteur d'environnement → **Setup script** :
 claude plugin marketplace add benjaminge73/mes-skills || echo "!! marketplace add : ECHEC"
 claude plugin install plans-notion@atelier          || echo "!! install plans-notion : ECHEC"
 claude plugin install methode-de-travail@atelier    || echo "!! install methode-de-travail : ECHEC"
+claude plugin install nommage-sessions@atelier      || echo "!! install nommage-sessions : ECHEC"
 ```
 
 **Ne jamais laisser une de ces lignes sortir non-zéro** : un setup script qui

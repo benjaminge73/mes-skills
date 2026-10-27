@@ -20,6 +20,11 @@
       "name": "voyages",
       "source": "./plugins/voyages",
       "description": "Une seule méthode pour organiser un voyage : qualifier les mails de réservation, nommer et ranger les billets, rappeler chaque visite."
+    },
+    {
+      "name": "nommage-sessions",
+      "source": "./plugins/nommage-sessions",
+      "description": "Nomme chaque session « [Projet] sujet », en local comme en session cloud."
     }
   ]
 }

@@ -1,0 +1,16 @@
+{
+  "description": "À chaque message : si le titre de la session n'a pas encore son préfixe « [Projet] », le pose (sujet par Haiku au premier message, sinon titre existant préfixé).",
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/nommer_session.py\"",
+            "timeout": 40
+          }
+        ]
+      }
+    ]
+  }
+}
