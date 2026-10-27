@@ -521,9 +521,11 @@ avant. Poser `fumee` sur une PR déjà prête relance un run `labeled` qui joue 
 mais ce n'est pas le chemin à suivre : le merge peut être passé entre-temps. Le coût,
 c'est ~6 min Actions par plugin (médiane mesurée 374 s) + jetons Claude.
 
-**Jouer la fumée en local.** Même demande, même garde :
-`EVALS_DEMANDE_PAR_BENJAMIN=1 python3 scripts/evals_ab.py --plugin <p> --fumee --tete HEAD`.
-Sans la variable, `lancer.sh` refuse (code 64). Ne se lance que sur la demande de Benjamin.
+**Jouer la fumée en local.** Même demande, même garde, mais pas le même banc. Pour reproduire la CI :
+`python3 scripts/evals_selection.py --fumee --plugin <p> --fichiers <liste>` rend en JSON les `cas` à jouer (`<liste>` : un chemin touché par ligne), sans rien payer ;
+puis `EVALS_DEMANDE_PAR_BENJAMIN=1 python3 scripts/evals_ab.py --plugin <p> --fumee --tete HEAD --cas <nom>`, un `--cas` par cas retenu.
+Sans `--cas`, `evals_ab.py` joue **tout** le banc du plugin, catégories sans plancher comprises : le coût d'un banc entier, pas celui d'une fumée.
+Sans la variable, `lancer.sh` refuse (code 64) : ne se lance que sur la demande de Benjamin.
 
 **Le job est rouge dans deux cas, que son message distingue.** Une catégorie
 passe sous son plancher (code 1) : c'est un recul. Ou des sessions plantent
