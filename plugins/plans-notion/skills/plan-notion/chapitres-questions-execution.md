@@ -149,8 +149,10 @@ partout. Les deux régimes, la définition du lot et la décision de Benjamin du
 
 **Si le plan modifie un plugin d'un dépôt qui a un banc d'évals par catégorie** (un
 `evals/categories.json`), le chapitre porte une ligne `Évals à jouer : <catégories> —
-pourquoi`, ou `aucun — <raison>`. **Le défaut est `aucun — la fumée suffit`** : la
-fumée (la tête seule, un passage, quelques dollars) se joue sans label. **Le plan ne
+pourquoi`, ou `aucun — <raison>`. **Le défaut est `aucun — <raison>`** : la fumée (la
+tête seule, un passage, quelques dollars) ne se joue que si Benjamin la demande dans son
+message courant ; la session pose alors le label `fumee`, la PR s'ouvre en brouillon puis
+passe prête, et elle ne pose jamais ce label de sa propre initiative. **Le plan ne
 propose jamais de lui-même des catégories, un A/B, un banc `aa` ni la mesure d'un
 plancher** : la ligne ne porte des catégories ou `tout` que si Benjamin le demande. Une
 catégorie neuve s'écrit sans plancher : la fumée l'écarte, nommée et non jugée, jusqu'à

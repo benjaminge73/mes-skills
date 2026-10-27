@@ -503,9 +503,13 @@ tiennent :
 
 Si le chapitre `Exécution` porte une ligne `Évals à jouer : …`, la recopier dans le
 corps de la PR : `Evals: <catégories> — <raison>`, `Evals: tout` ou `Evals: aucun —
-<raison>`. Le défaut du plan est `aucun — la fumée suffit` : recopier tel quel, sans
-label. Le label `evals` ne se pose que sur demande de Benjamin, pour des catégories
-ou `tout`, jamais pour `aucun` ; sans ligne, la CI est rouge. Coûts :
+<raison>`. Le défaut du plan est `aucun — <raison>` : recopier tel quel, sans label.
+La fumée ne se joue que si Benjamin la demande dans son message courant : la session
+pose alors le label `fumee`, ouvre la PR en brouillon puis la passe prête (jamais de
+pose de sa propre initiative). Le label `evals` ne se pose que sur demande de Benjamin,
+pour des catégories ou `tout`, jamais pour `aucun`. Sans ce label, une ligne `Evals:`
+absente ou `aucun — <raison>` ne rend pas la CI rouge ; un `aucun` sans raison, ou
+combiné à une catégorie, la rend rouge (`evals-portee`). Coûts :
 `${CLAUDE_PLUGIN_ROOT}/skills/_partage/outils-et-quotas.md`.
 
 La séquence complète — ouvrir, attendre la CI, vérifier que le merge a bien eu
