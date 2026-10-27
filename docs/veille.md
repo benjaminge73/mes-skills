@@ -50,6 +50,10 @@ plus simplement en variante `.md`.
    [le dépôt](https://github.com/anthropics/skills), dont `shared/evals/` quand il
    existe (introuvable le 2026-09-30 : le dépôt ne porte que `skills/`, `spec/` et
    `template/`).
+
+   Les dépôts de skills tiers ne se relisent pas à la main à chaque passe : le
+   cron Hermes `veille-skills` les suit chaque semaine, et ses propositions
+   arrivent dans la page Notion `[Plan] mes-skills - Adoption de skills externes`.
 4. **D'autres sources, quand elles sont pertinentes** — les issues amont (par
    exemple [anthropics/sandbox-runtime#74](https://github.com/anthropics/sandbox-runtime/issues/74),
    « bwrap fails on Ubuntu 24.04+ due to AppArmor userns restrictions », qui
