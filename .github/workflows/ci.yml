@@ -449,7 +449,7 @@ jobs:
             echo
             if [ "$selection" = '{}' ]; then
               if [ "$joue" = 0 ]; then
-                echo "Aucun plugin à jouer (label « $LABEL_AJOUTE » ajouté, pas « evals »)."
+                echo "Aucun plugin à jouer : le label « $LABEL_AJOUTE » ajouté ne relance pas le banc « evals » (seul le label « evals » le lance)."
               elif [ "$a_le_label" = 0 ]; then
                 echo "Aucun plugin à jouer (pas de label evals sur la PR)."
               else
