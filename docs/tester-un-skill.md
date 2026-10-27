@@ -524,7 +524,7 @@ c'est ~6 min Actions par plugin (médiane mesurée 374 s) + jetons Claude.
 **Jouer la fumée en local.** Même demande, même garde, mais pas le même banc. Pour reproduire la CI :
 `python3 scripts/evals_selection.py --fumee --plugin <p> --fichiers <liste>` rend en JSON les `cas` à jouer (`<liste>` : un chemin touché par ligne), sans rien payer ;
 puis `EVALS_DEMANDE_PAR_BENJAMIN=1 python3 scripts/evals_ab.py --plugin <p> --fumee --tete HEAD --cas <nom>`, un `--cas` par cas retenu.
-Sans `--cas`, `evals_ab.py` joue **tout** le banc du plugin, catégories sans plancher comprises : le coût d'un banc entier, pas celui d'une fumée.
+Hors CI, `evals_ab.py` **refuse** un `--fumee` sans `--cas` (code 3, avant tout jeu) : sans `--cas`, il jouerait **tout** le banc du plugin, catégories sans plancher comprises, le coût d'un banc entier et non celui d'une fumée. Sur un runner GitHub, sans `--cas`, il joue le banc entier : c'est ce que fait la CI quand sa sélection dit « tout ».
 Sans la variable, `lancer.sh` refuse (code 64) : ne se lance que sur la demande de Benjamin.
 
 **Le job est rouge dans deux cas, que son message distingue.** Une catégorie
