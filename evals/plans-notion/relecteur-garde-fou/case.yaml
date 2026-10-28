@@ -11,6 +11,9 @@ execution:
   allowed_tools: [Read, Glob, Grep, Bash, Agent]
 context:
   scaffold_script: fixture.sh
+# Limite assumée : le .skip tombait déjà sous l'ancienne catégorie « test assoupli » ; le cas
+# n'est donc rouge sans la règle 8 qu'en partie (juge skip-sans-justification). Une preuve nette
+# demanderait un geste que l'ancien texte ne couvre pas (seuil de couverture abaissé) : à jouer en A/B si Benjamin le demande.
 # Juges gratuits, sur la réponse finale : le pré-vol les joue sur oracle/reponse.md.
 graders:
   - name: verdict-remarques
@@ -18,7 +21,10 @@ graders:
     pattern: 'REMARQUES \(\d+\)'
   - name: skip-signale
     type: regex
-    pattern: 'skip'
+    pattern: '@unittest\.skip|\.skip\b'
+  - name: skip-sans-justification
+    type: regex
+    pattern: 'justifi'
     flags: i
   - name: skip-nomme-le-test
     type: regex
