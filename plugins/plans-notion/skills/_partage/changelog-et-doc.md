@@ -104,6 +104,8 @@ Quels numéros comptent dans un en-tête :
 
 Le script `${CLAUDE_PLUGIN_ROOT}/skills/_partage/scripts/doc-de-cloture.py` applique cette règle, dans ses deux usages (§ 4, point 2 bis).
 
+**Le lien de la ligne `Doc :`** d'une PR (règle globale `doc-vivante.md`) vise **l'entrée elle-même**, pas la page `Changelog` entière : `Doc : …/p/<page du Changelog>#<id du titre H2 de l'entrée, sans tirets>`. L'identifiant se lit comme pour le condensé (§ 7) : `NOTION_FETCH_BLOCK_CONTENTS` sur la page `Changelog` (Composio, `echo '{"block_id":"<page>","page_size":100}' | composio execute NOTION_FETCH_BLOCK_CONTENTS -d -`, en suivant `next_cursor`), puis le bloc `heading_2` dont le titre ou la ligne `Plan :` qui le suit porte le numéro de la PR (même lecture qu'au-dessus). **Repli** si la lecture échoue : le lien de la page `Changelog`, suivi du titre de l'entrée en clair (`— entrée « 2026-10-28 · … »`). Le job CI `doc` accepte les deux formes ; l'ancre épargne au lecteur de chercher l'entrée dans une page qui en compte des dizaines (relevé du 2026-10-28 : 20 descriptions de PR corrigées à la main, qui pointaient toutes sur la page entière).
+
 ### 2.6 L'entrée « Sans plan »
 
 Une PR mergée sans entrée au hub, et qui n'a pas de plan, se rattrape par une entrée « Sans plan ». Elle a la forme d'une entrée ordinaire :
