@@ -906,7 +906,16 @@ class CiYml(unittest.TestCase):
         verdict = _job(self.ci, "evals-verdict")
         self.assertIn("name: Verdict des évals", verdict)
         self.assertIn("needs: [evals-portee, evals, fumee]", verdict)
-        self.assertRegex(verdict, r"(?m)^    if: always\(\)\s*$")
+        # `always()` en tête, puis sauté seulement quand il n'y a rien à juger (2026-10-28).
+        condition = verdict.split("    if: >-\n", 1)[1].split("\n    runs-on:", 1)[0]
+        self.assertTrue(condition.strip().startswith("always()"))
+        for amont in ("evals-portee", "evals", "fumee"):
+            with self.subTest(amont=amont):
+                self.assertIn(
+                    f"""contains(fromJSON('["failure", "cancelled"]'), needs.{amont}.result)""",
+                    condition,
+                )
+        self.assertIn("needs.evals-portee.outputs.label_etranger == '1'", condition)
         self.assertIn("runs-on: ubuntu-latest", verdict)
         bloc = verdict.split("    permissions:\n", 1)[1].split("\n    steps:", 1)[0]
         self.assertEqual({l.strip() for l in bloc.splitlines() if l.strip()}, {"checks: read"})

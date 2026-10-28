@@ -492,18 +492,20 @@ class LaFumeeSeRelanceEtSeFileSansPerdreDeTemps(unittest.TestCase):
         fumee = _texte_du_job("fumee")
         self.assertIn('--garder-vertes "$joue/vertes.json"', fumee)
 
-    def test_les_runs_perimes_sont_arretes_sans_checkout_ni_run_plus_recent(self):
-        job = _texte_du_job("annuler-perimes")
-        self.assertNotIn("actions/checkout", job)  # jamais de code de PR avec `actions: write`
-        self.assertRegex(job, r"(?m)^      actions: write$")
-        self.assertIn("github.event_name == 'pull_request'", job)
-        self.assertIn("head.repo.full_name == github.repository", job)
-        self.assertIn('select(.head_sha != env.SHA)', job)  # pas le même commit (label étranger)
-        self.assertIn('select(.id < (env.RUN_ID | tonumber))', job)  # jamais un run plus récent
-        self.assertIn('-f branch="$BRANCHE"', job)  # la branche passe par l'environnement
-        script = job.split("run: |", 1)[1]
-        self.assertNotIn("${{", script)  # aucune expression GitHub collée dans le script lui-même
-
+    def test_les_runs_perimes_d_une_pr_sont_annules_par_le_groupe_de_concurrence(self):
+        # Le natif remplace le job `annuler-perimes` (2026-10-28) : même effet, sans job facturé.
+        texte = (RACINE / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+        bloc = re.search(r"(?ms)^concurrency:\n(.*?)(?=^\S)", texte)
+        self.assertIsNotNone(bloc, "pas de groupe de concurrence au niveau du workflow")
+        bloc = bloc.group(1)
+        self.assertRegex(bloc, r"(?m)^  cancel-in-progress: true$")
+        self.assertIn("format('pr-{0}', github.event.pull_request.number)", bloc)  # une PR, un groupe
+        # Hors du groupe de la PR, donc jamais annulés : main, le lancement manuel, un label étranger.
+        self.assertIn("github.event_name != 'pull_request'", bloc)
+        self.assertIn("github.run_id", bloc)
+        self.assertIn("""!contains(fromJSON('["evals", "fumee"]'), github.event.label.name)""", bloc)
+        self.assertIn("contains(github.event.pull_request.labels.*.name, 'evals')", bloc)
+        self.assertNotIn("annuler-perimes:", texte)
 
 class FormatDesCas(unittest.TestCase):
     def test_context_n_est_jamais_dans_le_frontmatter_d_un_prompt(self):

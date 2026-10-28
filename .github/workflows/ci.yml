@@ -61,6 +61,34 @@ on:
 permissions:
   contents: read
 
+# Un push sur une PR rend périmé le run du commit précédent : sa fumée (15 à 18 min) gardait
+# le groupe `evals-<plugin>` pendant que celle du nouveau commit attendait derrière elle
+# (2026-10-15 : 14 min d'attente, run 38738755670). Les runs d'une même PR partagent donc un
+# groupe, et le plus récent annule celui qui tourne. C'était le job `annuler-perimes` jusqu'au
+# 2026-10-28 : le natif fait la même chose sans job, donc sans la minute facturée par run.
+#
+# Hors du groupe de la PR (un groupe à lui, le numéro du run, jamais annulé ni annulant) :
+#   - un push sur `main` et un lancement manuel ;
+#   - un label étranger, au sens d'`evals-portee` : ni `evals` ni `fumee`, ou `fumee` sur une
+#     PR qui porte déjà `evals`. Ce run ne rejoue rien et recopie le verdict du SHA : il ne
+#     doit pas annuler le run qui est en train de le rendre.
+# `github.event.label.name` n'est rempli que par l'événement `labeled`. Les labels sont lus
+# dans le payload : pour un événement neuf, ils sont à jour. Les comparaisons des expressions
+# GitHub ignorent la casse, comme `${LABEL_AJOUTE,,}` du script.
+# Deux PR différentes ont deux groupes : elles se suivent toujours dans la file `evals-<plugin>`.
+concurrency:
+  group: >-
+    ci-${{
+      (github.event_name != 'pull_request'
+        || (github.event.label.name != ''
+            && (!contains(fromJSON('["evals", "fumee"]'), github.event.label.name)
+                || (github.event.label.name == 'fumee'
+                    && contains(github.event.pull_request.labels.*.name, 'evals')))))
+      && github.run_id
+      || format('pr-{0}', github.event.pull_request.number)
+    }}
+  cancel-in-progress: true
+
 jobs:
   validation:
     name: Validation des plugins
@@ -125,56 +153,6 @@ jobs:
           BASE_REF: origin/${{ github.base_ref }}
           CI_LOCALE_SANS_BASE: ${{ github.event_name != 'pull_request' && '1' || '' }}
         run: scripts/ci_locale.sh garde
-
-  annuler-perimes:
-    name: Annuler les runs périmés de la PR
-    # Un push sur une PR rend périmé le run du commit précédent, mais rien ne l'arrêtait :
-    # sa fumée (15 à 18 min) gardait le groupe `evals-<plugin>` pendant que celle du nouveau
-    # commit attendait derrière elle (2026-10-15 : 14 min d'attente derrière la fumée du
-    # commit précédent de la même PR, run 38738755670). Ce job arrête donc les runs de la
-    # même branche qui ne sont pas finis, ont un identifiant plus petit (jamais un run plus
-    # récent) et portent un autre SHA de tête (jamais un run du même commit, dont un label
-    # étranger recopie le verdict). Le groupe de concurrence, lui, ne change pas : deux PR
-    # différentes se suivent toujours dans la file, donc aucune limite de débit disputée.
-    #
-    # Aucun checkout et aucun code de la PR ici : le jeton a `actions: write`, il ne doit
-    # jamais exécuter ce que la PR apporte. La branche arrive par l'environnement, jamais
-    # interpolée dans le script. Un échec de l'API est un avertissement, pas un job rouge :
-    # le run périmé finit alors tout seul, comme avant.
-    if: >-
-      github.event_name == 'pull_request'
-      && github.event.pull_request.head.repo.full_name == github.repository
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      actions: write
-    steps:
-      - name: Annuler les runs non finis des commits précédents
-        env:
-          GH_TOKEN: ${{ github.token }}
-          REPO: ${{ github.repository }}
-          BRANCHE: ${{ github.event.pull_request.head.ref }}
-          SHA: ${{ github.event.pull_request.head.sha }}
-          RUN_ID: ${{ github.run_id }}
-        run: |
-          set -uo pipefail
-          if ! perimes=$(gh api -X GET "repos/$REPO/actions/workflows/ci.yml/runs" \
-                -f event=pull_request -f branch="$BRANCHE" -f per_page=50 \
-                --jq '.workflow_runs[] | select(.status != "completed") | select(.head_sha != env.SHA) | select(.id < (env.RUN_ID | tonumber)) | .id'); then
-            echo "::warning title=Runs périmés::La liste des runs de la branche est illisible : rien n'est annulé."
-            exit 0
-          fi
-          if [ -z "$perimes" ]; then
-            echo "Aucun run périmé."
-            exit 0
-          fi
-          for id in $perimes; do
-            if gh api -X POST "repos/$REPO/actions/runs/$id/cancel" >/dev/null; then
-              echo "Run périmé $id annulé."
-            else
-              echo "::warning title=Runs périmés::Le run $id n'a pas pu être annulé (déjà fini ?)."
-            fi
-          done
 
   evals-portee:
     name: Portée des évals
@@ -1307,8 +1285,8 @@ jobs:
   evals-verdict:
     # Le seul contrôle d'évals au nom fixe : `Évals (<plugin>)` change avec la
     # matrice, et le verrou de `main` ne peut exiger qu'un nom qui ne change pas.
-    # Toujours joué (`always()`), sinon un `needs` sauté ferait sauter aussi ce
-    # job, et un contrôle exigé qui n'apparaît jamais bloque tout.
+    # Évalué même quand un amont est sauté ou rouge (`always()`), sinon un `needs`
+    # sauté ferait sauter aussi ce job sans examen.
     #   - rouge : la portée (refus du plancher), un bras des évals ou la fumée a
     #     échoué ou a été annulé (une poussée qui annule le run ne doit pas passer
     #     pour vert) ;
@@ -1320,9 +1298,19 @@ jobs:
     #     sur ce SHA (rouge s'il n'y en a pas), lu par l'API des check-runs.
     # Aucune copie du dépôt, aucun secret : il lit les résultats des jobs dont il
     # dépend et, pour ce seul cas, les check-runs du SHA (`checks: read`).
+    #
+    # Sauté quand il n'a rien à juger (2026-10-28) : tout est `success` ou `skipped` et ce
+    # n'est pas un label étranger. Il rendait alors « vert » après une minute facturée ; un job
+    # sauté par son `if:` remonte « Success » au verrou de `main`, sans rien coûter. `always()`
+    # reste en tête, sinon un `needs` sauté ou rouge ferait sauter le job au lieu de le jouer.
     name: Verdict des évals
     needs: [evals-portee, evals, fumee]
-    if: always()
+    if: >-
+      always()
+      && (contains(fromJSON('["failure", "cancelled"]'), needs.evals-portee.result)
+          || contains(fromJSON('["failure", "cancelled"]'), needs.evals.result)
+          || contains(fromJSON('["failure", "cancelled"]'), needs.fumee.result)
+          || needs.evals-portee.outputs.label_etranger == '1')
     runs-on: ubuntu-latest
     permissions:
       checks: read

@@ -376,13 +376,14 @@ plugin partagent le groupe de concurrence `evals-<plugin>`, avec
 `cancel-in-progress: false` : tous les bancs puisent dans la limite de débit d'un
 même abonnement, et trois bancs simultanés (le 2026-09-30) ont rendu des mesures
 inexploitables. Le second run attend donc la fin du premier, et ne l'annule pas. **Une exception,
-pour les runs d'une même PR** : le job `annuler-perimes` arrête, au démarrage d'un
-run, les runs non finis de la même branche qui portent un autre SHA de tête et un
-identifiant plus petit. Un push rend périmé le run du commit précédent ; avant, sa
+pour les runs d'une même PR** : ils partagent le groupe de concurrence du workflow
+(`concurrency:` en tête de `ci.yml`, `cancel-in-progress: true`), et le run le plus
+récent arrête celui qui tourne. Avant le 2026-10-28, c'était le job `annuler-perimes`,
+qui coûtait une minute d'Actions par run. Un push rend périmé le run du commit précédent ; avant, sa
 fumée (15 à 18 min) gardait le groupe pendant que celle du nouveau commit attendait
-derrière (14 min d'attente le 2026-10-15). Un run plus récent n'est jamais annulé, ni
-un run du même SHA (un label étranger y recopie le verdict), et deux PR différentes se
-suivent toujours dans la file.
+derrière (14 min d'attente le 2026-10-15). Un run plus récent n'est jamais annulé, un
+label étranger a son propre groupe (il recopie le verdict du SHA, il ne doit pas annuler
+le run qui le rend), et deux PR différentes se suivent toujours dans la file.
 **Limite de GitHub** : un seul run peut attendre par groupe ; un troisième annule
 celui qui attendait, et le run annulé se relance (il ne vaut pas verdict). Le
 lancement manuel `aa` a un groupe à part, `evals-aa-<plugin>`, pour qu'une mesure
