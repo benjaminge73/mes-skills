@@ -197,6 +197,13 @@ Sous chaque titre, le contenu de l'étape :
   l'étape réalise (chapitre `Maquette`).
 - **Impact technique** : migrations, dépendances, variables d'environnement,
   contrats d'API, effet sur les tests existants.
+- **Interfaces** : ce que l'étape consomme et ce qu'elle produit, avec les
+  signatures exactes — nom de fonction et arguments, type de retour, clé de
+  config, format de fichier. Ex. : `resume(ligne: LigneFacture, locale: str) -> str`.
+  L'exécutant ne voit que son étape : une interface qu'elle ne nomme pas, il la
+  devine. **Facultatif** : « — » (ou ligne omise) quand l'étape ne touche aucun
+  code partagé (prose, doc, config isolée). Idée reprise de `obra/superpowers`
+  (skill `writing-plans`, licence MIT).
 - **Preuve de fin** : la commande ou l'observation qui dit que l'étape est faite.
 - **Test attendu** — pour une étape qui écrit du code : la panne que le test
   attrapera, le comportement cassé qu'il doit voir rouge avant d'écrire le
