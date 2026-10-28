@@ -11,7 +11,7 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from garde_doc_pr import verifier_doc  # noqa: E402
+from garde_doc_pr import doc_pas_encore_ecrite, verifier_doc  # noqa: E402
 
 SCRIPT = Path(__file__).resolve().parent / "garde_doc_pr.py"
 NOTION = "https://app.notion.com/p/0123456789abcdef0123456789abcdef"
@@ -85,11 +85,44 @@ class Cli(unittest.TestCase):
 
     def test_codes(self):
         self.assertEqual(self.jouer({"PR_BODY": f"Doc : {NOTION}"}).returncode, 0)
-        refus = self.jouer({"PR_BODY": "rien"})
+        refus = self.jouer({"PR_BODY": "Doc : sans objet"})
         self.assertEqual(refus.returncode, 1)
         self.assertIn("::error", refus.stdout)
+        # rien d'écrit encore : code 4, le job attend au lieu de rougir
+        self.assertEqual(self.jouer({"PR_BODY": "rien"}).returncode, 4)
         self.assertEqual(self.jouer({}).returncode, 2)
         self.assertEqual(self.jouer({"PR_AUTHOR": "dependabot[bot]"}).returncode, 0)
+
+
+
+class PasEncoreEcrite(unittest.TestCase):
+    """Une PR qui vient de s'ouvrir n'a pas encore sa ligne : le job attend, il ne rougit pas."""
+
+    def test_ligne_absente_ou_vide_attend(self):
+        self.assertTrue(doc_pas_encore_ecrite("Une PR sans rien."))
+        self.assertTrue(doc_pas_encore_ecrite("Doc :"))
+        self.assertTrue(doc_pas_encore_ecrite("Doc : \n\n**Doc :** "))
+        self.assertTrue(doc_pas_encore_ecrite(None))
+
+    def test_une_valeur_fausse_n_attend_pas(self):
+        # elle est fausse, pas absente : refusée tout de suite
+        self.assertFalse(doc_pas_encore_ecrite("Doc : sans objet"))
+        self.assertFalse(doc_pas_encore_ecrite("Doc : https://github.com/o/r/pull/12"))
+        self.assertFalse(doc_pas_encore_ecrite("Doc : sans objet — pas de job doc dans la CI"))
+
+    def test_une_ligne_valide_n_attend_pas(self):
+        self.assertFalse(doc_pas_encore_ecrite(f"Doc : {NOTION}"))
+
+    def test_dependabot_n_attend_pas(self):
+        self.assertFalse(doc_pas_encore_ecrite("", "dependabot[bot]"))
+
+    def test_code_de_sortie(self):
+        def lancer(corps):
+            env = {**os.environ, "PR_BODY": corps, "PR_AUTHOR": "benjaminge73"}
+            return subprocess.run([sys.executable, str(SCRIPT)], env=env, capture_output=True, text=True).returncode
+        self.assertEqual(lancer("Doc :"), 4)
+        self.assertEqual(lancer("Doc : sans objet"), 1)
+        self.assertEqual(lancer(f"Doc : {NOTION}"), 0)
 
 
 if __name__ == "__main__":

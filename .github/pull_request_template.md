@@ -25,7 +25,7 @@ Evals:
 
 <!-- Doc vivante (Mes Skills l'a activée) : le job `doc` de la CI refuse la PR sans cette
 ligne. Soit le lien Notion de l'entrée du Changelog (ouvrir la PR, écrire l'entrée en citant
-son numéro, puis éditer cette ligne et relancer le job `doc`), soit « sans objet — <raison> »
+son numéro, puis éditer cette ligne : le job `doc` attend jusqu'à 10 minutes qu'elle se remplisse, au-delà il faut relancer le job), soit « sans objet — <raison> »
 quand rien ne change pour la personne qui se sert des plugins (CI interne, test, veille). -->
 Doc : 
 
