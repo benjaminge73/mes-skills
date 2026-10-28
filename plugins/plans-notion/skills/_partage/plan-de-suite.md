@@ -124,6 +124,9 @@ atterrisse quelque part de visible.
 - **Plan couvert par un plan maître** : le plan de suite le rejoint et le statut du
   maître est recalculé (`plan-notion/plan-maitre.md`) ; la ligne du plan terminé
   dans « Reste à faire » du `Récap du lot` cite le plan de suite avec son lien.
+- **Plan seul, mais un autre plan du projet est non terminé** : la création du plan de suite
+  est une création de plan comme une autre, le maître naît (`plan-notion/plan-maitre.md`,
+  « Le deuxième plan d'un projet crée le maître »).
 - Le lien du plan de suite va aussi dans la rubrique ⏭️ du Récap et dans le compte
   rendu : c'est là que Benjamin le trouve.
 

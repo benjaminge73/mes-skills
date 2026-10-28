@@ -2,14 +2,16 @@
 
 Référence de `plan-notion`, lue **avant le premier geste** d'un plan maître :
 quand Benjamin demande de croiser, remettre à jour ou séquencer plusieurs plans,
-ou quand `executer-plan-notion` lance une session qui en porte plusieurs
-(« Plusieurs plans »). Les deux skills y renvoient, pour que la forme de la page
-et la façon de la préparer ne vivent qu'ici.
+quand `executer-plan-notion` lance une session qui en porte plusieurs
+(« Plusieurs plans »), et à **chaque création de page de plan** (« Le deuxième plan
+d'un projet crée le maître »). Les deux skills y renvoient, pour que la forme de la
+page et la façon de la préparer ne vivent qu'ici.
 
 ## Sommaire
 
 - Pourquoi ce fichier
 - La page
+- Le deuxième plan d'un projet crée le maître
 - Les plans du lot, sous-éléments du maître
 - Le travail préliminaire : les règles d'un plan classique, plan par plan
 - Ce qui reste au pilote
@@ -93,6 +95,59 @@ Benjamin voit ce que chaque plan change pour lui sans ouvrir sa page :
 Elle s'écrit avec les mêmes précautions que le reste
 (`_partage/ecrire-dans-notion.md`), schéma compris (`_partage/schemas.md`).
 
+## Le deuxième plan d'un projet crée le maître
+
+**Un plan maître ne se demande pas : il naît au deuxième plan non terminé d'un même
+projet**, même si les deux ne sont pas créés le même jour ni dans la même session.
+Relevé du 2026-10-28 : Benjamin a dû demander le maître à la session qui venait de
+créer trois plans `hermes-custom`. Une session qui crée un plan ne sait pas ce que les
+autres ont créé avant elle ; seule la vérification à chaque création les rassemble.
+
+**Quand** : à chaque création d'une page de plan (§2 de `SKILL.md`), plan de suite
+compris, avant de rendre la main. C'est une requête et une écriture : aucune page à
+lire, rien à déléguer, aucune enquête (celle-ci viendra à la préparation, plus bas).
+
+1. **Relever** les plans de la base `Plans Claude` dont `Repo` est celui du nouveau plan,
+   hors `execute` et `archive` : titre, `Statut`, `Projet`, parent. Écarter ceux dont
+   `Projet` diffère de celui du nouveau plan : un même dépôt peut porter deux sujets sous
+   deux pages projet (§1 de `SKILL.md`), et ils ne se croisent pas. Séparer les pages
+   `[Plan maître]` des plans.
+2. **Trier**, premier cas qui s'applique :
+   - **un maître ouvert** (« Le statut du plan maître et son lot ») couvre ce projet : le
+     nouveau plan le **rejoint** ; avec plusieurs maîtres ouverts, ne pas choisir de tête :
+     poser la question dans la session, le plan restant seul d'ici la réponse ;
+   - **aucun maître, au moins un autre plan non terminé** : créer le maître avec le nouveau
+     plan **et** tous ces plans ;
+   - **sinon** (aucun autre plan, ou seulement un maître au lot fermé) : le plan reste seul
+     (un maître fermé ne reçoit un plan que s'il est le plan de suite d'un de ses plans). Le
+     dire en une ligne.
+   Un plan déjà sous un autre maître n'est jamais déplacé : un plan appartient à un seul
+   maître.
+3. **Écrire**, dans le même tour, sans demander de confirmation : une page Notion se corrige
+   (`_partage/ecrire-dans-notion.md`).
+   - *Créer le maître* : une **coquille**, pas la préparation. Page `[Plan maître]
+     Nom_du_projet - <ce que les plans ont en commun>`, propriétés `Projet`, `Repo`, `Date`
+     et `Statut` (calculé par `statut-maitre.py` sur les `Statut` relevés, jamais de tête) ;
+     corps aux six H2 de « La page », `Récap du lot` en premier (`- rien encore`) ; tableau
+     `Plans` avec un identifiant `P1`, `P2`… par plan, dans l'ordre de leur date ;
+     `Croisement`, `Ordre de merge` et `File des actions lourdes` portent la seule ligne
+     `à définir` : `preparation-prete.py --maitre` la lit comme une coquille, donc aucun plan
+     du lot ne passe `pret` avant que « Le travail préliminaire » les ait remplies. Une ligne
+     datée en `Avancement` dit que le maître est né du deuxième plan, et lesquels.
+   - *Rejoindre un maître* : une ligne de plus au tableau `Plans` (identifiant suivant), une
+     ligne `—` au `Récap du lot`, une ligne datée en `Avancement`, `Statut` du maître recalculé.
+     Le `Croisement` ne se réécrit pas ici : « Ajouter un plan en route » le recalcule à la
+     préparation de ce plan.
+   - *Dans les deux cas* : rattacher chaque plan par la relation de parenté, et **relire les
+     deux côtés** (« Les plans du lot, sous-éléments du maître »). La puce **Orchestration**
+     de leur entrée `Ouverture` cite le maître le moment venu.
+4. **Dire** en une ligne à Benjamin ce qui s'est passé : « maître créé avec <plans> » ou
+   « rejoint le maître <titre> ». Sans relation de parenté dans la base, le dire aussi : le
+   tableau `Plans` porte alors seul le lien.
+
+Cette règle est la seule qui rattache de sa propre initiative des plans qui existaient déjà
+(« Portée », plus bas) : Benjamin l'a demandée pour tout projet, sans qu'il ait à y penser.
+
 ## Les plans du lot, sous-éléments du maître
 
 **Chaque plan du lot est un sous-élément de la page maître**, dans la base `Plans
@@ -130,7 +185,8 @@ de la base, a gardé ses propriétés mais n'apparaissait pas sous le maître.
   lien. Ne pas créer la propriété soi-même.
 - **Portée** : la règle vaut pour les maîtres créés ou modifiés après elle. Un lot
   existant se rattache quand Benjamin le demande, jamais de l'initiative d'une
-  session qui passe par là.
+  session qui passe par là ; seule exception, « Le deuxième plan d'un projet crée le
+  maître », qui rattache à la création d'un plan ceux du projet qui n'ont pas de maître.
 
 ## Le travail préliminaire : les règles d'un plan classique, plan par plan
 
@@ -211,9 +267,9 @@ déjà rendues ne se relisent pas à cause d'un repli sur une autre.
 
 ## Le statut du plan maître et son lot
 
-**Un plan maître couvre au moins deux plans, gérés dans une seule session** (le
-pilote unique de `executer-plan-notion`, « Plusieurs plans »). Un plan seul n'a
-pas de maître. Un plan appartient à **un seul** maître : avant d'en ajouter un,
+**Un plan maître couvre au moins deux plans d'un même projet** (« Le deuxième plan
+d'un projet crée le maître ») ; à l'exécution, un pilote unique les conduit
+(`executer-plan-notion`, « Plusieurs plans »). Un plan seul n'a pas de maître. Un plan appartient à **un seul** maître : avant d'en ajouter un,
 chercher dans la base les autres maîtres du même `Repo` qui le listent.
 
 **Le statut est hérité des plans du lot, et calculé, jamais écrit de tête.** Le

@@ -131,6 +131,34 @@ class DepartDansLeLot(unittest.TestCase):
         self.assertIn("Relire les deux côtés, dans le même tour", texte)
         self.assertIn("avec la liste complète de ses enfants", texte)
 
+    def test_le_deuxieme_plan_d_un_projet_cree_le_maitre(self):
+        # Relevé du 2026-10-28 : Benjamin a dû demander le maître à une session qui venait de créer
+        # trois plans. Le garde tient la règle à ses trois endroits et la coquille qui la rend sûre
+        # (`à définir` est une coquille pour preparation-prete.py : aucun plan du lot ne passe `pret`
+        # avant que le Croisement soit écrit), pas l'usage par une session.
+        maitre = " ".join((SKILLS / "plan-notion" / "plan-maitre.md").read_text(encoding="utf-8").split())
+        self.assertIn("## Le deuxième plan d'un projet crée le maître", maitre)
+        self.assertIn("à chaque création d'une page de plan", maitre)
+        self.assertIn("même si les deux ne sont pas créés le même jour", maitre)
+        self.assertIn("portent la seule ligne `à définir`", maitre)
+        for chemin in ("plan-notion/SKILL.md", "_partage/plan-de-suite.md"):
+            with self.subTest(fichier=chemin):
+                texte = " ".join((SKILLS / chemin).read_text(encoding="utf-8").split())
+                self.assertIn("Le deuxième plan d'un projet crée le maître", texte)
+
+    def test_la_coquille_du_maitre_n_est_pas_une_orchestration(self):
+        # La coquille écrite à la naissance du maître doit être refusée par la porte `pret`.
+        import importlib.util
+        chemin = SKILLS / "_partage" / "scripts" / "preparation-prete.py"
+        spec = importlib.util.spec_from_file_location("preparation_prete", chemin)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        coquille = "\n".join(f"## {nom}\n\nà définir\n" for nom in
+                             ("Plans", "Croisement", "Ordre de merge", "File des actions lourdes"))
+        defauts = module.defauts_maitre(coquille)
+        for nom in ("Croisement", "Ordre de merge", "File des actions lourdes"):
+            self.assertTrue(any(nom in d and "vide" in d for d in defauts), (nom, defauts))
+
 
 if __name__ == "__main__":
     unittest.main()

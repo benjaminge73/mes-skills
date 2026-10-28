@@ -481,12 +481,12 @@ commune pour comparer les postes.
 | `etat-de-depart` | 4 | 4 | 7,13 $ | 2,38 $ |
 | `maquette` | 1 | 1 | 1,61 $ | 0,54 $ |
 | `decouvertes` | 7 | 4 | 4,98 $ | 1,66 $ |
-| `perimetre` | 3 | 2 | 2,56 $ | 0,85 $ |
+| `perimetre` | 4 | 2 | 2,56 $ | 0,85 $ |
 | `delegation` | 1 | — | non mesuré | non mesuré |
 | `preuves` | 9 | — | non mesuré | non mesuré |
 | `revue-hors-plan` | 1 | — | non mesuré | non mesuré |
 | `escalade-bornee` | 1 | — | non mesuré | non mesuré |
-| **tout le banc** | 33 | 16 | 27,53 $ | ≈ 9,2 $ |
+| **tout le banc** | 34 | 16 | 27,53 $ | ≈ 9,2 $ |
 
 Les coûts datent du 2026-09-30 et ne sont extrapolés à aucune catégorie. Les
 catégories `existant` et `decouvertes` ont gagné des cas depuis : elles coûtent

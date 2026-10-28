@@ -162,11 +162,9 @@ répétition à blanc, le registre des outils et le cas du report de décision :
 À lire **avant d'écrire la première question, option ou étape** de la passe — le
 résumé ci-dessus ne suffit pas à les faire bien.
 
-**Plusieurs plans à croiser — le plan maître.** Croiser, remettre à jour ou
-séquencer plusieurs plans, c'est concevoir chacun d'eux : même enquête, plan par
-plan, **en parallèle** (une fiche par page lue par l'agent `lecteur`, un `enqueteur`
-par plan, les comptages au `sondeur`). Le pilote ne garde que le croisement et
-l'écriture. La page, les gestes et la raison :
+**Plusieurs plans à croiser — le plan maître.** C'est concevoir chacun d'eux : même
+enquête, plan par plan, **en parallèle** (`lecteur`, `enqueteur`, `sondeur`) ; le
+pilote ne garde que le croisement et l'écriture. La page, les gestes, la raison :
 
 📄 `${CLAUDE_PLUGIN_ROOT}/skills/plan-notion/plan-maitre.md`
 
@@ -197,14 +195,17 @@ choisir. La doc vivante de `hermes-custom`, elle, va toujours au hub Hermes (`_p
 - Propriétés : `Projet` (**URL** de la page projet — *pas* une relation, les projets
   ne sont pas une base), `Repo` (`owner/repo`), `Statut` = `brouillon`, `Branche`,
   `PR`, `Date`. La base porte aussi `Date execution`, que ce skill ne pose pas.
+- **Le deuxième plan d'un projet crée le maître**, sans qu'on le demande. À chaque
+  création de page de plan (suite comprise) : maître ouvert du même `Repo` et `Projet` →
+  il le rejoint ; sinon un autre plan non terminé → le maître naît ; sinon plan seul.
+  Les gestes : `plan-maitre.md`, section du même nom.
 - **Une page par sujet, tant que le sujet est vivant.** Les passes suivantes
   modifient cette page ; on n'en crée pas une nouvelle, sinon les fils de
   commentaires restent ancrés sur une page que personne ne rouvre.
 - Un plan **clos** ne relance pas ce compteur : si son exécution laisse des étapes
   en échec ou un arbitrage en attente, `executer-plan-notion` ouvre un **plan de
   suite** — page neuve, même titre suffixé `#2` puis `#3`, qui reprend ce qui
-  reste. Le `#1` n'est plus modifié, ses fils gardent leur sens là où ils sont, et
-  la suite du travail a sa propre page de discussion.
+  reste. Le `#1` n'est plus modifié, ses fils gardent leur sens là où ils sont.
 - **`Branche` dit où le travail vit, et elle se renseigne au plus tôt.** Le plus
   souvent c'est `executer-plan-notion` qui crée la branche et remplit la propriété
   en ouvrant l'exécution. Mais **si une branche de travail existe déjà** quand le
@@ -220,14 +221,13 @@ choisir. La doc vivante de `hermes-custom`, elle, va toujours au hub Hermes (`_p
   - elle a été **abandonnée** → nommer celle qui la remplace, et dire pourquoi.
 - **Vérifier, pas supposer.** À chaque passe, comparer la branche annoncée par la
   page à celle qui est réellement sortie dans le dépôt. Un écart se **signale à
-  Benjamin** au lieu de se corriger en silence : c'est le plus souvent le signe
-  qu'une autre session a travaillé ailleurs, et écraser la propriété ferait
-  disparaître la seule trace de cet ailleurs.
+  Benjamin** au lieu de se corriger en silence : c'est le signe qu'une autre session
+  a travaillé ailleurs, et écraser la propriété en effacerait la seule trace.
 
 - Statuts : `brouillon` → `en revue` → `valide` → `pret` → `en cours` →
   `a merger` → `execute` (valeurs **sans accents**, cf. la règle en tête).
-  **`pret`** : la préparation de l'exécution est faite et prouvée ; il se pose à
-  l'ouverture (`executer-plan-notion` §2), jamais ici.
+  **`pret`** : préparation faite et prouvée, posé à l'ouverture
+  (`executer-plan-notion` §2), jamais ici.
 - **`a merger` et `execute` ne disent pas la même chose**, et les confondre fait
   mentir la base :
   - **`a merger`** — le travail est fait, testé et poussé, et sa **PR est
