@@ -11,6 +11,8 @@ Usage : preuves-des-etapes.py <page.md> (--avant | --apres)
   --avant : entre « valide » et la première étape. Chaque étape du chapitre
     « Exécution » porte une « Preuve de fin » non vide, qui n'est pas une coquille
     (« — », « - », « aucune », « à définir », « à voir », casse ignorée).
+    Une étape ``C<n>`` (cron lancé à la main) peut porter son « Critère de succès »
+    à la place.
   --apres : avant le push et l'ouverture de la PR. Chaque étape a une entrée du
     « Journal d'exécution » portant « Preuve », « Commit(s) » et « Découvertes »
     non vides, et un « Verdict » : ``verified``, ou ``unverifiable — <raison>``.
@@ -31,13 +33,16 @@ import sys
 from collections import Counter
 from pathlib import Path
 
-# « ### Étape 4 — titre », « ### Étape D1 — titre ». Le numéro n'exige aucune frontière
+# « ### Étape 4 — titre », « ### Étape D1 — titre », « ### Étape C1 — titre » (un cron lancé
+# à la main, cron-a-la-main.md : sans le C, ces étapes passaient la porte sans être vues). Le numéro n'exige aucune frontière
 # après lui : « Étape 3bis » reste l'étape 3, et non une section ignorée sans bruit.
 # Un titre retouché en bleu s'écrit « ### <span color="blue">Étape 3 — …</span> » (règle
 # « Le bleu des retouches », ecrire-dans-notion.md) : les <span> ouvrants entre ### et Étape
 # sont tolérés, et le numéro capturé ne change pas.
-ETAPE = re.compile(r"^###[ \t]+(?:<span[^>]*>[ \t]*)*étape[ \t]+(D?\d+)", re.IGNORECASE)
+ETAPE = re.compile(r"^###[ \t]+(?:<span[^>]*>[ \t]*)*étape[ \t]+([CD]?\d+)", re.IGNORECASE)
 PREUVE_DE_FIN = re.compile(r"^[ \t]*[-*][ \t]+\*\*Preuve de fin\*\*[ \t]*:[ \t]*(.*)$")
+# Une étape C<n> porte son « Critère de succès » à la place (modèle de cron-a-la-main.md).
+CRITERE = re.compile(r"^[ \t]*[-*][ \t]+\*\*Crit[èe]re de succ[èe]s\*\*[ \t]*:[ \t]*(.*)$")
 # Une clé de champ du journal : au début de la puce, ou après un point (« … . **Commit** : »).
 # « Commit », « Commits » ou « Commit(s) » : le « (s) » est dans le gras, donc dans la clé.
 CHAMP = re.compile(
@@ -117,11 +122,13 @@ def _tiret_ou_vide(valeur: str) -> bool:
     return v in TIRETS_VIDES
 
 
-def preuve_de_fin(bloc: list[str]) -> str:
+def preuve_de_fin(bloc: list[str], numero: str = "") -> str:
+    motifs = (PREUVE_DE_FIN, CRITERE) if numero.startswith("C") else (PREUVE_DE_FIN,)
     for ligne in bloc:
-        m = PREUVE_DE_FIN.match(ligne)
-        if m:
-            return m.group(1)
+        for motif in motifs:
+            m = motif.match(ligne)
+            if m and not _vide(m.group(1)):
+                return m.group(1)
     return ""
 
 
@@ -166,7 +173,7 @@ def _doublons(blocs: list[tuple[str, list[str]]]) -> list[str]:
 def controler_avant(texte: str) -> tuple[list[str], list[str], int]:
     blocs = lire_chapitre(texte)
     defauts = [f"{_etiquette(n)} : pas de preuve de fin"
-               for n, bloc in blocs if _vide(preuve_de_fin(bloc))]
+               for n, bloc in blocs if _vide(preuve_de_fin(bloc, n))]
     defauts += _doublons(blocs)
     return defauts, [], len(dict.fromkeys(n for n, _ in blocs))
 

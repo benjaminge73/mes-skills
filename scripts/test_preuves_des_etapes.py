@@ -116,6 +116,27 @@ class PorteAvant(_Dossier):
         self.assertEqual(code, 1, sortie)
         self.assertIn("Étape D1 : pas de preuve de fin", sortie)
 
+    def test_etape_C1_sans_critere_est_refusee(self):
+        # Panne : la regex ne voyait que N et D<n>, une étape C1 passait la porte sans être vue.
+        p = self.ecrire("p.md", ENTETE + chapitre(etape("1", PREUVE_DE_FIN), etape("C1")))
+        code, sortie, _ = jouer(p, "--avant")
+        self.assertEqual(code, 1, sortie)
+        self.assertIn("Étape C1 : pas de preuve de fin", sortie)
+
+    def test_etape_C1_avec_critere_de_succes_est_comptee(self):
+        critere = "- **Critère de succès** : code de retour 0, ligne `ok` sur la sortie"
+        p = self.ecrire("p.md", ENTETE + chapitre(etape("1", PREUVE_DE_FIN), etape("C1", critere)))
+        code, sortie, _ = jouer(p, "--avant")
+        self.assertEqual(code, 0, sortie)
+        self.assertIn("2 étape(s)", sortie)
+
+    def test_critere_de_succes_ne_remplace_pas_la_preuve_d_une_etape_ordinaire(self):
+        critere = "- **Critère de succès** : code de retour 0"
+        p = self.ecrire("p.md", ENTETE + chapitre(etape("1", critere)))
+        code, sortie, _ = jouer(p, "--avant")
+        self.assertEqual(code, 1, sortie)
+        self.assertIn("Étape 1 : pas de preuve de fin", sortie)
+
     def test_titre_etape_colore_sans_preuve_de_fin_est_refuse(self):
         # Panne : un titre « ### <span color="blue">Étape 2 … </span> » (retouche bleue de
         # ecrire-dans-notion.md) n'est plus repéré ; l'étape 2 sans preuve passe au vert.
@@ -167,6 +188,13 @@ class PorteApres(_Dossier):
         code, sortie, _ = jouer(p, "--apres")
         self.assertEqual(code, 0, sortie)
         self.assertIn("apres : 3 étape(s), toutes verified", sortie)
+
+    def test_etape_C1_sans_entree_de_journal_est_nommee(self):
+        page = ENTETE + chapitre_ok("1", "C1") + journal_ok("1")
+        p = self.ecrire("p.md", page)
+        code, sortie, _ = jouer(p, "--apres")
+        self.assertEqual(code, 1, sortie)
+        self.assertIn("Étape C1 : pas d'entrée de journal", sortie)
 
     def test_etape_sans_entree_de_journal_est_nommee(self):
         # Panne : une étape sans entrée de journal passe la porte d'après.

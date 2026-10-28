@@ -113,17 +113,41 @@ Séquence, dans l'ordre :
    4 bis (ou après le point 4 s'il est sauté), merge vérifié. Seulement si le plan
    porte une étape `C<n>` (un cron lancé à la main) : sinon le point est sauté, sans
    bruit. Le déploiement doit avoir eu lieu d'abord : sur `hermes-custom`, le job
-   `deploy` de la CI pousse `origin/main` sur le VPS (point 3).
-   - `hermes cron status` : la gateway tourne, donc le tick aussi. Sinon le rejeu ne
-     peut pas partir ; le dire, la cause est la gateway, pas le cron.
-   - `hermes cron run <id>` : le job part au **prochain tick**, pas tout de suite.
-   - Une minute d'attente au plus : un tick a lieu toutes les 60 secondes.
-   - `last_status` (champ du job) lu dans `hermes cron list`. La doc ne décrit ce
-     champ que pour `delivery_failed` ; s'il n'apparaît pas, `hermes cron doctor` le
-     signale quand il n'est pas `ok`. `ok` : le critère de `C<n>` est rejoué pour de
-     vrai. Autre valeur : rouge, plan de suite (`_partage/plan-de-suite.md`), avec le
-     nom du job et la valeur lue.
-   - Un job sans script (prompt ou skill seulement) n'a que cette preuve.
+   `deploy` de la CI pousse `origin/main` sur le VPS (point 3). Le geste dépend du
+   type de cron (les mêmes types que `cron-a-la-main.md`, « Le lancement
+   équivalent ») :
+   - **Job Hermes** :
+     - `hermes cron status` : la gateway tourne, donc le tick aussi. Sinon le rejeu
+       ne peut pas partir ; le dire, la cause est la gateway, pas le cron.
+     - `hermes cron run <id>` : le job part au **prochain tick**, pas tout de suite.
+     - Une minute d'attente au plus : un tick a lieu toutes les 60 secondes.
+     - `last_status` (champ du job) lu dans `hermes cron list`. La doc ne décrit ce
+       champ que pour `delivery_failed` ; s'il n'apparaît pas, `hermes cron doctor`
+       le signale quand il n'est pas `ok`. `ok` : le critère de `C<n>` est rejoué
+       pour de vrai.
+     - Un job sans script (prompt ou skill seulement) n'a que cette preuve.
+   - **Timer systemd** : `systemctl start <unité>.service` lance tout de suite le
+     service déployé, sans attendre le timer ; puis `systemctl show <unité>.service
+     -p Result -p ExecMainStatus` (`Result=success`) et `journalctl -u
+     <unité>.service -n 50` pour le critère de `C<n>`.
+   - **Workflow `schedule:`** : `gh workflow run <fichier>` lance le fichier de la
+     branche par défaut, donc celui qui vient d'être mergé ; puis `gh run list
+     --workflow <fichier> -L 1` pour l'id du run, et `gh run watch <id>
+     --exit-status` jusqu'à la fin (conclusion `success`). `gh workflow run` exige
+     un déclencheur `workflow_dispatch` dans le workflow : s'il manque, c'est au
+     plan de l'ajouter dans son étape `C<n>` ; sinon le rejeu est impossible, et
+     la clôture le dit.
+   - **Ligne de crontab, autre planificateur** : le déclencheur manuel du
+     planificateur quand il en a un ; sinon la commande de la ligne **déployée**,
+     lancée sur la machine cible, sous l'utilisateur de la ligne et dans son
+     répertoire (`sudo -u <utilisateur> sh -c 'cd <répertoire> && <commande>'`).
+   - **Pour tous** : critère tenu, le rejeu est vert. Autre résultat : rouge, plan
+     de suite (`_partage/plan-de-suite.md`), avec le nom du job et la valeur lue.
+     Rejeu impossible (accès manquant, pas de déclencheur) : la clôture dit ce qui
+     n'est pas prouvé, pourquoi, et la commande exacte du rejeu, jamais « ça
+     tournera cette nuit ».
+   - **Hook, workflow sur événement** (une étape `C<n>` aussi) : le geste de
+     `cron-a-la-main.md`, « Les cousins du cron », paragraphe « Après le merge ».
    - Détail et boucle de correction : `${CLAUDE_PLUGIN_ROOT}/skills/_partage/cron-a-la-main.md`.
 
 5. **`Statut` = `execute`** — seulement si le point 4 a constaté un merge, dans le

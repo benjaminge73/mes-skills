@@ -29,7 +29,7 @@ sans sauter d'étape :
    d'incertitude mesurable, aucun de ces deux agents.
 6. **Seulement alors, écrire le plan natif.** Chaque choix tranché a sa ligne dans une
    section `## Décisions`, au format `D<n> — <décision> · Preuve : <type> — …` (types et
-   format : `poc.md`, « La preuve de chaque réponse »). Tout cron touché a une étape
+   format : `poc.md`, « La preuve de chaque réponse »). Tout cron, hook ou workflow sur événement touché a une étape
    `C<n>` : voir `${CLAUDE_PLUGIN_ROOT}/skills/_partage/cron-a-la-main.md`. Avant
    `ExitPlanMode`, la vérification doit rendre 0 :
 
