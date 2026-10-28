@@ -92,7 +92,8 @@ première réponse qui s'applique décide** :
    sécurité, est irréversible, ou ne tient pas en une étape → c'est un **plan à part
    entière**. Il se crée en `brouillon` dans la même passe quand ses contours sont
    clairs, sinon il part en question à Benjamin ; `La suite` cite son titre et son
-   lien. Un point qui dépend de la réponse à une question (« si Q3 (b), … ») n'est pas
+   lien, et **la réponse de la session le dit** (plan créé, ou question posée) : le
+   chapitre n'est pas l'endroit où Benjamin l'apprend. Un point qui dépend de la réponse à une question (« si Q3 (b), … ») n'est pas
    un élément de `La suite` : il s'écrit dans l'option de la question.
 3. **Sinon** — réversible, hors sécurité, petit (une étape) → il **entre dans le plan** :
    une étape du chapitre `Exécution`, avec tous ses champs, et une retouche datée

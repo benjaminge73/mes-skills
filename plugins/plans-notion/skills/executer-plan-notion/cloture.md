@@ -134,8 +134,11 @@ Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard »
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/plan-de-suite.md` (« Le tri ») : une
   décision ou une réponse qu'on attend de lui part **dans la session**, par
   `AskUserQuestion`, avant `a merger` ; du travail qui reste tient en une étape
-  `D<n>` faite maintenant, ou — au-delà d'**une étape au total** — devient un plan de
-  suite (§7) ; ce qui attend un événement reste dans `La suite`, repris au Récap. Le
+  `D<n>` faite maintenant, ou — au-delà d'**une étape au total** — se **propose dans
+  la session** (créer le plan de suite, §7 ; le faire maintenant en étapes `D<n>` si
+  c'est réversible et hors sécurité ; l'écarter), le plan de suite valant sans
+  réponse ; ce qui attend un événement reste dans `La suite`, repris au Récap. Ce que
+  la page garde d'une suite, la session l'a déjà montré. Le
   tri passe **avant** la suite complète du point 1 pour qu'un `D<n>` y soit couvert,
   avant l'ouverture de la PR, et avant le Récap du point 7, qui en reprend le
   résultat sans le décider. Un reste né de la suite complète elle-même repasse par
