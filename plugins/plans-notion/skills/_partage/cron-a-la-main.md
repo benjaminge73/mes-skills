@@ -40,10 +40,18 @@ L'enquête repère les crons touchés, et le plan leur donne une étape. Trois l
 - les jobs Hermes : `~/.hermes/cron/jobs.json` (champs `id`, `script`, `workdir`,
   `interpreter`, `no_agent`) ;
 - les timers systemd : `systemctl list-timers --all`, puis `systemctl cat <unité>` ;
-- les workflows planifiés : `grep -rln '^\s*schedule:' .github/workflows/`.
+- les workflows planifiés : `grep -rln '^\s*schedule:' .github/workflows/` ;
+- les autres planificateurs, quand le dépôt en porte : `crontab -l` et
+  `/etc/cron.d/`, `crons` de `vercel.json`, `[triggers] crons` de `wrangler.toml`,
+  `cron.schedule` de `pg_cron`, routines et triggers cloud. Leur lancement
+  équivalent suit le même principe que ci-dessous : le déclencheur manuel du
+  planificateur, ou la commande de la ligne de crontab sous `env -i` et dans le
+  répertoire du job.
 
-Un cron est **touché** si le plan modifie son script, son fichier de job, son
-unité, son workflow, ou ce qu'il lit ou écrit. Chaque cron touché reçoit une étape
+Un cron est **touché** si le plan le **crée**, ou modifie son script, son fichier
+de job, son planning, son unité, son workflow, ou ce qu'il lit ou écrit. Un cron
+**nouveau** n'a pas d'exécution passée à laquelle se fier : il est touché au plus
+haut point. Chaque cron touché reçoit une étape
 `C<n>` (`C1`, `C2`…), avec ces lignes :
 
 - **Id** : l'identifiant du job, le nom de l'unité ou du workflow ;
@@ -168,6 +176,24 @@ Le rejeu se fait après le merge et le déploiement, par le point **4 ter** de
 puis une minute au plus d'attente, puis `last_status` lu dans `hermes cron list`.
 Un rejeu rouge ouvre un plan de suite (`${CLAUDE_PLUGIN_ROOT}/skills/_partage/plan-de-suite.md`) ;
 il ne défait pas un merge déjà fait.
+
+## Jamais « à la prochaine exécution »
+
+« Le cron tournera cette nuit à 2 h 30 » ou « on verra au prochain passage » n'est
+**pas** une preuve, ni dans une étape `C<n>`, ni dans la réponse finale, ni dans le
+journal, ni dans la description d'une PR : c'est reporter la première preuve en
+production (voir « Pourquoi cette règle »). Trois conséquences :
+
+- une étape `C<n>` n'est faite que sur la **sortie d'un lancement réel**, citée au
+  journal. « À vérifier à l'heure prévue » la laisse **ouverte**, jamais faite ;
+- si, à l'exécution, on découvre qu'un cron est touché et que le plan n'a pas
+  d'étape `C<n>`, le pilote l'ajoute (étape `D<n>`, `decouvertes.md`) avant de
+  clôturer, sans attendre une question ;
+- si le lancement est réellement impossible (job sans script, workflow sans
+  Docker, accès manquant), la réponse finale le dit en clair : **ce qui n'est pas
+  prouvé, pourquoi, et la commande exacte du rejeu** (point 4 ter de
+  `remontee-sur-main.md`). Elle n'écrit pas « testé » et ne renvoie pas à
+  l'horloge.
 
 ## Ce que le lancement à la main ne prouve pas
 

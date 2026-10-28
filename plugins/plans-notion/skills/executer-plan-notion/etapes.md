@@ -174,6 +174,8 @@ partait quand même — en Sonnet, avec la facture pour seul signal. L'`effort`
 suit la même logique : le frontmatter le fixe, l'appel ne le répète pas.
 
 Une étape `C<n>` (lancer un cron à la main) se délègue de la même façon, sans `model`.
+Elle ne se ferme que sur la sortie d'un lancement réel : « à vérifier à l'heure du
+cron » la laisse ouverte (`cron-a-la-main.md`, « Jamais à la prochaine exécution »).
 Seule sa correction `D<n>` porte un `model` (`"sonnet"`, diagnostic oblige) : c'est la
 seule exception au principe ci-dessus, détaillée dans
 `${CLAUDE_PLUGIN_ROOT}/skills/_partage/cron-a-la-main.md`.

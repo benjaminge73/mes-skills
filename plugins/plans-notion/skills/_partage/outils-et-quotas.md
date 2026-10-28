@@ -483,10 +483,10 @@ commune pour comparer les postes.
 | `decouvertes` | 7 | 4 | 4,98 $ | 1,66 $ |
 | `perimetre` | 3 | 2 | 2,56 $ | 0,85 $ |
 | `delegation` | 1 | — | non mesuré | non mesuré |
-| `preuves` | 6 | — | non mesuré | non mesuré |
+| `preuves` | 7 | — | non mesuré | non mesuré |
 | `revue-hors-plan` | 1 | — | non mesuré | non mesuré |
 | `escalade-bornee` | 1 | — | non mesuré | non mesuré |
-| **tout le banc** | 30 | 16 | 27,53 $ | ≈ 9,2 $ |
+| **tout le banc** | 31 | 16 | 27,53 $ | ≈ 9,2 $ |
 
 Les coûts datent du 2026-09-30 et ne sont extrapolés à aucune catégorie. Les
 catégories `existant` et `decouvertes` ont gagné des cas depuis : elles coûtent

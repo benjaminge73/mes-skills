@@ -72,6 +72,7 @@ Skip any step = lying, not verifying
 | Regression test works | Red-green cycle verified | Test passes once |
 | Agent completed | VCS diff shows changes | Agent reports "success" |
 | Requirements met | Line-by-line checklist | Tests passing |
+| Cron / scheduled job works | Job triggered by hand now, output shown, see `cron-touche.md` | "Runs tonight at 02:30" |
 
 ## Red Flags - STOP
 
@@ -80,6 +81,7 @@ Skip any step = lying, not verifying
 - About to commit/push/PR without verification
 - Trusting agent success reports
 - Relying on partial verification
+- Pointing at a cron's next scheduled run instead of triggering it now (`cron-touche.md`)
 - Thinking "just this once"
 - Tired and wanting work over
 - **ANY wording implying success without having run verification**
@@ -91,11 +93,8 @@ Skip any step = lying, not verifying
 | "Should work now" | RUN the verification |
 | "I'm confident" | Confidence ≠ evidence |
 | "Just this once" | No exceptions |
-| "Linter passed" | Linter ≠ compiler |
 | "Agent said success" | Verify independently |
-| "I'm tired" | Exhaustion ≠ excuse |
 | "Partial check is enough" | Partial proves nothing |
-| "Different words so rule doesn't apply" | Spirit over letter |
 | "I adjusted the test so it passes" | The test judged the code; it doesn't move after red |
 
 ## Key Patterns
@@ -148,23 +147,13 @@ drove that rate back toward zero.
 
 ## When To Apply
 
-**ALWAYS before:**
-- ANY variation of success/completion claims
-- ANY expression of satisfaction
-- ANY positive statement about work state
-- Committing, PR creation, task completion
-- Moving to next task
-- Delegating to agents
-
-**Rule applies to:**
-- Exact phrases
-- Paraphrases and synonyms
-- Implications of success
-- ANY communication suggesting completion/correctness
+**ALWAYS before** any success or completion claim, any expression of satisfaction,
+committing, creating a PR, finishing a task, moving to the next one or delegating
+to an agent. Exact phrases, paraphrases and implications of success all count.
 
 ---
 
 *Adapté de [obra/superpowers](https://github.com/obra/superpowers) (MIT, Jesse Vincent / Prime
 Radiant). Récupéré le 2026-08-03. Modifications : ajout de la section « Suis-je la bonne
 version ? » en tête, 2026-09-22 ; ajout du motif « red-first proof » (test inchangé entre
-rouge et vert), 2026-09-23.*
+rouge et vert), 2026-09-23 ; ajout de la section « Un cron touché », 2026-10-28.*
