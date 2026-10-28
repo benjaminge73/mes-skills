@@ -75,7 +75,8 @@ class ListeUnique(unittest.TestCase):
         for job in ("evals-portee", "evals", "evals-verdict", "merge-auto"):
             self.assertRegex(ci, rf"(?m)^  {job}:\n", f"job {job} disparu de ci.yml")
         # Étape B9 : `merge-auto` attend aussi le verdict des évals (nom fixe).
-        self.assertIn("needs: [validation, evals-portee, evals, evals-verdict]", ci)
+        self.assertIn("needs: [validation, doc, evals-portee, evals, evals-verdict]", ci)
+        self.assertIn("python3 scripts/garde_doc_pr.py", ci)
 
     def test_claude_md_et_readme_renvoient_au_script_sans_enumerer(self):
         for nom in ("CLAUDE.md", "README.md"):

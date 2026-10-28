@@ -23,6 +23,12 @@ Sans label et sans cette ligne, rien ne se joue (hors fumée, qui ne part que su
 PR en brouillon avec ce label, puis la passer prête (docs/tester-un-skill.md). -->
 Evals: 
 
+<!-- Doc vivante (Mes Skills l'a activée) : le job `doc` de la CI refuse la PR sans cette
+ligne. Soit le lien Notion de l'entrée du Changelog (ouvrir la PR, écrire l'entrée en citant
+son numéro, puis éditer cette ligne et relancer le job `doc`), soit « sans objet — <raison> »
+quand rien ne change pour la personne qui se sert des plugins (CI interne, test, veille). -->
+Doc : 
+
 ## Avant de merger
 
 - [ ] **Cas d'éval** : la leçon a son cas dans `evals/<plugin>/` — ou un commit porte

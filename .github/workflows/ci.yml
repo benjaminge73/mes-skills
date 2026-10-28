@@ -1356,6 +1356,38 @@ jobs:
           fi
           echo "Vert : tout est réussi ou sauté."
 
+  # Garde de la description de PR (scripts/garde_doc_pr.py) : elle doit porter une
+  # ligne `Doc :`, un lien Notion vers l'entrée du Changelog ou `Doc : sans objet —
+  # <raison>`, et certaines raisons déjà relevées comme fausses sont refusées. Mes Skills
+  # a la doc vivante activée : sans ce job, la règle n'était tenue que par la session
+  # (relevé du 2026-10-28, 21 PR sans ligne depuis le 2026-10-20). Le corps est relu par
+  # l'API, comme la ligne `Evals:` : pour corriger, éditer la description puis relancer
+  # le job (pas de `edited` dans les déclencheurs, voir l'en-tête). Dependabot est exempté.
+  doc:
+    name: Ligne Doc de la description
+    if: >-
+      github.event_name == 'pull_request'
+      && github.event.pull_request.user.login != 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: La description porte-t-elle une ligne Doc valide ?
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_AUTHOR: ${{ github.event.pull_request.user.login }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+        run: |
+          # Un échec de `gh` est une panne de lecture (code 2), pas un refus (code 1).
+          PR_BODY=$(gh api "repos/$REPO/pulls/$PR_NUMBER" --jq '.body // ""') || {
+            echo "::error::lecture du corps de la PR impossible (panne de l'API, pas un refus)"
+            exit 2
+          }
+          export PR_BODY
+          python3 scripts/garde_doc_pr.py
+
   merge-auto:
     name: Merge automatique si tout est vert
     # Sur ce dépôt, merger c'est publier : les postes tirent `main` et le bump
@@ -1376,10 +1408,13 @@ jobs:
     # est sauté, et sans lui ce saut passerait pour un feu vert.
     # `evals-verdict` y est aussi : c'est le contrôle que le verrou de `main`
     # exigera, et le merge automatique ne doit pas être plus permissif que lui.
-    needs: [validation, evals-portee, evals, evals-verdict]
+    # `doc` doit être `success`, jamais `skipped` : sur une PR de Benjamin il tourne
+    # toujours, et une PR sans ligne `Doc :` valide ne se merge pas seule.
+    needs: [validation, doc, evals-portee, evals, evals-verdict]
     if: >-
       always()
       && (needs.validation.result == 'success' || needs.validation.result == 'skipped')
+      && needs.doc.result == 'success'
       && (needs.evals-portee.result == 'success' || needs.evals-portee.result == 'skipped')
       && (needs.evals.result == 'success' || needs.evals.result == 'skipped')
       && (needs.evals-verdict.result == 'success' || needs.evals-verdict.result == 'skipped')

@@ -12,7 +12,10 @@ Usage :
                     (--depuis AAAA-MM-JJ | --projet <miroir-page-projet>) [--sauf N[,N…]]
 
 Mode --porte, qui refuse le passage à « a merger » quand la doc manque :
-  - la page a un H2 dont le titre commence par « Récap » (casse indifférente). Exception,
+  - la page a un H2 dont le titre commence par « Récap » (casse indifférente), et c'est son
+    premier H2 : un Récap posé sous « Cartes » ou sous « Reprise du plan » ne se voit pas en
+    ouvrant la page (relevé du 2026-10-28 : 11 pages de plan sur 30 sans Récap en tête,
+    surtout des plans de suite). Ce qui précède le premier H2 (encadré, phrase) est toléré. Exception,
     le palier 3 : --recap-fichier existant qui porte un tel H2 (le Récap est dans un fichier
     confié à Hermes, la page ne le porte pas encore) ;
   - si --pr N est donné et que --lot n'est pas donné, une entrée du hub cite la PR N dans son
@@ -67,6 +70,7 @@ import sys
 from pathlib import Path
 
 RECAP = re.compile(r"^##\s+récap", re.IGNORECASE)
+H2 = re.compile(r"^##\s")
 ENTREE = re.compile(r"^##\s+(?:\d{4}-\d{2}-\d{2}\b|récap)", re.IGNORECASE)
 DATE_ISO = re.compile(r"^\d{4}-\d{2}-\d{2}")
 DATE_ARG = re.compile(r"\d{4}-\d{2}-\d{2}")
@@ -197,6 +201,11 @@ def porte(args):
             palier3 = any(RECAP.match(ligne) for ligne in texte)
         if not palier3:
             defauts.append("récap absent : la page n'a aucun H2 « Récap » (ni --recap-fichier qui en porte un)")
+    else:
+        premier = next((ligne for ligne in page if H2.match(ligne)), "")
+        if not RECAP.match(premier):
+            defauts.append(f"récap pas en tête : le premier H2 de la page est « {premier.strip()} » ; "
+                           "le Récap se pose au-dessus de tout autre H2 (Cartes, Reprise du plan…)")
     if args.pr is not None and not args.lot:
         sources = []
         if args.changelog:
