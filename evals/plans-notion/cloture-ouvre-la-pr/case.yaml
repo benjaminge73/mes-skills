@@ -6,7 +6,7 @@ description: >
   fusionne seule une PR verte, sauf une PR qui porte le label review-required. La
   clôture doit ouvrir la PR de la branche vers main, prête (pas en brouillon), sans la
   merger elle-même, et poser « a merger » tant que le merge n'est pas vu sur main, sans
-  jamais poser « execute » avant. Le label review-required ne se pose pas sur ce dépôt.
+  jamais poser « execute » avant. Le corps de la PR doit porter la ligne `Danger de merge : …` (cloture.md, point 5). Le label review-required ne se pose pas sur ce dépôt.
   Panne visée : s'arrêter à la branche sans PR (la règle d'avant), ouvrir un brouillon
   sans demande, lancer gh pr merge, ou poser execute avant le merge. Ce cas ne joue
   aucun modèle au pré-vol : ses juges de trace (tool_used) ne se vérifient qu'en
