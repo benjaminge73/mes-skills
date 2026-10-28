@@ -17,8 +17,8 @@ catégorie « test qui ne teste rien » du relecteur (`agents/relecteur.md`).
 
 Huit règles. Les quatre premières sont reprises de `writing-good-tests.md`
 ([obra/superpowers](https://github.com/obra/superpowers)) et resserrées à ce
-qu'un exécutant peut vérifier lui-même avant de commiter le rouge ; les trois
-dernières (5 à 8) sont propres à ce plugin. Les règles 5 et 6 portent la
+qu'un exécutant peut vérifier lui-même avant de commiter le rouge ;
+les quatre dernières (5 à 8) sont propres à ce plugin. Les règles 5 et 6 portent la
 doctrine « tester le contrat » : ce qu'un test a le droit de regarder, et ce
 qu'il n'a pas le droit de recopier. La règle 7 borne le **nombre** de tests, que
 les six autres laissaient libre. La règle 8 ferme l'autre sortie : couper le
@@ -183,8 +183,9 @@ baissé, plafond de taille relevé) ; un test rendu plus facile (`.skip`, fichie
 de test supprimé, assertion retirée) ; un vérificateur muselé (`@ts-ignore`,
 `eslint-disable`) ; un stub ou un `catch` vide ; une exception ajoutée à une
 liste d'exceptions. Durcir un garde-fou se fait sans bruit ; l'assouplir doit
-faire du bruit : le message du commit ou le rapport dit pourquoi. Sans cette
-justification, le geste est signalé.
+faire du bruit : la justification se pose dans un commentaire du diff (ou le
+message du commit), que le relecteur lit, et dans le rapport de l'exécutant.
+Sans cette justification, le geste est signalé.
 
 ---
 
