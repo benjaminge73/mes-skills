@@ -1,0 +1,12 @@
+schema_version: "1.1"
+name: cron-nouveau
+description: >
+  Cron nouveau : un plan crée une ligne de crontab (rapport-hebdo, chaque lundi
+  à 7 h) et son script. Il doit prévoir une étape dédiée C1 qui lance le job à la
+  main pendant l'exécution (même commande, même utilisateur, répertoire du job,
+  env -i, critère de succès, durée maximale, effets externes tranchés), et ne pas
+  renvoyer la preuve à l'heure du cron. La panne visée : le plan crée le cron et
+  conclut « sera vérifié lundi à 7 h » sans jamais l'avoir fait tourner, parce que
+  le cron est nouveau et hors de Hermes, donc absent de l'inventaire.
+context:
+  scaffold_script: fixture.sh

@@ -492,3 +492,24 @@ Une entrée par passe, la plus récente en dernier. Le titre est
 - **Verdict de `scripts/veille_faits.py`** (2026-10-23) : 22 faits vérifiés, 0 citation à
   signaler, 0 page injoignable (code 0), après la mise à jour de la citation de `memory.md`
   (la veille du jour avait relevé 1 citation à signaler avant elle).
+
+### 2026-10-28 — passe avant la PR « un cron créé ou modifié se lance à la main » (plans-notion 0.51.0, methode-de-travail 1.8.0)
+
+- **Sources lues** : le changelog des versions 2.1.310 à 2.1.312, « What's new », les pages
+  des tâches planifiées (`scheduled-tasks.md`) et des routines (`routines.md`), `memory.md`,
+  claude.dev et anthropic.com/engineering. Lecture partielle : les pages skills, sous-agents,
+  plugins, hooks, évals de plugin et bac à sable n'ont pas été relues en entier ;
+  `anthropics/skills` et l'issue `sandbox-runtime#74` n'ont pas pu être lus (GitHub refusé).
+- **Ce qui a changé** : rien qui touche la PR. Les routines cloud s'appellent désormais
+  « scheduled tasks » (« A cloud scheduled task, formerly a routine ») : intervalle minimal
+  d'une heure, un déclencheur manuel « Run now » ; `CronCreate` : tâches récurrentes expirées
+  au bout de 7 jours, 50 par session, sans rattrapage. La règle de la PR cite le déclencheur
+  manuel du planificateur sans en dépendre. Côté changelog, 2.1.312 passe la limite des hooks
+  de prompt et d'agent à « au plus 24 à la fois » : le « 12 » du journal du 2026-10-21 est périmé,
+  sans règle qui en dépende.
+- **Faits porteurs** : `scripts/veille_faits.py` : 22 faits vérifiés, 1 citation à signaler
+  (le lien `[skill](...)` de `memory.md`, dont la forme a encore bougé, relatif ou absolu selon
+  l'outil de lecture), 1 page injoignable (403 sur l'issue `sandbox-runtime#74`). Pas de règle touchée.
+- **Ce qu'on en fait** : rien ne s'applique à la PR. À reprendre à la prochaine passe : la forme du
+  lien de `memory.md`, et le billet « Building effective agent automations » (claude.dev, 8 octobre),
+  non lu.
