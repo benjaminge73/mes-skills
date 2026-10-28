@@ -19,7 +19,7 @@ cat "${CLAUDE_PLUGIN_ROOT}/.claude-plugin/plugin.json" | grep '"version"'
 ```
 
 Les deux versions doivent être identiques, et le chemin annoncé au chargement
-(`${CLAUDE_PLUGIN_ROOT}`) doit être l'`installPath` ci-dessus. Écart → le dire à Benjamin
+(« Base directory for this skill », soit `${CLAUDE_PLUGIN_ROOT}`) doit être l'`installPath` ci-dessus. Écart → le dire à Benjamin
 en une ligne, puis lire ce `SKILL.md` et `_partage/` depuis cet `installPath`, pas depuis la copie chargée. Pour charger la
 plus récente : `claude plugin update methode-de-travail@atelier` (redémarrage requis) ; en
 session cloud, le setup script pose la dernière version publiée, jamais plus loin que `main`.
@@ -80,8 +80,8 @@ You MUST complete each phase before proceeding to the next.
    - What are the exact steps?
    - Does it happen every time?
    - If not reproducible → gather more data, don't guess
-   - Shorten the loop: smallest command failing in seconds, not minutes
-   - Tag diagnostic logs `[DEBUG-xxxx]`; before commit, `grep -rn "DEBUG-" <dir>` must return nothing
+   - Shorten the loop: a command that fails in seconds
+   - Tag debug logs `[DEBUG-xxxx]`; before commit, `grep -rn "DEBUG-" <dir>` must find none
 
 3. **Check Recent Changes**
    - What changed that could cause this?
@@ -310,4 +310,4 @@ Available in this directory:
 
 *Adapté de [obra/superpowers](https://github.com/obra/superpowers) (MIT, Jesse Vincent / Prime
 Radiant). Récupéré le 2026-08-03. Modifications : renvois vers les skills non installées
-retirés, ajout du renvoi codebase-memory ; boucle courte et logs : `mattpocock/skills` (MIT).*
+retirés, ajout du renvoi codebase-memory ; `mattpocock/skills` (MIT).*
