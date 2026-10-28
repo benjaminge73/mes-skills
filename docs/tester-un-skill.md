@@ -629,7 +629,7 @@ donne 0,77 (0,65 avant).
 
 Pour rejouer cette mesure, un fichier du banc (par exemple `evals/bruit-plans-notion.json`)
 doit changer dans la PR, pour que la portée de la CI déclenche le plugin ; la ligne
-`Evals: decouvertes — …` limite alors la sélection aux 7 cas. Toucher `evals/categories.json`
+`Evals: decouvertes — …` limite alors la sélection aux 8 cas. Toucher `evals/categories.json`
 ou `evals/plans-notion/` forcerait tout le banc.
 
 Ces valeurs sont l'origine des planchers ; ceux que la CI applique sont dans son
