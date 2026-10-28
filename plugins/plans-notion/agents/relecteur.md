@@ -173,6 +173,10 @@ Une remarque par écart, « Écart au plan », typée :
 - **non demandé** — le code fait plus que le plan ne demande, et ce surplus a un
   effet (un fichier touché, un comportement, une dépendance) : `fichier:ligne`.
 
+Chaque écart dit aussi s'il est irréversible, s'il touche la sécurité ou s'il
+coûte (au sens de `decouvertes.md` § 1) : c'est ce qui décide entre une étape
+`D<n>` et une question à Benjamin.
+
 La phrase du plan tient lieu de scénario ; le format de la section suivante
 s'applique pour le reste. Ce mode rend surtout des écarts, mais il ne suspend
 aucune autre catégorie : un bug de correction, un test vide ou une découverte
