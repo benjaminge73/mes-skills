@@ -65,7 +65,12 @@ Les quatre premières sont des **H2 aux titres fixes** — `Plans`, `Croisement`
 `pret` tant qu'une d'elles manque (« Le statut du plan maître et son lot »). Les
 deux autres s'appellent `Avancement` et `État final`.
 
-Un H2 de plus, **`Récap du lot`**, n'est pas dans cette liste. `preparation-prete.py
+Un H2 de plus, **`Récap du lot`**, n'est pas dans cette liste. Il est le **premier H2
+de la page maître**, au-dessus de `Plans` et de tout autre chapitre : c'est ce que
+Benjamin lit en ouvrant la page (relevé du 2026-10-28 : il était posé en 7e, 9e ou
+11e position, sous des chapitres d'orchestration, et ne se voyait plus). Il se crée
+vide (`- rien encore`) dès la création du maître, pour que sa place soit prise, puis
+se remplit plan par plan. `preparation-prete.py
 --maitre` ne le cherche pas, et son titre ne commence par aucun des six : il n'en
 est ni une condition ni un doublon. C'est le condensé du lot, la seule place où
 Benjamin voit ce que chaque plan change pour lui sans ouvrir sa page :

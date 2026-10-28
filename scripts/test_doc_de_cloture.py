@@ -75,10 +75,11 @@ RACINE = Path(__file__).resolve().parent.parent
 SCRIPT = RACINE / "plugins" / "plans-notion" / "skills" / "_partage" / "scripts" / "doc-de-cloture.py"
 
 PAGE_AVEC_RECAP = (
-    "# Plan exemple\n\n## Exécution\n\nDu texte.\n\n"
+    "# Plan exemple\n\n"
     "## Récap · 2026-10-20 · Plan exemple\n"
     "Plan : lien · PR : #12 · Statut : a merger\n\n"
     "### ✨ Nouveau\n- Le pilote écrit le récap (Étape 2)\n\n"
+    "## Exécution\n\nDu texte.\n\n"
 )
 PAGE_SANS_RECAP = "# Plan exemple\n\n## Exécution\n\nDu texte.\n"
 
@@ -148,6 +149,19 @@ class DocDeCloture(unittest.TestCase):
         code, sortie, erreur = jouer("--porte", page)
         self.assertEqual(code, 1, erreur)
         self.assertIn("Récap", sortie)
+
+    # Panne 1 bis : un Récap posé sous un autre H2 (plan de suite, « Reprise du plan »)
+    # passerait la porte alors qu'il ne se voit pas en ouvrant la page.
+    def test_recap_sous_un_autre_h2_rend_un(self):
+        page = self.ecrire("page.md", "## Reprise du plan #3\n\nTexte.\n\n## Récap · 2026-10-28 · X\n\nPlan : y\n")
+        code, sortie, erreur = jouer("--porte", page)
+        self.assertEqual(code, 1, erreur)
+        self.assertIn("pas en tête", sortie)
+
+    def test_encadre_avant_le_recap_en_tete_est_tolere(self):
+        page = self.ecrire("page.md", "<callout>Intro</callout>\n## Récap · 2026-10-28 · X\n\n## Cartes\n")
+        code, sortie, erreur = jouer("--porte", page)
+        self.assertEqual(code, 0, sortie + erreur)
 
     # Panne 2 : le toggle « Côté technique » compterait comme en-tête (cas réel #258).
     def test_pr_citee_seulement_dans_le_toggle_cote_technique_est_un_trou(self):

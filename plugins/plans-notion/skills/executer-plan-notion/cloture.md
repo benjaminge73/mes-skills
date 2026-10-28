@@ -243,8 +243,9 @@ Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard »
   5. **Ouvrir la PR, prête.** `gh pr create --base main --head <branche-du-plan>`,
      **sans `--draft`** : le brouillon se demande à Benjamin, il ne se décide pas
      seul. Titre = titre du plan ; corps = une ligne par étape reprise du
-     journal, lien vers la page Notion, et la ligne `Evals:` (sous-section
-     ci-dessous). Label : décidé en regardant ce dépôt-là (sous-section).
+     journal, lien vers la page Notion, la ligne `Evals:` (sous-section
+     ci-dessous) et la ligne `Doc :` (point 7, « Ensuite »). Label : décidé en
+     regardant ce dépôt-là (sous-section).
      `PR` renseignée sur la page dès l'ouverture. **Un trou e2e non couvert par
      la CI du dépôt** se pose à Benjamin **avant** cette commande (sous-section
      « La PR, puis la remontée sur `main` ») : la PR ne part pas sans sa réponse.
@@ -270,7 +271,10 @@ Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard »
      et la cascade d'écriture vivent dans
      📄 `${CLAUDE_PLUGIN_ROOT}/skills/_partage/changelog-et-doc.md` (§ 2, § 4, § 6).
      - **(a) Le Récap.** Le H2 `## Récap · AAAA-MM-JJ · <titre du plan>` s'écrit en tête
-       de la page du plan, avant `Cartes`. Son nom commence par `Récap` : jamais
+       de la page du plan : c'est son **premier H2**, avant `Cartes`, et aussi avant
+       `Reprise du plan #N` d'un plan de suite (un encadré d'introduction peut rester
+       au-dessus). Un plan de suite n'est jamais dispensé de Récap : relevé du 2026-10-28,
+       c'est le cas qui manquait le plus. Son nom commence par `Récap` : jamais
        « Exécution », « Journal » ou « Questions ». Il s'écrit dans tous les cas, projet
        activé ou non. Son en-tête porte `PR` (l'URL ouverte au point 5) et
        `Statut : a merger` : c'est le statut que la page aura à la fin de la clôture, et
@@ -411,6 +415,14 @@ Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard »
      plan enfant d'un lot (pas d'entrée individuelle au hub, point (c)), pour qu'un plan
      enfant ne pose pas une entrée individuelle sur un code 1. Code 0 exigé ; sinon on écrit
      la pièce manquante et on rejoue.
+     Puis la **ligne `Doc :` de la description de la PR** (`gh pr edit <n> --body-file …`) :
+     `Doc : <lien Notion de l'entrée du Changelog>` pour un projet activé ;
+     `Doc : sans objet — lot <plan maître>, entrée consolidée à la fermeture du lot` pour un
+     plan enfant d'un lot ; `Doc : sans objet — doc vivante non activée pour <projet>`
+     sinon. Le dépôt qui a un job CI `doc` la relit par l'API : relancer ce job après
+     l'édition (`gh run rerun <id> --job <id>`), sans quoi la PR reste rouge et ne se
+     merge pas. Le job refuse une raison qui n'en est pas une (règle globale
+     `doc-vivante.md`) : la page projet non lue, ou l'absence de job CI, n'en sont pas.
      Puis le journal et le compte rendu : `État final` (avec la sortie du point 6),
      `Statut` = **`a merger`**, `PR` = l'URL, et le compte rendu à Benjamin, qui est le
      récap (plus haut). `a merger` est vrai à cet instant : le code n'est pas encore sur
