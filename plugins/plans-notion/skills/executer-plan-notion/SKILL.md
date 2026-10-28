@@ -332,7 +332,7 @@ Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard »
   ligne avec son propriétaire, §7), plus : le décompte des découvertes **vérifié
   mécaniquement** (`grep -c`, jamais de tête), le contrôle des libellés, le
   registre des outils, **un verdict par étape (`verified` ou
-  `unverifiable`, jamais un troisième mot)**, une rétrospective en cinq
+  `unverifiable`, jamais un troisième mot)**, une rétrospective en six
   questions, les schémas relus
   (`${CLAUDE_PLUGIN_ROOT}/skills/_partage/schemas.md`).
 - Le compte rendu est le **récap** (`changelog-et-doc.md`, § 3) : les quatre rubriques,
