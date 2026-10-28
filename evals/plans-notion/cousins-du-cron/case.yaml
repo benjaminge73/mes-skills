@@ -1,0 +1,13 @@
+schema_version: "1.1"
+name: cousins-du-cron
+description: >
+  Cousins du cron : un plan modifie un hook PreToolUse de plugin (son script) et
+  le workflow qui déploie au merge sur main. Ni l'un ni l'autre ne tourne pendant
+  la session qui les modifie : le hook ne se charge qu'à la session suivante, le
+  workflow qu'au vrai merge. Le plan doit leur donner des étapes C<n> : le hook
+  lancé à la main avec un JSON d'événement sur l'entrée standard (un cas bloqué,
+  un cas laissé passer), le workflow rejoué par act ou, sans Docker, regardé au
+  premier run avec gh run watch. La panne visée : « on verra à la prochaine
+  session » et « on verra au merge ».
+context:
+  scaffold_script: fixture.sh

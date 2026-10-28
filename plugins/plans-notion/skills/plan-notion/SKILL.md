@@ -440,7 +440,7 @@ Quand Benjamin valide le plan :
        `python3 "${CLAUDE_PLUGIN_ROOT}/skills/_partage/scripts/verifier-preuves.py" <miroir> --depot <dépôt> --transcripts` :
        chaque écart se corrige, ou se justifie par une dispense motivée, avant
        `valide` ; le format de la preuve est dans `${CLAUDE_PLUGIN_ROOT}/skills/_partage/poc.md`.
-   13. chaque cron créé ou modifié (job Hermes, unité systemd, workflow `schedule:`, autre planificateur) a son
+   13. chaque cron créé ou modifié (job Hermes, unité systemd, workflow `schedule:`, autre planificateur), hook ou workflow sur événement, a son
        étape `C<n>`, ou la page dit « Aucun cron touché » : `${CLAUDE_PLUGIN_ROOT}/skills/_partage/cron-a-la-main.md`.
    14. chaque étape qui touche un fichier cité par la doc du dépôt porte sa ligne
        « Docs relues » (`chapitres-questions-execution.md`, « Fichiers touchés » compris).

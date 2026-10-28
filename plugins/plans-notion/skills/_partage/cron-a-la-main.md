@@ -1,5 +1,8 @@
 # Un cron modifié se lance à la main, pendant l'exécution
 
+Vaut aussi pour les cousins du cron, un hook Claude Code et un workflow lancé par
+un événement (section « Les cousins du cron »).
+
 Fichier référencé par `plan-notion` (filtre de §8, contrôle 13), par
 `executer-plan-notion` (étape `C<n>`, via `etapes.md`) et par
 `remontee-sur-main.md` (point 4 ter, le rejeu après le merge).
@@ -34,7 +37,7 @@ Vocabulaire, pour qui lit ce fichier pour la première fois :
 
 ## Au plan : inventorier, puis une étape `C<n>` par cron
 
-L'enquête repère les crons touchés, et le plan leur donne une étape. Trois lieux
+L'enquête repère les crons touchés, et le plan leur donne une étape. Les lieux
 à regarder :
 
 - les jobs Hermes : `~/.hermes/cron/jobs.json` (champs `id`, `script`, `workdir`,
@@ -46,7 +49,11 @@ L'enquête repère les crons touchés, et le plan leur donne une étape. Trois l
   `cron.schedule` de `pg_cron`, routines et triggers cloud. Leur lancement
   équivalent suit le même principe que ci-dessous : le déclencheur manuel du
   planificateur, ou la commande de la ligne de crontab sous `env -i` et dans le
-  répertoire du job.
+  répertoire du job ;
+- les cousins du cron (section « Les cousins du cron ») : les hooks
+  (`hooks/hooks.json` d'un plugin, clé `hooks` de `.claude/settings.json`) et les
+  workflows lancés par un événement (`on:` qui porte `push`, `pull_request` ou
+  `workflow_run`, sous `.github/workflows/`).
 
 Un cron est **touché** si le plan le **crée**, ou modifie son script, son fichier
 de job, son planning, son unité, son workflow, ou ce qu'il lit ou écrit. Un cron
@@ -134,6 +141,52 @@ déploiement seulement ». Seul le rejeu du point 4 ter prouve le job.
 - Sinon, pas de lancement local : la preuve vient après le merge, par
   `gh workflow run`, qui n'accepte que le fichier de la branche par défaut.
 
+## Les cousins du cron : un hook, un workflow sur événement
+
+Même panne que le cron : un code que la session ne voit jamais tourner, dont la
+première preuve arrive plus tard (à la session suivante, au vrai merge). Un plan
+qui crée ou modifie l'un d'eux lui donne donc aussi une étape `C<n>`, avec les
+mêmes lignes (Id, Lancement équivalent, Critère de succès, Durée maximale, Effets
+externes tranchés, Après le merge), et la même boucle.
+
+### Hook Claude Code (de plugin, ou de `.claude/settings.json`)
+
+- **Pourquoi** : un hook se charge au démarrage d'une session (ou par
+  `/reload-plugins`). La session qui le modifie ne le voit jamais se déclencher, et
+  la session suivante découvre l'erreur, ou pire, ne voit rien : un hook qui plante
+  laisse souvent passer en silence.
+- **Lancement équivalent** : la commande du hook (`hooks/hooks.json`, ou
+  `settings.json`), fichier du worktree, avec sur l'entrée standard un JSON du même
+  événement (`hook_event_name`, `session_id`, `cwd`, et pour un `PreToolUse` ou un
+  `PostToolUse` : `tool_name`, `tool_input`) :
+  `echo '{"hook_event_name":"PreToolUse","tool_name":"Bash","tool_input":{"command":"git commit --no-verify -m x"},"session_id":"essai","cwd":"'"$PWD"'"}' | CLAUDE_PLUGIN_ROOT=<worktree>/plugins/<plugin> python3 <worktree>/plugins/<plugin>/hooks/<script>.py`
+- **Critère de succès** : le code de retour (2 bloque, 0 laisse passer) et la
+  sortie attendue (message sur la sortie d'erreur, ou JSON sur la sortie
+  standard). Au moins deux lancements : un cas que le hook doit attraper, un cas
+  qu'il doit laisser passer.
+- **Après le merge** : après la mise à jour du poste (point 4 bis de
+  `remontee-sur-main.md`), une session neuve, ou `/reload-plugins`, puis un geste
+  qui déclenche le hook pour de vrai.
+
+### Workflow GitHub lancé par un événement (`push`, `pull_request`, merge)
+
+- **Pourquoi** : un déploiement au merge ou un `merge-auto` ne tourne qu'au vrai
+  événement. Une erreur s'y voit au merge, c'est-à-dire en production.
+- **Lancement équivalent** : si Docker tourne, `act <événement> -W
+  .github/workflows/<fichier> -e <événement>.json` rejoue le workflow du worktree
+  sur le poste, avec un JSON d'événement écrit pour l'étape. **Action lourde : le
+  pilote la joue** (`machine-partagee.md`). Un pas qui écrit dehors (déploiement,
+  push, commentaire, merge) relève des effets externes tranchés : à blanc
+  (`act` pose `ACT=true` : le pas porte `if: ${{ !env.ACT }}`) ou question avant
+  `valide`.
+- **Sans Docker** : pas de lancement local. `workflow_dispatch` ne sert pas
+  avant le merge : GitHub ne déclenche que les workflows présents sur la branche
+  par défaut. La preuve vient alors du premier vrai run, et l'étape le dit en une
+  ligne : « preuve au premier run seulement ».
+- **Après le merge** : le run déclenché par le merge est **regardé**, jamais
+  supposé : `gh run list --workflow <fichier> --branch <branche par défaut> -L 1`,
+  puis `gh run watch <id> --exit-status` (conclusion `success`).
+
 ## La boucle : lancer, constater, corriger, trois tours au plus
 
 Pour une étape `C<n>` :
@@ -172,8 +225,11 @@ en échec, même en arrière-plan.
 ## Après le merge : le rejeu réel
 
 Le rejeu se fait après le merge et le déploiement, par le point **4 ter** de
-`${CLAUDE_PLUGIN_ROOT}/skills/_partage/remontee-sur-main.md` : `hermes cron run <id>`,
-puis une minute au plus d'attente, puis `last_status` lu dans `hermes cron list`.
+`${CLAUDE_PLUGIN_ROOT}/skills/_partage/remontee-sur-main.md`, avec un geste par type
+de cron : `hermes cron run <id>` puis `last_status` pour un job Hermes,
+`systemctl start` puis `Result` et `journalctl` pour un timer systemd,
+`gh workflow run` puis `gh run watch` pour un workflow `schedule:`, la commande de
+la ligne déployée pour une crontab.
 Un rejeu rouge ouvre un plan de suite (`${CLAUDE_PLUGIN_ROOT}/skills/_partage/plan-de-suite.md`) ;
 il ne défait pas un merge déjà fait.
 
