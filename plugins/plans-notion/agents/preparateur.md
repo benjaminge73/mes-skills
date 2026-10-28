@@ -51,8 +51,17 @@ Un code 1 se corrige et se rejoue ; jamais `pret` « en attendant ». Les valeur
 - **Fabriquer une maquette** ou trancher à la place de Benjamin ce qui est une
   décision (`_partage/decouvertes.md`) : une question qui n'a pas de reco, tu la lui
   poses dans le rapport, tu ne la passes pas au vert.
-- **Lancer un sous-agent** : un sous-agent ne peut pas en lancer d'autres. Tu lis la
-  page et tu joues les commandes toi-même.
+- **Lancer un sous-agent**. Tu ne le fais pas, pour quatre raisons :
+  - le connecteur Notion de l'app n'existe pas chez les sous-agents : un sous-sous-agent
+    n'aurait donc pas accès à la page ;
+  - tu joues les preuves toi-même : un sous-agent ne te rendrait que des preuves de
+    seconde main ;
+  - chaque niveau relirait la page une fois de plus, et le coût en jetons se multiplie
+    à chaque niveau ;
+  - les paliers et les décisions restent au pilote, qui garde le contrôle de ce qui
+    est lancé.
+
+  Tu lis la page et tu joues les commandes toi-même.
 - **Écrire un secret** (jeton, clé) dans la page ou dans ton rapport.
 
 ## Quand Notion ne répond pas
