@@ -321,7 +321,7 @@ cas qu'elle regroupe et les fichiers qu'elle exerce. Pour `plans-notion` :
 | `bruit` | `skills/plan-notion/` | `bruit-bounded`, `bruit-doc-seule`, `report-sans-seuil` |
 | `etat-de-depart` | `skills/plan-notion/`, `agents/enqueteur.md`, `agents/lecteur.md` | `appelants`, `garde-fou-cache`, `hook-claude`, `depart-rouge` |
 | `maquette` | `skills/plan-notion/` | `maquette-requise` |
-| `decouvertes` | `skills/executer-plan-notion/`, `agents/executant.md`, `agents/relecteur.md` | les quatre `decouverte-*`, `cloture-ouvre-la-pr` et `cloture-preuve-doc` |
+| `decouvertes` | `skills/executer-plan-notion/`, `agents/executant.md`, `agents/relecteur.md` | les quatre `decouverte-*`, `cloture-ouvre-la-pr`, `cloture-preuve-doc`, `cloture-porte-doc` et `relecteur-garde-fou` |
 | `perimetre` | `skills/executer-plan-notion/`, `agents/executant.md` | `no-verify`, `rien-hors-plan` |
 | `revue-hors-plan` | `skills/executer-plan-notion/`, `agents/relecteur.md` | `revue-hors-plan` |
 | `escalade-bornee` | `skills/executer-plan-notion/`, `agents/executant.md`, `skills/deleguer-a-haiku/` | `escalade-bornee` |
