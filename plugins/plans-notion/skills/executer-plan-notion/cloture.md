@@ -236,9 +236,10 @@ Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard »
        la boucle de `revue.md` ; § 3 si la session n'a pas d'humain.
      - Les remarques des autres catégories du relecteur (bug de correction, test
        qui ne teste rien, découverte hors plan) suivent la même boucle.
-     - Une `D<n>` qui change le code rejoue la suite complète (point 1) avant la
-       porte. Le verdict (`RIEN À SIGNALER` ou `REMARQUES (n)`) et chaque écart se
-       recopient à l'`État final`.
+     - Une `D<n>` issue de ce passage rejoue, une fois faite, les points 1 (suite
+       complète), 2 et 2 bis avant la porte (point 3). Le verdict
+       (`RIEN À SIGNALER` ou `REMARQUES (n)`) et chaque écart se recopient à
+       l'`État final`.
 
   3. **La porte des preuves, avant le push.** Le contrôle des journaux se joue
      par script, sur le miroir local de la page, avant tout push et toute PR :
