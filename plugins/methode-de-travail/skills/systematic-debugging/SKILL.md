@@ -20,7 +20,7 @@ cat "${CLAUDE_PLUGIN_ROOT}/.claude-plugin/plugin.json" | grep '"version"'
 
 Les deux versions doivent être identiques, et le chemin annoncé au chargement
 (`${CLAUDE_PLUGIN_ROOT}`) doit être l'`installPath` ci-dessus. Écart → le dire à Benjamin
-en une ligne, puis lire ce `SKILL.md` et `_partage/` depuis cet `installPath`. Pour charger la
+en une ligne, puis lire ce `SKILL.md` et `_partage/` depuis cet `installPath`, pas depuis la copie chargée. Pour charger la
 plus récente : `claude plugin update methode-de-travail@atelier` (redémarrage requis) ; en
 session cloud, le setup script pose la dernière version publiée, jamais plus loin que `main`.
 Limite : elle ne protège qu'à partir de sa version.
@@ -80,8 +80,8 @@ You MUST complete each phase before proceeding to the next.
    - What are the exact steps?
    - Does it happen every time?
    - If not reproducible → gather more data, don't guess
-   - Shorten the loop: the smallest command that fails in seconds, not minutes
-   - Tag diagnostic logs `[DEBUG-xxxx]` (xxxx = session id); before commit, `grep -rn "DEBUG-" <dir>` must return nothing
+   - Shorten the loop: smallest command failing in seconds, not minutes
+   - Tag diagnostic logs `[DEBUG-xxxx]`; before commit, `grep -rn "DEBUG-" <dir>` must return nothing
 
 3. **Check Recent Changes**
    - What changed that could cause this?
@@ -110,11 +110,11 @@ You MUST complete each phase before proceeding to the next.
    ```bash
    # Layer 1: Workflow
    echo "=== Secrets available in workflow: ==="
-   echo "IDENTITY: $([ -n "${IDENTITY+x}" ] && echo SET || echo UNSET)"
+   echo "IDENTITY: $([ -n "${IDENTITY:-}" ] && echo SET || echo UNSET)"
 
    # Layer 2: Build script
    echo "=== Env vars in build script: ==="
-   env | grep -q '^IDENTITY=' && echo "IDENTITY in environment" || echo "IDENTITY not in environment"
+   env | grep -q '^IDENTITY=.' && echo "IDENTITY in environment" || echo "IDENTITY not in environment"
 
    # Layer 3: Signing script
    echo "=== Keychain state: ==="
