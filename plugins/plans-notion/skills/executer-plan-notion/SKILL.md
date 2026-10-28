@@ -375,10 +375,9 @@ ligne `Evals`.
 ## 7. Le reste à faire, et le plan de suite
 
 Benjamin ne relit pas un plan terminé : **aucun reste à faire ne dort seul dans sa
-page.** Avant `a merger`, chaque ligne se trie — une décision qu'on attend de lui se
+page.** La suite se montre dans la session avant de s'écrire. Avant `a merger`, chaque ligne se trie — une décision qu'on attend de lui se
 pose dans la session (`AskUserQuestion`) ; une étape au plus se fait en `D<n>` ;
-au-delà, **plan de suite** (titre suffixé, propriétés, `Reprise du plan #N-1`, sort
-de la `Branche`, liens) ; ce qui attend un événement reste, repris au Récap :
+au-delà, la session **propose** : **plan de suite** (le défaut : titre suffixé, `Reprise du plan #N-1`, `Branche`, liens), ou les faire maintenant en `D<n>`, ou les écarter ; ce qui attend un événement reste, repris au Récap :
 
 📄 `${CLAUDE_PLUGIN_ROOT}/skills/_partage/plan-de-suite.md`
 
