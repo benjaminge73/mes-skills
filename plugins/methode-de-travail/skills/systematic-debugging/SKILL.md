@@ -7,11 +7,9 @@ description: Use when encountering any bug, test failure, or unexpected behavior
 
 ## Suis-je la bonne version ?
 
-Le 2026-09-08, une session a chargé le skill `plan-notion` depuis une copie
-synchronisée périmée (`~/.claude/remote/plugins/<hash>/`, version 0.3.0 alors
-que 0.7.0 était installée) et a travaillé tout un plan sur les mauvaises
-règles. N'importe quel skill peut être chargé de la même façon : il ne
-choisit pas d'où il vient, il peut seulement le constater.
+Le 2026-09-08, une session a chargé `plan-notion` depuis une copie synchronisée périmée
+(`~/.claude/remote/plugins/<hash>/`, 0.3.0 au lieu de 0.7.0) et a travaillé tout un plan sur
+les mauvaises règles. Tout skill peut être chargé ainsi : il ne choisit pas d'où il vient, il peut seulement le constater.
 
 À vérifier au chargement, en une commande :
 
@@ -21,15 +19,11 @@ cat "${CLAUDE_PLUGIN_ROOT}/.claude-plugin/plugin.json" | grep '"version"'
 ```
 
 Les deux versions doivent être identiques, et le chemin annoncé au chargement
-(« Base directory for this skill », soit `${CLAUDE_PLUGIN_ROOT}`) doit être
-l'`installPath` rendu ci-dessus. Écart → le dire à Benjamin en une ligne, puis
-lire ce `SKILL.md` et `_partage/` depuis cet `installPath`, pas depuis la
-copie chargée. Pour charger la plus récente : `claude plugin update
-methode-de-travail@atelier` (redémarrage requis) ; en session cloud, le
-setup script pose déjà la dernière version publiée — jamais plus loin que ce
-que `main` du dépôt porte. Ce que cette garde ne règle pas : une copie qui ne
-l'embarque pas ne préviendra jamais — elle protège à partir de la version qui
-la porte.
+(`${CLAUDE_PLUGIN_ROOT}`) doit être l'`installPath` ci-dessus. Écart → le dire à Benjamin
+en une ligne, puis lire ce `SKILL.md` et `_partage/` depuis cet `installPath`. Pour charger la
+plus récente : `claude plugin update methode-de-travail@atelier` (redémarrage requis) ; en
+session cloud, le setup script pose la dernière version publiée, jamais plus loin que `main`.
+Limite : elle ne protège qu'à partir de sa version.
 
 ## Overview
 
@@ -86,6 +80,8 @@ You MUST complete each phase before proceeding to the next.
    - What are the exact steps?
    - Does it happen every time?
    - If not reproducible → gather more data, don't guess
+   - Shorten the loop: the smallest command that fails in seconds, not minutes
+   - Tag diagnostic logs `[DEBUG-xxxx]` (xxxx = session id); before commit, `grep -rn "DEBUG-" <dir>` must return nothing
 
 3. **Check Recent Changes**
    - What changed that could cause this?
@@ -114,11 +110,11 @@ You MUST complete each phase before proceeding to the next.
    ```bash
    # Layer 1: Workflow
    echo "=== Secrets available in workflow: ==="
-   echo "IDENTITY: ${IDENTITY:+SET}${IDENTITY:-UNSET}"
+   echo "IDENTITY: $([ -n "${IDENTITY+x}" ] && echo SET || echo UNSET)"
 
    # Layer 2: Build script
    echo "=== Env vars in build script: ==="
-   env | grep IDENTITY || echo "IDENTITY not in environment"
+   env | grep -q '^IDENTITY=' && echo "IDENTITY in environment" || echo "IDENTITY not in environment"
 
    # Layer 3: Signing script
    echo "=== Keychain state: ==="
@@ -304,7 +300,7 @@ If systematic investigation reveals issue is truly environmental, timing-depende
 
 ## Supporting Techniques
 
-These techniques are part of systematic debugging and available in this directory:
+Available in this directory:
 
 - **`root-cause-tracing.md`** - Trace bugs backward through call stack to find original trigger
 - **`defense-in-depth.md`** - Add validation at multiple layers after finding root cause
@@ -314,4 +310,4 @@ These techniques are part of systematic debugging and available in this director
 
 *Adapté de [obra/superpowers](https://github.com/obra/superpowers) (MIT, Jesse Vincent / Prime
 Radiant). Récupéré le 2026-08-03. Modifications : renvois vers les skills non installées
-retirés, ajout du renvoi codebase-memory.*
+retirés, ajout du renvoi codebase-memory ; boucle courte et logs : `mattpocock/skills` (MIT).*
