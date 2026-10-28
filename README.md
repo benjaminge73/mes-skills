@@ -330,7 +330,7 @@ brouillon avec le label `fumee`, puis la passer prête (détail dans
 
 Le banc est sobre. Un seul banc tourne par plugin à la fois
 (`concurrency: evals-<plugin>`), et un push sur une PR arrête les runs non finis
-de ses commits précédents (job `annuler-perimes`) au lieu de les attendre. La
+de ses commits précédents (groupe `concurrency` de la PR) au lieu de les attendre. La
 fumée joue deux lots de huit sessions en parallèle (en CI) et range au cache chaque catégorie verte
 même quand le job est rouge : une relance ne rejoue que les autres. Le rapport de la base est repris du cache selon
 son contenu (`--base-rapport`) au lieu d'être rejoué. Le coût est annoncé avant
