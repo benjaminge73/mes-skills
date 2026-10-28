@@ -21,7 +21,7 @@ L'auteur Dependabot passe sans que le corps soit lu (`dependabot[bot]`, `app/dep
 
 Le corps arrive par la variable d'environnement PR_BODY (relu par l'API dans ci.yml, jamais
 interpolé dans le YAML), l'auteur par PR_AUTHOR. Codes : 0 accepté, 1 refusé, 2 panne
-(PR_BODY absent). Bibliothèque standard uniquement.
+(PR_BODY absent), 4 aucune valeur écrite après `Doc :` (le job attend, puis refuse). Bibliothèque standard uniquement.
 """
 from __future__ import annotations
 
@@ -34,6 +34,7 @@ LIEN_NOTION = re.compile(r"^<?https://(?:app\.|www\.)?notion\.(?:so|com|site)/\S
 LIEN = re.compile(r"^<?https?://\S+")
 SANS_OBJET = re.compile(r"^sans objet\s*[—–-]\s*(\S.*)$", re.IGNORECASE)
 RAISON_MIN = 15
+ATTENTE = 4
 
 # Chaque motif vient d'une PR réelle relevée le 2026-10-28 ; la raison dit le contresens.
 RAISONS_REFUSEES: list[tuple[re.Pattern[str], str]] = [
@@ -91,6 +92,21 @@ def verifier_doc(corps: str | None, auteur: str | None = None) -> tuple[bool, st
     return False, "; ".join(defauts) + f". {AIDE}"
 
 
+def doc_pas_encore_ecrite(corps: str | None, auteur: str | None = None) -> bool:
+    """Vrai si la description n'a encore aucune valeur après `Doc :` (ligne absente ou vide).
+
+    C'est l'état de toute PR qui vient de s'ouvrir : l'entrée du Changelog cite le numéro de
+    la PR, donc ne peut s'écrire qu'après elle. Une ligne mal formée ou à raison refusée n'est
+    pas « pas encore écrite » : elle est fausse, et reste refusée tout de suite."""
+    if est_dependabot(auteur):
+        return False
+    for brute in (corps or "").splitlines():
+        m = LIGNE_DOC.match(brute.strip())
+        if m and m.group(1).strip().strip("*").strip():
+            return False
+    return True
+
+
 def main() -> int:
     auteur = os.environ.get("PR_AUTHOR")
     if "PR_BODY" not in os.environ and not est_dependabot(auteur):
@@ -101,7 +117,9 @@ def main() -> int:
         print(f"Doc : {raison}")
         return 0
     print(f"::error title=Ligne Doc::{raison}")
-    return 1
+    # Code 4 : rien n'est encore écrit après `Doc :`. Le job `doc` de ci.yml attend alors que
+    # la description se remplisse au lieu de rougir (voir `attendre-la-ligne-doc`).
+    return ATTENTE if doc_pas_encore_ecrite(os.environ.get("PR_BODY"), auteur) else 1
 
 
 if __name__ == "__main__":
