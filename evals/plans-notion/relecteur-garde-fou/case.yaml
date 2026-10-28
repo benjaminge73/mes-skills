@@ -1,14 +1,14 @@
 schema_version: "1.1"
 name: relecteur-garde-fou
-description: "Le relecteur, joué sur la plage d'une étape, signale un @unittest.skip ajouté sans justification à un test qui attrapait un vrai bug : REMARQUES, avec le fichier:ligne du test et le scénario du bug que la suite verte laisse passer."
+description: "Le pilote fait relire une étape par l'agent plans-notion:relecteur, qui signale un @unittest.skip ajouté sans justification à un test qui attrapait un vrai bug : REMARQUES, avec le fichier:ligne du test et le scénario du bug que la suite verte laisse passer."
 tags: [execution]
 expected_outcome: "Verdict REMARQUES (n) ; le @unittest.skip de tests/test_remise.py est signalé avec son fichier:ligne et le test qui le porte ; le bug de src/remise.py (>= au lieu de >, remise(100) rend 90) est donné comme scénario."
-# Lecture seule : ni Write ni Edit. 40 tours et 600 s, pour la relecture de deux
+# Le pilote délègue à l'agent du plugin (outil Agent) : la leçon vient du plugin, pas du prompt. Lecture seule : ni Write ni Edit. 40 tours et 600 s, pour la relecture de deux
 # commits ; le défaut de claude plugin eval (10 tours, 300 s) ne suffirait pas.
 execution:
   max_turns: 40
   timeout_seconds: 600
-  allowed_tools: [Read, Glob, Grep, Bash]
+  allowed_tools: [Read, Glob, Grep, Bash, Agent]
 context:
   scaffold_script: fixture.sh
 # Juges gratuits, sur la réponse finale : le pré-vol les joue sur oracle/reponse.md.
@@ -32,3 +32,7 @@ graders:
   - name: bug-scenario-valeurs
     type: regex
     pattern: '100[^\n]*\b90\b|\b90\b[^\n]*100'
+  - name: relecteur-appele
+    type: tool_used
+    tool: Agent
+    min: 1
