@@ -64,10 +64,16 @@ quelques milliers de jetons. L'ordre des verdicts reste celui de l'entrée ; l'a
 chaque nouveau passage : il peut être dépassé d'au plus N passages déjà en vol.
 
 Usage : qualite-doc.py juger --entree <passages.json> [--votes N] [--seuil S]
-                             [--max-cout D] [--parallele N]
-Codes de ``juger`` : 0 ok ; 2 usage ou entrée illisible ; 3 juge indisponible ;
+                             [--max-cout D] [--parallele N] [--grille <fichier>]
+Codes de ``juger`` : 0 ok ; 2 usage, entrée ou grille illisible ; 3 juge indisponible ;
 4 plafond ``--max-cout`` atteint (le JSON partiel part sur la sortie standard, avec
 ``passages_non_juges``) ; 5 modèle servi autre que ``MODELE``.
+
+``--grille <fichier>`` remplace ``grille-doc.md`` par le fichier lu ; une grille illisible
+sort en code 2, sans repli sur ``grille-doc.md``. Avec cette option, l'entrée est une liste
+d'éléments ``{"id", "texte"}`` (``id`` non vide), recopiés tels quels dans le prompt et dans
+le rapport : les verdicts portent ``id`` et ``texte``, et les douteux sont rangés par ``id``
+(sans ``fichier`` ni ``ligne``). Le sens de « exact » est celui que donne la grille lue.
 
 Bibliothèque standard uniquement.
 """
@@ -336,19 +342,34 @@ def lecteurs(base: str, racine_arg: Path, exclure: list[str], max_passages: int)
     }
 
 
-def lire_grille() -> str:
+def lire_grille(chemin: Path = GRILLE) -> str:
     try:
-        return GRILLE.read_text(encoding="utf-8")
-    except OSError as e:
-        raise ErreurQualite(f"grille de relecture illisible : {GRILLE} ({e.strerror})") from e
+        return chemin.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError) as e:
+        detail = e.strerror if isinstance(e, OSError) and e.strerror else "UTF-8 attendu"
+        raise ErreurQualite(f"grille de relecture illisible : {chemin} ({detail})") from e
 
 
-def lire_entree(chemin: Path) -> list[dict]:
-    """Passages de ``juger`` : le rapport de ``lecteurs`` (clé ``passages``) ou une liste nue."""
+def element_libre_valide(element) -> bool:
+    """Un élément de ``--grille`` : un ``id`` non vide et un ``texte``, tous deux en chaînes."""
+    return (isinstance(element, dict) and isinstance(element.get("id"), str)
+            and element["id"] != "" and isinstance(element.get("texte"), str))
+
+
+def lire_entree(chemin: Path, libre: bool = False) -> list[dict]:
+    """Passages de ``juger`` : le rapport de ``lecteurs`` (clé ``passages``) ou une liste nue.
+
+    Avec ``libre`` (``--grille``) : une liste nue d'éléments ``{"id", "texte"}``.
+    """
     try:
         donnee = json.loads(chemin.read_text(encoding="utf-8"))
     except (OSError, UnicodeDecodeError, json.JSONDecodeError) as e:
         raise ErreurQualite(f"entrée illisible : {chemin} ({e})") from e
+    if libre:
+        if not isinstance(donnee, list) or not all(element_libre_valide(e) for e in donnee):
+            raise ErreurQualite(f"entrée hors format : {chemin} (avec --grille, attendu : une liste "
+                                "d'éléments {\"id\", \"texte\"}, id non vide)")
+        return donnee
     passages = donnee.get("passages") if isinstance(donnee, dict) else donnee
     if not isinstance(passages, list) or not all(
             isinstance(p, dict) and all(k in p for k in ("fichier", "ligne", "texte")) for p in passages):
@@ -377,6 +398,11 @@ def prompt_du_passage(grille: str, passage: dict) -> str:
     return (f"{grille}\n\n## Passage\n\nFichier : {passage['fichier']}, ligne {passage['ligne']}\n\n"
             f"{passage['texte']}\n\n## Termes\n\n{termes}\n\n"
             f"## Extrait du diff\n\n{passage.get('extrait_diff', '')}\n")
+
+
+def prompt_de_l_element(grille: str, element: dict) -> str:
+    """Prompt d'un élément de ``--grille`` : son ``id`` et son ``texte``, recopiés tels quels."""
+    return f"{grille}\n\n## Élément\n\nIdentifiant : {element['id']}\n\n{element['texte']}\n"
 
 
 def appeler_juge(exe: str, prompt: str) -> tuple[str, float]:
@@ -443,11 +469,24 @@ def vote_de(texte: str) -> dict:
             "raison": str(objet.get("raison", ""))}
 
 
+def identifiant_de(element: dict, libre: bool) -> dict:
+    """Ce qui identifie un élément dans le rapport : son ``id`` avec grille, sinon fichier et ligne."""
+    return {"id": element["id"]} if libre else {"fichier": element["fichier"], "ligne": element["ligne"]}
+
+
 def juger(passages: list[dict], votes: int, seuil: float, max_cout: float | None,
-          parallele: int = PARALLELE_DEFAUT) -> tuple[dict, int]:
-    """Fait voter le juge sur chaque passage ; rend (rapport, code de sortie)."""
+          parallele: int = PARALLELE_DEFAUT, grille_libre: str | None = None) -> tuple[dict, int]:
+    """Fait voter le juge sur chaque passage ; rend (rapport, code de sortie).
+
+    ``grille_libre`` (``--grille``) remplace ``grille-doc.md`` ; les éléments portent alors
+    ``id`` et ``texte``, recopiés dans le prompt et dans le rapport.
+    """
     exe = trouver_claude()
-    grille = lire_grille()
+    libre = grille_libre is not None
+    if libre:
+        grille, construire = grille_libre, prompt_de_l_element
+    else:
+        grille, construire = lire_grille(), prompt_du_passage
     verrou = threading.Lock()
     etat = {"cout": 0.0, "faits": 0}
 
@@ -458,7 +497,7 @@ def juger(passages: list[dict], votes: int, seuil: float, max_cout: float | None
             with verrou:
                 if max_cout is not None and etat["cout"] >= max_cout:
                     return None  # plafond atteint : pas d'appel de plus, ce passage reste non jugé
-            texte, cout_appel = appeler_juge(exe, prompt_du_passage(grille, passage))
+            texte, cout_appel = appeler_juge(exe, construire(grille, passage))
             with verrou:
                 etat["cout"] += cout_appel
             urnes.append(vote_de(texte))
@@ -483,16 +522,18 @@ def juger(passages: list[dict], votes: int, seuil: float, max_cout: float | None
     verdicts = []
     for passage, urnes in jugés:
         retenu = max(urnes, key=lambda v: v["score"])  # le plus haut : le plus pessimiste
-        verdicts.append({
-            "fichier": passage["fichier"],
-            "ligne": passage["ligne"],
+        verdict = identifiant_de(passage, libre)
+        if libre:
+            verdict["texte"] = passage["texte"]
+        verdict.update({
             "score": retenu["score"],
             "exact": retenu["exact"],
             "raison": retenu["raison"],
             "votes": [{"score": v["score"], "exact": v["exact"], "confiance": v["confiance"]}
                       for v in urnes],
         })
-    douteux = [{"fichier": v["fichier"], "ligne": v["ligne"], "score": v["score"], "raison": v["raison"]}
+        verdicts.append(verdict)
+    douteux = [{**identifiant_de(v, libre), "score": v["score"], "raison": v["raison"]}
                for v in verdicts if v["score"] >= seuil]
     rapport = {
         "modele": MODELE,
@@ -515,9 +556,12 @@ def commande_juger(ap: argparse.ArgumentParser, args: argparse.Namespace) -> int
         ap.error("--max-cout doit être supérieur ou égal à 0")
     if args.parallele < 1:
         ap.error("--parallele doit être supérieur ou égal à 1")
+    libre = args.grille is not None
     try:
-        passages = lire_entree(args.entree)
-        rapport, code = juger(passages, args.votes, args.seuil, args.max_cout, args.parallele)
+        grille_libre = lire_grille(args.grille) if libre else None
+        passages = lire_entree(args.entree, libre)
+        rapport, code = juger(passages, args.votes, args.seuil, args.max_cout, args.parallele,
+                              grille_libre)
     except ErreurJuge as e:
         print(f"qualite-doc : {e}", file=sys.stderr)
         return e.code
@@ -554,6 +598,9 @@ def main(argv: list[str]) -> int:
                      help="plafond de coût en dollars (défaut : illimité)")
     jug.add_argument("--parallele", type=int, default=PARALLELE_DEFAUT, metavar="N",
                      help=f"passages jugés en même temps (défaut : {PARALLELE_DEFAUT} ; 1 = un par un)")
+    jug.add_argument("--grille", type=Path, default=None, metavar="FICHIER",
+                     help="grille de relecture qui remplace grille-doc.md ; l'entrée est alors une "
+                          "liste d'éléments {id, texte}")
     args = ap.parse_args(argv)
     if args.commande == "juger":
         return commande_juger(ap, args)

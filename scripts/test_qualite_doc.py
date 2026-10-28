@@ -429,6 +429,64 @@ class Juger(unittest.TestCase):
         self.assertTrue(rapport["verdicts"][0]["exact"])
         self.assertEqual(rapport["douteux"], [])
 
+    # Sans --grille, le juge doit recevoir exactement le prompt d'avant : la grille livrée, puis le
+    # passage. Le prompt entier est pinné parce que « octet pour octet » est la consigne : c'est le
+    # seul effet observable du contrat, le juge ne voyant que ce prompt.
+    def test_sans_grille_le_prompt_est_identique_a_avant(self):
+        faux = FauxClaude(self.dossier, [sortie_juge(verdict(True, 0.9))])
+        code, sortie, erreur = self.juger([passage()], faux.exe, "--votes", "1")
+        self.assertEqual(code, 0, erreur)
+        attendu = (GRILLE.read_text(encoding="utf-8")
+                   + "\n\n## Passage\n\nFichier : docs/a.md, ligne 1\n\n"
+                   + "Ligne 1 : `deploy.py`.\n\n## Termes\n\ndeploy.py\n\n"
+                   + "## Extrait du diff\n\n+    return 2\n")
+        self.assertEqual(faux.prompts(), [attendu])
+
+    def test_avec_grille_le_prompt_porte_la_grille_et_le_texte_libre(self):
+        grille = self.dossier / "grille-libre.md"
+        grille.write_text("# Grille libre\n\nRépondre par un objet JSON. Marque : grille_libre_4b1e.\n",
+                          encoding="utf-8")
+        texte = "Le plafond « Ω » vaut 3 : voir `plafond.md`.\nSeconde ligne, marque texte_libre_8c2d."
+        faux = FauxClaude(self.dossier, [sortie_juge(verdict(True, 0.9))])
+        code, sortie, erreur = self.juger([{"id": "ref-42", "texte": texte}], faux.exe,
+                                          "--grille", str(grille), "--votes", "1")
+        self.assertEqual(code, 0, erreur)
+        prompts = faux.prompts()
+        self.assertEqual(len(prompts), 1)
+        self.assertIn(grille.read_text(encoding="utf-8"), prompts[0])
+        self.assertNotIn(GRILLE.read_text(encoding="utf-8"), prompts[0])
+        self.assertIn("ref-42", prompts[0])
+        self.assertIn(texte, prompts[0])
+
+    def test_une_grille_illisible_donne_une_erreur_nommee(self):
+        absente = self.dossier / "absente.md"
+        faux = FauxClaude(self.dossier, [sortie_juge(verdict(True, 0.9))])
+        code, sortie, erreur = self.juger([{"id": "ref-1", "texte": "Un texte."}], faux.exe,
+                                          "--grille", str(absente), "--votes", "1")
+        self.assertEqual(code, 2, erreur)
+        self.assertIn("grille de relecture illisible", erreur)
+        self.assertIn(str(absente), erreur)
+        self.assertNotIn("Traceback", erreur)
+        # Refus avant tout appel du juge : jamais de repli silencieux sur grille-doc.md.
+        self.assertEqual(faux.prompts(), [])
+
+    def test_le_rapport_range_les_douteux_par_id_avec_grille(self):
+        faux = FauxClaude(self.dossier, [sortie_juge(verdict(False, 0.8)),
+                                         sortie_juge(verdict(True, 0.95)),
+                                         sortie_juge(verdict(False, 0.6))])
+        elements = [{"id": "ref-1", "texte": "Premier."},
+                    {"id": "ref-2", "texte": "Second."},
+                    {"id": "ref-3", "texte": "Troisième."}]
+        code, sortie, erreur = self.juger(elements, faux.exe, "--grille", str(GRILLE), "--votes", "1")
+        self.assertEqual(code, 0, erreur)
+        rapport = json.loads(sortie)
+        self.assertEqual([v["id"] for v in rapport["verdicts"]], ["ref-1", "ref-2", "ref-3"])
+        self.assertEqual([v["texte"] for v in rapport["verdicts"]], ["Premier.", "Second.", "Troisième."])
+        self.assertEqual([d["id"] for d in rapport["douteux"]], ["ref-1", "ref-3"])
+        # Avec --grille, un douteux se range par id seul : ni fichier ni ligne.
+        for douteux in rapport["douteux"]:
+            self.assertEqual(set(douteux), {"id", "score", "raison"})
+
 
 if __name__ == "__main__":
     unittest.main()

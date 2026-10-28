@@ -238,6 +238,10 @@ Pour juger de la documentation, ne pas utiliser Jev (piège du 2026-10-15) :
 
 **Bonne pratique** :
 
+- Juger une autre grille que la doc (2026-10-28) : `qualite-doc.py juger --grille <fichier>`
+  remplace `grille-doc.md` par le fichier lu. L'entrée devient une liste d'éléments
+  `{"id", "texte"}`, recopiés tels quels dans le prompt et le rapport ; les douteux
+  sont rangés par `id`. Une grille illisible sort en code 2, sans repli sur `grille-doc.md`.
 - Rester en deçà d'une vingtaine d'appels `Agent` simultanés (`vagues.md`,
   section « Le plafond de concurrence »).
 - Ne pas bâtir une étape sur la recopie intégrale de prose publiée par un
