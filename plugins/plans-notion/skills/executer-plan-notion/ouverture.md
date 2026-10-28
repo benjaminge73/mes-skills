@@ -79,9 +79,10 @@ Vahiny). Définition : `${CLAUDE_PLUGIN_ROOT}/agents/preparateur.md`.
 - **Le brief** porte la page du plan, le dépôt, la page du plan maître s'il y en a un
   et **le modèle et l'effort du pilote** : la puce **Pilote** de l'entrée `Ouverture`
   dit le pilote, pas le sous-agent, qui ne sait pas lequel c'est.
-- **Il lit la page et joue les commandes lui-même** : un sous-agent ne peut pas en
-  lancer d'autres, donc pas de `lecteur` ni de `sondeur` dans la préparation qu'on lui
-  confie. Il s'arrête à `pret` ; `en cours` reste au pilote.
+- **Il lit la page et joue les commandes lui-même** : le connecteur Notion n'existe pas chez
+  les sous-agents, et un sous-agent ne rendrait que des preuves de seconde main ; donc pas
+  de `lecteur` ni de `sondeur` dans la préparation qu'on lui confie. Il s'arrête à `pret` ;
+  `en cours` reste au pilote.
 - **Le pilote ne le croit pas sur parole** : il relit le miroir, rejoue
   `preparation-prete.py` (code 0), vérifie le modèle réellement servi par
   `modele-sous-agent.py` (`_partage/poc.md`, « La preuve de chaque réponse »), puis pose

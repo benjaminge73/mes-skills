@@ -390,10 +390,10 @@ Tout ce qui précède décrit un plan. Quand une session en porte plusieurs,
 chacun garde son déroulé (§2 à §7) ; ce qui s'ajoute tient en cinq points.
 
 **Un pilote unique.** Le pilote conduit tous les plans, et aucun
-n'est confié à un « pilote » délégué. La raison est mécanique : un sous-agent
-ne peut pas lancer d'autres sous-agents. Un pilote par plan, délégué, ne
-pourrait donc plus appeler `executant` ni `relecteur` — les étapes se
-coderaient dans le pilote, ce que le §3 interdit.
+n'est confié à un « pilote » délégué. Raisons : le connecteur Notion n'existe
+pas chez les sous-agents ; les preuves se jouent soi-même, sans seconde main ;
+chaque niveau relirait la page, au coût en jetons ; les paliers et décisions
+restent au pilote.
 
 **Chaque plan garde sa porte, sa branche et son worktree.** La porte d'entrée
 se lit plan par plan : un plan ne démarre que s'il est `valide`, puis `pret`
