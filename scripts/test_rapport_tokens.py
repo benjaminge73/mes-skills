@@ -564,6 +564,36 @@ class RapportTokens(unittest.TestCase):
         self.assertAlmostEqual(montant(ligne_de(s1, "job-agent")), 1.0, places=4)
         self.assertFalse(any("gracious-aryabhata" in l for l in s1), "le nom du worktree apparaît en projet")
 
+    def test_le_projet_est_le_cwd_le_plus_frequent_et_non_le_premier(self):
+        # Attrape : une session lancée depuis un dossier parent (« comptes ») puis
+        # travaillée dans « job-agent » rangée sous le parent. Attendu : « job-agent »
+        # (3 lignes contre 1), les 2 $ de la session sous un seul projet.
+        parent = "/home/ubuntu/repos/comptes"
+        enfant = "/home/ubuntu/repos/github/benjaminge73/job-agent"
+        ecrire(self.depot / f"{SID_A}.jsonl", [
+            {**humain("Depuis le dossier parent"), "cwd": parent},
+            {**appel("req_p1", entree=1_000_000), "cwd": enfant},
+            {**appel("req_p2", entree=1_000_000), "cwd": enfant}])
+        r = self.lancer()
+        self.assertEqual(r.returncode, 0, r.stderr)
+        s1 = section(r.stdout, 1)
+        self.assertAlmostEqual(montant(ligne_de(s1, "job-agent")), 2.0, places=4)
+        self.assertFalse(any("comptes" in l for l in s1), "le dossier parent apparaît en projet")
+
+    def test_les_dossiers_temporaires_des_juges_de_doc_sont_un_seul_projet(self):
+        # Attrape : un projet par dossier temporaire « qualite-doc-juge-<hasard> ».
+        # Attendu : une seule ligne « qualite-doc-juge » qui totalise les deux sessions (2 $).
+        for sid, suffixe in ((SID_A, "ab12"), (SID_B, "cd34")):
+            cwd = f"/tmp/qualite-doc-juge-{suffixe}"
+            ecrire(self.depot / f"{sid}.jsonl", [
+                {**humain("Juge"), "cwd": cwd},
+                {**appel(f"req_j{suffixe}", entree=1_000_000), "cwd": cwd}])
+        r = self.lancer()
+        self.assertEqual(r.returncode, 0, r.stderr)
+        s1 = section(r.stdout, 1)
+        self.assertFalse(any("qualite-doc-juge-" in l for l in s1), "un dossier temporaire apparaît en projet")
+        self.assertAlmostEqual(montant(ligne_de(s1, "qualite-doc-juge")), 2.0, places=4)
+
     def test_un_premier_cwd_racine_passe_au_cwd_suivant_et_non_au_dossier_ssh(self):
         # Attrape : une session dont le premier cwd est « / » (aucun nom de dépôt)
         # qui retombe sur le dossier ssh-<uuid> sans regarder les cwd suivants.
