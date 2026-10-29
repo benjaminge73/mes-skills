@@ -477,6 +477,60 @@ class RapportTokens(unittest.TestCase):
         self.assertEqual(r.returncode, 0, r.stderr)
         self.assertAlmostEqual(montant(ligne_de(section(r.stdout, 3), "type non résolu")), 2.0, places=4)
 
+    def test_un_worktree_claude_affiche_le_depot_et_non_le_nom_du_worktree(self):
+        # Attrape : un worktree <dépôt>/.claude/worktrees/<nom> affiché sous son nom de
+        # worktree (« gracious-aryabhata-8fbbc4 ») au lieu du dépôt. Attendu : « job-agent ».
+        cwd = "/home/ubuntu/repos/github/benjaminge73/job-agent/.claude/worktrees/gracious-aryabhata-8fbbc4"
+        ecrire(self.depot / f"{SID_A}.jsonl", [
+            humain("Dans le worktree"),
+            {**appel("req_wt", entree=1_000_000), "cwd": cwd}])
+        r = self.lancer()
+        self.assertEqual(r.returncode, 0, r.stderr)
+        s1 = section(r.stdout, 1)
+        self.assertAlmostEqual(montant(ligne_de(s1, "job-agent")), 1.0, places=4)
+        self.assertFalse(any("gracious-aryabhata" in l for l in s1), "le nom du worktree apparaît en projet")
+
+    def test_un_premier_cwd_racine_passe_au_cwd_suivant_et_non_au_dossier_ssh(self):
+        # Attrape : une session dont le premier cwd est « / » (aucun nom de dépôt)
+        # qui retombe sur le dossier ssh-<uuid> sans regarder les cwd suivants.
+        # Attendu : « job-agent », donné par le cwd de la ligne suivante.
+        ssh = self.projets / f"ssh-{SID_A}"
+        ecrire(ssh / f"{SID_A}.jsonl", [
+            {**humain("Premier message à la racine"), "cwd": "/"},
+            {**appel("req_racine", entree=1_000_000), "cwd": CWD_JOB}])
+        r = self.lancer()
+        self.assertEqual(r.returncode, 0, r.stderr)
+        s1 = section(r.stdout, 1)
+        self.assertAlmostEqual(montant(ligne_de(s1, "job-agent")), 1.0, places=4)
+        self.assertFalse(any("ssh-" in l for l in s1), "le nom du dossier ssh- apparaît en projet")
+
+    def test_un_requestid_sur_deux_lignes_garde_la_ligne_la_plus_complete(self):
+        # Attrape : Claude Code écrit parfois la même requête sur deux lignes, la
+        # première avec un output_tokens partiel (2), la seconde complète (1 000 000).
+        # Un script qui garde la première compte 2 tokens de sortie au lieu d'un million.
+        # Attendu : une requête à 1 000 000 de sortie = 3 $ (sortie à 3 $ le million).
+        ecrire(self.depot / f"{SID_A}.jsonl", [
+            humain("Sortie partielle puis complète"),
+            appel("req_part", sortie=2),
+            appel("req_part", sortie=1_000_000)])
+        r = self.lancer()
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertAlmostEqual(total(r.stdout), 3.0, places=4)
+
+    def test_un_agent_de_workflow_sous_subagents_est_un_sous_agent_pas_une_session(self):
+        # Attrape : un agent-*.jsonl rangé sous <session>/subagents/workflows/wf_*/
+        # compté comme une session de plus. Attendu : un sous-agent « plans-notion:relecteur »
+        # à 1 $, et « 1 session(s), 1 sous-agent(s) » dans l'en-tête.
+        ecrire(self.depot / f"{SID_A}.jsonl", [humain("Lance un workflow"), appel("req_main", entree=1_000_000)])
+        wf = self.depot / SID_A / "subagents" / "workflows" / "wf_x"
+        ecrire(wf / f"agent-{AGENT_1}.jsonl", [appel("req_wf", entree=1_000_000)])
+        (wf / f"agent-{AGENT_1}.meta.json").write_text(
+            json.dumps({"agentType": "plans-notion:relecteur"}), encoding="utf-8")
+        r = self.lancer()
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("1 session(s), 1 sous-agent(s)", r.stdout)
+        self.assertAlmostEqual(montant(ligne_de(section(r.stdout, 3), "plans-notion:relecteur")), 1.0, places=4)
+
 
 if __name__ == "__main__":
     unittest.main()
