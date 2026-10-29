@@ -254,10 +254,12 @@ class RapportTokens(unittest.TestCase):
 
     def test_un_appel_sous_le_seuil_n_est_pas_liste_comme_rupture_de_cache(self):
         # Attrape : un appel de 90 000 tokens (40 000 écriture + 50 000 entrée)
-        # listé comme rupture au seuil de 100 000. Attendu : une seule rupture.
+        # listé comme rupture au seuil de 100 000, ou un appel pile au seuil listé
+        # alors que « dépasse » est strict. Attendu : une seule rupture (150 000).
         ecrire(self.depot / f"{SID_A}.jsonl", [
             humain("Lance"),
             appel("req_sous", entree=50_000, creation=40_000),
+            appel("req_pile", creation=100_000),
             appel("req_dessus", creation=150_000)])
         r = self.lancer()
         self.assertEqual(r.returncode, 0, r.stderr)
@@ -329,15 +331,18 @@ class RapportTokens(unittest.TestCase):
     def test_un_message_isMeta_ou_systeme_ne_coupe_pas_un_tour(self):
         # Attrape : un message isMeta ou une notification injectée qui ouvre un
         # tour et coupe le tour en deux. Attendu : un seul tour, 3 × 1 $ = 3 $.
+        # Horodatages espacés de dix secondes : à la même seconde, l'ordre des
+        # messages serait celui de leur libellé, et le test ne prouverait rien.
+        # Le texte isMeta n'est pas un marqueur connu, pour isoler la règle isMeta.
         ecrire(self.depot / f"{SID_A}.jsonl", [
-            humain("Lance le plan Rapport de tokens"),
-            appel("req_1", entree=1_000_000),
-            {"type": "user", "isMeta": True, "timestamp": iso(),
-             "message": {"role": "user", "content": "Base directory for this skill: /x"}},
-            appel("req_2", entree=1_000_000),
-            {"type": "user", "origin": {"kind": "peer"}, "timestamp": iso(),
+            humain("Lance le plan Rapport de tokens", timedelta(seconds=60)),
+            appel("req_1", timedelta(seconds=50), entree=1_000_000),
+            {"type": "user", "isMeta": True, "timestamp": iso(timedelta(seconds=40)),
+             "message": {"role": "user", "content": "Contexte ajouté par le harnais."}},
+            appel("req_2", timedelta(seconds=30), entree=1_000_000),
+            {"type": "user", "origin": {"kind": "peer"}, "timestamp": iso(timedelta(seconds=20)),
              "message": {"role": "user", "content": "Another Claude session sent a message: ok"}},
-            appel("req_3", entree=1_000_000)])
+            appel("req_3", timedelta(seconds=10), entree=1_000_000)])
         r = self.lancer()
         self.assertEqual(r.returncode, 0, r.stderr)
         rows = lignes_en_dollars(section(r.stdout, 6))
@@ -387,6 +392,62 @@ class RapportTokens(unittest.TestCase):
         self.assertEqual(r.returncode, 2, f"code {r.returncode}, attendu 2 :\n{r.stderr}")
         self.assertIn("dossier", r.stderr)
         self.assertNotIn("Traceback", r.stderr)
+
+    def test_un_tour_sans_appel_s_affiche_a_zero_dollar_et_jamais_non_chiffre(self):
+        # Attrape : un tour sans aucun appel (message humain resté sans réponse dans
+        # la fenêtre) affiché « non chiffré », ce qui laisse croire à un modèle hors
+        # grille. Attendu : une ligne à 0,0000 $, sans la mention « non chiffré ».
+        ecrire(self.depot / f"{SID_A}.jsonl", [humain("Question sans réponse")])
+        r = self.lancer()
+        self.assertEqual(r.returncode, 0, r.stderr)
+        # Le libellé du tour est en dernière colonne : la ligne se repère par lui.
+        rows = [l for l in section(r.stdout, 6) if "Question sans réponse" in l]
+        self.assertEqual(len(rows), 1, f"le tour sans appel n'est pas listé :\n{r.stdout}")
+        self.assertNotIn("non chiffré", rows[0], f"tour sans appel affiché « non chiffré » : {rows[0]!r}")
+        self.assertAlmostEqual(montant(rows[0]), 0.0, places=4)
+
+    def test_top_ne_liste_que_le_nombre_de_tours_demande_les_plus_chers(self):
+        # Attrape (panne non nommée au brief) : la liste des tours tronquée à un
+        # seul tour quand --top 2 est demandé, ou les tours rangés dans le mauvais
+        # ordre. Trois tours de 1, 2 et 3 $ ; --top 2 doit rendre 3 $ puis 2 $.
+        ecrire(self.depot / f"{SID_A}.jsonl", [
+            humain("Premier tour", timedelta(seconds=100)),
+            appel("req_t1", timedelta(seconds=99), entree=1_000_000),
+            humain("Deuxième tour", timedelta(seconds=80)),
+            appel("req_t2", timedelta(seconds=79), entree=2_000_000),
+            humain("Troisième tour", timedelta(seconds=60)),
+            appel("req_t3", timedelta(seconds=59), entree=3_000_000)])
+        r = self.lancer("--top", "2")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        rows = lignes_en_dollars(section(r.stdout, 6))
+        self.assertEqual(len(rows), 2, f"--top 2 ne rend pas deux tours :\n{r.stdout}")
+        self.assertAlmostEqual(montant(rows[0]), 3.0, places=4)
+        self.assertAlmostEqual(montant(rows[1]), 2.0, places=4)
+        self.assertIn("Troisième tour", rows[0])
+        self.assertIn("Deuxième tour", rows[1])
+
+    def test_le_cout_suit_la_grille_champ_par_champ(self):
+        # Attrape (panne non nommée au brief) : un champ de tarif lu à la place d'un
+        # autre, la lecture de cache au prix de l'entrée par exemple. Attendu à la
+        # main, sur la grille de test : entrée 1 M à 1 $, sortie 2 M à 3 $, lecture
+        # 4 M à 0,5 $, écriture 5 min 1 M à 7 $ = 16 $.
+        ecrire(self.depot / f"{SID_A}.jsonl", [
+            humain("Tous les champs"),
+            appel("req_champs", entree=1_000_000, sortie=2_000_000,
+                  lecture=4_000_000, creation=1_000_000)])
+        r = self.lancer()
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertAlmostEqual(total(r.stdout), 16.0, places=4)
+
+    def test_un_sous_agent_sans_meta_ni_appel_parent_est_range_type_non_resolu(self):
+        # Attrape : un sous-agent sans meta.json et sans appel Agent retrouvable,
+        # rangé sous un type inventé au lieu de « type non résolu ». Attendu : 1 M
+        # d'entrée = 1 $, sous le libellé « type non résolu ».
+        ecrire(self.depot / SID_A / "subagents" / f"agent-{AGENT_1}.jsonl",
+               [appel("req_orphelin", entree=1_000_000)])
+        r = self.lancer()
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertAlmostEqual(montant(ligne_de(section(r.stdout, 3), "type non résolu")), 1.0, places=4)
 
 
 if __name__ == "__main__":
