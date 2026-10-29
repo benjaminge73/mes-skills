@@ -12,20 +12,24 @@ Lecture seule, sans dépendance : le script lit lui-même les journaux
    compté. Un fichier modifié avant la fenêtre n'est pas lu : il ne peut pas
    contenir de message récent.
 2. Les appels. Un message assistant qui porte ``usage``, dédoublonné par
-   ``requestId`` (à défaut ``message.id``) entre fichiers. Un message dont les
-   quatre compteurs sont nuls n'est pas un appel.
+   ``requestId`` (à défaut ``message.id``) entre fichiers : pour une même requête,
+   on garde la ligne au ``output_tokens`` le plus grand (à égalité, la première).
+   Un message dont les quatre compteurs sont nuls n'est pas un appel.
 3. Les dollars. Chaque appel est chiffré sur la grille de son modèle. Les
    écritures de cache suivent la ventilation 1 h de son message
    (``cache_creation.ephemeral_1h_input_tokens``) ; le reste part au tarif 5 min,
    donc sans ce détail tout part au 5 min. Un modèle absent de la grille est
    « non chiffré » : il sort du total en dollars, jamais à zéro.
-4. Le projet. Le nom du dépôt tiré du ``cwd`` du premier message de la session
-   qui en porte un : le dernier segment, ou le segment qui suit ``worktrees/``.
+4. Le projet. Le nom du dépôt tiré du premier ``cwd`` de la session qui donne un
+   nom (un ``cwd`` sans nom, comme ``/``, est ignoré) : le dernier segment, le
+   segment qui suit ``worktrees/``, ou, pour un worktree
+   ``<dépôt>/.claude/worktrees/<nom>``, le segment qui précède ``.claude``.
    À défaut, le nom du dossier de projet.
-5. Le sous-agent. Un ``agent-*.jsonl`` sous ``<session>/subagents/``, ou posé à
-   la racine d'un dossier ``ssh-*``. Son type vient d'``agentType`` dans le
-   ``<agent>.meta.json`` voisin ; sinon du ``subagent_type`` de l'appel ``Agent``
-   du journal parent, retrouvé par le ``toolUseId`` du meta.json ou, sans meta,
+5. Le sous-agent. Un ``agent-*.jsonl`` sous ``<session>/subagents/`` (y compris
+   ``workflows/wf_*/``), ou posé à la racine d'un dossier ``ssh-*``. Son type
+   vient d'``agentType`` dans le ``<agent>.meta.json`` voisin ; sinon du
+   ``subagent_type`` de l'appel ``Agent`` du journal parent, retrouvé par le
+   ``toolUseId`` du meta.json ou, sans meta,
    par ``toolUseResult.agentId`` (le nom du fichier). Sinon, « type non résolu ».
 6. Le déclencheur d'un appel : le dernier message ``user`` qui le précède dans
    son journal. Un message humain réel (``origin.kind == "human"``, ou texte sans
@@ -54,7 +58,7 @@ import sys
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Callable
+from typing import Callable, Iterator
 
 GRILLE_PAR_DEFAUT = Path(__file__).resolve().parent / "grille-tarifs.json"
 PROJETS_PAR_DEFAUT = Path.home() / ".claude" / "projects"
@@ -94,6 +98,7 @@ TIRET = "—"
 class Appel:
     ts: datetime
     session: str
+    fichier: Path  # journal d'où vient la ligne retenue
     projet: str
     modele: str
     skill: str | None
@@ -162,10 +167,8 @@ class Bilan:
     appels: list[Appel] = field(default_factory=list)
     humains: dict[str, set[tuple[datetime, str]]] = field(default_factory=dict)
     projets: dict[str, str] = field(default_factory=dict)  # session -> projet
-    vus: set[str] = field(default_factory=set)
+    vus: dict[str, int] = field(default_factory=dict)  # requestId -> rang de sa ligne dans appels
     messages: int = 0
-    sessions: set[str] = field(default_factory=set)
-    sous_agents: set[Path] = field(default_factory=set)
 
 
 def erreur(message: str, code: int) -> None:
@@ -250,10 +253,13 @@ def classer_user(obj: dict) -> tuple[str, str]:
     return CAS_HUMAIN, texte
 
 
-def fichier_de(chemin: Path) -> Fichier:
+def fichier_de(chemin: Path, racine: Path) -> Fichier:
     parent = chemin.parent
-    if parent.name == "subagents":
-        session_dir = parent.parent
+    # Un sous-agent de workflow est plus bas : <session>/subagents/workflows/wf_*/agent-*.jsonl.
+    # On cherche le dossier subagents parmi les ancêtres, sans sortir de la racine des journaux.
+    sous = next((racine / p for p in chemin.relative_to(racine).parents if p.name == "subagents"), None)
+    if sous is not None and (parent.name == "subagents" or chemin.name.startswith("agent-")):
+        session_dir = sous.parent
         return Fichier(chemin, session_dir.name, True, session_dir.parent,
                        session_dir.parent / f"{session_dir.name}.jsonl")
     if chemin.name.startswith("agent-") and parent.name.startswith("ssh-"):
@@ -262,7 +268,8 @@ def fichier_de(chemin: Path) -> Fichier:
     return Fichier(chemin, chemin.stem, False, parent, chemin)
 
 
-def premier_cwd(chemin: Path, max_lignes: int = 300) -> str | None:
+def cwds_de(chemin: Path, max_lignes: int = 300) -> Iterator[str]:
+    """Les ``cwd`` du journal, dans l'ordre, sur ses premières lignes."""
     try:
         with chemin.open(encoding="utf-8", errors="replace") as h:
             for i, ligne in enumerate(h):
@@ -276,16 +283,18 @@ def premier_cwd(chemin: Path, max_lignes: int = 300) -> str | None:
                     continue
                 cwd = obj.get("cwd") if isinstance(obj, dict) else None
                 if isinstance(cwd, str) and cwd:
-                    return cwd
+                    yield cwd
     except OSError:
-        return None
-    return None
+        return
 
 
 def nom_du_depot(cwd: str) -> str | None:
     segments = [s for s in cwd.split("/") if s]
     if "worktrees" in segments:
         i = segments.index("worktrees")
+        if i >= 1 and segments[i - 1] == ".claude":
+            # Worktree <dépôt>/.claude/worktrees/<nom> : le dépôt est avant .claude.
+            return segments[i - 2] if i >= 2 else None
         if i + 1 < len(segments):
             return segments[i + 1]
     return segments[-1] if segments else None
@@ -294,10 +303,10 @@ def nom_du_depot(cwd: str) -> str | None:
 def projet_de_session(fichiers: list[Fichier]) -> str:
     ordre = sorted(fichiers, key=lambda f: (f.sous_agent, str(f.chemin)))
     for f in ordre:
-        cwd = premier_cwd(f.chemin)
-        nom = nom_du_depot(cwd) if cwd else None
-        if nom:
-            return nom
+        for cwd in cwds_de(f.chemin):
+            nom = nom_du_depot(cwd)
+            if nom:
+                return nom
     return ordre[0].dossier.name
 
 
@@ -408,10 +417,6 @@ def lire_journal(f: Fichier, projet: str, type_sous: str | None,
             if not (entree or sortie or lecture or ecriture):
                 continue
             cle = obj.get("requestId") or message.get("id")
-            if cle is not None:
-                if cle in bilan.vus:
-                    continue
-                bilan.vus.add(cle)
             cache = usage.get("cache_creation")
             une_heure = min(entier(cache.get("ephemeral_1h_input_tokens")) if isinstance(cache, dict) else 0,
                             ecriture)
@@ -420,22 +425,29 @@ def lire_journal(f: Fichier, projet: str, type_sous: str | None,
             if not isinstance(modele, str) or not modele:
                 modele = MODELE_INCONNU
             skill = obj.get("attributionSkill")
-            bilan.appels.append(Appel(
-                ts=ts, session=f.session, projet=projet, modele=modele,
+            appel = Appel(
+                ts=ts, session=f.session, fichier=f.chemin, projet=projet, modele=modele,
                 skill=skill if isinstance(skill, str) and skill else None,
                 sous_agent=type_sous, entree=entree, sortie=sortie, lecture=lecture,
                 ecr_5m=cinq, ecr_1h=une_heure,
                 cout=cout_de(tarifs.get(modele), entree, sortie, lecture, cinq, une_heure),
-                declencheur=cas))
-            if f.sous_agent:
-                bilan.sous_agents.add(f.chemin)
+                declencheur=cas)
+            if cle is not None and cle in bilan.vus:
+                # Claude Code écrit parfois une même requête sur deux lignes, la première avec
+                # un output_tokens partiel : on garde la ligne qui en a le plus (à égalité, la première).
+                rang = bilan.vus[cle]
+                if sortie <= bilan.appels[rang].sortie:
+                    continue
+                bilan.appels[rang] = appel
             else:
-                bilan.sessions.add(f.session)
+                if cle is not None:
+                    bilan.vus[cle] = len(bilan.appels)
+                bilan.appels.append(appel)
 
 
 def analyser(projets: Path, debut: datetime, tarifs: dict[str, dict[str, float]], seuil: int) -> Bilan:
     bilan = Bilan(debut=debut, seuil=seuil)
-    tous = [fichier_de(c) for c in sorted(projets.rglob("*.jsonl"))]
+    tous = [fichier_de(c, projets) for c in sorted(projets.rglob("*.jsonl"))]
     par_session: dict[str, list[Fichier]] = {}
     for f in tous:
         par_session.setdefault(f.session, []).append(f)
@@ -570,7 +582,8 @@ def rendre(bilan: Bilan, since: str, top: int, releve: str) -> str:
     sortie = [
         f"Rapport de tokens — fenêtre depuis {bilan.debut:%Y-%m-%d %H:%M} (--since {since}) — "
         f"total chiffré : {fmt_usd(total)}",
-        f"{len(bilan.sessions)} session(s), {len(bilan.sous_agents)} sous-agent(s), "
+        f"{len({a.session for a in bilan.appels if a.sous_agent is None})} session(s), "
+        f"{len({a.fichier for a in sous})} sous-agent(s), "
         f"{len(bilan.appels)} appel(s) comptés (requestId dédoublonnés). Grille du {releve}.",
         "",
         *bloc_groupes("1. Par projet", "projet", sommer(bilan.appels, lambda a: a.projet), total,
