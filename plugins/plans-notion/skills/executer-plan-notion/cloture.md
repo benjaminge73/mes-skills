@@ -451,10 +451,11 @@ Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard »
      `changelog-et-doc.md` § 2.5, fin) ;
      `Doc : sans objet — lot <plan maître>, entrée consolidée à la fermeture du lot` pour un
      plan enfant d'un lot ; `Doc : sans objet — doc vivante non activée pour <projet>`
-     sinon. Le dépôt qui a un job CI `doc` la relit par l'API : sur `mes-skills`, il attend
-     jusqu'à 10 minutes que la ligne se remplisse, donc l'écrire dès l'entrée posée (la PR
-     s'ouvre avec `Doc :` vide, l'entrée cite son numéro) ; passé ce délai, il est rouge
-     et se relance (`rerun_failed_jobs`), sans quoi la PR ne se merge pas. Le job refuse une raison qui n'en est pas une (règle globale
+     sinon. Le dépôt qui a un job CI `doc` la relit par l'API : sur `mes-skills` et `hermes-custom`, il lit
+     la ligne une seule fois, après les tests, donc l'écrire dès l'entrée posée (la PR
+     s'ouvre avec `Doc :` vide, l'entrée cite son numéro) ; s'il est déjà rouge, éditer la
+     description suffit : le workflow `doc-relance.yml` (déclencheur `edited`) le relance
+     dès que la ligne est valide, sans quoi la PR ne se merge pas. Le job refuse une raison qui n'en est pas une (règle globale
      `doc-vivante.md`) : la page projet non lue, ou l'absence de job CI, n'en sont pas.
      Puis le journal et le compte rendu : `État final` (avec la sortie du point 6),
      `Statut` = **`a merger`**, `PR` = l'URL, et le compte rendu à Benjamin, qui est le

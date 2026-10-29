@@ -14,6 +14,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from garde_doc_pr import doc_pas_encore_ecrite, verifier_doc  # noqa: E402
 
 SCRIPT = Path(__file__).resolve().parent / "garde_doc_pr.py"
+WORKFLOWS = Path(__file__).resolve().parent.parent / ".github" / "workflows"
 NOTION = "https://app.notion.com/p/0123456789abcdef0123456789abcdef"
 
 
@@ -88,7 +89,7 @@ class Cli(unittest.TestCase):
         refus = self.jouer({"PR_BODY": "Doc : sans objet"})
         self.assertEqual(refus.returncode, 1)
         self.assertIn("::error", refus.stdout)
-        # rien d'écrit encore : code 4, le job attend au lieu de rougir
+        # rien d'écrit encore : code 4, distinct d'une valeur fausse
         self.assertEqual(self.jouer({"PR_BODY": "rien"}).returncode, 4)
         self.assertEqual(self.jouer({}).returncode, 2)
         self.assertEqual(self.jouer({"PR_AUTHOR": "dependabot[bot]"}).returncode, 0)
@@ -96,7 +97,7 @@ class Cli(unittest.TestCase):
 
 
 class PasEncoreEcrite(unittest.TestCase):
-    """Une PR qui vient de s'ouvrir n'a pas encore sa ligne : le job attend, il ne rougit pas."""
+    """Une PR qui vient de s'ouvrir n'a pas encore sa ligne : code 4, distinct du refus d'une valeur fausse."""
 
     def test_ligne_absente_ou_vide_attend(self):
         self.assertTrue(doc_pas_encore_ecrite("Une PR sans rien."))
@@ -123,6 +124,27 @@ class PasEncoreEcrite(unittest.TestCase):
         self.assertEqual(lancer("Doc :"), 4)
         self.assertEqual(lancer("Doc : sans objet"), 1)
         self.assertEqual(lancer(f"Doc : {NOTION}"), 0)
+
+
+class PasDAttenteSurRunner(unittest.TestCase):
+    """Le job `doc` lit le corps une fois : plus de relecture toutes les 20 s pendant 10 min
+    sur un runner facturé (2026-10-29). C'est doc-relance.yml qui le relance sur `edited`."""
+
+    def test_le_job_doc_n_attend_pas(self):
+        ci = (WORKFLOWS / "ci.yml").read_text(encoding="utf-8")
+        job = ci.split("\n  doc:\n", 1)[1].split("\n  merge-auto:\n", 1)[0]
+        self.assertRegex(job, r"(?m)^    timeout-minutes: [12]$")
+        self.assertRegex(job, r"(?m)^    needs: validation$")
+        for attente in ("sleep", "while ", "SECONDS"):
+            self.assertNotIn(attente, job)
+
+    def test_doc_relance_vise_le_job_doc(self):
+        relance = (WORKFLOWS / "doc-relance.yml").read_text(encoding="utf-8")
+        self.assertIn("types: [edited]", relance)
+        self.assertIn("github.event.changes.body != null", relance)
+        self.assertIn('select(.name == "Ligne Doc de la description")', relance)
+        self.assertIn("gh run rerun --job", relance)
+        self.assertNotIn("--failed", relance)
 
 
 if __name__ == "__main__":
