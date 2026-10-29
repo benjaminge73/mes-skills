@@ -83,3 +83,73 @@ qu'elle n'y est pas, la remesure se refait à la main, par la même méthode.
   tokens. La session en cours y est comptée jusqu'à l'instant de la mesure.
   Un modèle absent de la grille est listé à part, « non chiffré », et exclu du
   total : un zéro silencieux ne se produit pas.
+
+## Où partent les tokens
+
+`rapport-tokens.py` répond à une autre question que les deux lignes de coût. Elles
+disent combien coûte **un** plan ; lui répartit **tous** les tokens d'une fenêtre
+entre projets, skills, sous-agents et modèles, pour voir où ils partent. Il lit
+lui-même les journaux de session (`~/.claude/projects/**/*.jsonl`), sans ccusage,
+et chiffre sur la même grille que `cout-plan.py`.
+
+```
+python3 plugins/plans-notion/skills/_partage/scripts/rapport-tokens.py --since 7d
+```
+
+Options (défaut entre parenthèses) :
+
+- `--since` : la fenêtre, en `Nd`, `Nh` ou `AAAA-MM-JJ` (`7d`). Un message plus
+  ancien que la fenêtre n'est jamais compté.
+- `--projets` : le dossier des journaux (`~/.claude/projects`).
+- `--grille` : la grille de tarifs (`grille-tarifs.json`, à côté du script).
+- `--seuil-cache` : le seuil des ruptures de cache, en tokens (`100000`).
+- `--top` : le nombre de lignes des sections 5 et 6 (`10`).
+
+Lecture seule, sans dépendance. Ordre de grandeur : environ 35 s pour 30 jours de
+journaux, soit 8 Go.
+
+Le rapport a six sections. Les sections 1, 2 et 4 répartissent le même total chiffré.
+La section 3 n'en montre que la part des sous-agents, en pourcentage de ce total.
+
+- **Projet** : le dernier segment du premier `cwd` de la session qui donne un nom,
+  le journal principal d'abord. Pour un worktree, c'est le dépôt : `<dépôt>/.claude/
+  worktrees/<nom>` rend le segment qui précède `.claude`, et `…/worktrees/<dépôt>/<nom>`
+  rend le segment qui suit `worktrees/`. Un `cwd` hors dépôt (scratchpad, `~/Dev`)
+  donne son propre nom. Le nom du dossier de projet (sous `~/.claude/projects/`, ou
+  le dossier `ssh-*`) ne sert qu'en repli, quand aucun `cwd` de la session ne donne de nom.
+- **Skill** : le champ `attributionSkill` des messages. Le reste part sous « aucun
+  skill ». Sur le POC du 2026-10-29, « aucun skill » porte environ 87 % des tokens :
+  cette ventilation n'éclaire donc qu'une petite part du total.
+- **Sous-agent** : seuls les appels de sous-agents. Le type vient d'`agentType`,
+  dans le `<agent>.meta.json` voisin ; à défaut, du `subagent_type` de l'appel
+  `Agent` du journal parent (retrouvé par son `toolUseId`, ou, sans `meta.json`,
+  par `agentId`). Sinon : « type non résolu ». Cette ligne est notable sur les
+  anciens journaux `ssh-*`, qui n'ont pas de `meta.json`.
+- **Modèle** : le `model` du message. Un modèle absent de la grille s'affiche
+  « non chiffré ». Un message sans nom de modèle sort sous « modèle inconnu », qui
+  n'est pas dans la grille, donc « non chiffré » lui aussi.
+
+Les sections 5 et 6 regardent les appels un à un :
+
+- **Ruptures de cache** : les appels dont l'entrée plus l'écriture de cache dépasse
+  `--seuil-cache`. Chacun porte son déclencheur, le dernier message `user` qui le
+  précède : **humain** (un message humain réel), **notification de session liée**,
+  ou **autre message système** (résultat d'outil, message de sous-agent, prompt
+  écrit par un script, message injecté).
+- **Top des tours** : un tour va d'un message humain réel au suivant, dans la même
+  session, sous-agents compris. Les notifications et les messages système ne
+  coupent pas un tour. Classement par dollars.
+
+Limites :
+
+- Le rapport ne remplace pas `cout-plan.py`. Il ne sait pas de quel plan vient un
+  token : pour le coût d'un plan, c'est `cout-plan.py --page` qui fait foi.
+- Il ne voit que les journaux présents dans `--projets`. Un journal supprimé, ou
+  resté sur une autre machine, n'est pas compté.
+- Dollars d'équivalent API, comme partout dans ce fichier : on ne les paie pas sur
+  l'abonnement, et aucun pourcentage de quota n'est écrit.
+- Un `cwd` hors dépôt (scratchpad, `~/Dev`, le dossier temporaire des
+  `qualite-doc-juge-*`) donne son propre nom : ces sessions apparaissent comme
+  autant de projets.
+- Un modèle hors grille est listé « non chiffré », sort du total en dollars et
+  reste compté en tokens : jamais à zéro.
