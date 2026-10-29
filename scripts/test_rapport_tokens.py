@@ -296,6 +296,36 @@ class RapportTokens(unittest.TestCase):
         self.assertIn("notification de session liée", rows[0])
         self.assertNotIn("humain", rows[0])
 
+    def test_un_prompt_de_script_sdk_sans_origine_n_est_pas_declencheur_humain(self):
+        # Attrape : un prompt écrit par un script (claude -p ou SDK : promptSource
+        # « sdk », sans origin) classé déclencheur « humain ». Constaté sur les
+        # journaux du 2026-10-29 : 531 prompts de relecture ainsi classés humains.
+        # Attendu : « autre message système ».
+        lancement = {"type": "user", "promptSource": "sdk", "timestamp": iso(),
+                     "message": {"role": "user", "content": "# Grille de relecture d'un passage\n\nTu relis un passage."}}
+        ecrire(self.depot / f"{SID_A}.jsonl", [lancement, appel("req_script", creation=150_000)])
+        r = self.lancer()
+        self.assertEqual(r.returncode, 0, r.stderr)
+        rows = lignes_en_dollars(section(r.stdout, 5))
+        self.assertEqual(len(rows), 1, f"la rupture n'est pas listée :\n{r.stdout}")
+        self.assertIn("autre message système", rows[0])
+        self.assertNotIn("humain", rows[0])
+
+    def test_une_session_lancee_par_une_autre_n_a_pas_pour_declencheur_humain(self):
+        # Attrape : le premier message d'une session de fond (« Background (from the
+        # session that started this one) ») classé déclencheur « humain ». Ce message
+        # est écrit par la session qui l'a lancée (promptSource « sdk », sans origin).
+        # Attendu : « notification de session liée ».
+        lancement = {"type": "user", "promptSource": "sdk", "timestamp": iso(),
+                     "message": {"role": "user", "content": "Background (from the session that started this one):\n\nPlan conçu ailleurs."}}
+        ecrire(self.depot / f"{SID_A}.jsonl", [lancement, appel("req_fond", creation=150_000)])
+        r = self.lancer()
+        self.assertEqual(r.returncode, 0, r.stderr)
+        rows = lignes_en_dollars(section(r.stdout, 5))
+        self.assertEqual(len(rows), 1, f"la rupture n'est pas listée :\n{r.stdout}")
+        self.assertIn("notification de session liée", rows[0])
+        self.assertNotIn("humain", rows[0])
+
     def test_un_message_isMeta_ou_systeme_ne_coupe_pas_un_tour(self):
         # Attrape : un message isMeta ou une notification injectée qui ouvre un
         # tour et coupe le tour en deux. Attendu : un seul tour, 3 × 1 $ = 3 $.
