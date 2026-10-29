@@ -64,6 +64,7 @@
         "skills/_partage/cout-des-plans.md",
         "agents/executant.md",
         "agents/relecteur.md",
+        "skills/_partage/bons-tests.md",
         "skills/_partage/revue.md",
         "skills/_partage/plan-de-suite.md",
         "skills/_partage/remontee-sur-main.md",
@@ -88,7 +89,7 @@
         "skills/_partage/scripts/controle-changelog.py",
         "skills/_partage/scripts/doc-de-cloture.py"
       ],
-      "cas": ["decouverte-irreversible", "decouverte-reversible", "decouverte-secret", "decouverte-trop-grande", "cloture-ouvre-la-pr", "cloture-preuve-doc", "cloture-porte-doc"],
+      "cas": ["decouverte-irreversible", "decouverte-reversible", "decouverte-secret", "decouverte-trop-grande", "cloture-ouvre-la-pr", "cloture-preuve-doc", "cloture-porte-doc", "relecteur-garde-fou"],
       "plancher": 0.47
     },
     "perimetre": {

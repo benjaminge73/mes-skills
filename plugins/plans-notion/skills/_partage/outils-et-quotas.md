@@ -478,19 +478,19 @@ commune pour comparer les postes.
   coût d'une fumée), mesuré le 2026-09-30. La colonne « Cas au 2026-10-16 »
   donne le nombre de cas que chaque catégorie compte aujourd'hui :
 
-| Catégorie | Cas au 2026-10-19 | Cas mesurés le 2026-09-30 | Un bras, 3 passages | Un passage |
+| Catégorie | Cas au 2026-10-28 | Cas mesurés le 2026-09-30 | Un bras, 3 passages | Un passage |
 |---|---|---|---|---|
 | `existant` | 3 | 2 | 6,43 $ | 2,14 $ |
 | `bruit` | 3 | 3 | 4,81 $ | 1,60 $ |
 | `etat-de-depart` | 4 | 4 | 7,13 $ | 2,38 $ |
 | `maquette` | 1 | 1 | 1,61 $ | 0,54 $ |
-| `decouvertes` | 7 | 4 | 4,98 $ | 1,66 $ |
+| `decouvertes` | 8 | 4 | 4,98 $ | 1,66 $ |
 | `perimetre` | 4 | 2 | 2,56 $ | 0,85 $ |
 | `delegation` | 1 | — | non mesuré | non mesuré |
 | `preuves` | 9 | — | non mesuré | non mesuré |
 | `revue-hors-plan` | 1 | — | non mesuré | non mesuré |
 | `escalade-bornee` | 1 | — | non mesuré | non mesuré |
-| **tout le banc** | 34 | 16 | 27,53 $ | ≈ 9,2 $ |
+| **tout le banc** | 35 | 16 | 27,53 $ | ≈ 9,2 $ |
 
 Les coûts datent du 2026-09-30 et ne sont extrapolés à aucune catégorie. Les
 catégories `existant` et `decouvertes` ont gagné des cas depuis : elles coûtent

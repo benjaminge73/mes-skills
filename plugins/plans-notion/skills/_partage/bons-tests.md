@@ -15,13 +15,14 @@ catégorie « test qui ne teste rien » du relecteur (`agents/relecteur.md`).
 
 ## Pourquoi ce fichier
 
-Sept règles. Les quatre premières sont reprises de `writing-good-tests.md`
+Huit règles. Les quatre premières sont reprises de `writing-good-tests.md`
 ([obra/superpowers](https://github.com/obra/superpowers)) et resserrées à ce
-qu'un exécutant peut vérifier lui-même avant de commiter le rouge ; les trois
-dernières (5, 6 et 7) sont propres à ce plugin. Les règles 5 et 6 portent la
+qu'un exécutant peut vérifier lui-même avant de commiter le rouge ;
+les quatre dernières (5 à 8) sont propres à ce plugin. Les règles 5 et 6 portent la
 doctrine « tester le contrat » : ce qu'un test a le droit de regarder, et ce
 qu'il n'a pas le droit de recopier. La règle 7 borne le **nombre** de tests, que
-les six autres laissaient libre.
+les six autres laissaient libre. La règle 8 ferme l'autre sortie : couper le
+garde-fou qui tient la preuve.
 
 ## 1. Nommer la panne
 
@@ -173,10 +174,25 @@ Origine : sur un dépôt applicatif suivi, un mois de plans exécutés a ajouté
 +62 396 lignes de test pour +47 225 lignes de code, et 37 merges sur 53 ont
 ajouté plus de test que de code (mesure du 2026-10-01).
 
+## 8. Ne contourne pas un garde-fou pour passer
+
+Un garde-fou rouge dit quelque chose : le contourner fait passer la preuve sans
+que la chose qu'il garde soit faite. Cinq gestes le font, et le relecteur les
+cherche dans le diff : un seuil abaissé (minimum de couverture ou de score
+baissé, plafond de taille relevé) ; un test rendu plus facile (`.skip`, fichier
+de test supprimé, assertion retirée) ; un vérificateur muselé (`@ts-ignore`,
+`eslint-disable`) ; un stub ou un `catch` vide ; une exception ajoutée à une
+liste d'exceptions. Durcir un garde-fou se fait sans bruit ; l'assouplir doit
+faire du bruit : la justification se pose dans un commentaire du diff (ou le
+message du commit), que le relecteur lit, et dans le rapport de l'exécutant.
+Sans cette justification, le geste est signalé.
+
 ---
 
 *Adapté de [obra/superpowers](https://github.com/obra/superpowers) (MIT, Jesse Vincent /
-Prime Radiant). Récupéré le 2026-09-23. Les règles 5, 6 et 7 sont propres à ce plugin.
+Prime Radiant). Récupéré le 2026-09-23. Les règles 5 à 8 sont propres à ce plugin ; la règle 8 reprend les gestes de
+[addyosmani/agent-skills](https://github.com/addyosmani/agent-skills) (skill
+`constraint-driven-development`, MIT).
 Modifications : quatre règles retenues sur les
 deux principes de `writing-good-tests.md` (nommer la panne, attendu indépendant, pas de
 change detector, pas d'assertion miroir — le principe « exercer le réel », sur les

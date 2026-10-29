@@ -513,3 +513,33 @@ Une entrée par passe, la plus récente en dernier. Le titre est
 - **Ce qu'on en fait** : rien ne s'applique à la PR. À reprendre à la prochaine passe : la forme du
   lien de `memory.md`, et le billet « Building effective agent automations » (claude.dev, 8 octobre),
   non lu.
+
+### 2026-10-28 (soir) — passe avant la PR « Adoption de skills externes » (plans-notion 0.57.0, methode-de-travail 1.9.0)
+
+- **Sources lues** : changelog (dernière version 2.1.312, 27 octobre), « What's new », sous-agents,
+  skills, hooks, évals de plugin, bac à sable, mémoire, chargement des plugins, modèles, claude.dev,
+  anthropic.com/engineering, `anthropics/skills` (lisible cette fois) et l'issue `sandbox-runtime#74`.
+  Lecture partielle : sous-agents, skills, hooks, bac à sable et modèles lus jusqu'à ~100 000
+  caractères ; pages sans date par section, donc rien ne se date après le matin.
+- **Ce qui a changé** : rien de daté après la passe du matin. Nouveau pour le journal : un sous-agent
+  peut en lancer d'autres (« up to three layers below the main conversation », réglage
+  `CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH`, `1` coupe l'imbrication) ; la semaine 24 de « What's new »
+  dit « five levels deep » pour les chaînes en arrière-plan, écart 3 contre 5 non tranché ; un
+  sous-agent lancé depuis la conversation principale démarre en arrière-plan ; l'outil `Agent` accepte
+  un paramètre `effort` (2.1.292), sa priorité sur le frontmatter n'est pas écrite dans la partie lue.
+  Évals de plugin : `--trust-plugin` et `--scaffold` (déjà passés par `evals/outillage/lancer.sh`),
+  `Agent` parmi les outils en lecture seule d'un run. Bac à sable : la doc donne désormais un
+  correctif AppArmor pour Ubuntu 24.04, l'issue #74 reste ouverte.
+- **Corrections au journal du matin** (même jour) : (1) le « 12 » des hooks de prompt et d'agent n'est
+  pas périmé : il vaut **par événement** (2.1.302), 2.1.312 ajoute « au plus 24 à la fois » **par
+  session** ; (2) anthropic.com/engineering n'est pas muet depuis le 2026-04-23 : un article du 25 mai
+  et un du 13 octobre ; (3) GitHub est lisible : `anthropics/skills` porte `.claude-plugin/`, `skills/`,
+  `spec/` et `template/`, sans `shared/`.
+- **Faits porteurs** : `scripts/veille_faits.py` : 22 faits vérifiés, 1 citation à signaler (le lien
+  `[skill](...)` de `memory.md`, dont la forme bouge selon l'outil de lecture, déjà relevé les 23 et 28),
+  0 page injoignable. Aucun fait cassé.
+- **Ce qu'on en fait** : rien ne s'applique à la PR. Elle écrit déjà que l'imbrication est permise
+  (Q13, D1) et ne dépend d'aucun fait ci-dessus. À reprendre à la prochaine passe : la priorité du
+  paramètre `effort` de l'outil `Agent` sur le frontmatter, le « five levels » de la semaine 24, le
+  démarrage en arrière-plan des sous-agents pour le relecteur en mode « plan entier » (le pilote attend
+  déjà son résultat, rien n'a cassé), et les billets claude.dev non lus.

@@ -26,6 +26,7 @@ montée de version à chaque retouche.
 - [Le format d'un cas](#le-format-dun-cas)
 - [Mesurer le bruit avant de fixer un seuil](#mesurer-le-bruit-avant-de-fixer-un-seuil)
 - [Comparer deux versions](#comparer-deux-versions)
+- [La forme de la consigne et les micro-tests de formulation](#la-forme-de-la-consigne-et-les-micro-tests-de-formulation)
 - [Choisir les évals d'une PR](#choisir-les-évals-dune-pr)
 - [Lancer une évaluation](#lancer-une-évaluation)
 - [La fumée : ce qu'elle voit, ce qu'elle ne voit pas](#la-fumée--ce-quelle-voit-ce-quelle-ne-voit-pas)
@@ -262,6 +263,48 @@ on rejoue, on ne tranche pas sur un seul tirage.
 score identique peut cacher un cas gagné pour la mauvaise raison ; un score en
 baisse peut venir d'un juge trop strict. Les transcriptions sont ce qui le dit.
 
+## La forme de la consigne et les micro-tests de formulation
+
+Cette section reprend deux points du skill `writing-skills` de
+[obra/superpowers](https://github.com/obra/superpowers) (MIT, Jesse Vincent / Prime Radiant), « Match the Form to the Failure » et « Micro-Test Wording », adaptés à ce dépôt.
+
+**La forme se choisit selon le type d'échec.** Avant de réécrire une consigne,
+dire ce qui a échoué, puis choisir la forme :
+
+- **une règle violée** (le modèle a fait ce qu'il ne fallait pas) → une
+  **interdiction explicite**, écrite en toutes lettres : « Ne jamais lancer
+  `claude plugin eval` sans `--no-publish` ».
+- **une sortie mal formée** (le fond passe, la forme non) → une **recette** : le
+  format exact, et un exemple complet à recopier, par exemple
+  `Evals: decouvertes — <raison>` pour la ligne `Evals:` de la
+  [PR](#choisir-les-évals-dune-pr).
+- **un oubli** (une information manque, sans que le modèle le signale) → un
+  **champ obligatoire**, que le format rend impossible à omettre. Exemple dans
+  le dépôt : le trailer `Eval-cas:` que `scripts/check_lecon_a_son_cas.py` exige.
+  Une PR qui touche un skill sans ce trailer ni un fichier de `evals/<nom>/` est
+  rouge.
+
+Une forme se prouve comme un cas : un oracle qui passe, un témoin nul qui échoue
+(voir [Écrire un cas](#écrire-un-cas)). Pour une sortie mal formée, un juge
+`regex` sur la sortie suffit.
+
+**Micro-tests de formulation.** Pour départager deux formulations d'une même
+consigne, on ne tranche pas à l'œil : un micro-test joue une situation fixe avec
+chaque formulation, et avec un **témoin sans consigne** (la même situation, rien
+d'ajouté). Le témoin dit ce que le modèle fait de lui-même ; sans lui, on ne sait
+pas si la formulation corrige quelque chose.
+
+- **Au moins 5 passages par variante**, témoin compris. Cinq passages sont un
+  plancher, pas une garantie : un écart d'un passage sur cinq (20 points) ne
+  tranche rien à lui seul.
+- **Le seuil se fixe d'après le bruit mesuré, jamais avant.** On mesure le bruit
+  d'abord, en jouant une variante contre elle-même (le principe de l'A/A de
+  [Mesurer le bruit](#mesurer-le-bruit-avant-de-fixer-un-seuil)) ; un écart entre
+  deux formulations ne compte que s'il dépasse ce bruit.
+- **Un micro-test est une éval.** Comme toute éval, il ne se joue que sur
+  **demande explicite de Benjamin dans son message courant** (décision du
+  2026-10-16, `CLAUDE.md` du dépôt) : il s'écrit sans se jouer.
+
 ## Choisir les évals d'une PR
 
 Jouer tout le banc à chaque PR coûte cher et n'apprend rien quand la PR ne
@@ -278,7 +321,7 @@ cas qu'elle regroupe et les fichiers qu'elle exerce. Pour `plans-notion` :
 | `bruit` | `skills/plan-notion/` | `bruit-bounded`, `bruit-doc-seule`, `report-sans-seuil` |
 | `etat-de-depart` | `skills/plan-notion/`, `agents/enqueteur.md`, `agents/lecteur.md` | `appelants`, `garde-fou-cache`, `hook-claude`, `depart-rouge` |
 | `maquette` | `skills/plan-notion/` | `maquette-requise` |
-| `decouvertes` | `skills/executer-plan-notion/`, `agents/executant.md`, `agents/relecteur.md` | les quatre `decouverte-*`, `cloture-ouvre-la-pr` et `cloture-preuve-doc` |
+| `decouvertes` | `skills/executer-plan-notion/`, `agents/executant.md`, `agents/relecteur.md` | les quatre `decouverte-*`, `cloture-ouvre-la-pr`, `cloture-preuve-doc`, `cloture-porte-doc` et `relecteur-garde-fou` |
 | `perimetre` | `skills/executer-plan-notion/`, `agents/executant.md` | `no-verify`, `rien-hors-plan` |
 | `revue-hors-plan` | `skills/executer-plan-notion/`, `agents/relecteur.md` | `revue-hors-plan` |
 | `escalade-bornee` | `skills/executer-plan-notion/`, `agents/executant.md`, `skills/deleguer-a-haiku/` | `escalade-bornee` |
@@ -586,7 +629,7 @@ donne 0,77 (0,65 avant).
 
 Pour rejouer cette mesure, un fichier du banc (par exemple `evals/bruit-plans-notion.json`)
 doit changer dans la PR, pour que la portée de la CI déclenche le plugin ; la ligne
-`Evals: decouvertes — …` limite alors la sélection aux 7 cas. Toucher `evals/categories.json`
+`Evals: decouvertes — …` limite alors la sélection aux 8 cas. Toucher `evals/categories.json`
 ou `evals/plans-notion/` forcerait tout le banc.
 
 Ces valeurs sont l'origine des planchers ; ceux que la CI applique sont dans son

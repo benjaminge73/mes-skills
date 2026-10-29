@@ -72,6 +72,16 @@ choix a été fait — c'est tout l'intérêt d'un regard neuf (`relecteur.md`,
 seuls correctifs depuis le dernier passage (nouvelle plage), plus les
 remarques que le pilote a écartées et sa raison de le faire.
 
+**Mode plan entier.** Il se joue **une fois**, à la clôture, après la suite
+complète et avant la porte (`cloture.md`, point 2 ter). Par exception à « Rien
+de la session », son brief porte aussi le chapitre `Exécution` du plan, recopié,
+et le mot « mode plan entier » ; la plage est `origin/main..<branche-du-plan>`,
+le répertoire le worktree du plan. La boucle ci-dessous s'applique telle quelle.
+Chaque écart rendu (`relecteur.md`, « Le mode « plan entier » ») devient une
+découverte traitée selon `decouvertes.md` : étape `D<n>` dans le même plan si
+elle est réversible, hors sécurité et petite ; question à Benjamin sinon, avant
+`a merger`.
+
 ## La boucle
 
 Décision de Benjamin du 2026-09-23 (Q4) : « pas de nouveau plan, on itère
@@ -147,7 +157,8 @@ Une ligne par remarque, quel que soit le tour où elle est apparue. Une remarque
 ## Coût assumé
 
 Un appel Opus effort `high` par étape marquée `étape` et par lot, plus un par
-tour de correction — décisions de Benjamin du 2026-09-23 et du 2026-09-30 pour
+tour de correction, plus un pour le plan entier — décisions de Benjamin du
+2026-09-23 et du 2026-09-30 pour
 le régime, et du 2026-10-16 pour l'effort `high` (il remplace le `low` posé le
 2026-09-23).
 Avant ce fichier, le pilote ne rejouait que des tests, jamais un

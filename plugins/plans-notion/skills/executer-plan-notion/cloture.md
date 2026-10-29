@@ -87,9 +87,10 @@ Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard »
     raison, plutôt que de se fondre dans un compte rendu qui donne l'illusion
     que tout est passé. L'entrée `État final` recopie les verdicts posés dans
     le journal, un par étape, mêmes mots : elle ne les réécrit pas ;
-  - **une rétrospective en cinq questions**, courte : qu'est-ce qui s'est
+  - **une rétrospective en six questions**, courte : qu'est-ce qui s'est
     passé, qu'est-ce qui a marché, qu'est-ce qui a surpris, une note sur 10,
-    qu'est-ce qu'on ferait autrement. C'est ce qui nourrira la prochaine
+    qu'est-ce qu'on ferait autrement, quelle consigne du skill ou du `CLAUDE.md`
+    n'a rien changé à cette exécution ? C'est ce qui nourrira la prochaine
     relecture d'historique sans re-dépouiller les plans passés un par un ;
   - **les schémas relus** — contrôle de `schemas.md` : autant de nœuds
     d'étape dans « le plan en un schéma » que de titres H3 `Étape N` sur la
@@ -219,6 +220,27 @@ Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard »
        le relevé est alors incomplet. Un code 2 (relevé ou entrée illisible)
        n'ouvre pas la clôture, et on le dit à Benjamin.
 
+  2 ter. **Relecture du plan entier, après la suite complète et avant la porte.**
+     Un appel `Agent` avec `subagent_type: "plans-notion:relecteur"` (sans
+     paramètre `model`, `revue.md`) en mode « plan entier » (`relecteur.md`,
+     « Le mode « plan entier » ») : il compare le code de toute la branche au
+     chapitre `Exécution` du plan, phrase par phrase (source du passage :
+     `github/spec-kit`, `converge`, MIT). Le brief porte l'objectif du plan et son
+     chapitre `Exécution`, recopiés depuis le miroir local de la page, et la
+     plage `origin/main..<branche-du-plan>`.
+     - **Chaque écart rendu** (manquant, partiel, contradictoire, non demandé)
+       devient une découverte `D<n>` qui s'exécute dans le même plan (décision de
+       Benjamin du 2026-10-28). Le tri suit `decouvertes.md` : § 1 pour ce qui est
+       irréversible, de sécurité ou coûteux, c'est une question à Benjamin, posée
+       dans la session avant `a merger` ; § 2 pour le reste, étape `D<n>` relue par
+       la boucle de `revue.md` ; § 3 si la session n'a pas d'humain.
+     - Les remarques des autres catégories du relecteur (bug de correction, test
+       qui ne teste rien, découverte hors plan) suivent la même boucle.
+     - Une `D<n>` issue de ce passage rejoue, une fois faite, les points 1 (suite
+       complète), 2 et 2 bis avant la porte (point 3). Le verdict
+       (`RIEN À SIGNALER` ou `REMARQUES (n)`) et chaque écart se recopient à
+       l'`État final`.
+
   3. **La porte des preuves, avant le push.** Le contrôle des journaux se joue
      par script, sur le miroir local de la page, avant tout push et toute PR :
      ```bash
@@ -246,7 +268,12 @@ Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard »
   5. **Ouvrir la PR, prête.** `gh pr create --base main --head <branche-du-plan>`,
      **sans `--draft`** : le brouillon se demande à Benjamin, il ne se décide pas
      seul. Titre = titre du plan ; corps = une ligne par étape reprise du
-     journal, lien vers la page Notion, la ligne `Evals:` (sous-section
+     journal, lien vers la page Notion, la ligne `Danger de merge : <réversible
+     ou non> — <ce qui casse si ça casse>` (une seule ligne, pas un bloc ;
+     « réversible » au sens de `decouvertes.md` § 1 : un `git revert` suffit, et
+     rien n'est parti hors du dépôt — ni écriture externe, ni production,
+     publication ou migration ; forme de `mattpocock/skills`, `engineering/pr`, MIT, qui crédite
+     `humanlayer/skills` `show-me`, MIT), la ligne `Evals:` (sous-section
      ci-dessous) et la ligne `Doc :` (point 7, « Ensuite »). Label : décidé en
      regardant ce dépôt-là (sous-section).
      `PR` renseignée sur la page dès l'ouverture. **Un trou e2e non couvert par
@@ -522,6 +549,7 @@ tiennent :
 Si le chapitre `Exécution` porte une ligne `Évals à jouer : …`, la recopier dans le
 corps de la PR : `Evals: <catégories> — <raison>`, `Evals: tout` ou `Evals: aucun —
 <raison>`. Le défaut du plan est `aucun — <raison>` : recopier tel quel, sans label.
+Le corps de la PR porte aussi la ligne `Danger de merge :` (point 5).
 La fumée ne se joue que si Benjamin la demande dans son message courant : la session
 pose alors le label `fumee`, ouvre la PR en brouillon puis la passe prête (jamais de
 pose de sa propre initiative). Le label `evals` ne se pose que sur demande de Benjamin,

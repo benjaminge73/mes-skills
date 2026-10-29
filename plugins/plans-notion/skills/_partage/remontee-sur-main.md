@@ -26,7 +26,8 @@ Séquence, dans l'ordre :
    sans `--draft`. Elle s'ouvre après la suite complète locale (§6) : une PR
    ouverte sur une branche à moitié faite rejoue la CI à chaque push.
    - Titre = titre du plan ; corps = une ligne par étape reprise du journal,
-     lien vers la page Notion, et la ligne `Evals:` (`cloture.md`).
+     lien vers la page Notion, la ligne `Danger de merge :` (une ligne, `cloture.md`,
+     point 5), et la ligne `Evals:` (`cloture.md`).
    - **Le label `review-required` : la question se tranche dépôt par dépôt, en
      regardant, jamais de mémoire.** Le réflexe « le dépôt a des e2e, donc je
      pose le label » est faux, et il a coûté un aller-retour le 2026-09-22. Ce

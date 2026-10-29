@@ -332,7 +332,7 @@ Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard »
   ligne avec son propriétaire, §7), plus : le décompte des découvertes **vérifié
   mécaniquement** (`grep -c`, jamais de tête), le contrôle des libellés, le
   registre des outils, **un verdict par étape (`verified` ou
-  `unverifiable`, jamais un troisième mot)**, une rétrospective en cinq
+  `unverifiable`, jamais un troisième mot)**, une rétrospective en six
   questions, les schémas relus
   (`${CLAUDE_PLUGIN_ROOT}/skills/_partage/schemas.md`).
 - Le compte rendu est le **récap** (`changelog-et-doc.md`, § 3) : les quatre rubriques,
@@ -390,10 +390,10 @@ Tout ce qui précède décrit un plan. Quand une session en porte plusieurs,
 chacun garde son déroulé (§2 à §7) ; ce qui s'ajoute tient en cinq points.
 
 **Un pilote unique.** Le pilote conduit tous les plans, et aucun
-n'est confié à un « pilote » délégué. La raison est mécanique : un sous-agent
-ne peut pas lancer d'autres sous-agents. Un pilote par plan, délégué, ne
-pourrait donc plus appeler `executant` ni `relecteur` — les étapes se
-coderaient dans le pilote, ce que le §3 interdit.
+n'est confié à un « pilote » délégué. Raisons : le connecteur Notion n'existe
+pas chez les sous-agents ; les preuves se jouent soi-même, sans seconde main ;
+chaque niveau relirait la page, au coût en jetons ; les paliers et décisions
+restent au pilote.
 
 **Chaque plan garde sa porte, sa branche et son worktree.** La porte d'entrée
 se lit plan par plan : un plan ne démarre que s'il est `valide`, puis `pret`
