@@ -117,8 +117,9 @@ def ligne_de(lignes: list[str], libelle: str) -> str:
 
 
 def lignes_en_dollars(lignes: list[str]) -> list[str]:
-    """Les lignes de données (celles qui portent un montant), sans l'en-tête du tableau."""
-    return [l for l in lignes if re.search(r"\d,\d{4} \$", l)]
+    """Les lignes de tableau qui portent un montant. Le « | » écarte la ligne de résumé
+    d'une section (« N rupture(s)… : X $ »), qui porte un montant sans être une ligne de données."""
+    return [l for l in lignes if "|" in l and re.search(r"\d,\d{4} \$", l)]
 
 
 def montant(ligne: str) -> float:
