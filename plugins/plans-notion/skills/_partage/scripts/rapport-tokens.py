@@ -236,28 +236,28 @@ def classer_user(obj: dict) -> tuple[str, str]:
     """Le cas d'un message ``user`` (humain, notification, autre système) et son texte.
 
     Le harnais peut mettre un ``<system-reminder>`` dans le même message que le texte tapé.
-    On classe sur le texte restant, rappels retirés ; s'il ne reste rien, sur le rappel seul.
-    Un humain garde pour libellé ce texte restant.
+    Un message qui peut être humain se juge sur son texte restant, rappels retirés (s'il ne
+    reste rien, sur le rappel seul), et garde ce texte restant pour libellé de tour. Les autres
+    se jugent sur le texte complet, comme avant D1.
     """
     message = obj.get("message")
     contenu = message.get("content") if isinstance(message, dict) else None
     if isinstance(contenu, list) and any(isinstance(b, dict) and b.get("type") == "tool_result" for b in contenu):
         return CAS_SYSTEME, ""
     texte = textes_de(contenu)
-    reste = RAPPEL_SYSTEME.sub("", texte).strip()
-    cible = reste or texte
     origine = obj.get("origin")
     genre = origine.get("kind") if isinstance(origine, dict) else None
-    if genre in ORIGINES_NOTIFICATION or any(m in cible for m in MARQUEURS_NOTIFICATION):
+    auxiliaire = obj.get("isSidechain") is True or obj.get("isMeta") is True
+    # Prompt écrit par un script ou une session (claude -p, SDK), sans origine humaine.
+    sdk = genre is None and obj.get("promptSource") == "sdk"
+    reste = RAPPEL_SYSTEME.sub("", texte).strip()
+    humain_possible = genre in (None, "human") and not sdk and not auxiliaire
+    cherche = (reste or texte) if humain_possible else texte
+    if genre in ORIGINES_NOTIFICATION or any(m in cherche for m in MARQUEURS_NOTIFICATION):
         return CAS_NOTIFICATION, texte
-    if obj.get("isSidechain") is True or obj.get("isMeta") is True:
+    if auxiliaire or genre not in (None, "human"):
         return CAS_SYSTEME, texte
-    if genre not in (None, "human"):
-        return CAS_SYSTEME, texte
-    if cible.lstrip().startswith(DEBUTS_SYSTEME):
-        return CAS_SYSTEME, texte
-    if genre is None and obj.get("promptSource") == "sdk":
-        # Prompt écrit par un script ou une session (claude -p, SDK), sans origine humaine.
+    if cherche.lstrip().startswith(DEBUTS_SYSTEME) or sdk:
         return CAS_SYSTEME, texte
     return CAS_HUMAIN, reste
 
