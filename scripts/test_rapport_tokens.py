@@ -426,6 +426,29 @@ class RapportTokens(unittest.TestCase):
         self.assertIn("Troisième tour", rows[0])
         self.assertIn("Deuxième tour", rows[1])
 
+    def test_top_ne_liste_que_les_ruptures_les_plus_cheres_mais_les_compte_toutes(self):
+        # Attrape (panne non nommée au brief) : la section des ruptures qui liste plus
+        # de --top lignes, ou qui ne compte que les lignes affichées. Trois ruptures de
+        # 1,05 $, 1,40 $ et 2,10 $ ; --top 2 doit en lister 2,10 $ puis 1,40 $, et
+        # annoncer les trois dans l'en-tête de la section.
+        ecrire(self.depot / f"{SID_A}.jsonl", [
+            appel("req_r1", creation=150_000),
+            appel("req_r2", creation=200_000),
+            appel("req_r3", creation=300_000)])
+        r = self.lancer("--top", "2")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        s5 = section(r.stdout, 5)
+        m = re.search(r"(\d+) rupture", "\n".join(s5))
+        self.assertIsNotNone(m, f"pas de compte de ruptures :\n{r.stdout}")
+        self.assertEqual(m.group(1), "3")
+        # Le coût total de la section compte les trois ruptures, pas seulement les deux listées.
+        resume = next(l for l in s5 if "rupture(s)" in l)
+        self.assertAlmostEqual(montant(resume), 4.55, places=4)
+        rows = lignes_en_dollars(s5)
+        self.assertEqual(len(rows), 2, f"--top 2 ne liste pas deux ruptures :\n{r.stdout}")
+        self.assertAlmostEqual(montant(rows[0]), 2.1, places=4)
+        self.assertAlmostEqual(montant(rows[1]), 1.4, places=4)
+
     def test_le_cout_suit_la_grille_champ_par_champ(self):
         # Attrape (panne non nommée au brief) : un champ de tarif lu à la place d'un
         # autre, la lecture de cache au prix de l'entrée par exemple. Attendu à la
