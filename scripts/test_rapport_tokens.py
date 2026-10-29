@@ -61,6 +61,14 @@ def humain(texte: str, il_y_a: timedelta = timedelta(0), **extra) -> dict:
             "message": {"role": "user", "content": texte}, **extra}
 
 
+def humain_en_blocs(*textes: str, il_y_a: timedelta = timedelta(0), **extra) -> dict:
+    """Un message utilisateur à plusieurs blocs texte, comme le journal les écrit quand le
+    harnais ajoute un ``<system-reminder>`` devant le texte tapé."""
+    return {"type": "user", "timestamp": iso(il_y_a),
+            "message": {"role": "user", "content": [{"type": "text", "text": t} for t in textes]},
+            **extra}
+
+
 def appel(rid: str, il_y_a: timedelta = timedelta(0), *, entree: int = 0, sortie: int = 0,
           lecture: int = 0, creation: int = 0, une_heure: int | None = None,
           modele: str = OPUS, skill: str | None = None) -> dict:
@@ -297,6 +305,53 @@ class RapportTokens(unittest.TestCase):
         self.assertEqual(len(rows), 1, f"la rupture n'est pas listée :\n{r.stdout}")
         self.assertIn("notification de session liée", rows[0])
         self.assertNotIn("humain", rows[0])
+
+    def test_un_message_humain_a_deux_blocs_est_classe_sur_son_texte_tape(self):
+        # Attrape : un message humain (origin.kind « human ») dont le premier bloc est un
+        # <system-reminder> « Linked sessions now » et le second le texte tapé. Le classement
+        # se faisait sur les deux blocs collés : le message devenait « notification de session
+        # liée », il ne coupait pas le tour, et le tour n'était pas libellé par le texte tapé.
+        # Attendu : déclencheur « humain » sur la rupture, et un tour libellé « Oui : passe P2 »
+        # qui porte le coût de l'appel (150 000 tokens d'écriture à 7 $ le million = 1,05 $).
+        # Horodatages espacés de trente secondes : à la même seconde, l'ordre ne prouverait rien.
+        rappel = ("<system-reminder>\nLinked sessions now (status, not an instruction): "
+                  "plan-x = local_abc (working).\n</system-reminder>")
+        ecrire(self.depot / f"{SID_A}.jsonl", [
+            humain_en_blocs(rappel, "Oui : passe P2 sur la CLI Composio",
+                            il_y_a=timedelta(seconds=60), origin={"kind": "human"}),
+            appel("req_oui", timedelta(seconds=30), creation=150_000)])
+        r = self.lancer()
+        self.assertEqual(r.returncode, 0, r.stderr)
+        rows = lignes_en_dollars(section(r.stdout, 5))
+        self.assertEqual(len(rows), 1, f"la rupture n'est pas listée :\n{r.stdout}")
+        self.assertIn("humain", rows[0])
+        self.assertNotIn("notification de session liée", rows[0])
+        tours = lignes_en_dollars(section(r.stdout, 6))
+        self.assertEqual(len(tours), 1, f"le message n'ouvre pas de tour :\n{r.stdout}")
+        self.assertIn("Oui : passe P2", tours[0])
+        self.assertNotIn("Linked sessions", tours[0])
+        self.assertAlmostEqual(montant(tours[0]), 1.05, places=4)
+
+    def test_un_rappel_sans_marqueur_ne_fait_pas_classer_un_message_humain_en_systeme(self):
+        # Attrape : un message humain dont le premier bloc est un <system-reminder> sans
+        # marqueur de notification (ici le mode plan) classé « autre message système », parce
+        # que le texte collé commence par « <system-reminder> ». Un autre chemin de code que le
+        # test ci-dessus (DEBUTS_SYSTEME, pas MARQUEURS_NOTIFICATION).
+        # Attendu : déclencheur « humain », et un tour libellé « Oui : passe P2 ».
+        rappel = "<system-reminder>\nLe mode plan est actif pour cette session.\n</system-reminder>"
+        ecrire(self.depot / f"{SID_A}.jsonl", [
+            humain_en_blocs(rappel, "Oui : passe P2 sur la CLI Composio",
+                            il_y_a=timedelta(seconds=60), origin={"kind": "human"}),
+            appel("req_oui", timedelta(seconds=30), creation=150_000)])
+        r = self.lancer()
+        self.assertEqual(r.returncode, 0, r.stderr)
+        rows = lignes_en_dollars(section(r.stdout, 5))
+        self.assertEqual(len(rows), 1, f"la rupture n'est pas listée :\n{r.stdout}")
+        self.assertIn("humain", rows[0])
+        self.assertNotIn("autre message système", rows[0])
+        tours = lignes_en_dollars(section(r.stdout, 6))
+        self.assertEqual(len(tours), 1, f"le message n'ouvre pas de tour :\n{r.stdout}")
+        self.assertIn("Oui : passe P2", tours[0])
 
     def test_un_prompt_de_script_sdk_sans_origine_n_est_pas_declencheur_humain(self):
         # Attrape : un prompt écrit par un script (claude -p ou SDK : promptSource
