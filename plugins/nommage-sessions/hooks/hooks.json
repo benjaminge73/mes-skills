@@ -1,5 +1,5 @@
 {
-  "description": "À chaque message : si le titre de la session n'a pas encore son préfixe « [Projet] », le pose (sujet par Haiku au premier message, sinon titre existant préfixé).",
+  "description": "À chaque message : si le titre de la session n'a pas encore son préfixe « [Projet - Lieu] », le pose (sujet par Haiku au premier message, sinon titre existant préfixé).",
   "hooks": {
     "UserPromptSubmit": [
       {

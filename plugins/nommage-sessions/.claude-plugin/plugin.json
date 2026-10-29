@@ -1,8 +1,8 @@
 {
   "$schema": "https://anthropic.com/claude-code/plugin.schema.json",
   "name": "nommage-sessions",
-  "version": "0.1.0",
-  "description": "Nomme chaque session « [Projet] sujet » : projet = dépôt git (worktrees compris), sujet = titre court fait par Haiku au premier message, ou titre natif préfixé à défaut.",
+  "version": "0.2.0",
+  "description": "Nomme chaque session « [Projet - Lieu] sujet » : projet = dépôt GitHub (remote origin), lieu = Mac, VPS ou Cloud, sujet = titre court fait par Haiku au premier message, ou titre natif préfixé à défaut.",
   "author": {
     "name": "benjaminge73"
   }
