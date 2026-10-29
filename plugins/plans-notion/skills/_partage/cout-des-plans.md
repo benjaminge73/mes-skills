@@ -108,10 +108,15 @@ Options (défaut entre parenthèses) :
 Lecture seule, sans dépendance. Ordre de grandeur : environ 35 s pour 30 jours de
 journaux, soit 8 Go.
 
-Le rapport a six sections. Les quatre premières répartissent le même total :
+Le rapport a six sections. Les sections 1, 2 et 4 répartissent le même total chiffré.
+La section 3 n'en montre que la part des sous-agents, en pourcentage de ce total.
 
-- **Projet** : le nom du dépôt, tiré du premier `cwd` de la session qui en donne
-  un. Un worktree compte pour son dépôt. À défaut, le nom du dossier de projet.
+- **Projet** : le dernier segment du premier `cwd` de la session qui donne un nom,
+  le journal principal d'abord. Pour un worktree, c'est le dépôt : `<dépôt>/.claude/
+  worktrees/<nom>` rend le segment qui précède `.claude`, et `…/worktrees/<dépôt>/<nom>`
+  rend le segment qui suit `worktrees/`. Un `cwd` hors dépôt (scratchpad, `~/Dev`)
+  donne son propre nom. Le nom du dossier de session ne sert qu'en repli, quand
+  aucun `cwd` de la session ne donne de nom.
 - **Skill** : le champ `attributionSkill` des messages. Le reste part sous « aucun
   skill ». Sur le POC du 2026-10-29, « aucun skill » porte environ 87 % des tokens :
   cette ventilation n'éclaire donc qu'une petite part du total.
@@ -143,7 +148,8 @@ Limites :
   resté sur une autre machine, n'est pas compté.
 - Dollars d'équivalent API, comme partout dans ce fichier : on ne les paie pas sur
   l'abonnement, et aucun pourcentage de quota n'est écrit.
-- Les `qualite-doc-juge-*` apparaissent comme autant de projets : c'est le nom de
-  leur dossier de session.
+- Un `cwd` hors dépôt (scratchpad, `~/Dev`, le dossier temporaire des
+  `qualite-doc-juge-*`) donne son propre nom : ces sessions apparaissent comme
+  autant de projets.
 - Un modèle hors grille est listé « non chiffré », sort du total en dollars et
   reste compté en tokens : jamais à zéro.
