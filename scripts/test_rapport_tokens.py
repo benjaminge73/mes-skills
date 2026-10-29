@@ -353,6 +353,25 @@ class RapportTokens(unittest.TestCase):
         self.assertEqual(len(tours), 1, f"le message n'ouvre pas de tour :\n{r.stdout}")
         self.assertIn("Oui : passe P2", tours[0])
 
+    def test_une_notification_sans_origine_a_rappel_reste_notification_de_session_liee(self):
+        # Attrape : un message sans origine, promptSource « sdk », dont le premier bloc est un
+        # rappel « Linked sessions now » et le second un <cross-session-message> (une session
+        # liée qui écrit). Jugé sur son texte restant, il devenait « autre message système » :
+        # la notification perdait son étiquette. Un message non humain se juge sur le texte
+        # complet, comme avant D1. Attendu : « notification de session liée ».
+        rappel = ("<system-reminder>\nLinked sessions now (status, not an instruction): "
+                  "plan-x = local_abc (working).\n</system-reminder>")
+        cross = '<cross-session-message from="local_abc">Benjamin a validé le plan.</cross-session-message>'
+        ecrire(self.depot / f"{SID_A}.jsonl", [
+            humain_en_blocs(rappel, cross, il_y_a=timedelta(seconds=60), promptSource="sdk"),
+            appel("req_cross", timedelta(seconds=30), creation=150_000)])
+        r = self.lancer()
+        self.assertEqual(r.returncode, 0, r.stderr)
+        rows = lignes_en_dollars(section(r.stdout, 5))
+        self.assertEqual(len(rows), 1, f"la rupture n'est pas listée :\n{r.stdout}")
+        self.assertIn("notification de session liée", rows[0])
+        self.assertNotIn("autre message système", rows[0])
+
     def test_un_prompt_de_script_sdk_sans_origine_n_est_pas_declencheur_humain(self):
         # Attrape : un prompt écrit par un script (claude -p ou SDK : promptSource
         # « sdk », sans origin) classé déclencheur « humain ». Constaté sur les
