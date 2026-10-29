@@ -54,9 +54,13 @@ jobs:
             echo "Ligne Doc pas encore valide : rien à relancer (le job doc de ci.yml porte le rouge)."
             exit 0
           fi
+          # Le run vivant du commit, pas le premier rendu : une PR ouverte avec un label lance
+          # deux runs dans la même seconde (`opened`, `labeled`) ; la `concurrency` annule l'un,
+          # et l'API pouvait rendre l'annulé en tête (« doc = cancelled », rien relancé, PR #50
+          # de micro-trading). On écarte les annulés et on prend le plus récent.
           read -r run_id statut < <(gh api \
-            "repos/$REPO/actions/workflows/ci.yml/runs?head_sha=$HEAD_SHA&event=pull_request&per_page=1" \
-            --jq '.workflow_runs[0] | "\(.id // "") \(.status // "")"')
+            "repos/$REPO/actions/workflows/ci.yml/runs?head_sha=$HEAD_SHA&event=pull_request&per_page=20" \
+            --jq '[.workflow_runs[] | select(.conclusion != "cancelled")] | max_by(.id) // {} | "\(.id // "") \(.status // "")"')
           if [ -z "$run_id" ]; then
             echo "Aucun run ci pour $HEAD_SHA : rien à relancer."
             exit 0

@@ -145,6 +145,9 @@ class PasDAttenteSurRunner(unittest.TestCase):
         self.assertIn('select(.name == "Ligne Doc de la description")', relance)
         self.assertIn("gh run rerun --job", relance)
         self.assertNotIn("--failed", relance)
+        # le run vivant du commit, jamais le run `opened` annulé par le run `labeled` (même seconde)
+        self.assertIn('select(.conclusion != "cancelled")', relance)
+        self.assertIn("max_by(.id)", relance)
 
 
 if __name__ == "__main__":
