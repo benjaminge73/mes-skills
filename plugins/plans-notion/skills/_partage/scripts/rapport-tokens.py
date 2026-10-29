@@ -55,6 +55,7 @@ import bisect
 import json
 import re
 import sys
+from collections import Counter
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from pathlib import Path
@@ -306,16 +307,24 @@ def nom_du_depot(cwd: str) -> str | None:
             return segments[i - 2] if i >= 2 else None
         if i + 1 < len(segments):
             return segments[i + 1]
-    return segments[-1] if segments else None
+    nom = segments[-1] if segments else None
+    if nom and nom.startswith("qualite-doc-juge-"):
+        # Dossier temporaire d'un juge de qualité de doc : un seul projet, pas un par run.
+        return "qualite-doc-juge"
+    return nom
 
 
 def projet_de_session(fichiers: list[Fichier]) -> str:
+    """Le dépôt le plus fréquent parmi les ``cwd`` ; à égalité, le premier rencontré."""
     ordre = sorted(fichiers, key=lambda f: (f.sous_agent, str(f.chemin)))
+    noms: Counter[str] = Counter()
     for f in ordre:
         for cwd in cwds_de(f.chemin):
             nom = nom_du_depot(cwd)
             if nom:
-                return nom
+                noms[nom] += 1
+    if noms:
+        return noms.most_common(1)[0][0]
     return ordre[0].dossier.name
 
 
