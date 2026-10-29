@@ -115,8 +115,8 @@ La section 3 n'en montre que la part des sous-agents, en pourcentage de ce total
   le journal principal d'abord. Pour un worktree, c'est le dépôt : `<dépôt>/.claude/
   worktrees/<nom>` rend le segment qui précède `.claude`, et `…/worktrees/<dépôt>/<nom>`
   rend le segment qui suit `worktrees/`. Un `cwd` hors dépôt (scratchpad, `~/Dev`)
-  donne son propre nom. Le nom du dossier de session ne sert qu'en repli, quand
-  aucun `cwd` de la session ne donne de nom.
+  donne son propre nom. Le nom du dossier de projet (sous `~/.claude/projects/`, ou
+  le dossier `ssh-*`) ne sert qu'en repli, quand aucun `cwd` de la session ne donne de nom.
 - **Skill** : le champ `attributionSkill` des messages. Le reste part sous « aucun
   skill ». Sur le POC du 2026-10-29, « aucun skill » porte environ 87 % des tokens :
   cette ventilation n'éclaire donc qu'une petite part du total.
