@@ -543,3 +543,18 @@ Une entrée par passe, la plus récente en dernier. Le titre est
   paramètre `effort` de l'outil `Agent` sur le frontmatter, le « five levels » de la semaine 24, le
   démarrage en arrière-plan des sous-agents pour le relecteur en mode « plan entier » (le pilote attend
   déjà son résultat, rien n'a cassé), et les billets claude.dev non lus.
+
+### 2026-10-29 — passe avant la PR « rapport de consommation de tokens » (plans-notion 0.58.0)
+
+- **Sources lues** : aucune doc externe n'a été relue pour cette PR. Le script lit les journaux
+  locaux de Claude Code ; leur format a été relevé par un POC du 2026-10-29 sur 9 638 journaux,
+  pas sur une page de doc. La dernière passe sur les sources est celle du 2026-10-28 (soir).
+- **Ce qui a changé** : rien à noter côté doc, faute de lecture nouvelle. Le format des journaux
+  n'est donc pas couvert par une source externe.
+- **Faits porteurs** : la PR n'en ajoute aucun, et ne touche pas `scripts/veille_faits.py`.
+- **Autre source lue** : `session-report` (anthropics/claude-plugins-official, Apache-2.0, commit
+  d19dab6 du 2026-04-10) a été lu et exécuté le 2026-10-29, avec l'accord de Benjamin, comme
+  existant. Ses idées sont reprises (rattachement d'un sous-agent par `meta.json` puis par l'appel
+  `Agent`, dédoublonnage par `requestId`) et réécrites ; aucune ligne n'est copiée.
+- **Ce qu'on en fait** : rien ne s'applique à la doc externe. À reprendre : une lecture du format
+  des journaux de session sur une source officielle, si elle existe, pour remplacer le relevé du POC.
