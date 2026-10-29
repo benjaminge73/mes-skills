@@ -440,14 +440,19 @@ class RapportTokens(unittest.TestCase):
         self.assertAlmostEqual(total(r.stdout), 16.0, places=4)
 
     def test_un_sous_agent_sans_meta_ni_appel_parent_est_range_type_non_resolu(self):
-        # Attrape : un sous-agent sans meta.json et sans appel Agent retrouvable,
-        # rangé sous un type inventé au lieu de « type non résolu ». Attendu : 1 M
-        # d'entrée = 1 $, sous le libellé « type non résolu ».
+        # Attrape : un sous-agent sans meta.json rangé sous un type inventé au lieu
+        # de « type non résolu », dans deux cas : aucun journal parent (SID_A), ou
+        # un parent qui porte le résultat du lancement sans l'appel Agent (SID_B).
+        # Attendu : 1 $ + 1 $ = 2 $ sous « type non résolu ».
         ecrire(self.depot / SID_A / "subagents" / f"agent-{AGENT_1}.jsonl",
                [appel("req_orphelin", entree=1_000_000)])
+        ecrire(self.depot / f"{SID_B}.jsonl",
+               [humain("Parent sans appel Agent"), retour_agent("toolu_perdu", AGENT_2)])
+        ecrire(self.depot / SID_B / "subagents" / f"agent-{AGENT_2}.jsonl",
+               [appel("req_orphelin2", entree=1_000_000)])
         r = self.lancer()
         self.assertEqual(r.returncode, 0, r.stderr)
-        self.assertAlmostEqual(montant(ligne_de(section(r.stdout, 3), "type non résolu")), 1.0, places=4)
+        self.assertAlmostEqual(montant(ligne_de(section(r.stdout, 3), "type non résolu")), 2.0, places=4)
 
 
 if __name__ == "__main__":
