@@ -21,7 +21,7 @@ L'auteur Dependabot passe sans que le corps soit lu (`dependabot[bot]`, `app/dep
 
 Le corps arrive par la variable d'environnement PR_BODY (relu par l'API dans ci.yml, jamais
 interpolé dans le YAML), l'auteur par PR_AUTHOR. Codes : 0 accepté, 1 refusé, 2 panne
-(PR_BODY absent), 4 aucune valeur écrite après `Doc :` (le job attend, puis refuse). Bibliothèque standard uniquement.
+(PR_BODY absent), 4 aucune valeur écrite après `Doc :` (refus aussi : doc-relance.yml relancera le job une fois la ligne écrite). Bibliothèque standard uniquement.
 """
 from __future__ import annotations
 
@@ -117,8 +117,7 @@ def main() -> int:
         print(f"Doc : {raison}")
         return 0
     print(f"::error title=Ligne Doc::{raison}")
-    # Code 4 : rien n'est encore écrit après `Doc :`. Le job `doc` de ci.yml attend alors que
-    # la description se remplisse au lieu de rougir (voir `attendre-la-ligne-doc`).
+    # Code 4 : rien n'est encore écrit après `Doc :`, cas distinct d'une valeur fausse (1).
     return ATTENTE if doc_pas_encore_ecrite(os.environ.get("PR_BODY"), auteur) else 1
 
 

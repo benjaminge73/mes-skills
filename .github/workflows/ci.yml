@@ -1361,53 +1361,44 @@ jobs:
   # <raison>`, et certaines raisons déjà relevées comme fausses sont refusées. Mes Skills
   # a la doc vivante activée : sans ce job, la règle n'était tenue que par la session
   # (relevé du 2026-10-28, 21 PR sans ligne depuis le 2026-10-20). Le corps est relu par
-  # l'API, comme la ligne `Evals:`. Une description sans valeur après `Doc :` fait attendre
-  # le job jusqu'à 10 minutes (la ligne ne peut s'écrire qu'après l'ouverture : elle cite le
-  # numéro de la PR) ; une valeur fausse est refusée tout de suite. Passé le délai, éditer la
-  # description puis relancer le job (pas de `edited` dans les déclencheurs, voir l'en-tête).
-  # Dependabot est exempté.
+  # l'API, comme la ligne `Evals:`. Dependabot est exempté.
+  #
+  # La ligne cite le numéro de la PR, donc elle s'écrit après l'ouverture. Le job ne
+  # l'attend PAS en boucle (relire toutes les 20 s pendant 10 min sur un runner facturé
+  # brûlait 10 min par PR sans ligne, et autant à chaque relance) : il passe APRÈS
+  # `validation`, le temps que la session écrive la ligne, et lit le corps UNE fois. Si la
+  # ligne arrive plus tard, doc-relance.yml (déclencheur `edited`, à part pour ne pas
+  # rejouer ce workflow, voir l'en-tête) relance ce job puis `merge-auto`.
+  # `needs: validation` seul : `validation` tourne toujours, alors que `evals-portee`,
+  # `evals`, `fumee` et `evals-verdict` peuvent être sautés, et un `needs` sauté ferait
+  # sauter `doc` (donc `merge-auto`, qui l'exige `success`).
+  # Garde-fou : `timeout-minutes: 2` ; une attente réintroduite ici serait coupée net.
   doc:
     name: Ligne Doc de la description
+    needs: validation
     if: >-
       github.event_name == 'pull_request'
       && github.event.pull_request.user.login != 'dependabot[bot]'
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 2
     steps:
       - uses: actions/checkout@v4
 
       - name: La description porte-t-elle une ligne Doc valide ?
-        id: attendre-la-ligne-doc
+        id: lire-la-ligne-doc
         env:
           GH_TOKEN: ${{ github.token }}
           PR_AUTHOR: ${{ github.event.pull_request.user.login }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
           REPO: ${{ github.repository }}
         run: |
-          # L'entrée du Changelog cite le numéro de la PR : elle ne peut s'écrire qu'après
-          # l'ouverture, donc toute PR s'ouvre avec `Doc :` vide. Rougir là, c'était un rouge
-          # certain à chaque PR, que seule une relance à la main effaçait (relevé du
-          # 2026-10-28, PR #112 : le job avait tourné sur la description d'origine). Et
-          # `edited` ne relance pas la CI (voir l'en-tête). Le job relit donc la description,
-          # par l'API, tant que rien n'est écrit après `Doc :` (code 4 du garde), jusqu'à
-          # 10 minutes. Une valeur fausse (code 1) est refusée tout de suite ; passé le
-          # délai, le job est rouge, et « Re-run failed jobs » suffit une fois la ligne écrite.
-          fin=$((SECONDS + 600))
-          while true; do
-            # Un échec de `gh` est une panne de lecture (code 2), pas un refus (code 1).
-            PR_BODY=$(gh api "repos/$REPO/pulls/$PR_NUMBER" --jq '.body // ""') || {
-              echo "::error::lecture du corps de la PR impossible (panne de l'API, pas un refus)"
-              exit 2
-            }
-            export PR_BODY
-            code=0
-            python3 scripts/garde_doc_pr.py || code=$?
-            if [ "$code" != 4 ] || [ "$SECONDS" -ge "$fin" ]; then
-              exit "$code"
-            fi
-            echo "Pas encore de ligne « Doc : » : nouvelle lecture dans 20 s."
-            sleep 20
-          done
+          # Un échec de `gh` est une panne de lecture (code 2), pas un refus (code 1).
+          PR_BODY=$(gh api "repos/$REPO/pulls/$PR_NUMBER" --jq '.body // ""') || {
+            echo "::error::lecture du corps de la PR impossible (panne de l'API, pas un refus)"
+            exit 2
+          }
+          export PR_BODY
+          python3 scripts/garde_doc_pr.py
 
   merge-auto:
     name: Merge automatique si tout est vert
