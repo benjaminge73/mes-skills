@@ -1,6 +1,6 @@
 # Travailler sur `mes-skills`
 
-Ce dépôt **est** la marketplace `atelier` : trois plugins Claude Code, `plans-notion` (skills
+Ce dépôt **est** la marketplace `atelier` : des plugins Claude Code (liste : `.claude-plugin/marketplace.json`), dont `plans-notion` (skills
 `plan-notion`, `executer-plan-notion` et `deleguer-a-haiku`, agents : voir `plugins/plans-notion/agents/`,
 fichiers `_partage/`), `methode-de-travail` (`brainstorming`, `systematic-debugging`,
 `verification-before-completion` ; agents : voir `plugins/methode-de-travail/agents/`)
