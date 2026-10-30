@@ -592,5 +592,36 @@ class DocDeCloture(unittest.TestCase):
         self.assertIn("--projet", erreur)
 
 
+class RecapSeCreeSiIlManque(unittest.TestCase):
+    """Le Récap n'existe qu'à partir de la clôture : écrire dedans suppose de le créer s'il manque.
+
+    Demande de Benjamin du 2026-10-30 : une session cherchait à écrire dans un H2 « Récap » absent.
+    Le garde tient la présence de la règle là où un Récap s'écrit ou se met à jour (clôture, remontée
+    sur main) et la raison de ne pas poser de coquille à la création : la porte ne lit que le titre.
+    """
+
+    def lire(self, chemin):
+        base = RACINE / "plugins" / "plans-notion" / "skills"
+        return " ".join((base / chemin).read_text(encoding="utf-8").split())
+
+    def test_la_regle_est_ecrite_dans_le_gabarit_de_doc(self):
+        texte = self.lire("_partage/changelog-et-doc.md")
+        self.assertIn("Écrire dans le Récap, c'est d'abord vérifier qu'il existe", texte)
+        self.assertIn("**Absent** : le créer, en tête", texte)
+
+    def test_la_cloture_et_la_remontee_renvoient_a_la_regle(self):
+        for chemin in ("executer-plan-notion/cloture.md", "_partage/remontee-sur-main.md"):
+            with self.subTest(fichier=chemin):
+                self.assertIn("point 3 bis", self.lire(chemin))
+
+    def test_une_coquille_recap_passerait_la_porte(self):
+        # La raison de ne pas poser de H2 « Récap » vide à la création : la porte ne regarde que le titre.
+        with tempfile.TemporaryDirectory() as d:
+            page = Path(d) / "page.md"
+            page.write_text("# Plan\n\n## Récap\n\nà écrire à la clôture\n\n## Cartes\n", encoding="utf-8")
+            code, sortie, erreur = jouer("--porte", str(page))
+        self.assertEqual(code, 0, sortie + erreur)
+
+
 if __name__ == "__main__":
     unittest.main()

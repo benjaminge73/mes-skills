@@ -311,6 +311,10 @@ Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard »
        non le statut courant, puisque le Récap s'écrit avant le passage à `a merger`.
        Le titre du plan se lit dans les propriétés de la page, jamais dans son miroir
        local : `changelog-et-doc.md` § 4 point 1.
+       **Ce H2 se crée ici** : la page n'en porte pas avant la clôture, et un plan clos avant
+       cette règle peut ne pas en avoir non plus. On relève la page, et s'il manque on le
+       pose en tête ; on n'écrit jamais dans un Récap supposé là (`changelog-et-doc.md` § 4,
+       point 3 bis).
      - **(b) Le contrôle.** Relire la page fraîche, dans son miroir local, et jouer
        `python3 ${CLAUDE_PLUGIN_ROOT}/skills/_partage/scripts/controle-changelog.py <miroir>`.
        Si (a) est parti au palier 3 (la page ne porte pas de Récap), le contrôle ne se

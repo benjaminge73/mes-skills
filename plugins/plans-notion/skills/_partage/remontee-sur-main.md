@@ -189,7 +189,8 @@ le ou les plan concernés ».
   plan ; son entrée `Remontée sur main` ; pour un plan du lot, le calcul du maître
   rejoué (`statut-maitre.py --actuel`), sa ligne d'`Avancement`, la ligne du plan dans
   le `Récap du lot` et, lot fermé, l'`État final` ; un plan de suite né de ce plan
-  reçoit le lien du merge. Une PR qui couvre plusieurs plans met à jour chacun.
+  reçoit le lien du merge ; le Récap de la page, modifié en place, ou **créé s'il manque**
+  (`changelog-et-doc.md` § 4, point 3 bis). Une PR qui couvre plusieurs plans met à jour chacun.
 - **Les arrêts qui restent légitimes sont des états, pas des oublis** : PR en
   brouillon à la demande de Benjamin, PR retenue par un humain, CI rouge qu'on ne sait
   plus diagnostiquer, correctif structurant. Le plan reste `a merger`, et la raison
