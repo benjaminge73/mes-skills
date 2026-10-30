@@ -356,11 +356,10 @@ class Juger(unittest.TestCase):
         # dit que ce n'est pas un jugement.
         faux = FauxClaude(self.dossier, [sortie_juge("je ne sais pas, aucun objet ici"),
                                          sortie_juge(verdict(False, 0.9))])
-        code, sortie, erreur = self.juger([passage(1), passage(2)], faux.exe)
+        code, sortie, erreur = self.juger([passage(1), passage(2)], faux.exe, "--votes", "1", "--parallele", "1")
         self.assertEqual(code, 0, erreur)
         rapport = json.loads(sortie)
         self.assertEqual([v["illisible"] for v in rapport["verdicts"]], [True, False])
-        self.assertEqual([v["illisible"] for v in rapport["verdicts"][0:1]][0], True)
         self.assertEqual([vote["illisible"] for v in rapport["verdicts"] for vote in v["votes"]], [True, False])
         self.assertEqual([d["illisible"] for d in rapport["douteux"]], [True, False])
 
@@ -499,7 +498,7 @@ class Juger(unittest.TestCase):
         self.assertEqual([d["id"] for d in rapport["douteux"]], ["ref-1", "ref-3"])
         # Avec --grille, un douteux se range par id seul : ni fichier ni ligne.
         for douteux in rapport["douteux"]:
-            self.assertEqual(set(douteux), {"id", "score", "raison"})
+            self.assertEqual(set(douteux), {"id", "score", "raison", "illisible"})
 
 
 if __name__ == "__main__":

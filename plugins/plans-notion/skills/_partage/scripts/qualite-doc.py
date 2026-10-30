@@ -455,18 +455,22 @@ def premier_objet_json(texte: str) -> dict | None:
 
 
 def vote_de(texte: str) -> dict:
-    """Score de faute d'un vote ; une réponse illisible compte douteuse (1,0), jamais exacte."""
+    """Score de faute d'un vote ; une réponse illisible compte douteuse (1,0), jamais exacte.
+
+    ``illisible`` dit que le score n'est pas un jugement : un consommateur qui lit le score comme « la faute est
+    certaine » (la confrontation custom/plugins d'hermes-custom) doit pouvoir distinguer les deux sans deviner."""
     objet = premier_objet_json(texte)
     exact = objet.get("exact") if objet else None
     confiance = objet.get("confiance") if objet else None
     valide = (isinstance(exact, bool) and isinstance(confiance, (int, float))
               and not isinstance(confiance, bool) and 0 <= confiance <= 1)
     if not valide:
-        return {"score": 1.0, "exact": False, "confiance": None, "raison": "réponse illisible"}
+        return {"score": 1.0, "exact": False, "confiance": None, "raison": "réponse illisible",
+                "illisible": True}
     confiance = float(confiance)
     score = confiance if not exact else 1 - confiance
     return {"score": score, "exact": exact, "confiance": confiance,
-            "raison": str(objet.get("raison", ""))}
+            "raison": str(objet.get("raison", "")), "illisible": False}
 
 
 def identifiant_de(element: dict, libre: bool) -> dict:
@@ -529,11 +533,13 @@ def juger(passages: list[dict], votes: int, seuil: float, max_cout: float | None
             "score": retenu["score"],
             "exact": retenu["exact"],
             "raison": retenu["raison"],
-            "votes": [{"score": v["score"], "exact": v["exact"], "confiance": v["confiance"]}
-                      for v in urnes],
+            "illisible": retenu["illisible"],
+            "votes": [{"score": v["score"], "exact": v["exact"], "confiance": v["confiance"],
+                       "illisible": v["illisible"]} for v in urnes],
         })
         verdicts.append(verdict)
-    douteux = [{**identifiant_de(v, libre), "score": v["score"], "raison": v["raison"]}
+    douteux = [{**identifiant_de(v, libre), "score": v["score"], "raison": v["raison"],
+                "illisible": v["illisible"]}
                for v in verdicts if v["score"] >= seuil]
     rapport = {
         "modele": MODELE,
