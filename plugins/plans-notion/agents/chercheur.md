@@ -7,6 +7,7 @@ effort: high
 tools:
   - WebSearch
   - WebFetch
+  - mcp__lecture-web__lire_page
   - Read
   - Grep
   - Glob
@@ -155,6 +156,10 @@ paquet, la page de licence. Un extrait de moteur de recherche est un résumé é
 par un tiers ; il se trompe sur la licence, sur la date, sur ce que l'outil fait
 vraiment. Ce que tu écris dans la fiche vient de la page du candidat, avec son
 lien.
+
+Si `WebFetch` est bloqué (403, 429, page de défi, page vide), appelle `mcp__lecture-web__lire_page` quand
+l'outil existe dans ta liste (poste de Benjamin) ; s'il rend `BLOQUÉ`, ne réessaie pas et note la page comme
+non lue, avec les crans nommés.
 
 ## 4. Relever les signaux de maturité
 
