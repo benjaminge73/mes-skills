@@ -350,6 +350,19 @@ class Juger(unittest.TestCase):
         self.assertEqual(v["raison"], "réponse illisible")
         self.assertEqual([d["ligne"] for d in rapport["douteux"]], [1])
 
+    def test_une_reponse_illisible_est_marquee_illisible_dans_le_rapport(self):
+        # Attrape : un consommateur (la confrontation custom/plugins d'hermes-custom) qui prend le score 1,0 d'une
+        # réponse illisible pour un jugement « remplaçable » certain. Le score reste prudent pour la doc ; le drapeau
+        # dit que ce n'est pas un jugement.
+        faux = FauxClaude(self.dossier, [sortie_juge("je ne sais pas, aucun objet ici"),
+                                         sortie_juge(verdict(False, 0.9))])
+        code, sortie, erreur = self.juger([passage(1), passage(2)], faux.exe, "--votes", "1", "--parallele", "1")
+        self.assertEqual(code, 0, erreur)
+        rapport = json.loads(sortie)
+        self.assertEqual([v["illisible"] for v in rapport["verdicts"]], [True, False])
+        self.assertEqual([vote["illisible"] for v in rapport["verdicts"] for vote in v["votes"]], [True, False])
+        self.assertEqual([d["illisible"] for d in rapport["douteux"]], [True, False])
+
     def test_le_seuil_separe_les_douteux_et_compte_le_seuil_lui_meme(self):
         # Le score exactement égal au seuil (0,5) est douteux : la comparaison est ≥.
         faux = FauxClaude(self.dossier, [sortie_juge(verdict(False, c)) for c in (0.3, 0.5, 0.6)])
@@ -485,7 +498,7 @@ class Juger(unittest.TestCase):
         self.assertEqual([d["id"] for d in rapport["douteux"]], ["ref-1", "ref-3"])
         # Avec --grille, un douteux se range par id seul : ni fichier ni ligne.
         for douteux in rapport["douteux"]:
-            self.assertEqual(set(douteux), {"id", "score", "raison"})
+            self.assertEqual(set(douteux), {"id", "score", "raison", "illisible"})
 
 
 if __name__ == "__main__":
