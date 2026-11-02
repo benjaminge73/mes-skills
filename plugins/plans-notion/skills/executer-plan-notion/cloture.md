@@ -466,7 +466,16 @@ Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard »
      juste après avoir écrit la ligne** (`gh pr ready <n>`, ou `update_pull_request` avec
      `draft: false`) : `ready_for_review` lance le run complet, où `doc` lit une ligne qui
      existe déjà. Une PR laissée en brouillon ne se merge jamais, et rien ne le dit à
-     part elle : la passer prête fait partie du point 7, pas de la remontée. Ces
+     part elle : la passer prête fait partie du point 7, pas de la remontée.
+     **Exception, le palier 3** (`changelog-et-doc.md` § 6 : le connecteur Notion
+     **puis** `composio` ont échoué, les deux, jamais le fichier d'emblée) : l'entrée
+     du hub est un fichier que Hermes posera plus tard, la ligne `Doc :` n'a pas de
+     lien à citer, et un `sans objet` serait faux. La PR **reste en brouillon**,
+     `Statut` reste `a merger`, la raison va au journal (point 8, issue c). Quand
+     Hermes a posé l'entrée, la session qui le constate (la suivante qui lit
+     `a merger` comprise) lit le lien d'ancre (§ 2.5), écrit la ligne, puis passe la
+     PR prête. Si seule la lecture de l'ancre échoue, pas de brouillon : le repli du
+     § 2.5 (lien de la page et titre en clair) suffit. Ces
      dépôts ne jouent **aucune CI sur un brouillon** (les jobs racines sautent) : le run
      `ready_for_review` est le premier et le seul à tout jouer. Là où le label
      `review-required` lance l'e2e (`vahiny`, `mavod-perso`, `micro-trading`), le poser

@@ -200,6 +200,11 @@ class DocSurPrPretesSeulement(unittest.TestCase):
         remontee = " ".join((ROOT / "plugins/plans-notion/skills/_partage/remontee-sur-main.md").read_text(encoding="utf-8").split())
         self.assertIn("`Statut : a merger` (posé avant le merge) passe à `Statut : execute`", remontee)
 
+    def test_palier_3_garde_la_pr_en_brouillon_jusqu_a_l_entree(self):
+        cloture = " ".join((ROOT / "plugins/plans-notion/skills/executer-plan-notion/cloture.md").read_text(encoding="utf-8").split())
+        self.assertIn("le connecteur Notion **puis** `composio` ont échoué", cloture)
+        self.assertIn("La PR **reste en brouillon**", cloture)
+
 
 if __name__ == "__main__":
     unittest.main()
