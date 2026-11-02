@@ -7,7 +7,9 @@ demande de Benjamin, ou dans une session qui reprend un plan déjà à `a merger
 **La PR s'ouvre à la clôture, prête, sans attendre de demande.** Décision de
 Benjamin du 2026-10-14 : un plan = une branche, et la clôture ouvre sa PR vers
 `main` une fois la suite complète jouée en local (`cloture.md`, points 1 à 4).
-Elle n'est en brouillon qu'à la demande de Benjamin. La session ne lance
+Elle n'est en brouillon qu'à la demande de Benjamin, ou le temps d'écrire sa ligne `Doc :`
+(`cloture.md`, points 5 et 7) : une PR restée en brouillon pour ce seul motif, et que
+Benjamin n'a pas demandée ainsi, est à passer prête, pas à attendre. La session ne lance
 **jamais** `gh pr merge` : c'est la CI qui merge une PR prête, quand les règles
 du dépôt le permettent. Le statut suit le code : `a merger` tant que le travail
 n'est pas sur `main`, `execute` dès qu'il y est.

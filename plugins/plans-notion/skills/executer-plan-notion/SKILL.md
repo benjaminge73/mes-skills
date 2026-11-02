@@ -27,7 +27,8 @@ détaille.
 - **Jamais `--no-verify`**, ni check désactivé, ni test rendu tolérant : une
   preuve rouge se corrige (§3, « Une étape = un commit… »).
 - **La clôture ouvre la PR vers `main`, prête** (brouillon seulement sur demande
-  de Benjamin) ; la CI la merge, la session ne merge jamais (§6, « La PR, puis
+  de Benjamin, ou le temps d'écrire la ligne `Doc :` là où le job `doc` saute les
+  brouillons : `cloture.md`, points 5 et 7, qui la passent prête) ; la CI la merge, la session ne merge jamais (§6, « La PR, puis
   la remontée sur `main` »). Un trou e2e non couvert par la CI se pose à Benjamin
   avant l'ouverture. **La session suit la PR jusqu'au merge**, puis met à jour le
   plan, le maître et le Récap dans le même tour.

@@ -265,9 +265,14 @@ Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard »
   4. **Pousser la branche du plan.** C'est le seul push de la clôture quand le
      relevé du §2 a retenu les commits en local ; sans lui, le travail ne vit
      que sur un disque. La sortie de la preuve va au journal (`État final`).
-  5. **Ouvrir la PR, prête.** `gh pr create --base main --head <branche-du-plan>`,
-     **sans `--draft`** : le brouillon se demande à Benjamin, il ne se décide pas
-     seul. Titre = titre du plan ; corps = une ligne par étape reprise du
+  5. **Ouvrir la PR, prête, ou en brouillon le temps d'écrire la doc.**
+     `gh pr create --base main --head <branche-du-plan>`, **sans `--draft`** : le
+     brouillon se demande à Benjamin, il ne se décide pas seul. **Une exception, décidée
+     par Benjamin le 2026-11-02** : dans un dépôt dont le `ci.yml` saute le job `doc` sur
+     un brouillon (son `if` porte `draft == false` : aujourd'hui `mes-skills`), la PR
+     s'ouvre **avec `--draft`**, parce que la ligne `Doc :` cite le numéro de la PR et ne
+     peut s'écrire qu'après l'ouverture. Elle passe prête au point 7, une fois la ligne
+     écrite. Un dépôt dont le job `doc` n'a pas ce `if` garde la règle générale. Titre = titre du plan ; corps = une ligne par étape reprise du
      journal, lien vers la page Notion, la ligne `Danger de merge : <réversible
      ou non> — <ce qui casse si ça casse>` (une seule ligne, pas un bloc ;
      « réversible » au sens de `decouvertes.md` § 1 : un `git revert` suffit, et
@@ -455,11 +460,16 @@ Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard »
      `changelog-et-doc.md` § 2.5, fin) ;
      `Doc : sans objet — lot <plan maître>, entrée consolidée à la fermeture du lot` pour un
      plan enfant d'un lot ; `Doc : sans objet — doc vivante non activée pour <projet>`
-     sinon. Le dépôt qui a un job CI `doc` la relit par l'API : sur `mes-skills` et `hermes-custom`, il lit
-     la ligne une seule fois, après les tests, donc l'écrire dès l'entrée posée (la PR
-     s'ouvre avec `Doc :` vide, l'entrée cite son numéro) ; s'il est déjà rouge, éditer la
-     description suffit : le workflow `doc-relance.yml` (déclencheur `edited`) le relance
-     dès que la ligne est valide, sans quoi la PR ne se merge pas. Le job refuse une raison qui n'en est pas une (règle globale
+     sinon. Le dépôt qui a un job CI `doc` la relit par l'API, une seule fois, après les
+     tests. Sur `mes-skills` (PR ouverte en brouillon, point 5), **la PR passe prête
+     juste après avoir écrit la ligne** (`gh pr ready <n>`, ou `update_pull_request` avec
+     `draft: false`) : `ready_for_review` lance le run complet, où `doc` lit une ligne qui
+     existe déjà. Une PR laissée en brouillon ne se merge jamais, et rien ne le dit à
+     part elle : la passer prête fait partie du point 7, pas de la remontée. Sur
+     `hermes-custom`, tant que son `doc` ne saute pas les brouillons, la PR s'ouvre
+     prête avec `Doc :` vide, l'entrée cite son numéro, et si `doc` est déjà rouge
+     éditer la description suffit : le workflow `doc-relance.yml` (déclencheur `edited`)
+     le relance dès que la ligne est valide. Le job refuse une raison qui n'en est pas une (règle globale
      `doc-vivante.md`) : la page projet non lue, ou l'absence de job CI, n'en sont pas.
      Puis le journal et le compte rendu : `État final` (avec la sortie du point 6),
      `Statut` = **`a merger`**, `PR` = l'URL, et le compte rendu à Benjamin, qui est le
@@ -536,7 +546,8 @@ tiennent :
 
   La ceinture reste la suite complète jouée en local à la clôture ; le label
   n'est que la bretelle, et une bretelle n'existe que si le dépôt en a une.
-- **Ce qui retient le merge** : une PR brouillon (demandée par Benjamin), une CI
+- **Ce qui retient le merge** : une PR brouillon (demandée par Benjamin, ou ouverte en
+  brouillon par le point 5 et pas encore passée prête), une CI
   rouge, des workflows touchés (`.github/workflows/`), une PR Dependabot. Dans
   ces cas `Statut` reste `a merger`, et le compte rendu le dit à Benjamin : la
   PR est ouverte, elle attend une décision.
