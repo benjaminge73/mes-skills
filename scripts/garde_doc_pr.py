@@ -9,6 +9,7 @@ seule la session vérifie se saute sans que personne le voie ; celle-ci, la CI l
 
 Deux formes acceptées, sur une ligne qui commence par `Doc :` (gras Markdown toléré) :
   Doc : https://app.notion.com/p/...      lien vers l'entrée du Changelog (Notion)
+  Doc : https://app.notion.com/p/... — entrée « <titre> »   repli quand l'ancre n'a pu être lue
   Doc : sans objet — <raison>             tiret long, demi-cadratin ou tiret simple
 
 Refusés : une ligne absente ou vide ; un lien qui ne va pas vers Notion (le lien de la PR
@@ -30,7 +31,9 @@ import re
 import sys
 
 LIGNE_DOC = re.compile(r"^\**\s*Doc\s*\**\s*:\s*\**\s*(.*)$")
-LIEN_NOTION = re.compile(r"^<?https://(?:app\.|www\.)?notion\.(?:so|com|site)/\S+$")
+# Le lien, puis éventuellement le repli de `changelog-et-doc.md` § 2.5 : « — entrée « <titre> » ».
+LIEN_NOTION = re.compile(
+    r"^<?https://(?:app\.|www\.)?notion\.(?:so|com|site)/\S+?>?(?:\s+[—–-]\s+entrée\s+\S.*)?$")
 LIEN = re.compile(r"^<?https?://\S+")
 SANS_OBJET = re.compile(r"^sans objet\s*[—–-]\s*(\S.*)$", re.IGNORECASE)
 RAISON_MIN = 15

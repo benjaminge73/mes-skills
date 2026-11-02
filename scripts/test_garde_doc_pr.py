@@ -151,6 +151,19 @@ class PasDAttenteSurRunner(unittest.TestCase):
         self.assertIn("max_by(.id)", relance)
 
 
+class LienDeRepliAccepte(unittest.TestCase):
+    """`changelog-et-doc.md` § 2.5 promet que le job accepte le lien de page suivi du titre de
+    l'entrée en clair ; le garde le refusait (relevé du 2026-11-02)."""
+
+    def test_lien_de_page_suivi_du_titre(self):
+        ok, _ = verifier_doc("Doc : https://app.notion.com/p/402b8cc8aa1d81a2adb3c7cf862d78cd — entrée « 2026-11-02 · Sans plan (PR #127) »")
+        self.assertTrue(ok)
+
+    def test_lien_suivi_d_autre_chose_reste_refuse(self):
+        ok, _ = verifier_doc("Doc : https://app.notion.com/p/402b8cc8aa1d81a2adb3c7cf862d78cd voir plus tard")
+        self.assertFalse(ok)
+
+
 class DocSurPrPretesSeulement(unittest.TestCase):
     """La ligne `Doc :` cite le numéro de la PR : elle s'écrit après l'ouverture. La PR de
     clôture s'ouvre en brouillon, le job `doc` saute les brouillons, et la clôture passe la
