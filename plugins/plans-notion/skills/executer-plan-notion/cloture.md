@@ -466,10 +466,12 @@ Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard »
      juste après avoir écrit la ligne** (`gh pr ready <n>`, ou `update_pull_request` avec
      `draft: false`) : `ready_for_review` lance le run complet, où `doc` lit une ligne qui
      existe déjà. Une PR laissée en brouillon ne se merge jamais, et rien ne le dit à
-     part elle : la passer prête fait partie du point 7, pas de la remontée. Là où le
-     label `review-required` lance l'e2e (`vahiny`, `mavod-perso`), le poser **après**
-     `gh pr ready`, pas à l'ouverture en brouillon : le run `labeled` remplace alors le
-     run `ready_for_review`, au lieu de lancer l'e2e deux fois. Si une ligne fausse
+     part elle : la passer prête fait partie du point 7, pas de la remontée. Ces
+     dépôts ne jouent **aucune CI sur un brouillon** (les jobs racines sautent) : le run
+     `ready_for_review` est le premier et le seul à tout jouer. Là où le label
+     `review-required` lance l'e2e (`vahiny`, `mavod-perso`), le poser **avant**
+     `gh pr ready` : sur un brouillon il ne coûte rien, et le run de la sortie de
+     brouillon le porte déjà. Si une ligne fausse
      a rougi `doc`, éditer la description suffit : le workflow `doc-relance.yml`
      (déclencheur `edited`) le relance dès que la ligne est valide, run fini. Le job refuse une raison qui n'en est pas une (règle globale
      `doc-vivante.md`) : la page projet non lue, ou l'absence de job CI, n'en sont pas.

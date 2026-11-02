@@ -184,6 +184,13 @@ class DocSurPrPretesSeulement(unittest.TestCase):
         self.assertIn("`gh pr ready <n>`", cloture)
         self.assertIn("Une PR laissée en brouillon ne se merge jamais", cloture)
 
+    def test_aucune_ci_sur_un_brouillon(self):
+        """Le brouillon ne rejoue pas la suite : la PR passe prête, et ce run-là joue tout une fois."""
+        ci = (WORKFLOWS / "ci.yml").read_text(encoding="utf-8")
+        for racine in ("validation", "evals-portee"):
+            tete = ci.split(f"\n  {racine}:\n", 1)[1].split("\n    runs-on:", 1)[0]
+            self.assertRegex(tete, r"pull_request\.draft (!= true|== false)", racine)
+
 
 if __name__ == "__main__":
     unittest.main()

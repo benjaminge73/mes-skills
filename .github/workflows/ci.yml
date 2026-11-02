@@ -92,6 +92,10 @@ concurrency:
 jobs:
   validation:
     name: Validation des plugins
+    # Pas de CI sur un brouillon (décision de Benjamin du 2026-11-02) : la PR passe prête une fois sa
+    # ligne `Doc :` écrite, et ce run-là rejoue tout une seule fois. Un `if` sur chaque job racine ;
+    # les jobs qui en dépendent sautent avec lui.
+    if: github.event.pull_request.draft != true
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
