@@ -192,7 +192,9 @@ le ou les plan concernés ».
   rejoué (`statut-maitre.py --actuel`), sa ligne d'`Avancement`, la ligne du plan dans
   le `Récap du lot` et, lot fermé, l'`État final` ; un plan de suite né de ce plan
   reçoit le lien du merge ; le Récap de la page, modifié en place, ou **créé s'il manque**
-  (`changelog-et-doc.md` § 4, point 3 bis). Une PR qui couvre plusieurs plans met à jour chacun.
+  (`changelog-et-doc.md` § 4, point 3 bis) ; et, pour un projet à doc vivante activée,
+  la ligne `Plan :` de l'entrée du hub, dont `Statut : a merger` (posé avant le merge)
+  passe à `Statut : execute` : sans cela, l'entrée dit « à merger » pour une PR mergée. Une PR qui couvre plusieurs plans met à jour chacun.
 - **Les arrêts qui restent légitimes sont des états, pas des oublis** : PR en
   brouillon à la demande de Benjamin, PR retenue par un humain, CI rouge qu'on ne sait
   plus diagnostiquer, correctif structurant. Le plan reste `a merger`, et la raison
