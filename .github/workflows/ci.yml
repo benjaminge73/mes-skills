@@ -1363,7 +1363,11 @@ jobs:
   # (relevé du 2026-10-28, 21 PR sans ligne depuis le 2026-10-20). Le corps est relu par
   # l'API, comme la ligne `Evals:`. Dependabot est exempté.
   #
-  # La ligne cite le numéro de la PR, donc elle s'écrit après l'ouverture. Le job ne
+  # La ligne cite le numéro de la PR, donc elle s'écrit après l'ouverture : la PR de
+  # clôture s'ouvre donc EN BROUILLON (décision de Benjamin du 2026-11-02), la session
+  # écrit l'entrée et la ligne, puis la passe prête (`ready_for_review` lance un run
+  # complet). Le job ne joue que sur une PR prête : il lit une ligne qui existe déjà, au
+  # lieu de rougir sur presque chaque PR. Le job ne
   # l'attend PAS en boucle (relire toutes les 20 s pendant 10 min sur un runner facturé
   # brûlait 10 min par PR sans ligne, et autant à chaque relance) : il passe APRÈS
   # `validation`, le temps que la session écrive la ligne, et lit le corps UNE fois. Si la
@@ -1378,6 +1382,7 @@ jobs:
     needs: validation
     if: >-
       github.event_name == 'pull_request'
+      && github.event.pull_request.draft == false
       && github.event.pull_request.user.login != 'dependabot[bot]'
     runs-on: ubuntu-latest
     timeout-minutes: 2

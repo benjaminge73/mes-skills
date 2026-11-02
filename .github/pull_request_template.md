@@ -25,8 +25,8 @@ Evals:
 
 <!-- Doc vivante (Mes Skills l'a activée) : le job `doc` de la CI refuse la PR sans cette
 ligne. Soit le lien d'ancre Notion de l'entrée du Changelog, `…/p/<changelog>#<id du titre>`
-(`changelog-et-doc.md` § 2.5, fin ; ouvrir la PR, écrire l'entrée en citant
-son numéro, puis éditer cette ligne : le job `doc` lit la ligne une fois, après `validation` ; écrite plus tard, `doc-relance.yml` le relance seul dès qu'elle est valide), soit « sans objet — <raison> »
+(`changelog-et-doc.md` § 2.5, fin ; ouvrir la PR **en brouillon**, écrire l'entrée en citant
+son numéro, éditer cette ligne, puis passer la PR prête : le job `doc` ne joue que sur une PR prête et lit la ligne une fois, après `validation`), soit « sans objet — <raison> »
 quand rien ne change pour la personne qui se sert des plugins (CI interne, test, veille). -->
 Doc : 
 

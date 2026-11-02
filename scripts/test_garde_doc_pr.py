@@ -14,6 +14,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from garde_doc_pr import doc_pas_encore_ecrite, verifier_doc  # noqa: E402
 
 SCRIPT = Path(__file__).resolve().parent / "garde_doc_pr.py"
+ROOT = Path(__file__).resolve().parent.parent
 WORKFLOWS = Path(__file__).resolve().parent.parent / ".github" / "workflows"
 NOTION = "https://app.notion.com/p/0123456789abcdef0123456789abcdef"
 
@@ -148,6 +149,40 @@ class PasDAttenteSurRunner(unittest.TestCase):
         # le run vivant du commit, jamais le run `opened` annulé par le run `labeled` (même seconde)
         self.assertIn('select(.conclusion != "cancelled")', relance)
         self.assertIn("max_by(.id)", relance)
+
+
+class LienDeRepliAccepte(unittest.TestCase):
+    """`changelog-et-doc.md` § 2.5 promet que le job accepte le lien de page suivi du titre de
+    l'entrée en clair ; le garde le refusait (relevé du 2026-11-02)."""
+
+    def test_lien_de_page_suivi_du_titre(self):
+        ok, _ = verifier_doc("Doc : https://app.notion.com/p/402b8cc8aa1d81a2adb3c7cf862d78cd — entrée « 2026-11-02 · Sans plan (PR #127) »")
+        self.assertTrue(ok)
+
+    def test_lien_suivi_d_autre_chose_reste_refuse(self):
+        ok, _ = verifier_doc("Doc : https://app.notion.com/p/402b8cc8aa1d81a2adb3c7cf862d78cd voir plus tard")
+        self.assertFalse(ok)
+
+
+class DocSurPrPretesSeulement(unittest.TestCase):
+    """La ligne `Doc :` cite le numéro de la PR : elle s'écrit après l'ouverture. La PR de
+    clôture s'ouvre en brouillon, le job `doc` saute les brouillons, et la clôture passe la
+    PR prête une fois la ligne écrite (décision de Benjamin, 2026-11-02)."""
+
+    def test_le_job_doc_saute_les_brouillons(self):
+        ci = (WORKFLOWS / "ci.yml").read_text(encoding="utf-8")
+        job = ci.split("\n  doc:\n", 1)[1].split("\n  merge-auto:\n", 1)[0]
+        self.assertIn("github.event.pull_request.draft == false", job)
+        # `ready_for_review` relance le run quand la PR passe prête
+        self.assertRegex(ci, r"types: \[[^\]]*ready_for_review")
+
+    def test_la_cloture_ouvre_en_brouillon_puis_passe_prete(self):
+        cloture = (ROOT / "plugins/plans-notion/skills/executer-plan-notion/cloture.md").read_text(encoding="utf-8")
+        cloture = " ".join(cloture.split())
+        self.assertIn("avec `--draft`", cloture)
+        self.assertIn("`draft == false`", cloture)
+        self.assertIn("`gh pr ready <n>`", cloture)
+        self.assertIn("Une PR laissée en brouillon ne se merge jamais", cloture)
 
 
 if __name__ == "__main__":

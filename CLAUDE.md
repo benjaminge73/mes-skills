@@ -178,7 +178,7 @@ même : la clôture ouvre la PR prête, la CI la merge, la session ne merge
 jamais (`plugins/plans-notion/skills/_partage/remontee-sur-main.md`).
 
 Trois choses retiennent le merge : une PR en brouillon (demandé par Benjamin
-seulement), une PR ouverte par quelqu'un d'autre, et le label
+seulement ; ou le temps d'écrire la ligne `Doc :`, 2026-11-02), une PR ouverte par quelqu'un d'autre, et le label
 **`review-required`**, la porte de sortie d'un humain qui veut relire malgré
 le vert. C'est le même nom et le même sens que sur `vahiny` et
 `kanban_mAIster_ATI4`. **Jamais sur la PR de clôture d'un plan** : la clôture
