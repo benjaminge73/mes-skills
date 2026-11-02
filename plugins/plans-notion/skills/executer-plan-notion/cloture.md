@@ -270,7 +270,7 @@ Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard »
      brouillon se demande à Benjamin, il ne se décide pas seul. **Une exception, décidée
      par Benjamin le 2026-11-02** : dans un dépôt dont le `ci.yml` saute le job `doc` sur
      un brouillon (son `if` porte `draft == false` : `mes-skills`, `hermes-custom`, `vahiny`,
-     `job-agent` et `mavod-perso` depuis le 2026-11-02), la PR
+     `job-agent`, `mavod-perso` et `micro-trading` depuis le 2026-11-02), la PR
      s'ouvre **avec `--draft`**, parce que la ligne `Doc :` cite le numéro de la PR et ne
      peut s'écrire qu'après l'ouverture. Elle passe prête au point 7, une fois la ligne
      écrite. Un dépôt dont le job `doc` n'a pas ce `if` garde la règle générale. Titre = titre du plan ; corps = une ligne par étape reprise du
@@ -469,12 +469,16 @@ Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard »
      part elle : la passer prête fait partie du point 7, pas de la remontée. Ces
      dépôts ne jouent **aucune CI sur un brouillon** (les jobs racines sautent) : le run
      `ready_for_review` est le premier et le seul à tout jouer. Là où le label
-     `review-required` lance l'e2e (`vahiny`, `mavod-perso`), le poser **avant**
-     `gh pr ready` : sur un brouillon il ne coûte rien, et le run de la sortie de
-     brouillon le porte déjà. Si une ligne fausse
+     `review-required` lance l'e2e (`vahiny`, `mavod-perso`, `micro-trading`), le poser
+     **à l'ouverture en brouillon, ou au plus tard avant** `gh pr ready` : sur un
+     brouillon il ne coûte rien, et le run de la sortie de brouillon le porte déjà. Si une ligne fausse
      a rougi `doc`, éditer la description suffit : le workflow `doc-relance.yml`
      (déclencheur `edited`) le relance dès que la ligne est valide, run fini. Le job refuse une raison qui n'en est pas une (règle globale
      `doc-vivante.md`) : la page projet non lue, ou l'absence de job CI, n'en sont pas.
+     **Avant de poser `a merger`**, dans un dépôt où la PR s'est ouverte en brouillon
+     (point 5) : relire `gh pr view <n> --json isDraft`, `false` exigé. Un `true` veut
+     dire que la PR n'est pas passée prête : la ligne `Doc :` écrite, on la passe
+     prête ; seul un brouillon demandé par Benjamin reste tel quel (point 8, issue c).
      Puis le journal et le compte rendu : `État final` (avec la sortie du point 6),
      `Statut` = **`a merger`**, `PR` = l'URL, et le compte rendu à Benjamin, qui est le
      récap (plus haut). `a merger` est vrai à cet instant : le code n'est pas encore sur

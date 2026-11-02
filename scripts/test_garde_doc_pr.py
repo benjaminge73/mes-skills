@@ -191,6 +191,15 @@ class DocSurPrPretesSeulement(unittest.TestCase):
             tete = ci.split(f"\n  {racine}:\n", 1)[1].split("\n    runs-on:", 1)[0]
             self.assertRegex(tete, r"pull_request\.draft (!= true|== false)", racine)
 
+    def test_la_cloture_verifie_que_la_pr_est_prete_avant_a_merger(self):
+        cloture = " ".join((ROOT / "plugins/plans-notion/skills/executer-plan-notion/cloture.md").read_text(encoding="utf-8").split())
+        self.assertIn("gh pr view <n> --json isDraft", cloture)
+        self.assertIn("`micro-trading` depuis le 2026-11-02", cloture)
+
+    def test_le_merge_met_a_jour_le_statut_de_l_entree_du_hub(self):
+        remontee = " ".join((ROOT / "plugins/plans-notion/skills/_partage/remontee-sur-main.md").read_text(encoding="utf-8").split())
+        self.assertIn("`Statut : a merger` (posé avant le merge) passe à `Statut : execute`", remontee)
+
 
 if __name__ == "__main__":
     unittest.main()
