@@ -9,14 +9,16 @@ incertain ne se devine pas.
 
 | Type | Obligatoires | Facultatifs (défaut) |
 |---|---|---|
-| Hébergement | nom du logement, date d'arrivée, date de départ, lieu | heure d'arrivée (15h00), heure de départ (11h00) |
-| Location | loueur, prise (date, heure, lieu), restitution (date, heure, lieu) | aucun |
+| Hébergement | nom du logement, date d'arrivée, date de départ, lieu, code de confirmation | heure d'arrivée (15h00), heure de départ (11h00) |
+| Location | loueur, prise (date, heure, lieu), restitution (date, heure, lieu), code de confirmation | aucun |
 
 - Heure facultative **absente** du mail : le défaut s'applique, et le compte rendu
   le dit.
 - Heure facultative **présente mais illisible** : champ incertain, comme un
   obligatoire.
 - Un obligatoire manquant ou supposé : `en_attente(champ)`, rien n'est rangé.
+- Code de confirmation absent ou illisible : `en_attente(code)`. Il sert au
+  dédoublonnage ; les dates ne le remplacent jamais.
 - Un hébergement n'a jamais de voyageur : la réservation est commune.
 
 ## Qualifier : seul le séjour confirmé compte
@@ -52,7 +54,8 @@ incertain ne se devine pas.
   script ne lit pas l'heure de prise : elle se lit dans le mail et se vérifie à
   part ; absente ou incertaine, `en_attente(heure)`.
 - **`document`** (hébergement et location) : `Reservation` par défaut, sinon
-  `Contrat` ou `Assurance`. Un autre document est refusé.
+  `Contrat` ou `Assurance`. Accent et casse ignorés (`Réservation` s'écrit
+  `Reservation`). Un autre document se signale ; la liste s'élargit dans le script.
 - **Rangement** : étape 4 de `SKILL.md`, dans le dossier du voyage, au sous-dossier
   de la configuration (plus bas). Sans pièce, rien n'est rangé.
 
@@ -89,17 +92,19 @@ Le compte rendu des billets, dans `SKILL.md`, dit « signalé » : pour ce flux,
 - **Invités** : le voyageur B est invité, comme pour les vols. La liste vient de
   `agenda.invites` de la configuration du voyage ; le créateur, de `agenda.createur`.
 - **Dédoublonnage avant toute création** : chercher dans l'agenda un événement qui
-  porte déjà le code de confirmation, ou qui recouvre les dates du séjour. S'il
-  existe, on ne crée rien : on le met à jour si le mail est une modification, sinon
-  on le laisse.
+  porte déjà le **même code de confirmation**, et seulement lui. Des dates communes
+  ne font pas « le même » événement : une location aux dates d'un séjour, ou la visite
+  d'un jour de séjour, garde le sien. S'il existe, on ne crée rien : on le met à jour
+  si le mail est une modification, sinon on le laisse.
 - **Sous-dossier OneDrive** : `onedrive_sous_dossiers` de la configuration du voyage
-  (`hebergement`, `location`), lu par l'agent. Clé absente :
+  (`billets_avion`, `hebergement`, `location`), lu par l'agent. Clé absente :
   `en_attente(sous-dossier non configuré)`. Ne rien deviner, ne jamais écraser
   (`conflictBehavior=fail`). Le sous-dossier ne sert que s'il y a une **pièce** :
   sans pièce, rien n'est rangé.
 - **Rappels** : aucun rappel Telegram pour un hébergement ou une location ; l'événement
   suffit.
 - **Notion (consigne à l'appelant)** : ce skill n'écrit pas Notion. L'appelant
-  complète la puce existante du séjour : lien direct de la réservation, et lien
-  OneDrive en plus si une pièce est rangée. Il ne crée une puce que si aucune ne
-  porte le code ni les dates.
+  complète la puce qui porte le **même code de confirmation** : lien direct de la
+  réservation, et lien OneDrive en plus si une pièce est rangée. Il ne crée une puce
+  que si aucune ne porte ce code. Une puce aux mêmes dates, sans ce code, n'est pas
+  la même réservation : elle n'est jamais complétée.

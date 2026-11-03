@@ -20,11 +20,13 @@ L'extension est celle du fichier (`.pdf` par défaut). Exemples anonymisés.
   `document` (carte d'embarquement : `Carte embarquement`).
 - Hébergement : jamais de voyageur, la réservation est commune. Champ
   `document` facultatif, `Reservation` par défaut ; sinon `Contrat` ou
-  `Assurance`. Un autre document est refusé.
+  `Assurance`. Accent et casse ignorés (`Réservation` s'écrit `Reservation`).
+  Un autre document se signale ; la liste s'élargit dans le script.
 - Location de voiture : jamais de voyageur, le contrat est commun. La date est
   celle de la **prise en charge**. Le lieu de prise en charge et le loueur sont
   dans le nom ; `document` vaut `Reservation` par défaut, sinon `Contrat` ou
-  `Assurance`. Lieu ou loueur absent : refus.
+  `Assurance` (même règle de graphie que l'hébergement). Lieu ou loueur absent :
+  refus.
 - Heure : celle du billet, heure locale du lieu, au format `HHhMM`.
 
 ## Dernier champ : le voyageur

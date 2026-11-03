@@ -81,6 +81,7 @@ Les fichiers du skill, à ouvrir au moment dit :
 4. **Ranger** dans `Voyages/AAAA - Destination` (voyage de plus d'un mois) ou
    `Voyages/AAAA-MM - Destination` (`nommer_billet.py --dossier`). Dossiers existants
    non renommés. **Jamais d'écrasement** : `conflictBehavior=fail`, nom pris → ` (2)`.
+   Billets : `onedrive_sous_dossiers.billets_avion` s'il existe, sinon la racine du voyage.
    Lien **privé** `webUrl`, jamais un lien de partage anonyme.
 5. **Planifier.** Événement d'agenda du voyageur principal (heure locale du lieu,
    lien privé en description), autre voyageur invité. Séjour et location :

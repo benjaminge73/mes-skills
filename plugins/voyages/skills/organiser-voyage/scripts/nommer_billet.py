@@ -26,7 +26,8 @@ voyageurs), le champ est omis. Le prénom l'emporte sur « 1 sur 2 ».
 Refus : une date, une heure (billet ou train), un lieu, un loueur, une origine,
 une destination ou un voyageur absent, vide, invalide ou listé dans
 ``incertains`` lève ``ChampIncertain``. Un ``document`` hors liste (location,
-hébergement) lève aussi ``ChampIncertain``. Jamais de nom bricolé avec « inconnu ».
+hébergement) lève aussi ``ChampIncertain`` ; accent et casse sont ignorés, le
+nom porte la graphie de la liste (« réservation » → ``Reservation``). Jamais de nom bricolé avec « inconnu ».
 
 Collision : ``nom_libre`` ajoute `` (2)``, `` (3)``… avant l'extension ; la
 comparaison ignore la casse (OneDrive aussi).
@@ -45,6 +46,7 @@ import argparse
 import json
 import re
 import sys
+import unicodedata
 from datetime import date
 
 JOUR_MAX_MOIS = 31  # « plus d'un mois » = strictement plus de 31 jours
@@ -100,17 +102,24 @@ def _extension(champs: dict) -> str:
     return "." + ext
 
 
+def _forme(texte: str) -> str:
+    """Forme de comparaison : sans accent, sans casse (« Réservation » = « reservation »)."""
+    decompose = unicodedata.normalize("NFKD", texte)
+    return "".join(c for c in decompose if not unicodedata.combining(c)).casefold()
+
+
 def _document(champs: dict, permis: tuple) -> str:
-    """Le champ ``document`` : « Reservation » si absent, sinon un des ``permis``."""
+    """Le champ ``document`` : « Reservation » si absent, sinon un des ``permis``, écrit sous sa graphie de liste."""
     if "document" in (champs.get("incertains") or []):
         raise ChampIncertain("champ « document » signalé incertain")
     if champs.get("document") in (None, ""):
         return "Reservation"
     doc = _texte(champs, "document")
-    if doc not in permis:
+    graphie = {_forme(p): p for p in permis}
+    if _forme(doc) not in graphie:
         raise ChampIncertain(
             f"champ « document » hors liste : {doc!r} (attendu : {', '.join(permis)})")
-    return doc
+    return graphie[_forme(doc)]
 
 
 def _dernier_champ(champs: dict) -> str | None:
