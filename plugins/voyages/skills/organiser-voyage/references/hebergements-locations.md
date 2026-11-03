@@ -26,7 +26,10 @@ incertain ne se devine pas.
 - **Compté** : le mail de confirmation d'un séjour (dates, logement, code de
   confirmation), ou d'une location (loueur, prise, restitution, code). Airbnb et
   tout émetteur du même type sont traités ainsi.
-- **Ignoré** : reçu de paiement, message de l'hôte ou du loueur, rappel, même s'ils
+- **Reçu de séjour** : il compte seulement quand il porte le code de confirmation, le
+  logement et les dates **et** qu'aucun mail de confirmation n'existe pour ce code (ni
+  traité, ni dans le libellé). Sinon il est ignoré.
+- **Ignoré** : reçu de paiement (hors cas ci-dessus), message de l'hôte ou du loueur, rappel, même s'ils
   citent les dates du séjour ou de la location.
 - **Modification** (dates ou heure changées) : elle met à jour l'événement existant
   (voir le renvoi plus bas) et le compte rendu la signale comme modification.
