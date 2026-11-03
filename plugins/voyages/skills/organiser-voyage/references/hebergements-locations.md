@@ -22,9 +22,10 @@ incertain ne se devine pas.
 ## Qualifier : seul le séjour confirmé compte
 
 - **Compté** : le mail de confirmation d'un séjour (dates, logement, code de
-  confirmation). Airbnb et tout émetteur du même type sont traités ainsi.
-- **Ignoré** : reçu de paiement, message de l'hôte, rappel, même s'ils citent les
-  dates du séjour.
+  confirmation), ou d'une location (loueur, prise, restitution, code). Airbnb et
+  tout émetteur du même type sont traités ainsi.
+- **Ignoré** : reçu de paiement, message de l'hôte ou du loueur, rappel, même s'ils
+  citent les dates du séjour ou de la location.
 - **Modification** (dates ou heure changées) : elle met à jour l'événement existant
   (voir le renvoi plus bas) et le compte rendu la signale comme modification.
 
@@ -44,12 +45,16 @@ incertain ne se devine pas.
 ## Nommer et ranger (seulement avec une pièce)
 
 - **Hébergement** : `nommer_billet.py`, type `hebergement`, champs `nom` et `date`
-  (date d'arrivée). Le gabarit est dans `nomenclature.md`. Pas de voyageur.
-- **Location** : ni `nomenclature.md` ni `nommer_billet.py` n'ont de gabarit ni de
-  type pour une location. Tant qu'il n'y en a pas, la pièce est
-  `en_attente(nommage location)` : ne pas réutiliser le gabarit d'hébergement.
-- **Rangement** : étape 4 de `SKILL.md`, dans le dossier du voyage. Sans pièce,
-  rien n'est rangé.
+  (date d'arrivée), `document` facultatif. Pas de voyageur.
+- **Location** : `nommer_billet.py`, type `location`, champs `lieu` (lieu de prise en
+  charge), `loueur`, `date` (date de prise), `document` facultatif. Gabarit :
+  `AAAA-MM-JJ - Location voiture Lieu - Loueur - Document`. Pas de voyageur. Le
+  script ne lit pas l'heure de prise : elle se lit dans le mail et se vérifie à
+  part ; absente ou incertaine, `en_attente(heure)`.
+- **`document`** (hébergement et location) : `Reservation` par défaut, sinon
+  `Contrat` ou `Assurance`. Un autre document est refusé.
+- **Rangement** : étape 4 de `SKILL.md`, dans le dossier du voyage, au sous-dossier
+  de la configuration (plus bas). Sans pièce, rien n'est rangé.
 
 Exemple anonymisé : hébergement « Appartement Exemple », arrivée 2027-04-10,
 départ 2027-04-17, sans PDF joint. Aucun fichier. L'événement et Notion reçoivent
@@ -68,4 +73,33 @@ le code `CODE-EXEMPLE` et le lien direct de la réservation.
 Le compte rendu des billets, dans `SKILL.md`, dit « signalé » : pour ce flux, c'est
 `en_attente(raison)`.
 
-## Événement, sous-dossier OneDrive et rappels : à compléter à l'étape suivante du plan
+## Événement, sous-dossier OneDrive et rappels
+
+- **Un seul événement par séjour**, de l'arrivée au départ : début = date d'arrivée à
+  l'heure de check-in, fin = date de départ à l'heure de check-out. Pour une
+  location : un seul événement, de la prise à la restitution (début = prise, fin =
+  restitution).
+- **Fuseau et adresse** : `timeZone` IANA du **logement** (ou du lieu de prise),
+  déduit de la ville ; `location` = l'adresse. Si la ville est ambiguë (p.ex. une
+  ville frontalière dont le fuseau diffère de celui des vols), le compte rendu le
+  signale.
+- **Description** : le code de confirmation, le **lien direct** de la réservation
+  (relevé dans le mail : page Airbnb ou de l'organisme), et le lien privé OneDrive
+  (`webUrl`) **seulement si une pièce est rangée**.
+- **Invités** : le voyageur B est invité, comme pour les vols. La liste vient de
+  `agenda.invites` de la configuration du voyage ; le créateur, de `agenda.createur`.
+- **Dédoublonnage avant toute création** : chercher dans l'agenda un événement qui
+  porte déjà le code de confirmation, ou qui recouvre les dates du séjour. S'il
+  existe, on ne crée rien : on le met à jour si le mail est une modification, sinon
+  on le laisse.
+- **Sous-dossier OneDrive** : `onedrive_sous_dossiers` de la configuration du voyage
+  (`hebergement`, `location`), lu par l'agent. Clé absente :
+  `en_attente(sous-dossier non configuré)`. Ne rien deviner, ne jamais écraser
+  (`conflictBehavior=fail`). Le sous-dossier ne sert que s'il y a une **pièce** :
+  sans pièce, rien n'est rangé.
+- **Rappels** : aucun rappel Telegram pour un hébergement ou une location ; l'événement
+  suffit.
+- **Notion (consigne à l'appelant)** : ce skill n'écrit pas Notion. L'appelant
+  complète la puce existante du séjour : lien direct de la réservation, et lien
+  OneDrive en plus si une pièce est rangée. Il ne crée une puce que si aucune ne
+  porte le code ni les dates.
