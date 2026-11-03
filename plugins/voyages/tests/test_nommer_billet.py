@@ -164,6 +164,22 @@ class LocationEtDocument(unittest.TestCase):
             with self.assertRaisesRegex(nb.ChampIncertain, "document"):
                 nb.construire_nom(avec(HEBERGEMENT, document="Facture"))
 
+    def test_un_document_en_graphie_francaise_est_normalise_et_non_refuse(self):
+        # Panne nommée par la relecture : « Réservation » (accent) ou « contrat »
+        # (casse) étaient refusés, et la réservation partait en attente pour une
+        # simple accentuation. Le nom doit porter la graphie de la liste.
+        cas = [
+            (avec(HEBERGEMENT, document="Réservation"),
+             "2027-05-04 - Hebergement Hotel des Exemples - Reservation.pdf"),
+            (avec(LOCATION, document="réservation"),
+             "2027-06-02 - Location voiture Ville A - Loueur Exemple - Reservation.pdf"),
+            (avec(LOCATION, document="contrat"),
+             "2027-06-02 - Location voiture Ville A - Loueur Exemple - Contrat.pdf"),
+        ]
+        for champs, attendu in cas:
+            with self.subTest(document=champs["document"]):
+                self.assertEqual(nb.construire_nom(champs), attendu)
+
     def test_une_location_ne_porte_jamais_de_voyageur_meme_si_un_voyageur_est_fourni(self):
         # Panne : une location nommée à un voyageur ; le contrat est commun aux
         # voyageurs. Le nom reste celui du gabarit, sans voyageur.
