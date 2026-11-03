@@ -23,7 +23,7 @@ références.
 
 ## Le refus est la règle sur l'incertain
 
-Quatre champs font un billet : **voyageur, date, heure, lieu**. Si l'un manque,
+Quatre champs font un billet : **voyageur, date, heure, lieu** (hébergement et location : autres champs, voir la branche plus bas). Si l'un manque,
 est illisible ou n'est qu'une supposition, **rien n'est rangé, rien n'est créé,
 rien n'est mis dans la file de rappels** : le billet est **signalé** dans le
 compte rendu, avec la référence de la commande et le champ qui manque. Deviner
@@ -67,6 +67,7 @@ Les fichiers du skill, à ouvrir au moment dit :
 |---|---|
 | `references/sources-billets.md` | avant d'extraire un billet d'un mail |
 | `references/nomenclature.md` | avant de nommer ou ranger |
+| `references/hebergements-locations.md` | hébergement ou location (branche sans billet) |
 | `references/rappels.md` | étape 6, et quand une carte d'embarquement arrive |
 | `scripts/recuperer_billet.py` | étape 2, extraire les QR |
 | `scripts/nommer_billet.py` | étape 3, nommer, jamais à la main |
@@ -78,9 +79,10 @@ Les fichiers du skill, à ouvrir au moment dit :
    visite) ? Sinon : ignoré. Lire dans le mail les quatre champs, et noter ceux
    qui sont incertains.
 2. **Récupérer** le ou les billets : `recuperer_billet.py` (PDF joint, lien ou QR
-   dans le corps, voir `references/sources-billets.md`). Code 3 ou `signal` :
-   rien d'importable, **signaler** avec la raison. Une commande de plusieurs
-   billets donne un billet par QR.
+   dans le corps, voir `references/sources-billets.md`). Code 3 ou `signal` sur
+   un billet : rien d'importable, **signaler** avec la raison. Hébergement ou
+   location sans PDF joint : ni appel du script, ni signal (branche plus bas).
+   Une commande de plusieurs billets donne un billet par QR.
 3. **Nommer** chaque billet avec `nommer_billet.py`, en lui passant la liste des
    champs incertains (`incertains`) et les noms déjà présents dans le dossier.
    Refus du script (code 1) : le billet **se signale**, il ne se range pas.
@@ -98,6 +100,11 @@ Les fichiers du skill, à ouvrir au moment dit :
    avant, plus son rappel d'enregistrement 48 h avant
    (`--completer-enregistrements`). Une **carte d'embarquement** se range
    comme un billet, puis se pose sur le rappel du vol (`--poser-carte`).
+
+**Branche « réservation sans billet »** (hébergement, location) : ses champs, sa
+pièce et son compte rendu (`traité | ignoré | en_attente(raison)`) sont dans
+`references/hebergements-locations.md`. Un PDF joint est rangé tel quel (étapes 3
+et 4, sans `recuperer_billet.py`) ; sans PDF, aucun fichier, la référence seule.
 
 ## Le compte rendu
 
