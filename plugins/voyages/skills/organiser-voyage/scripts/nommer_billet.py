@@ -13,16 +13,20 @@ Nomenclature (extension = celle du fichier, ``.pdf`` par défaut) :
   (Type = ``document``, par défaut « Billet » ; ex. « Carte embarquement »)
 - train : ``AAAA-MM-JJ HHhMM - Train Origine-Destination - Billet - Voyageur A.pdf``
 - hébergement : ``AAAA-MM-JJ - Hebergement Nom - Reservation.pdf`` (jamais de
-  voyageur : la réservation est commune)
+  voyageur : la réservation est commune ; ``document`` remplace ``Reservation``)
+- location de voiture : ``AAAA-MM-JJ - Location voiture Lieu - Loueur - Document.pdf``
+  (date = date de prise en charge ; jamais de voyageur : le contrat est commun ;
+  ``document`` vaut ``Reservation`` par défaut)
 
 Dernier champ des billets nominatifs : le voyageur si le billet le porte ;
 sinon, pour une commande à N billets (``billet`` = rang, ``sur`` = N),
 ``1 sur 2`` ; sinon, si ``commun`` est vrai (billet valable pour les deux
 voyageurs), le champ est omis. Le prénom l'emporte sur « 1 sur 2 ».
 
-Refus : une date, une heure (billet ou train), un lieu, une origine, une
-destination ou un voyageur absent, vide, invalide ou listé dans ``incertains``
-lève ``ChampIncertain``. Jamais de nom bricolé avec « inconnu ».
+Refus : une date, une heure (billet ou train), un lieu, un loueur, une origine,
+une destination ou un voyageur absent, vide, invalide ou listé dans
+``incertains`` lève ``ChampIncertain``. Un ``document`` hors liste (location,
+hébergement) lève aussi ``ChampIncertain``. Jamais de nom bricolé avec « inconnu ».
 
 Collision : ``nom_libre`` ajoute `` (2)``, `` (3)``… avant l'extension ; la
 comparaison ignore la casse (OneDrive aussi).
@@ -45,6 +49,8 @@ from datetime import date
 
 JOUR_MAX_MOIS = 31  # « plus d'un mois » = strictement plus de 31 jours
 INTERDITS = re.compile(r'["*:<>?/\\|]')
+# Documents permis dans le dernier champ d'un hébergement et d'une location.
+DOCUMENTS_RESERVATION = ("Reservation", "Contrat", "Assurance")
 
 
 class ChampIncertain(ValueError):
@@ -94,6 +100,19 @@ def _extension(champs: dict) -> str:
     return "." + ext
 
 
+def _document(champs: dict, permis: tuple) -> str:
+    """Le champ ``document`` : « Reservation » si absent, sinon un des ``permis``."""
+    if "document" in (champs.get("incertains") or []):
+        raise ChampIncertain("champ « document » signalé incertain")
+    if champs.get("document") in (None, ""):
+        return "Reservation"
+    doc = _texte(champs, "document")
+    if doc not in permis:
+        raise ChampIncertain(
+            f"champ « document » hors liste : {doc!r} (attendu : {', '.join(permis)})")
+    return doc
+
+
 def _dernier_champ(champs: dict) -> str | None:
     if champs.get("voyageur") not in (None, ""):
         return _texte(champs, "voyageur")
@@ -113,7 +132,14 @@ def construire_nom(champs: dict) -> str:
     jour = _date(champs).isoformat()
     ext = _extension(champs)
     if genre == "hebergement":
-        return f"{jour} - Hebergement {_texte(champs, 'nom')} - Reservation{ext}"
+        doc = _document(champs, DOCUMENTS_RESERVATION)
+        return f"{jour} - Hebergement {_texte(champs, 'nom')} - {doc}{ext}"
+    if genre == "location":
+        # Pas de voyageur : le contrat est commun, le lieu et le loueur sont dans le nom.
+        lieu = _texte(champs, "lieu")
+        loueur = _texte(champs, "loueur")
+        doc = _document(champs, DOCUMENTS_RESERVATION)
+        return f"{jour} - Location voiture {lieu} - {loueur} - {doc}{ext}"
     if genre == "vol":
         trajet = f"Vol {_texte(champs, 'origine')}-{_texte(champs, 'destination')}"
         debut = jour
