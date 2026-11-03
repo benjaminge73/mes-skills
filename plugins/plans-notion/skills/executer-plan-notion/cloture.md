@@ -463,7 +463,15 @@ Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard »
      `Doc : sans objet — lot <plan maître>, entrée consolidée à la fermeture du lot` pour un
      plan enfant d'un lot ; `Doc : sans objet — doc vivante non activée pour <projet>`
      sinon. Le dépôt qui a un job CI `doc` la relit par l'API, une seule fois, après les
-     tests. Dans ces dépôts (PR ouverte en brouillon, point 5), **la PR passe prête
+     tests. **Avant de la passer prête, jouer la garde en local**, depuis le worktree :
+     `python3 "${CLAUDE_PLUGIN_ROOT}/skills/_partage/scripts/verifier-ligne-doc.py" <n>`.
+     Le script lit la description par `gh pr view` et la passe à la garde du dépôt
+     (`scripts/garde_doc_pr.py` ou `scripts/garde-doc-pr.mjs`), celle que le job `doc`
+     jouera : **code 0 exigé**. Un 1 ou un 4 se corrige dans la description, puis on
+     rejoue ; un 3 dit que le dépôt n'a pas de garde (c'est l'encadré de la page projet
+     qui décide de l'entrée, pas ce code). Relevé du 2026-11-03 : 34 échecs de `doc` en
+     19 jours, chacun un run de CI pour une ligne qu'une seconde en local aurait refusée.
+     Dans ces dépôts (PR ouverte en brouillon, point 5), **la PR passe prête
      juste après avoir écrit la ligne** (`gh pr ready <n>`, ou `update_pull_request` avec
      `draft: false`) : `ready_for_review` lance le run complet, où `doc` lit une ligne qui
      existe déjà. Une PR laissée en brouillon ne se merge jamais, et rien ne le dit à
