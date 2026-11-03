@@ -10,6 +10,8 @@ seule la session vérifie se saute sans que personne le voie ; celle-ci, la CI l
 Deux formes acceptées, sur une ligne qui commence par `Doc :` (gras Markdown toléré) :
   Doc : https://app.notion.com/p/...      lien vers l'entrée du Changelog (Notion)
   Doc : https://app.notion.com/p/... — entrée « <titre> »   repli quand l'ancre n'a pu être lue
+                                          (le titre entre parenthèses est toléré aussi : le
+                                          relevé du 2026-11-03, PR hermes-custom #744, l'a vu écrit ainsi)
   Doc : sans objet — <raison>             tiret long, demi-cadratin ou tiret simple
 
 Refusés : une ligne absente ou vide ; un lien qui ne va pas vers Notion (le lien de la PR
@@ -31,9 +33,12 @@ import re
 import sys
 
 LIGNE_DOC = re.compile(r"^\**\s*Doc\s*\**\s*:\s*\**\s*(.*)$")
-# Le lien, puis éventuellement le repli de `changelog-et-doc.md` § 2.5 : « — entrée « <titre> » ».
+# Le lien, puis éventuellement le repli de `changelog-et-doc.md` § 2.5 : « — entrée « <titre> » »,
+# ou le même titre entre parenthèses « (entrée « <titre> ») » (même sens, forme que les sessions écrivent d'elles-mêmes).
 LIEN_NOTION = re.compile(
-    r"^<?https://(?:app\.|www\.)?notion\.(?:so|com|site)/\S+?>?(?:\s+[—–-]\s+entrée\s+\S.*)?$")
+    r"^<?https://(?:app\.|www\.)?notion\.(?:so|com|site)/\S+?>?"
+    r"(?:\s+[—–-]\s+entrée\s+\S.*|\s+\(entrée\s+\S.*\))?$")
+LIEN_NOTION_DEBUT = re.compile(r"^<?https://(?:app\.|www\.)?notion\.(?:so|com|site)/\S+")
 LIEN = re.compile(r"^<?https?://\S+")
 SANS_OBJET = re.compile(r"^sans objet\s*[—–-]\s*(\S.*)$", re.IGNORECASE)
 RAISON_MIN = 15
@@ -77,6 +82,12 @@ def verifier_doc(corps: str | None, auteur: str | None = None) -> tuple[bool, st
     for valeur in valeurs:
         if LIEN_NOTION.match(valeur):
             return True, f"lien vers le Changelog : {valeur}"
+        if LIEN_NOTION_DEBUT.match(valeur):
+            # Le lien est bon : c'est ce qui le suit qui ne va pas. Le dire, au lieu de
+            # prétendre que ce n'est pas un lien Notion (PR hermes-custom #744, 2026-11-03).
+            defauts.append(f"« {valeur} » : le lien Notion est bon, mais ce qui le suit n'est pas "
+                           "la forme « — entrée « <titre> » » ; n'écrire que le lien, ou ce repli exact")
+            continue
         if LIEN.match(valeur):
             defauts.append(f"« {valeur} » n'est pas un lien Notion vers l'entrée du Changelog")
             continue
