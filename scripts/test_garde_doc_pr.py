@@ -159,6 +159,24 @@ class LienDeRepliAccepte(unittest.TestCase):
         ok, _ = verifier_doc("Doc : https://app.notion.com/p/402b8cc8aa1d81a2adb3c7cf862d78cd — entrée « 2026-11-02 · Sans plan (PR #127) »")
         self.assertTrue(ok)
 
+    def test_titre_entre_parentheses_accepte(self):
+        """PR hermes-custom #744 (2026-11-03) : la session a écrit le repli entre parenthèses ;
+        le garde le refusait en disant « pas un lien Notion », et il a fallu rééditer la PR."""
+        ok, _ = verifier_doc("Doc : https://app.notion.com/p/402b8cc8aa1d818cb6b5cb3945203d9f (entrée « 2026-11-03 · Plan « X » étape 2 (PR #744) »)")
+        self.assertTrue(ok)
+
+    def test_lien_notion_mal_suivi_dit_ce_qui_ne_va_pas(self):
+        ok, raison = verifier_doc("Doc : https://app.notion.com/p/402b8cc8aa1d81a2adb3c7cf862d78cd voir plus tard")
+        self.assertFalse(ok)
+        self.assertIn("le lien Notion est bon", raison)
+        self.assertNotIn("n'est pas un lien Notion", raison)
+
+    def test_le_repli_est_prescrit_avec_le_tiret_long(self):
+        regle = " ".join((ROOT / "plugins/plans-notion/skills/_partage/changelog-et-doc.md").read_text(encoding="utf-8").split())
+        self.assertIn("— entrée « 2026-10-28 · … (PR #N) »", regle)
+        cloture = " ".join((ROOT / "plugins/plans-notion/skills/executer-plan-notion/cloture.md").read_text(encoding="utf-8").split())
+        self.assertIn("jamais le titre entre parenthèses", cloture)
+
     def test_lien_suivi_d_autre_chose_reste_refuse(self):
         ok, _ = verifier_doc("Doc : https://app.notion.com/p/402b8cc8aa1d81a2adb3c7cf862d78cd voir plus tard")
         self.assertFalse(ok)

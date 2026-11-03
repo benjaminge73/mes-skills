@@ -458,7 +458,8 @@ Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard »
      Puis la **ligne `Doc :` de la description de la PR** (`gh pr edit <n> --body-file …`) :
      `Doc : <lien d'ancre de l'entrée du Changelog>` pour un projet activé, soit
      `…/p/<page du Changelog>#<id du titre de l'entrée>` (lecture de l'id et repli :
-     `changelog-et-doc.md` § 2.5, fin) ;
+     `changelog-et-doc.md` § 2.5, fin ; le repli s'écrit `<lien de page> — entrée « <titre> »`,
+     tiret long, jamais le titre entre parenthèses) ;
      `Doc : sans objet — lot <plan maître>, entrée consolidée à la fermeture du lot` pour un
      plan enfant d'un lot ; `Doc : sans objet — doc vivante non activée pour <projet>`
      sinon. Le dépôt qui a un job CI `doc` la relit par l'API, une seule fois, après les
