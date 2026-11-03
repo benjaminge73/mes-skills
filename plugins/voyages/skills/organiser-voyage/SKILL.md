@@ -64,7 +64,7 @@ Les fichiers du skill, à ouvrir au moment dit :
 | `references/nomenclature.md` | avant de nommer ou ranger |
 | `references/hebergements-locations.md` | hébergement ou location |
 | `references/rappels.md` | étape 6, carte d'embarquement |
-| `scripts/recuperer_billet.py` | étape 2, extraire les QR |
+| `scripts/recuperer_billet.py` | étape 2, extraire les QR ou codes-barres |
 | `scripts/nommer_billet.py` | étape 3, jamais à la main |
 | `scripts/rappels.py` | étape 6, envoyer les rappels échus |
 
@@ -74,7 +74,7 @@ Les fichiers du skill, à ouvrir au moment dit :
    Sinon : ignoré. Lire les quatre champs, et noter ceux qui sont incertains.
 2. **Récupérer** : `recuperer_billet.py` (PDF joint, lien ou QR dans le corps, voir
    `references/sources-billets.md`). Code 3 ou `signal` : **signaler** avec la
-   raison. Une commande de plusieurs billets donne un billet par QR.
+   raison. Une commande de plusieurs billets donne un billet par code (QR ou code-barres).
    Hébergement ou location sans PDF : ni script, ni signal.
 3. **Nommer** chaque billet avec `nommer_billet.py`, en lui passant les champs
    `incertains` et les noms déjà présents. Refus (code 1) : **signaler**, ne pas ranger.

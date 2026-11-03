@@ -9,7 +9,7 @@ incertain ne se devine pas.
 
 | Type | Obligatoires | Facultatifs (défaut) |
 |---|---|---|
-| Hébergement | nom du logement, date d'arrivée, date de départ, lieu, code de confirmation | heure d'arrivée (15h00), heure de départ (11h00) |
+| Hébergement | nom du logement, date d'arrivée, date de départ, lieu | code de confirmation, heure d'arrivée (15h00), heure de départ (11h00) |
 | Location | loueur, prise (date, heure, lieu), restitution (date, heure, lieu), code de confirmation | aucun |
 
 - Heure facultative **absente** du mail : le défaut s'applique, et le compte rendu
@@ -17,8 +17,11 @@ incertain ne se devine pas.
 - Heure facultative **présente mais illisible** : champ incertain, comme un
   obligatoire.
 - Un obligatoire manquant ou supposé : `en_attente(champ)`, rien n'est rangé.
-- Code de confirmation absent ou illisible : `en_attente(code)`. Il sert au
-  dédoublonnage ; les dates ne le remplacent jamais.
+- Code de confirmation d'un **hébergement** absent : **non bloquant** (les
+  logements en ont rarement, pas plus que de QR ou de code-barres). Le séjour est
+  traité ; le dédoublonnage se fait alors sur **nom du logement + dates d'arrivée
+  et de départ**, et le compte rendu dit « sans code ». Pour une location, le code
+  reste obligatoire.
 - Un hébergement n'a jamais de voyageur : la réservation est commune.
 
 ## Qualifier : seul le séjour confirmé compte
@@ -95,7 +98,8 @@ Le compte rendu des billets, dans `SKILL.md`, dit « signalé » : pour ce flux,
 - **Invités** : le voyageur B est invité, comme pour les vols. La liste vient de
   `agenda.invites` de la configuration du voyage ; le créateur, de `agenda.createur`.
 - **Dédoublonnage avant toute création** : chercher dans l'agenda un événement qui
-  porte déjà le **même code de confirmation**, et seulement lui. Des dates communes
+  porte déjà le **même code de confirmation**, et seulement lui (hébergement sans
+  code : même nom de logement **et** mêmes dates d'arrivée et de départ). Des dates communes
   ne font pas « le même » événement : une location aux dates d'un séjour, ou la visite
   d'un jour de séjour, garde le sien. S'il existe, on ne crée rien : on le met à jour
   si le mail est une modification, sinon on le laisse.
