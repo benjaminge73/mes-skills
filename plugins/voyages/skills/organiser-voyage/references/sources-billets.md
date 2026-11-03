@@ -18,9 +18,12 @@ c'est un signal.
 ## Plusieurs billets par commande
 
 Une commande peut porter plusieurs billets (1 PDF de 2 pages = 2 QR) : le
-script rend **un billet par QR distinct**, donc un fichier par QR. Les Code 128
-imprimés sur le billet sont ignorés (QR seul). Un même QR vu deux fois n'est
-gardé qu'une fois (`empreinte`).
+script rend **un billet par code distinct**, donc un fichier par code. Un
+**code-barres linéaire** (Code 128, EAN, ITF…) **vaut un QR** : un billet qui
+n'en porte qu'un est importable. Sur une page qui porte à la fois un code 2D
+(QR, Aztec, PDF417, DataMatrix) et un code-barres, seul le 2D compte, pour ne
+pas compter un billet deux fois. Un même code vu deux fois n'est gardé qu'une
+fois (`empreinte`).
 
 ## Appeler le script
 
@@ -47,7 +50,7 @@ imprimé : c'est un code de billet.
 | Code | Sens | Conduite |
 |---|---|---|
 | 0 | billets trouvés | ranger chaque billet (nom via `nommer_billet.py`) |
-| 3 | `signal` : rien d'importable (aucun QR, lien qui ne rend pas un PDF, capture vide) | **ne rien ranger, signaler** avec la raison |
+| 3 | `signal` : rien d'importable (aucun QR ni code-barres, lien qui ne rend pas un PDF, capture vide) | **ne rien ranger, signaler** avec la raison |
 | 4 | Chromium absent (stderr) | signaler l'environnement ; définir `VOYAGES_CHROMIUM` |
 | 2 | appel mal formé | corriger l'appel |
 

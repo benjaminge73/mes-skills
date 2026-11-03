@@ -82,8 +82,10 @@ def lire(r) -> dict:
 
 
 def decoder(chemin: str) -> list[str]:
+    # QR ou code-barres linéaire : le script découpe l'un ou l'autre.
     with Image.open(chemin) as im:
-        return [b.text for b in zxingcpp.read_barcodes(im.convert("L"), formats=zxingcpp.QRCode)]
+        return [b.text for b in zxingcpp.read_barcodes(
+            im.convert("L"), formats=[zxingcpp.QRCode, zxingcpp.Code128])]
 
 
 class Dossier(unittest.TestCase):
@@ -131,10 +133,11 @@ class CorpsDeMail(Dossier):
 
 
 class PdfJoint(Dossier):
-    def test_un_pdf_de_deux_pages_a_deux_qr_rend_deux_billets_sans_le_code128(self):
-        # Panne : une commande porte plusieurs billets (1 PDF de 2 pages = 2 QR)
-        # et le Code 128 imprimé sur le billet n'est pas un QR : deux billets,
-        # un PDF d'une page chacun, le code-barres linéaire ignoré.
+    def test_un_pdf_de_deux_pages_a_deux_qr_rend_deux_billets_le_code128_de_la_meme_page_ignore(self):
+        # Panne : une commande porte plusieurs billets (1 PDF de 2 pages = 2 QR).
+        # La page 1 porte aussi un Code 128 : quand une page porte un code 2D et
+        # un linéaire, seul le 2D compte, donc le Code 128 de cette page n'ajoute
+        # pas de billet. Deux billets, un PDF d'une page chacun.
         pdf = self.dir / "commande.pdf"
         fabriquer_pdf(pdf, [{"qr": ["BILLET-TEST-1"], "code128": "LINEAIRE-1"},
                             {"qr": ["BILLET-TEST-2"]}])
@@ -152,15 +155,50 @@ class PdfJoint(Dossier):
         self.assertNotIn("BILLET-TEST", r.stdout + r.stderr)
         self.assertNotIn("LINEAIRE", r.stdout + r.stderr)
 
-    def test_un_pdf_sans_qr_donne_un_signal_et_aucun_billet(self):
-        # Panne : un PDF sans QR (seulement un Code 128) ne doit rien importer.
-        pdf = self.dir / "sans-qr.pdf"
+    def test_un_pdf_a_code128_seul_rend_un_billet(self):
+        # Panne : un code-barres linéaire seul (Code 128, sans aucun QR) était
+        # ignoré et le PDF donnait un signal. Il vaut désormais un billet : code 0,
+        # empreinte du contenu, PNG découpé lisible, contenu absent de la sortie.
+        pdf = self.dir / "lineaire.pdf"
         fabriquer_pdf(pdf, [{"qr": [], "code128": "LINEAIRE-1"}])
+        r = lancer(self.sortie, "--pdf", str(pdf))
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        res = lire(r)
+        self.assertIsNone(res["signal"])
+        self.assertEqual(len(res["billets"]), 1)
+        b = res["billets"][0]
+        self.assertEqual(b["empreinte"], empreinte("LINEAIRE-1"))
+        self.assertEqual(decoder(b["qr_png"]), ["LINEAIRE-1"])
+        self.assertNotIn("LINEAIRE-1", r.stdout + r.stderr)
+
+    def test_un_pdf_sans_aucun_code_donne_un_signal(self):
+        # Panne : une page sans aucun code (ni QR ni linéaire) ne doit rien
+        # importer : signal dédié, liste de billets vide.
+        pdf = self.dir / "sans-code.pdf"
+        fabriquer_pdf(pdf, [{"qr": []}])
         r = lancer(self.sortie, "--pdf", str(pdf))
         self.assertEqual(r.returncode, SIGNAL, r.stdout + r.stderr)
         res = lire(r)
         self.assertEqual(res["billets"], [])
         self.assertTrue(res["signal"])
+
+    def test_un_pdf_de_deux_pages_a_code128_distincts_rend_deux_billets(self):
+        # Panne : deux codes linéaires distincts (un par page) étaient ignorés
+        # ensemble ; chaque code vaut un billet, rangé par sa page.
+        pdf = self.dir / "lineaires.pdf"
+        fabriquer_pdf(pdf, [{"qr": [], "code128": "LINEAIRE-1"},
+                            {"qr": [], "code128": "LINEAIRE-2"}])
+        r = lancer(self.sortie, "--pdf", str(pdf))
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        res = lire(r)
+        self.assertEqual([b["empreinte"] for b in res["billets"]],
+                         [empreinte("LINEAIRE-1"), empreinte("LINEAIRE-2")])
+        self.assertEqual([b["page"] for b in res["billets"]], [1, 2])
+        for b, attendu in zip(res["billets"], ["LINEAIRE-1", "LINEAIRE-2"]):
+            self.assertEqual(decoder(b["qr_png"]), [attendu])
+            with pymupdf.open(b["pdf"]) as d:
+                self.assertEqual(d.page_count, 1)
+        self.assertNotIn("LINEAIRE", r.stdout + r.stderr)
 
 
 class _Serveur(http.server.BaseHTTPRequestHandler):

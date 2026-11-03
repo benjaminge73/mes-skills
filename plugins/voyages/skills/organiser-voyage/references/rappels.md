@@ -11,7 +11,7 @@ Exemples anonymisés.
 - `debut_local` + `fuseau` du **lieu** (pour un vol : le décollage, fuseau de
   l'aéroport de départ) ; `titre`, `ville` ; `etat` à `a_envoyer` ;
 - `lien` : le `webUrl` privé du billet ;
-- `piece_jointe` : pour un billet QR, **l'image du QR seule** ; à défaut le PDF.
+- `piece_jointe` : pour un billet à QR ou code-barres, **l'image du code seule** ; à défaut le PDF.
   Le fichier doit **durer jusqu'au rappel** : jamais dans un dossier de travail
   jetable ;
 - `destinataires` : le voyageur nommé sur le billet, les deux pour un billet

@@ -11,8 +11,8 @@ Trois cas, un seul par appel :
 - ``--html`` : corps du mail rendu en PNG par Chromium headless, QR cherché
   dans la capture.
 
-Les QR sont lus avec PyMuPDF (rendu 200 dpi) et zxing-cpp, format QR seul : un
-Code 128 imprimé sur le billet est ignoré. Un billet = un QR distinct.
+Les QR sont lus avec PyMuPDF (rendu 200 dpi) et zxing-cpp, codes 2D en priorité,
+à défaut code-barres linéaire (vaut un QR). Un billet = un code distinct.
 
 Sortie standard : un JSON
 ``{"cas": "pdf"|"lien"|"corps", "billets": [...], "signal": null|"<raison>"}``.
@@ -21,7 +21,7 @@ QR, ``null`` pour le corps), ``page`` (rang ou ``null``), ``empreinte`` (sha256
 court du contenu du QR). Le contenu décodé n'est jamais imprimé : c'est un code
 de billet, l'empreinte suffit à dédoublonner.
 
-Codes de sortie : 0 billets trouvés ; 3 signal (rien d'importable : aucun QR,
+Codes de sortie : 0 billets trouvés ; 3 signal (rien d'importable : aucun QR ni code-barres,
 lien qui ne rend pas un PDF, capture vide) ; 4 erreur d'environnement
 (Chromium absent) ; 2 usage.
 
@@ -83,8 +83,16 @@ def empreinte(texte: str) -> str:
     return hashlib.sha256(texte.encode("utf-8")).hexdigest()[:12]
 
 
+FORMATS_2D = {"QRCode", "MicroQRCode", "Aztec", "PDF417", "DataMatrix"}
+
+
 def qr_dans(image: Image.Image):
-    return zxingcpp.read_barcodes(image.convert("L"), formats=zxingcpp.QRCode)
+    """Codes de billet d'une image : codes 2D en priorité ; à défaut, code-barres
+    linéaire (Code 128, EAN, ITF…), qui vaut un QR. Sur une même image portant
+    les deux, seul le 2D compte, pour ne pas compter un billet deux fois."""
+    codes = [c for c in zxingcpp.read_barcodes(image.convert("L")) if c.valid]
+    deux_d = [c for c in codes if c.format.name in FORMATS_2D]
+    return deux_d or codes
 
 
 def decouper(image: Image.Image, code) -> Image.Image:
@@ -167,7 +175,7 @@ def traiter(args) -> tuple[str, list]:
         for fichier in args.pdf:
             billets_d_un_pdf(Path(fichier), sortie, billets, vus)
         if not billets:
-            raise Signal("aucun QR lisible dans le PDF")
+            raise Signal("aucun QR ni code-barres lisible dans le PDF")
     elif args.url:
         cas = "lien"
         erreurs = []
@@ -179,7 +187,7 @@ def traiter(args) -> tuple[str, list]:
                 continue
             billets_d_un_pdf(pdf, sortie, billets, vus)
         if not billets:
-            raise Signal("; ".join(erreurs) or "aucun QR lisible dans le PDF téléchargé")
+            raise Signal("; ".join(erreurs) or "aucun QR ni code-barres lisible dans le PDF téléchargé")
     else:
         cas = "corps"
         capture = capturer(Path(args.html), sortie)
@@ -188,7 +196,7 @@ def traiter(args) -> tuple[str, list]:
             for code in qr_dans(image):
                 ajouter(billets, vus, sortie, image, code, None, None)
         if not billets:
-            raise Signal("aucun QR lisible dans le corps rendu (image distante non chargée ?)")
+            raise Signal("aucun QR ni code-barres lisible dans le corps rendu (image distante non chargée ?)")
     return cas, billets
 
 
