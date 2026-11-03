@@ -104,6 +104,90 @@ class Gabarits(unittest.TestCase):
             self.assertNotIn(c, nom)
 
 
+LOCATION = {"type": "location", "date": "2027-06-02", "lieu": "Ville A",
+            "loueur": "Loueur Exemple"}
+HEBERGEMENT = {"type": "hebergement", "date": "2027-05-04", "nom": "Hotel des Exemples"}
+
+
+class LocationEtDocument(unittest.TestCase):
+    def test_une_location_sans_loueur_est_refusee_et_le_refus_nomme_le_loueur(self):
+        # Panne nommée par le plan : une location sans loueur reçoit un nom, et le
+        # contrat ne dit plus à quel loueur il appartient. Le refus doit nommer le
+        # champ manquant (même forme que les autres refus du script).
+        champs = {k: v for k, v in LOCATION.items() if k != "loueur"}
+        with self.assertRaisesRegex(nb.ChampIncertain, "loueur"):
+            nb.construire_nom(champs)
+
+    def test_une_location_sans_lieu_est_refusee_et_le_refus_nomme_le_lieu(self):
+        # Panne nommée par le plan : une location sans lieu de prise en charge reçoit
+        # un nom ; le lieu est un champ du nom, son absence ne se devine pas.
+        champs = {k: v for k, v in LOCATION.items() if k != "lieu"}
+        with self.assertRaisesRegex(nb.ChampIncertain, "lieu"):
+            nb.construire_nom(champs)
+
+    def test_une_location_porte_lieu_loueur_et_document_et_le_document_par_defaut_est_reservation(self):
+        # Panne : gabarit location absent, ou champs dans le désordre. Le document
+        # est le dernier champ ; sans lui, il vaut Reservation.
+        attendus = [
+            (avec(LOCATION, document="Contrat"),
+             "2027-06-02 - Location voiture Ville A - Loueur Exemple - Contrat.pdf"),
+            (avec(LOCATION, document="Assurance"),
+             "2027-06-02 - Location voiture Ville A - Loueur Exemple - Assurance.pdf"),
+            (LOCATION,
+             "2027-06-02 - Location voiture Ville A - Loueur Exemple - Reservation.pdf"),
+        ]
+        for champs, attendu in attendus:
+            with self.subTest(attendu=attendu):
+                self.assertEqual(nb.construire_nom(champs), attendu)
+
+    def test_un_hebergement_sans_document_garde_exactement_son_nom_actuel(self):
+        # Non-régression : l'ajout du champ document ne doit rien changer au gabarit
+        # hébergement existant, qui se termine par « - Reservation ».
+        self.assertEqual(
+            nb.construire_nom(HEBERGEMENT),
+            "2027-05-04 - Hebergement Hotel des Exemples - Reservation.pdf")
+
+    def test_un_hebergement_avec_document_change_seulement_le_dernier_champ(self):
+        # Panne : le document Contrat est ignoré (le nom garde « Reservation »), ou
+        # bien il touche un autre champ que le dernier.
+        self.assertEqual(
+            nb.construire_nom(avec(HEBERGEMENT, document="Contrat")),
+            "2027-05-04 - Hebergement Hotel des Exemples - Contrat.pdf")
+
+    def test_un_document_hors_liste_est_refuse_pour_une_location_et_un_hebergement(self):
+        # Panne : un document inventé (« Facture ») part tel quel dans le nom.
+        # Le refus doit nommer le champ « document ».
+        with self.subTest(type="location"):
+            with self.assertRaisesRegex(nb.ChampIncertain, "document"):
+                nb.construire_nom(avec(LOCATION, document="Facture"))
+        with self.subTest(type="hebergement"):
+            with self.assertRaisesRegex(nb.ChampIncertain, "document"):
+                nb.construire_nom(avec(HEBERGEMENT, document="Facture"))
+
+    def test_un_document_en_graphie_francaise_est_normalise_et_non_refuse(self):
+        # Panne nommée par la relecture : « Réservation » (accent) ou « contrat »
+        # (casse) étaient refusés, et la réservation partait en attente pour une
+        # simple accentuation. Le nom doit porter la graphie de la liste.
+        cas = [
+            (avec(HEBERGEMENT, document="Réservation"),
+             "2027-05-04 - Hebergement Hotel des Exemples - Reservation.pdf"),
+            (avec(LOCATION, document="réservation"),
+             "2027-06-02 - Location voiture Ville A - Loueur Exemple - Reservation.pdf"),
+            (avec(LOCATION, document="contrat"),
+             "2027-06-02 - Location voiture Ville A - Loueur Exemple - Contrat.pdf"),
+        ]
+        for champs, attendu in cas:
+            with self.subTest(document=champs["document"]):
+                self.assertEqual(nb.construire_nom(champs), attendu)
+
+    def test_une_location_ne_porte_jamais_de_voyageur_meme_si_un_voyageur_est_fourni(self):
+        # Panne : une location nommée à un voyageur ; le contrat est commun aux
+        # voyageurs. Le nom reste celui du gabarit, sans voyageur.
+        self.assertEqual(
+            nb.construire_nom(avec(LOCATION, voyageur="Voyageur A")),
+            "2027-06-02 - Location voiture Ville A - Loueur Exemple - Reservation.pdf")
+
+
 class Collision(unittest.TestCase):
     def test_un_nom_deja_present_n_est_jamais_ecrase(self):
         # Panne : deux billets au même nom, le second écrase le premier.

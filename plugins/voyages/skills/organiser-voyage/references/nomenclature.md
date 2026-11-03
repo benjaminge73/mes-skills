@@ -13,11 +13,20 @@ L'extension est celle du fichier (`.pdf` par défaut). Exemples anonymisés.
 | Billet (musée, visite, activité) | `AAAA-MM-JJ HHhMM - Lieu - Billet - Voyageur` | `2027-04-12 10h30 - Musée Exemple - Billet - Voyageur A.pdf` |
 | Vol | `AAAA-MM-JJ - Vol Origine-Destination - Type - Voyageur` | `2027-04-10 - Vol Ville A-Ville B - Billet - Voyageur B.pdf` |
 | Train | `AAAA-MM-JJ HHhMM - Train Origine-Destination - Billet - Voyageur` | `2027-04-13 08h15 - Train Ville B-Ville C - Billet - Voyageur A.pdf` |
-| Hébergement | `AAAA-MM-JJ - Hebergement Nom - Reservation` | `2027-04-10 - Hebergement Hôtel Exemple - Reservation.pdf` |
+| Hébergement | `AAAA-MM-JJ - Hebergement Nom - Document` | `2027-04-10 - Hebergement Hôtel Exemple - Reservation.pdf` |
+| Location de voiture | `AAAA-MM-JJ - Location voiture Lieu - Loueur - Document` | `2027-06-02 - Location voiture Ville A - Loueur Exemple - Contrat.pdf` |
 
 - Vol : `Type` vaut `Billet` par défaut ; pour un autre document, champ
   `document` (carte d'embarquement : `Carte embarquement`).
-- Hébergement : jamais de voyageur, la réservation est commune.
+- Hébergement : jamais de voyageur, la réservation est commune. Champ
+  `document` facultatif, `Reservation` par défaut ; sinon `Contrat` ou
+  `Assurance`. Accent et casse ignorés (`Réservation` s'écrit `Reservation`).
+  Un autre document se signale ; la liste s'élargit dans le script.
+- Location de voiture : jamais de voyageur, le contrat est commun. La date est
+  celle de la **prise en charge**. Le lieu de prise en charge et le loueur sont
+  dans le nom ; `document` vaut `Reservation` par défaut, sinon `Contrat` ou
+  `Assurance` (même règle de graphie que l'hébergement). Lieu ou loueur absent :
+  refus.
 - Heure : celle du billet, heure locale du lieu, au format `HHhMM`.
 
 ## Dernier champ : le voyageur
@@ -64,12 +73,14 @@ python3 "$SCRIPT" --dossier --json '{"destination":"Destination Exemple","debut"
 
 Champs de `--json` selon le type :
 
-- `type` (`billet`, `vol`, `train`, `hebergement`), `date` (`AAAA-MM-JJ`),
-  `extension` (facultatif) ;
+- `type` (`billet`, `vol`, `train`, `hebergement`, `location`), `date`
+  (`AAAA-MM-JJ`), `extension` (facultatif) ;
 - `billet` : `heure`, `lieu` ; `train` : `heure`, `origine`, `destination` ;
   `vol` : `origine`, `destination`, `document` (facultatif) ;
-  `hebergement` : `nom` ;
-- dernier champ : `voyageur`, ou `billet` + `sur`, ou `commun` ;
+  `hebergement` : `nom`, `document` (facultatif) ;
+  `location` : `lieu`, `loueur`, `document` (facultatif) ;
+- dernier champ : `voyageur`, ou `billet` + `sur`, ou `commun` (hébergement
+  et location n'en ont pas : leur nom n'a jamais de voyageur) ;
 - `incertains` : liste des champs que la lecture du mail ne garantit pas.
 
 Sortie : le nom sur stdout, code 0. Refus : code 1, `refus : <raison>` sur

@@ -53,3 +53,9 @@ Ce que fait ensuite `rappels.py`, sans autre geste :
 vol (code 2) : c'est le signe d'une carte mal rattachée, à **signaler**. Il
 verrouille la file pendant l'écriture, ce que ne fait pas une édition à la main
 — un passage d'envoi simultané effacerait la carte.
+
+## Hébergement et location : aucun rappel
+
+Un hébergement ou une location n'entre jamais dans la file : l'événement d'agenda
+suffit (`hebergements-locations.md`). Pas d'entrée, pas d'appel de `rappels.py`
+pour ce flux.
