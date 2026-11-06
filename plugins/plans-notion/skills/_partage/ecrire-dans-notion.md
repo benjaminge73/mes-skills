@@ -190,8 +190,22 @@ Toujours écrire ces noms en code inline, jamais en texte nu.
 
 Les valeurs de la propriété `Statut` sont **sans accents** : `brouillon`,
 `en revue`, `valide`, `pret`, `en cours`, `a merger`, `execute`, `archive`.
-Écrire `exécuté` fait échouer l'appel avec une `validation_error`. `pret` dit
-que la préparation de l'exécution est faite et prouvée (`preparation-prete.py`) :
+Écrire `exécuté` fait échouer l'appel avec une `validation_error`.
+
+`brouillon` : posé à la création, la rédaction est **partielle** (il manque des
+questions, des preuves, le POC ou une partie du chapitre `Exécution`) ; Benjamin n'a
+rien à y lire. `en revue` : posé **par l'agent** quand il a **fini de rédiger**, c'est
+le signal « prêt à être relu » sur lequel Benjamin filtre la base. Il se pose quand
+toutes les questions sont posées avec leur recommandation, que preuves et POC sont
+dans la page, que `Exécution` est écrit et que le filtre de l'enquête
+(`plan-notion/SKILL.md` §8, point 2, hors la répercussion des réponses de Benjamin)
+passe ; sinon le plan reste `brouillon`. Après une passe de la boucle de commentaires,
+le statut suit l'état de la page (`en revue` si complète, `brouillon` si la passe l'a
+laissée partielle), jamais en deçà de `valide` une fois posé par Benjamin. L'ordre
+`brouillon` < `en revue` < `valide` ne change pas : `statut-maitre.py` et
+`depart-dans-le-lot.py` sont inchangés.
+
+`pret` dit que la préparation de l'exécution est faite et prouvée (`preparation-prete.py`) :
 elle se pose entre `valide` et `en cours`, jamais à la conception.
 
 `a merger` et `execute` se distinguent par **où vit le travail**. `a merger`
