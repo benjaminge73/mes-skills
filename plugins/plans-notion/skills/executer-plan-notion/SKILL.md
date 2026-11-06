@@ -82,9 +82,9 @@ protège à partir de la version qui la porte. (Historique : `docs/retex/execute
   merge — et poser `execute` dans le tour où le merge est constaté sur `main`,
   qui peut être un tour après la clôture. Une PR déjà mergée à la reprise se
   vérifie sur pièce, et `execute` se pose ; une PR encore ouverte se suit.
-- `brouillon`, `en revue` → s'arrêter et le dire. Un plan pas encore validé est
-  une proposition, pas une commande : coder dessus, c'est produire un travail que
-  Benjamin n'a jamais accepté.
+- `brouillon` (rédaction pas finie), `en revue` (en attente de relecture) → s'arrêter et
+  le dire. Un plan pas encore validé est une proposition, pas une commande : coder
+  dessus, c'est produire un travail que Benjamin n'a jamais accepté.
 - `en cours` → une exécution est déjà commencée (donc passée par `pret`). Lire le `Journal d'exécution`
   avant tout et reprendre où elle s'est arrêtée, plutôt que de repartir de zéro.
 - Benjamin qui dit « go » ne remplace pas le statut. Il le dit de mémoire, la page

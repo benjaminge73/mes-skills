@@ -226,6 +226,8 @@ choisir. La doc vivante de `hermes-custom`, elle, va toujours au hub Hermes (`_p
 
 - Statuts : `brouillon` → `en revue` → `valide` → `pret` → `en cours` →
   `a merger` → `execute` (valeurs **sans accents**, cf. la règle en tête).
+  - **`brouillon`** = rédaction partielle ; **`en revue`** = l'agent a **fini de rédiger**,
+    Benjamin relit : `_partage/ecrire-dans-notion.md`, « Rappel de vocabulaire ».
   **`pret`** : préparation faite et prouvée, posé à l'ouverture
   (`executer-plan-notion` §2), jamais ici.
 - **`a merger` et `execute` ne disent pas la même chose**, et les confondre fait
@@ -350,21 +352,19 @@ la table ; lire la page, en revanche, reste permis.
    plan en un schéma » faux (chapitre `Cartes`, §3) — le rejouer, puis vérifier
    mécaniquement que le nombre de nœuds d'étape égale le nombre de titres H3
    `Étape N` de la page (contrôle détaillé dans `_partage/schemas.md`).
+8. **Poser le `Statut` que l'état de la page justifie** (§2, « Statuts »), en dernier.
 
-Les pièges de l'API qui mordent ici — commentaire ni déplaçable ni résoluble,
-écriture qui échoue en silence après normalisation du texte par Notion — sont
-décrits dans le fichier partagé (§4).
+Pièges de l'API (commentaire ni déplaçable ni résoluble, écriture qui échoue en
+silence) : fichier partagé, §4.
 
 ## 6. Lecture économe
 
-Garder un miroir du plan hors du dépôt, avec l'horodatage de dernière
-modification de la page **et le relevé préalable (§4)** — cases cochées et
-textes libres. À chaque passe : lire les fils — quelques centaines de tokens — et
-ne recharger la page entière que si elle a changé côté Notion, ou pour la
-relecture de cohérence finale. **Le miroir est un cache, jamais une source de
-vérité** : absent — autre machine, autre session — on recharge, sans état d'âme.
-Et le relevé se refait toujours sur la page fraîche avant une refonte, jamais sur
-le miroir : c'est précisément entre deux sessions que Benjamin coche.
+Garder un miroir du plan hors du dépôt, avec l'horodatage de dernière modification
+de la page **et le relevé préalable (§4)** — cases cochées et textes libres. À chaque
+passe : lire les fils (quelques centaines de tokens), ne recharger la page entière que
+si elle a changé côté Notion ou pour la relecture finale. **Le miroir est un cache,
+jamais une source de vérité** : absent, on recharge. Le relevé se refait toujours
+sur la page fraîche avant une refonte : c'est entre deux sessions que Benjamin coche.
 
 ## 7. Maquettes HTML
 
