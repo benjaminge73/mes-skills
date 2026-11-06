@@ -34,7 +34,7 @@ checkout principal.
 > `main` est un geste vers l'extérieur, et il n'a lieu que sur demande explicite
 > de Benjamin (§6).
 
-Règle conservée : un plan = une branche, aucune PR sans demande de Benjamin.
+Règle conservée : un plan = une branche, aucune PR sans demande de Benjamin. [état au 2026-11-06 : la règle a été revue depuis ; la PR s'ouvre désormais à la clôture, prête (`cloture.md`, passage « La PR s'ouvre à la clôture, prête »).]
 
 ## Preuve locale, e2e à la clôture (`etapes.md`)
 
