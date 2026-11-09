@@ -220,8 +220,8 @@ pas pour raconter l'avancement, qui va dans `Journal d'exécution` (§4).
   sous-agent ne fait pas, le format du rapport en cinq pièces.
 - **Après chaque étape** : rejouer la preuve, vérifier au premier `executant`
   le modèle réellement servi (`modele-sous-agent.py`), commiter, faire relire par
-  `relecteur` (`revue.md`), relire le diff de la mémoire de l'`executant` à
-  chaque clôture de lot, écrire l'entrée de journal, afficher un récap, puis
+  `relecteur` (`revue.md`), relire les faits que l'`executant` a versés au
+  `fact_store` à chaque clôture de lot (`etapes.md`), écrire l'entrée de journal, afficher un récap, puis
   **enchaîner sans demander la main** : l'autonomie est le défaut, on ne
   s'arrête que sur ce qui rendrait la suite fausse ou irréversible.
 
