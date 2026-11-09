@@ -21,6 +21,29 @@ clôture. Une suite qui n'a atterri que dans la page d'un plan déjà exécuté 
 suite que personne n'a vue : elle se remonte dans la session, au tour où on la
 constate (`AskUserQuestion`, ou le compte rendu), puis la page est corrigée.
 
+## Le reste à faire se recopie en entier dans la session
+
+Le message de fin d'exécution et celui de la remontée sur `main` (le merge constaté)
+**portent eux-mêmes** ce qui reste ; ils ne renvoient jamais vers la page. Une phrase
+comme « il reste les points ouverts de l'`État final`, chacun avec son propriétaire »
+oblige Benjamin à rouvrir un plan à `execute` pour savoir ce qu'on attend de lui : c'est
+exactement la recherche qu'on lui épargne (relevé du 2026-11-09, sur sa demande). Donc :
+
+- **Chaque point encore ouvert est recopié en toutes lettres** dans la rubrique
+  **Reste à faire** du message : ce qu'il faut faire, qui s'en charge (le propriétaire
+  du tri : sa réponse attendue, le plan de suite avec son lien, l'étape `D<n>`, ou
+  l'événement et son déclencheur), et l'action précise s'il en attend une de lui.
+  Pas de « voir l'`État final` », pas de « les points ouverts du plan », pas de
+  décompte seul : le lecteur ne doit rien avoir à chercher ailleurs.
+- **Un point devenu sans objet ne s'écrit pas.** Avant de recopier, chaque ligne est
+  confrontée à l'état réel du moment (`gh pr view` pour la PR, la page relue) : une
+  action liée à une PR (activer l'auto-fix, attendre la CI, relire) n'a plus d'objet
+  une fois la PR mergée ou fermée. Ce qui ne tient plus est omis, pas listé « pour
+  mémoire » ; la page, elle, se corrige si elle l'affirme encore.
+- **Rien d'ouvert** s'écrit « Reste à faire : rien », en une ligne.
+- La règle vaut à la clôture (`cloture.md`, compte rendu) **et** à la remontée, quand
+  la session constate le merge et le dit à Benjamin (`remontee-sur-main.md`).
+
 ## Le tri, avant le passage à `a merger`
 
 Il se joue au début de la clôture (`cloture.md`, « Avant le point 1 »), avant la

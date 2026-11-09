@@ -205,6 +205,12 @@ le ou les plan concernés ».
   règle de la session suivante (point 4 : lire `a merger` avec une PR renseignée,
   vérifier, poser `execute`) est le filet, pas le plan. Elle ne remplace pas le suivi.
 
+**Le message qui annonce le merge recopie le reste à faire en entier** : chaque point
+encore ouvert, avec son propriétaire et l'action attendue, sans renvoi à l'`État final`
+du plan (qui est à `execute` et que Benjamin ne rouvre pas). Un point lié à la PR qui
+vient d'être mergée (auto-fix, attente de CI) n'a plus d'objet : il est omis
+(`plan-de-suite.md`, « Le reste à faire se recopie en entier dans la session »).
+
 **Le point 5 est celui qui saute**, et il saute toujours pour la même raison : le
 merge est un moment de fin. La CI est verte, le compte rendu est écrit,
 l'attention est déjà sur la suite — et la page reste sur son `a merger`,
