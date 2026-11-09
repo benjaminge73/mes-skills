@@ -118,6 +118,10 @@ Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard »
   dans cet ordre, chaque ligne ✨ ou 🔧 avec sa source ; puis une ligne
   `PR : <lien> · Statut : <statut>` ; puis le bloc **« Côté technique »**.
   Le texte des rubriques est celui du Récap de la page (point 7, geste b).
+  **La rubrique « Reste à faire » recopie chaque point ouvert en entier** (quoi, qui,
+  l'action attendue de Benjamin), sans renvoi vers l'`État final` ni vers la page, et
+  sans les points devenus sans objet : `plan-de-suite.md`, « Le reste à faire se
+  recopie en entier dans la session ». Même exigence au message qui constate le merge.
 - **Côté technique** (le bloc replié, rien de perdu) : les étapes parties en
   sous-agent `executant` (Haiku) et, pour celles faites en direct, pourquoi (§3) ;
   la PR, son URL, prête — avec ou sans le label `review-required` selon ce que ce
