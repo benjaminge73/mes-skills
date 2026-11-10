@@ -158,8 +158,8 @@ Puis, dans le même tour, avant la première étape :
 - **Réglage du pilote : Sonnet 5.5, effort `medium`**, contrainte de lancement. À
   vérifier **avant le premier geste de ce §**, d'après ce que la session sait de son
   modèle et de son effort. Une session qui n'est pas à ce réglage ne prépare ni ne
-  code : elle ouvre une **sous-session visible** à ce réglage (lien Desktop ou ligne
-  de terminal, jamais `claude -p` en silence) et s'arrête (`ouverture.md`, « Le
+  code : elle **lance elle-même, sans demander**, une sous-session à ce réglage (`claude --bg` nommée ;
+  lien ou ligne à coller seulement sans `claude` ; jamais `claude -p` en silence) et s'arrête (`ouverture.md`, « Le
   réglage du pilote »). Seul Benjamin déroge,
   dans son message. La puce `**Pilote** : <modèle>, <effort>` de l'entrée `Ouverture`
   dit ce qui a servi (p.ex. `Sonnet 5.5, medium`), et `preparation-prete.py` refuse

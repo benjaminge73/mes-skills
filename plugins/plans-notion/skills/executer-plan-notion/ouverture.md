@@ -5,7 +5,7 @@ lire (à l'ouverture, avant la première étape). Le détail vit ici.
 
 Sommaire :
 
-- Le réglage du pilote : Sonnet `medium`, sinon une sous-session
+- Le réglage du pilote : Sonnet `medium`, sinon une sous-session lancée sans demander
 - Qui prépare : le pilote, ou le `preparateur`
 - Remettre le chapitre `Exécution` à jour — toujours
 - La porte des preuves, avant — chaque étape a sa preuve de fin
@@ -14,7 +14,7 @@ Sommaire :
 - La porte du `pret` : l'entrée `Ouverture`, le script, puis `en cours`
 - Une branche, la PR à la clôture
 
-### Le réglage du pilote : Sonnet `medium`, sinon une sous-session
+### Le réglage du pilote : Sonnet `medium`, sinon une sous-session lancée sans demander
 
 **Le pilote d'un plan tourne en Sonnet 5.5, effort `medium`** (décision de Benjamin du
 2026-10-19). La vérification vient **avant tout geste du §2**, la relecture comprise : la
@@ -22,42 +22,50 @@ préparation est le travail du pilote, elle se joue donc déjà à ce réglage.
 
 - **La session est à ce réglage** → elle continue, et la puce **Pilote** de l'entrée
   `Ouverture` dit `Sonnet 5.5, medium`.
-- **Sinon, elle ne prépare ni ne code.** Elle ouvre une **sous-session visible**, à ce
-  réglage, depuis le dépôt du plan, puis **s'arrête** : la sous-session reçoit le plan
-  entier (préparation et étapes) et parle elle-même à Benjamin. Jamais un `claude -p`
-  ni un agent d'arrière-plan lancé en silence : Benjamin n'y voit rien et ne peut rien
-  y répondre (retour du 2026-10-19).
+- **Sinon, elle ne prépare ni ne code.** Elle **lance elle-même, sans rien demander à
+  Benjamin**, une sous-session à ce réglage, depuis le dépôt du plan, puis **s'arrête** :
+  la sous-session reçoit le plan entier (préparation et étapes) et parle elle-même à
+  Benjamin. Son « le plan est validé » (ou « go ») **vaut la demande de lancer** : pas de
+  « veux-tu que j'ouvre une sous-session ? », pas de lien à lui faire cliquer quand
+  la session peut faire le geste (décision du 2026-11-10). Jamais un `claude -p` ni un
+  agent d'arrière-plan **sans nom ni moyen de le suivre** : Benjamin n'y voit rien et ne
+  peut rien y répondre (retour du 2026-10-19).
   - **Le brief est court** : l'URL de la page, « exécute ce plan avec
     `executer-plan-notion` », la page du plan maître s'il y en a une, la branche si elle
     existe déjà. Le détail est dans la page ; un brief long déborde du lien. **Un humain
     est là** : les questions passent par `AskUserQuestion`, pas par la variante sans
     humain de `_partage/decouvertes.md` §3.
-  - **Dans l'app Claude Code Desktop** (la voie d'abord) : un lien
-    `claude://code/new?q=<brief encodé>&folder=<chemin absolu du dépôt, encodé>`, ouvert
-    par `open` (macOS), `xdg-open` (Linux) ou `start ""` (Windows) ; sans bureau (une
-    session cloud), le lien se donne tel quel à Benjamin pour qu'il le clique. Il ouvre
-    une **nouvelle session dans la barre latérale**, qu'il suit comme n'importe quelle
-    autre. Le lien **pré-remplit** le prompt sans l'envoyer, demande de **confirmer le
-    dossier**, et **ne fixe ni modèle ni effort** : le message dit à Benjamin de choisir
-    Sonnet 5.5 et `medium` avant d'envoyer.
-  - **Dans un terminal** : donner à Benjamin la ligne à coller dans une nouvelle fenêtre,
-    qui fixe le réglage elle-même :
-    `claude --model claude-sonnet-5-5 --effort medium "<brief>"` (l'identifiant complet,
-    pas l'alias `sonnet` : un alias lancé hors des réglages de l'utilisateur a servi une
-    autre version, `_partage/outils-et-quotas.md`, 2026-10-15). S'il préfère détacher la
-    session : `claude --bg --name <plan> --model claude-sonnet-5-5 --effort medium
-    "<brief>"`, qui s'ouvre et se suit par `claude agents`, `claude attach <nom>` et
-    `claude logs <nom>`.
+  - **Là où `claude` s'exécute** (le poste, un VPS ; la voie d'abord) : la session le lance
+    **elle-même**, détaché, **nommé** et au bon réglage :
+    `claude --bg --name <plan> --model claude-sonnet-5-5 --effort medium "<brief>"`
+    (l'identifiant complet, pas l'alias `sonnet` : un alias lancé hors des réglages de
+    l'utilisateur a servi une autre version, `_partage/outils-et-quotas.md`, 2026-10-15).
+    La session affiche à Benjamin le nom et comment la suivre ou lui répondre : `claude
+    agents`, `claude attach <nom>`, `claude logs <nom>`. Rien à choisir, rien à envoyer :
+    le modèle et l'effort sont fixés par la ligne, la première invite part toute seule.
+    Elle vérifie que la session existe (`claude agents`) avant de s'arrêter.
+  - **Ce compromis est dit à Benjamin** : une session `--bg` se suit et se pilote par
+    `claude attach`, elle n'est pas garantie d'apparaître dans la barre latérale de
+    l'app Desktop (non vérifié) ; et une question posée à un humain reste en attente
+    jusqu'à ce qu'il s'attache.
+  - **Sans `claude` utilisable** (une session cloud, ou `sudo`/`HOME` qui le bloquent,
+    même fiche) : seul cas où le geste revient à Benjamin. La session lui donne le lien
+    `claude://code/new?q=<brief encodé>&folder=<chemin absolu du dépôt, encodé>` (ouvert
+    par `open`, `xdg-open` ou `start ""` quand un bureau existe) ou la ligne sans `--bg`
+    à coller dans un terminal. Le lien **pré-remplit** le prompt sans l'envoyer, demande de
+    **confirmer le dossier** et **ne fixe ni modèle ni effort** : le message dit de choisir
+    Sonnet 5.5 et `medium` avant d'envoyer. Elle dit **pourquoi** elle ne peut pas lancer
+    elle-même, en une phrase.
   - **La sous-session vérifie son propre réglage** avant son premier geste (`/model`,
     `/effort`) et le dit à Benjamin si ce n'est pas Sonnet `medium` ; la puce **Pilote**
     écrite au `pret` en reste la trace, et `preparation-prete.py` la contrôle.
   - **La session mère ne touche ni la page ni le dépôt** après avoir ouvert la
     sous-session, et ne fait pas semblant d'en relayer le compte rendu : elle dit à
     Benjamin où la trouver, c'est tout.
-- **Ni lien Desktop ni `claude` utilisable** (`sudo` et `HOME`, même fiche) → la session
-  s'arrête avant tout geste et donne à Benjamin la ligne de relance ci-dessus, ou `/model
-  sonnet` puis `/effort medium` dans la session courante.
-- **Un plan maître a un seul pilote** : une seule sous-session visible conduit tout le lot.
+- **Ni lancement possible, ni lien Desktop utilisable** → la session s'arrête avant tout
+  geste et donne à Benjamin la ligne de relance ci-dessus, ou `/model sonnet` puis
+  `/effort medium` dans la session courante.
+- **Un plan maître a un seul pilote** : une seule sous-session conduit tout le lot.
 - **Seul Benjamin déroge**, dans son message courant (un plan à haut enjeu qu'il veut
   piloter plus haut, par exemple). La puce dit alors `<modèle>, <effort> — dérogation de
   Benjamin, <date> : « <citation> »`. Sans cette citation, `preparation-prete.py` refuse
