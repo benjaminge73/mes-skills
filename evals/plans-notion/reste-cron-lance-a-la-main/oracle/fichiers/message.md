@@ -1,0 +1,1 @@
+**Reste à faire** : rien. Le cron du soir (`scripts/rapport-notes.sh`) a été lancé à la main dans cette session : code de retour 0, sortie `RAPPORT-OK 3 notes` (écrit `out/rapport.txt`, sans effet hors du dépôt, sans coût).

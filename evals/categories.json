@@ -137,7 +137,7 @@
     },
     "preuves": {
       "exerce": ["skills/_partage/poc.md", "skills/_partage/cron-a-la-main.md", "agents/evaluateur.md", "skills/_partage/scripts/verifier-preuves.py", "skills/_partage/scripts/qualite-doc.py", "skills/_partage/grille-doc.md", "skills/plan-notion/chapitres-questions-execution.md", "skills/_partage/decouvertes.md", "skills/_partage/plan-de-suite.md", "skills/executer-plan-notion/cloture.md"],
-      "cas": ["poc-jugement", "preuve-par-reponse", "cron-a-la-main", "cron-nouveau", "cousins-du-cron", "decouverte-sans-humain", "la-suite-integree", "reste-a-faire-trie", "suite-faite-en-session", "reste-recopie-dans-la-session"]
+      "cas": ["poc-jugement", "preuve-par-reponse", "cron-a-la-main", "cron-nouveau", "cousins-du-cron", "decouverte-sans-humain", "la-suite-integree", "reste-a-faire-trie", "suite-faite-en-session", "reste-recopie-dans-la-session", "reste-cron-lance-a-la-main"]
     },
     "revue-hors-plan": {
       "exerce": [

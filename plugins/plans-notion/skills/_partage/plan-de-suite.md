@@ -97,13 +97,46 @@ première réponse qui s'applique décide :
    des `D<n>` de sa propre initiative ferait ne jamais clore. Seul l'accord de
    Benjamin, donné dans la session, lève ce seuil.
 3. **Il attend un événement** (une mesure à N jours, un merge, une version
-   publiée) → il reste dans `La suite` du plan, avec son déclencheur et son
+   publiée) → **sauf si l'événement est le passage d'un cron** (section « Un
+   reste qui attend un cron se lance à la main », ci-dessous) : celui-là se lance
+   maintenant. Pour les autres, il reste dans `La suite` du plan, avec son déclencheur et son
    propriétaire, **et** il est repris dans la rubrique ⏭️ du Récap (que Benjamin
    lit, lui). C'est le seul reste qui dort dans la page terminée.
 
 Chaque ligne de reste à faire de l'`État final` nomme son propriétaire : la
 question posée (avec la réponse), le plan de suite (avec son lien), l'étape `D<n>`
 faite, ou l'événement attendu. Une ligne sans propriétaire se règle avant `a merger`.
+
+## Un reste qui attend un cron se lance à la main
+
+Un reste du genre « à confirmer ce soir, quand le cron tournera » est un inconnu
+que Benjamin n'a aucune raison de porter une nuit : il se lève **maintenant**
+(cas relevé le 2026-11-11, sur sa demande : un plan terminé avec des inconnus
+parce que le cron était prévu le soir). **Par défaut, la session lance le cron à la
+main, dans le tour, sans rien demander**, avec le lancement équivalent de
+`cron-a-la-main.md`, puis cite la sortie (code de retour, ligne du critère) dans le
+compte rendu et à l'`État final`. Le reste devient alors « fait » ou, si la sortie
+est rouge, un reste de travail qui repasse par le tri au 2. Il ne s'écrit jamais
+« vérifié à l'heure prévue ». Vaut aussi pour les cousins du cron (tâche
+planifiée, timer, workflow `schedule:`) et quand le plan n'avait pas d'étape `C<n>`.
+
+**Une validation de Benjamin (`AskUserQuestion`, recommandation en premier) ne
+s'ouvre que dans trois cas** :
+
+- **conflit potentiel** : un lancement à la main qui pourrait entrer en collision
+  avec le passage prévu du cron (double exécution, verrou, écriture concurrente sur
+  les mêmes données) ou avec un autre processus en cours ;
+- **risque de sécurité** : le lancement touche à un secret, un accès, une donnée
+  sensible ou une écriture irréversible hors du dépôt non tranchée plus tôt ;
+- **coût non validé** : appels payants, quota ou dépense que Benjamin n'a pas
+  acceptés plus tôt dans la session.
+
+Ce qu'il a déjà validé dans la session (un effet externe tranché, un coût accepté)
+ne se redemande pas. Sans réponse (session sans humain, `decouvertes.md` § 3), ou si
+le lancement est réellement impossible (job sans script, accès manquant), le reste
+garde son déclencheur au point 3 et le message dit ce qui n'est pas prouvé, pourquoi,
+et la commande exacte du lancement (`cron-a-la-main.md`, « Jamais « à la prochaine
+exécution » »).
 
 ## Le plan de suite
 
