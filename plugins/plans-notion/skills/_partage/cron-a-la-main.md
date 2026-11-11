@@ -240,6 +240,11 @@ il ne défait pas un merge déjà fait.
 journal, ni dans la description d'une PR : c'est reporter la première preuve en
 production (voir « Pourquoi cette règle »). Trois conséquences :
 
+- un reste de fin d'exécution qui dépend d'un cron prévu plus tard (« à confirmer ce
+  soir ») se lance à la main dans le tour, par défaut et sans demander ; Benjamin
+  n'est interrogé que pour un conflit potentiel, un risque de sécurité ou un coût
+  qu'il n'a pas validé (`plan-de-suite.md`, « Un reste qui attend un cron se lance
+  à la main ») ;
 - une étape `C<n>` n'est faite que sur la **sortie d'un lancement réel**, citée au
   journal. « À vérifier à l'heure prévue » la laisse **ouverte**, jamais faite ;
 - si, à l'exécution, on découvre qu'un cron est touché et que le plan n'a pas

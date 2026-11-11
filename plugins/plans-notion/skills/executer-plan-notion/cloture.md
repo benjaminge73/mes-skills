@@ -43,7 +43,8 @@ Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard »
   la question posée dans la session (avec la réponse de Benjamin), le plan de suite
   (§7, avec son lien) qui la porte, l'étape `D<n>` qui l'a faite, ou l'événement
   qu'elle attend ; une ligne sans propriétaire se règle avant `a merger`
-  (`plan-de-suite.md`, « Le tri »). Cette entrée porte aussi :
+  (`plan-de-suite.md`, « Le tri » ; un reste qui attend un cron se lance à la main
+  avant, sans demander sauf conflit, risque de sécurité ou coût non validé). Cette entrée porte aussi :
   - **le décompte des découvertes, vérifié mécaniquement** — jamais recompté
     de tête : `grep -c 'découverte — trouvable' <journal>` et
     `grep -c 'découverte — pas trouvable' <journal>` sur le texte du journal,
