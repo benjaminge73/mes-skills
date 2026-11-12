@@ -19,6 +19,9 @@ Usage : preuves-des-etapes.py <page.md> (--avant | --apres)
     « Preuve » refuse les coquilles de « --avant » ; « Commit(s) » et « Découvertes »
     refusent seulement le vide et le tiret (« aucun » ou « aucune » y est valide).
 Une étape écrite deux fois dans le chapitre est un défaut dans les deux modes.
+Les deux formats de miroir sont lus : celui de ``composio execute
+NOTION_GET_PAGE_MARKDOWN`` (``**gras**``, accents graves) et celui de l'outil
+``notion-fetch`` du connecteur de l'app (``<b>gras</b>``, ``<code>…</code>``).
 Codes : 0 conforme ; 1 au moins un défaut, un par ligne sur la sortie standard
 (les défauts d'abord) ; 3 (--apres seulement) aucun défaut mais une étape
 ``unverifiable``, une ligne « non prouvée : Étape N — <raison> » par étape ;
@@ -28,6 +31,7 @@ Bibliothèque standard uniquement.
 from __future__ import annotations
 
 import argparse
+import html
 import re
 import sys
 from collections import Counter
@@ -54,6 +58,20 @@ VALEURS_VIDES = {"", "—", "-", "aucune", "à définir", "à voir"}
 TIRETS_VIDES = {"", "—", "-"}
 VERDICT = re.compile(r"\s*`?(verified|unverifiable)(?![\w-])`?(.*)$")
 TIRET = re.compile(r"\s*[—–-]+\s*(.*)$")
+
+
+# Le connecteur Notion de l'app (notion-fetch) rend le gras en <b>…</b> et le code en
+# <code>…</code>, là où composio rend **…** et des accents graves. Constaté le 2026-11-12 :
+# sur ce format, chaque étape était « sans preuve de fin ». On ramène le premier au second
+# avant toute lecture, pour que les expressions ci-dessus n'aient qu'un format à connaître.
+GRAS_HTML = re.compile(r"<(b|strong)>(.*?)</\1>", re.S)
+CODE_HTML = re.compile(r"<code>(.*?)</code>", re.S)
+
+
+def normaliser(texte: str) -> str:
+    """Miroir ``notion-fetch`` → miroir ``composio`` : ``<b>x</b>`` → ``**x**``, ``<code>x</code>`` → `` `x` ``."""
+    texte = GRAS_HTML.sub(lambda m: f"**{m.group(2)}**", texte)
+    return CODE_HTML.sub(lambda m: f"`{html.unescape(m.group(1))}`", texte)
 
 
 class Illisible(Exception):
@@ -218,7 +236,7 @@ def main(argv=None) -> int:
                       help="chaque étape a une entrée de journal prouvée")
     a = ap.parse_args(argv)
     try:
-        texte = Path(a.page).read_text(encoding="utf-8")
+        texte = normaliser(Path(a.page).read_text(encoding="utf-8"))
         if a.avant:
             defauts, non_prouvees, n = controler_avant(texte)
         else:

@@ -131,12 +131,13 @@ Et parce qu'une passe de couleur touche beaucoup de blocs d'un coup, le recompta
 l'étape 5 du protocole n'est pas une formalité : c'est le seul contrôle qui attrape une
 case perdue au milieu d'une repeinte.
 
-## Six pièges de l'API Notion, vérifiés sur pièce
+## Sept pièges de l'API Notion, vérifiés sur pièce
 
 Les trois premiers datent du 2026-08-17. Les quatrième et cinquième viennent du
 journal du plan « Carte d'architecture engendrée » (dépôt Vahiny), vérifiés le
 2026-09-07. Le sixième vient du plan « Le design system en deux exemplaires »,
-vérifié le 2026-09-11.
+vérifié le 2026-09-11. Le septième a été vu sur deux pages de plan micro-trading,
+relevé le 2026-11-12.
 
 1. **`update_content` ne décoche pas.** Il ne change pas l'attribut coché d'un
    bloc `to-do` : il remplace son texte, et **l'appel rend un succès** même si la
@@ -180,6 +181,13 @@ vérifié le 2026-09-11.
    réparation passe par un aller-retour `to-do` → paragraphe → `to-do` : c'est
    le seul moyen connu de décocher (piège 1), et elle exige le relevé du §1 sous
    les yeux pour réécrire les bons états, option par option.
+7. **Deux signes « $ » dans un même paragraphe font une formule.** Notion lit
+   ce qui est entre eux comme une équation en ligne (du LaTeX) : « médiane 14 $ ;
+   exécution seule, médiane 28 $ » s'affiche en formule, chiffres et texte du
+   milieu compris, et **l'appel rend un succès**. Geste sûr : écrire **dollars**
+   en toutes lettres, ou échapper le signe (`\$`) quand il doit rester ; un
+   montant en code inline (entre accents graves) n'est pas touché. Cas typique :
+   la ligne « Coût estimé », recopiée du barème de `cout-des-plans.md`.
 
 **Remarque, vérifiée le 2026-09-08** sur la page du plan qui commande cette
 étape : Notion transforme un nom de fichier nu comme `CLAUDE.md` ou
