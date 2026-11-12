@@ -8,6 +8,7 @@ et son code retour.
 """
 from __future__ import annotations
 
+import re
 import subprocess
 import sys
 import tempfile
@@ -459,6 +460,59 @@ class FormatReel(_Dossier):
         code, sortie, _ = jouer(p, "--apres")
         self.assertEqual(code, 0, sortie)
         self.assertIn("toutes verified", sortie)
+
+
+def au_format_connecteur(texte):
+    """La même page telle que la rend ``notion-fetch`` du connecteur Notion de l'app :
+    le gras en ``<b>…</b>`` et le code en ``<code>…</code>``, là où
+    ``composio execute NOTION_GET_PAGE_MARKDOWN`` rend ``**…**`` et des accents graves."""
+    texte = re.sub(r"\*\*(.+?)\*\*", r"<b>\1</b>", texte)
+    return re.sub(r"`([^`]+)`", r"<code>\1</code>", texte)
+
+
+class FormatDuConnecteur(_Dossier):
+    # Constaté le 2026-11-12 sur un plan micro-trading : un miroir pris par
+    # ``notion-fetch`` faisait répondre « pas de preuve de fin » pour chaque étape
+    # (code 1), alors que le miroir ``composio`` de la même page passait.
+    def test_page_conforme_au_format_du_connecteur_passe_les_deux_portes(self):
+        p = self.ecrire("p.md", au_format_connecteur(page_ok()))
+        self.assertIn("<b>Preuve de fin</b>", p.read_text(encoding="utf-8"))
+        code, sortie, _ = jouer(p, "--avant")
+        self.assertEqual(code, 0, sortie)
+        self.assertIn("avant : 3 étape(s)", sortie)
+        code, sortie, _ = jouer(p, "--apres")
+        self.assertEqual(code, 0, sortie)
+        self.assertIn("apres : 3 étape(s), toutes verified", sortie)
+
+    def test_ligne_reelle_du_miroir_fetch_est_lue(self):
+        # Recopiée du miroir du 2026-10-28 (plan « sorties forcées », micro-trading).
+        ligne = ("- <b>Preuve de fin</b> : <code>.venv/bin/python -m pytest -m unit -q "
+                 "tests/test_banc_signaux.py</code>, suite complète verte.")
+        p = self.ecrire("p.md", ENTETE + chapitre(etape("2", ligne)))
+        code, sortie, _ = jouer(p, "--avant")
+        self.assertEqual(code, 0, sortie)
+
+    def test_critere_de_succes_d_une_etape_C_au_format_du_connecteur(self):
+        p = self.ecrire("p.md", ENTETE + chapitre(etape(
+            "C1", "- <b>Critère de succès</b> : <code>hermes cron list</code> montre un succès")))
+        code, sortie, _ = jouer(p, "--avant")
+        self.assertEqual(code, 0, sortie)
+
+    def test_coquille_au_format_du_connecteur_reste_refusee(self):
+        for coquille in ("—", "<code>—</code>", "aucune"):
+            with self.subTest(coquille=coquille):
+                p = self.ecrire("p.md", ENTETE + chapitre(
+                    etape("4", f"- <b>Preuve de fin</b> : {coquille}")))
+                code, sortie, _ = jouer(p, "--avant")
+                self.assertEqual(code, 1, sortie)
+                self.assertIn("Étape 4 : pas de preuve de fin", sortie)
+
+    def test_entree_de_journal_sans_preuve_au_format_du_connecteur_est_refusee(self):
+        texte = au_format_connecteur(ENTETE + chapitre_ok("1") + journal(
+            entree("1", sans=("Preuve",))))
+        code, sortie, _ = jouer(self.ecrire("p.md", texte), "--apres")
+        self.assertEqual(code, 1, sortie)
+        self.assertIn("Étape 1 : pas de Preuve", sortie)
 
 
 if __name__ == "__main__":
