@@ -35,7 +35,8 @@ def paragraphe(texte: str, debut: str) -> str:
 
 
 def exemples(texte: str) -> list[str]:
-    return EXEMPLE.findall(texte)
+    """Les exemples chiffrés ; le gabarit vide « `Coût estimé : …` » n'en est pas un."""
+    return [e for e in EXEMPLE.findall(texte) if re.search(r"\d", e)]
 
 
 class DollarsEnToutesLettres(unittest.TestCase):

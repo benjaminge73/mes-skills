@@ -46,7 +46,7 @@ def tableau_barres(*lignes):
     texte = ["| Étape | Fichiers touchés | Dépend de | Vague | Relecture |",
              "| --- | --- | --- | --- | --- |"]
     for etape, fichiers, dep, vague in lignes:
-        fichiers = re.sub(r"`([^`]+)`", r"<code>\\1</code>", fichiers)
+        fichiers = re.sub(r"`([^`]+)`", r"<code>\1</code>", fichiers)
         texte.append(f"| {etape} | {fichiers} | {dep} | {vague} | étape |")
     return "\n".join(texte) + "\n"
 

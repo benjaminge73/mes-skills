@@ -126,7 +126,11 @@ recopie les médianes du barème de `${CLAUDE_PLUGIN_ROOT}/skills/_partage/cout-
 pour les types de session que ce plan annonce — plan seul, exécution seule, ou
 les deux dans une même session —, avec la date du barème. Les dollars sont
 d'équivalent API ; **aucun pourcentage de quota**. Une étape sans médiane mesurée
-n'a pas de coût estimé : la ligne le dit, elle n'invente pas de chiffre.
+n'a pas de coût estimé : la ligne le dit, elle n'invente pas de chiffre. Le mot
+**dollars s'écrit en toutes lettres, jamais le signe** : deux « $ » dans un même
+paragraphe font une formule dans Notion (piège 7 de
+`${CLAUDE_PLUGIN_ROOT}/skills/_partage/ecrire-dans-notion.md`). Exemple :
+`Coût estimé : plan seul, médiane 14 dollars ; exécution seule, médiane 28 dollars (barème du 2026-10-12, dollars d'équivalent API ; aucune médiane par étape n'est encore mesurée).`
 
 **En tête du chapitre, un tableau `Étape · Fichiers touchés · Dépend de ·
 Vague · Relecture`**, une ligne par étape — le pre-flight scan du chapitre : il donne
@@ -181,7 +185,12 @@ Sous chaque titre, le contenu de l'étape :
   aucune doc ne cite ce que l'étape touche.
 - **Dépend de** — les étapes et les questions dont l'étape a besoin, « — » si
   aucune. C'est cette ligne, reprise dans le tableau de tête de chapitre, que
-  `executer-plan-notion` lit pour calculer les vagues d'exécution.
+  `executer-plan-notion` lit pour calculer les vagues d'exécution. Dans le
+  tableau, elle s'écrit **en numéros nus séparés par des virgules** : `1, 3, Q2`,
+  `D1`, `C1`, ou `toutes`, jamais « étapes 1 à 9 » ni une phrase. `vagues.py`
+  refuse une cellule qui cite une étape d'une façon qu'il ne lit pas, ou une
+  étape absente du tableau ; la raison (« même fichier ») va dans le détail de
+  l'étape, pas dans la cellule.
 - **Relecture** — `étape` ou `lot` (`_partage/revue.md`) ; reprise dans la
   dernière colonne du tableau de tête de chapitre.
 - **Taille** — le nombre de fichiers touchés. Plus de cinq → découper l'étape :

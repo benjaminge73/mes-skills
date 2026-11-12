@@ -76,7 +76,10 @@ qu'elle n'y est pas, la remesure se refait à la main, par la même méthode.
 
 - **« Coût estimé »** (`plan-notion`, en tête du chapitre `Exécution`) : avant
   l'exécution, les médianes du barème pour le type de session que le plan annonce,
-  recopiées avec leur date.
+  recopiées avec leur date, et **« dollars » en toutes lettres** : le signe des
+  tableaux ci-dessus, recopié deux fois dans le même paragraphe, devient une formule
+  dans Notion (piège 7 de `ecrire-dans-notion.md`). Exemple :
+  `Coût estimé : plan seul, médiane 14 dollars ; exécution seule, médiane 28 dollars (barème du 2026-10-12, dollars d'équivalent API).`
 - **« Coût réel »** (`executer-plan-notion`, entrée `État final`) : à la clôture,
   `cout-plan.py --page <identifiant de la page>`. Il additionne les sessions qui
   citent la page, sous-agents compris, et recalcule les dollars à partir des
