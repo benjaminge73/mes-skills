@@ -1,5 +1,5 @@
 {
-  "description": "À chaque message : si le titre de la session n'a pas encore son préfixe « [Projet - Lieu] », le pose (sujet par Haiku au premier message, sinon titre existant préfixé).",
+  "description": "À chaque message : pose ou corrige le préfixe « [Projet - Lieu] » du titre (sujet par Haiku au premier message, sinon titre existant préfixé) ; après chaque outil de fichier ou de shell : repère le dossier de projet que la session a fini par choisir.",
   "hooks": {
     "UserPromptSubmit": [
       {
@@ -8,6 +8,18 @@
             "type": "command",
             "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/nommer_session.py\"",
             "timeout": 40
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash|Read|Edit|Write|MultiEdit|NotebookEdit|Glob|Grep",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/nommer_session.py\"",
+            "timeout": 10
           }
         ]
       }

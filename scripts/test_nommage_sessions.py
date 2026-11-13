@@ -130,11 +130,63 @@ class NommerSession(unittest.TestCase):
         r = self.jouer(self.entree(session_title="Sujet"), env_en_plus=env)
         self.assertEqual(self.titre_rendu(r), f"[Mon-projet - {attendu}] Sujet")
 
-    def test_hors_depot_le_nom_du_dossier(self):
-        dossier = self.tmp / "pas-un-depot"
-        dossier.mkdir()
-        r = self.jouer(self.entree(cwd=str(dossier), session_title="Sujet"))
+    def outil(self, chemin, cwd=None, **champs) -> dict:
+        return {"session_id": "s1", "hook_event_name": "PostToolUse", "tool_name": "Read",
+                "tool_input": {"file_path": str(chemin)}, "cwd": str(cwd or self.tmp), **champs}
+
+    def lancement(self):
+        """Dossier de lancement : un parent qui regroupe les projets, pas un dépôt."""
+        return self.tmp
+
+    def test_au_lancement_hors_projet_le_crochet_porte_trois_mots(self):
+        r = self.jouer(self.entree(cwd=str(self.lancement())))
+        self.assertEqual(self.titre_rendu(r), "[Plugin de nommage - VPS]")
+
+    def test_sans_titre_de_haiku_trois_mots_viennent_du_titre_natif(self):
+        r = self.jouer(self.entree(cwd=str(self.lancement()),
+                                   session_title="Refonte de la page d'accueil"))
+        self.assertEqual(self.titre_rendu(r), "[Refonte de la - VPS]")
+
+    def test_le_dossier_choisi_apres_coup_remplace_le_prefixe_au_message_suivant(self):
+        lancement = self.lancement()
+        r = self.jouer(self.entree(cwd=str(lancement)))
+        self.assertEqual(self.titre_rendu(r), "[Plugin de nommage - VPS]")
+        r = self.jouer(self.outil(self.depot / "src" / "a.py", cwd=lancement))
+        self.assertEqual((r.returncode, r.stdout), (0, ""))
+        r = self.jouer(self.entree(cwd=str(lancement), prompt="suite",
+                                   session_title="[Plugin de nommage - VPS]"))
+        self.assertEqual(self.titre_rendu(r), "[Mon-projet - VPS] Plugin de nommage")
+        r = self.jouer(self.entree(cwd=str(lancement), prompt="encore",
+                                   session_title="[Mon-projet - VPS] Plugin de nommage"))
+        self.assertIsNone(self.titre_rendu(r))
+
+    def test_un_cd_dans_un_projet_est_repere_par_le_cwd_de_l_outil(self):
+        self.jouer(self.entree(cwd=str(self.lancement()), session_title="Sujet court"))
+        self.jouer(self.outil("/nulle/part", cwd=self.depot, tool_name="Bash"))
+        r = self.jouer(self.entree(cwd=str(self.depot), prompt="suite",
+                                   session_title="[Sujet court - VPS]"))
+        self.assertEqual(self.titre_rendu(r), "[Mon-projet - VPS] Sujet court")
+
+    def test_un_titre_ecrit_par_l_utilisateur_n_est_jamais_remplace(self):
+        self.jouer(self.entree(cwd=str(self.lancement())))
+        self.jouer(self.outil(self.depot / "a.py", cwd=self.lancement()))
+        r = self.jouer(self.entree(cwd=str(self.lancement()), prompt="suite",
+                                   session_title="[Mien] titre perso"))
+        self.assertIsNone(self.titre_rendu(r))
+
+    def test_un_dossier_non_git_sous_le_lancement_est_un_projet(self):
+        sous = self.tmp / "pas-un-depot"
+        sous.mkdir()
+        self.jouer(self.entree(cwd=str(self.tmp), session_title="Sujet"))
+        self.jouer(self.outil(sous / "notes.md", cwd=self.tmp))
+        r = self.jouer(self.entree(cwd=str(self.tmp), prompt="suite",
+                                   session_title="[Sujet - VPS]"))
         self.assertEqual(self.titre_rendu(r), "[Pas-un-depot - VPS] Sujet")
+
+    def test_le_hook_d_outil_ne_parle_jamais(self):
+        self.jouer(self.entree(cwd=str(self.lancement())))
+        r = self.jouer(self.outil(self.depot / "a.py", cwd=self.lancement()))
+        self.assertEqual((r.returncode, r.stdout), (0, ""))
 
     def test_une_entree_illisible_laisse_passer_sans_rien_dire(self):
         r = self.jouer("pas du json")
