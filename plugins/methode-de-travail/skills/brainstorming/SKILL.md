@@ -114,7 +114,7 @@ just enough to frame the question. Before proposing an approach, list the user's
 
 **Bounded:**
 1. **Explore project context**: files, docs, recent commits
-2. **Ask clarifying questions**: all unblocked ones that matter, at once, recommendation first
+2. **Ask clarifying questions**: only those that change the result (see Conduct), recommendation first
 3. **Present short design in chat**: approach, files touched, testing
 4. **Get approval**: STOP and wait for an explicit yes
 5. **Hand over to `plan-notion`**: lightweight page; implementation starts once it
@@ -122,7 +122,7 @@ just enough to frame the question. Before proposing an approach, list the user's
 
 **Architectural:**
 1. **Explore project context**: files, docs, recent commits
-2. **Ask clarifying questions**: all unblocked ones at once, recommendation first,
+2. **Ask clarifying questions**: only those that change the result (see Conduct), recommendation first,
    until purpose, constraints and success criteria are clear
 3. **Propose 2-3 approaches**: trade-offs and your recommendation
 4. **Present design**: in sections, with one approval per decision (see below)
@@ -133,10 +133,10 @@ just enough to frame the question. Before proposing an approach, list the user's
 
 - **No sub-agents.** The dialogue runs in the conversation: no `Agent` call while
   brainstorming. Sub-agents come later, in `plan-notion`'s survey.
-- **All unblocked questions at once** (none depends on another's answer), multiple
-  choice when possible, each with its recommended option first, marked
-  "(Recommended)". With a structured question tool (Claude Code: `AskUserQuestion`,
-  up to four per call, the rest next turn), use it; otherwise list them as text.
+- **Only the questions that change the result**: ask only if its answer changes what gets built
+  and neither the request nor the project gives it; otherwise state your choice as a correctable
+  proposal. Never reopen a settled decision. Multiple choice if possible, recommended first,
+  marked "(Recommended)". `AskUserQuestion` (four per call) when available, else text.
   Context in the message, not the labels. Grouping after `grilling`, `mattpocock/skills` (MIT).
 - **One point of agreement per decision.** Each design decision is put to the
   user on its own (one question, one yes), never as a bundle to approve at once.
@@ -159,7 +159,7 @@ in-chat design are the whole process.
 **Understanding the idea:**
 
 - Check the current project state first (files, docs, recent commits).
-- Refine by asking all the unblocked questions that matter at once, preferring
+- Refine by asking only the questions that change the result (see Conduct), preferring
   multiple choice. Focus on purpose, constraints and success criteria.
 
 **Exploring approaches:**
