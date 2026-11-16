@@ -825,6 +825,8 @@ aucun connu au 2026-10-06.
 - **2026-10-16 : un sous-processus `asyncio` tué au délai peut pendre au `wait()`.**
   Si un enfant garde le tuyau de sortie ouvert, `kill()` puis `wait()` n'en finit
   pas.
+- **2026-11-13 : `claude -p` sans `--allowedTools` refuse ses outils et rend quand même un succès.** Un agent qui lit des pages a eu 8 outils refusés et une fiche vide, alors que le code de sortie valait 0 et que `subtype` valait `success`. Le succès de l'enveloppe ne prouve donc pas qu'un outil a servi : juger l'appel sur le champ `permission_denials` de la sortie JSON, pas sur le code de sortie.
+- **2026-11-13 : `--allowedTools` avale l'argument qui le suit.** Une consigne placée après lui disparaît : elle doit venir avant, `claude -p "<consigne>" --allowedTools "..."`.
 
 **Bonne pratique** :
 
@@ -1210,3 +1212,157 @@ lit l'activité par `txns` de DexScreener, qui n'est pas le même flux.
 
 **Repli** : sur un 429 de `doc/geo`, lire les fichiers GKG créneau par créneau : ils
 ne refusent pas au 2026-10-21. Le délai de reprise de l'API n'est pas mesuré.
+
+## Fiche — graphify (graphe de code, sans serveur MCP)
+
+**Quota ou coût** : aucun quota, l'outil tourne en local. Version mesurée : graphify
+0.9.106 (relevé au 2026-11-11). Code seul, sans appel de modèle : la construction du
+graphe prend 27 secondes et donne 11 091 nœuds et 25 407 arêtes ; une reconstruction
+donne un résultat identique à l'octet. Installation : 205 Mo (environnement supprimé
+après la mesure). Non mesuré : la passe sur les documents, qui appelle un modèle.
+
+**Pièges datés** :
+
+- **2026-11-11 : les commandes ciblées trouvent moins que `codebase-memory`.** Six
+  questions de structure sur un dépôt de scripts Python de 296 fichiers, onze éléments
+  attendus, vérité tirée par `ast` et `grep` : 5 éléments sur 11 par `affected` et
+  `explain`, 7 sur 11 par `query`. `codebase-memory` en retrouve 11 sur 11, en 41 appels.
+- **2026-11-11 : `query` rend beaucoup de texte.** Entre 54 et 179 nœuds par question,
+  soit 17 000 à 114 000 caractères.
+- **2026-11-11 : deux angles morts.** graphify ne voit ni les imports faits par
+  `importlib`, ni une table de données qui déclare des preuves par composant.
+- **2026-11-11 : pas de serveur MCP.** graphify est une commande, pas un outil qu'une
+  session appelle comme `codebase-memory`.
+- À garder en tête pour la comparaison : `codebase-memory` a donné des faux positifs
+  dans ses arêtes de tests lors de la même mesure.
+
+**Bonne pratique** :
+
+- **Décision (2026-11-11) : ne pas adopter graphify, garder `codebase-memory`.** Ce
+  relevé sert à ne pas refaire l'étude.
+- Un réexamen demande des mesures absentes : la passe sur les documents (appel de
+  modèle, plafond à fixer avant) et un dépôt de skills, non mesurés.
+
+**Repli** : `codebase-memory` (fiche ci-dessus). Pour une question qu'il ne tranche
+pas, `grep`.
+
+## Fiche — hermes-security (revue de sécurité d'un dépôt, plugin Hermes)
+
+**Quota ou coût** : pas de quota propre. La dépense est en jetons, prise sur
+l'abonnement du poste et exprimée en équivalent API. Version mesurée : plugin 0.1.3.
+
+- Passage Opus, mode `standard`, tout le dépôt (2026-11-11) : 25 minutes, 9,43 dollars
+  d'équivalent API pour la session et ses trois sous-sessions. 12 lots relus sur 40, soit
+  24 fichiers de code sur 292 relus en entier, avec 2 relecteurs.
+- Passage Haiku, tout le dépôt, 10 relecteurs (2026-11-13) : coupé par la limite de
+  40 minutes de la mesure. 3 lots relus sur 39, 13 fichiers sur 292, 3,40 dollars
+  d'équivalent API (parent 1,26 dollar, six sous-sessions Haiku 2,14 dollars), soit
+  0,26 dollar par fichier relu.
+- Passage Haiku, périmètre ciblé de trois fichiers (2026-11-13) : 3 fichiers sur 3
+  relus, 3,01 dollars, coupé au plafond de 3 dollars pendant la validation, 26 minutes.
+- Estimation, non mesurée : revue complète sur Haiku, environ 75 dollars d'équivalent
+  API et plusieurs heures (règle de trois sur 292 fichiers). Opus : environ 100 dollars
+  estimés.
+
+**Pièges datés** :
+
+- **2026-11-11 : le réglage par défaut ne lance que deux relecteurs.** En mode
+  `--oneshot`, `delegation.oneshot_max_children` vaut 2. À 0, les dix relecteurs partent
+  (vu au passage Haiku du 2026-11-13).
+- **2026-11-13 : le plugin n'a aucune option de modèle.** Le modèle des relecteurs se
+  règle par `delegation.model` dans la configuration de Hermes, réglage global à Hermes.
+  Le modèle du parent se passe par `hermes chat --oneshot -m <identifiant complet>`.
+- **2026-11-13 : installer ou retirer le plugin réécrit tout le fichier de configuration
+  de Hermes** (clés réordonnées). Copie avant, comparaison après.
+- **2026-11-13 : des relecteurs échouent en `error_max_turns`.** 2 relecteurs sur 6 au
+  passage complet, 1 sur 4 au ciblé (limite de tours atteinte).
+- **2026-11-13 : `systemctl show` rend `Result=success` même sur une coupure.** Le
+  journal de l'unité fait foi.
+- **2026-11-13 : l'export exige un scan finalisé.** Un scan coupé en cours de validation
+  ne donne pas d'export.
+- **2026-11-13 : les candidats ne sont pas des constats.** 16 candidats nouveaux non
+  validés sur le passage complet ; 14 candidats sur 29 non validés sur le ciblé.
+- **2026-11-13 : les hooks déjà branchés dans la passerelle ne partent qu'à son
+  prochain redémarrage.**
+
+**Bonne pratique** :
+
+- Lancer la revue détachée, par `systemd-run --user` avec une durée maximale
+  (`RuntimeMaxSec`), et couper l'unité au plafond de coût.
+- Lire le statut dans le journal de l'unité, pas dans `systemctl show`. Vérifier qu'un
+  scan est finalisé avant l'export.
+- Rappel (2026-11-13, périmètre ciblé) : Haiku retrouve 2 constats sur 3 du passage
+  Opus. Le troisième, une dépendance vulnérable, n'est vu que par l'analyseur de
+  dépendances du plugin, par aucun relecteur.
+- **Décision (2026-11-13) : revue complète sur Haiku, dix relecteurs, plafond de 90
+  dollars d'équivalent API.** Le coût estimé est de l'ordre de 75 dollars ; la revue
+  se lance une fois, puis le plugin est retiré.
+
+**Repli** : un passage ciblé sur quelques fichiers, plafond posé avant le lancement
+(3 fichiers sur 3 pour 3,01 dollars). La comparaison avec `/security-review` n'est pas
+mesurée.
+
+## Fiche — i-have-adhd (règles de forme des réponses, skill)
+
+**Quota ou coût** : aucun quota. Version non relevée. Mesure du 2026-11-11 : quatre
+demandes types, jouées avec et sans les dix règles, sur Sonnet 5.5 (10 appels, 0,43
+dollar), notées à l'aveugle sur cinq critères, sur 40 points.
+
+**Pièges datés** :
+
+- **2026-11-11 : les règles font perdre la définition du jargon.** Avec les règles :
+  33 points sur 40 contre 28 sans, et 30 % de mots en moins (1 686 contre 2 407). Le gain
+  vient de la réponse en tête (8 contre 5) et de l'absence de remplissage (5 contre 0).
+  La perte est sur le jargon défini (5 contre 8) ; le pourquoi et la complétude sont à
+  égalité. Le seuil écrit avant la mesure (adopter si le total gagne 3 points sans recul
+  de 2 points ou plus sur la vulgarisation) écarte le skill tel quel : la vulgarisation
+  recule de 3 points.
+- **2026-11-11 : mesure étroite.** Un seul évaluateur ; au rejeu, 5 notes sur 10
+  bougent ; les règles étaient injectées en consigne système, pas en skill ; aucune
+  session à plusieurs tours.
+
+**Bonne pratique** :
+
+- **Décision (2026-11-16) : installer le skill pour cinq sessions réelles lancées à la
+  main, puis trier.** C'est un essai hors plan, à faire par l'utilisateur. Cette fiche
+  n'installe rien.
+- Si l'on reprend les règles sans le skill, garder la définition du jargon, que le
+  skill fait perdre.
+
+**Repli** : non retenu, mais connu : reprendre les trois règles qui gagnent (réponse en
+tête, une seule prochaine action à la fin, ni préambule ni formule de fin) dans la
+consigne globale de forme, en gardant la définition du jargon.
+
+## Fiche — /advisor (conseiller d'un autre modèle, Claude Code)
+
+**Quota ou coût** : coût affiché par la CLI, pas de quota. Version mesurée : Claude Code
+2.1.322 (relevé au 2026-11-11). Appel d'essai (Opus 5.5 conseillé par Fable 5.2) : 0,39
+dollar, dont 0,30 dollar pour 34 284 jetons d'entrée du conseiller.
+
+Mesure sur trois corrections de bogues tirées au hasard parmi 27 commits de correction
+éligibles d'un dépôt de scripts d'un VPS personnel, état d'avant la correction, tests du
+commit rejoués : Opus 5.5 seul réussit 2 tâches sur 3 pour 2,76 dollars ; Opus 5.5
+conseillé réussit 1 tâche sur 3 pour 3,73 dollars. Le conseiller a coûté 0,61 et 0,96
+dollar sur les deux tâches où il est intervenu ; il n'est pas intervenu sur la
+troisième. Dépense de la mesure : 6,88 dollars sur un plafond de 15 dollars. Non
+mesuré : si ce coût affiché part en crédits d'usage hors abonnement (la sortie ne le dit
+pas).
+
+**Pièges datés** :
+
+- **2026-11-11 : le drapeau n'est pas dans l'aide.** `--advisor <modèle>` existe dans
+  Claude Code 2.1.322 mais n'apparaît pas dans `claude --help`.
+- **2026-11-11 : une liste d'outils trop étroite fait perdre des tours aux deux bras.**
+  La mesure est faussée par ce réglage.
+- **2026-11-11 : une seule passe par tâche.** Le résultat est une tendance, pas une
+  preuve.
+
+**Bonne pratique** :
+
+- **Décision (2026-11-16) : `advisorModel` reste non réglé.** On remesure à la prochaine
+  version de modèle.
+- Avant de conclure, rejouer plus large (dix tâches, deux passages chacune). La paire
+  Haiku 5.5 conseillé par Fable 5.2 n'est pas mesurée.
+
+**Repli** : Opus 5.5 seul, sans conseiller, bras de référence de la mesure (2 réussites
+sur 3, contre 1 sur 3 avec le conseiller).
