@@ -1282,7 +1282,7 @@ l'abonnement du poste et exprimée en équivalent API. Version mesurée : plugin
   ne donne pas d'export.
 - **2026-11-13 : les candidats ne sont pas des constats.** 16 candidats nouveaux non
   validés sur le passage complet ; 14 candidats sur 29 non validés sur le ciblé.
-- **2026-11-13 : les hooks déjà branchés dans la passerelle ne partent qu'à son
+- **2026-11-11 : les hooks déjà branchés dans la passerelle ne partent qu'à son
   prochain redémarrage.**
 
 **Bonne pratique** :
@@ -1315,8 +1315,8 @@ dollar), notées à l'aveugle sur cinq critères, sur 40 points.
   vient de la réponse en tête (8 contre 5) et de l'absence de remplissage (5 contre 0).
   La perte est sur le jargon défini (5 contre 8) ; le pourquoi et la complétude sont à
   égalité. Le seuil écrit avant la mesure (adopter si le total gagne 3 points sans recul
-  de 2 points ou plus sur la vulgarisation) écarte le skill tel quel : la vulgarisation
-  recule de 3 points.
+  de la vulgarisation ; écarter tel quel si elle recule de 2 points ou plus) écarte le
+  skill tel quel : la vulgarisation recule de 3 points.
 - **2026-11-11 : mesure étroite.** Un seul évaluateur ; au rejeu, 5 notes sur 10
   bougent ; les règles étaient injectées en consigne système, pas en skill ; aucune
   session à plusieurs tours.
@@ -1329,9 +1329,9 @@ dollar), notées à l'aveugle sur cinq critères, sur 40 points.
 - Si l'on reprend les règles sans le skill, garder la définition du jargon, que le
   skill fait perdre.
 
-**Repli** : non retenu, mais connu : reprendre les trois règles qui gagnent (réponse en
-tête, une seule prochaine action à la fin, ni préambule ni formule de fin) dans la
-consigne globale de forme, en gardant la définition du jargon.
+**Repli** : retenu, et prévu dans un autre plan : reprendre les trois règles qui gagnent
+(réponse en tête, une seule prochaine action à la fin, ni préambule ni formule de fin)
+dans la consigne globale de forme, en gardant la définition du jargon.
 
 ## Fiche — /advisor (conseiller d'un autre modèle, Claude Code)
 

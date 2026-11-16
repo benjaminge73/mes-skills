@@ -121,7 +121,8 @@ qui est déjà su.** Six gisements, du moins cher au plus cher :
    Une ligne par dépôt, triée de la mise en favori la plus récente à la plus
    ancienne : date de mise en favori (`AAAA-MM-JJ`), nom, description, sujets, étoiles,
    dernier push, séparés par des tabulations. L'en-tête `Accept` fait porter à `gh` la
-   date `starred_at`, sans laquelle la colonne serait vide. Aucun nom
+   date `starred_at` ; sans lui, la réponse change de forme et toutes les colonnes
+   sortent vides, sans erreur. Aucun nom
    de compte n'est écrit dans le plugin, qui est public : `gh` lit le compte connecté.
 
    L'étoile met un dépôt en tête de fiche, elle ne tranche rien. La recherche web se
