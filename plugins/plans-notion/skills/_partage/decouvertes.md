@@ -43,10 +43,12 @@ sur ces points coûte une donnée, un secret exposé ou un travail à refaire.
 
 La question part avec sa recommandation en premier, par l'outil natif
 `AskUserQuestion` ; sans cet outil, en texte. L'exécution continue sur tout ce qui
-n'en dépend pas. Une question restée sans réponse à la clôture donne un plan de
-suite (`_partage/plan-de-suite.md`). À la clôture, une question en attente n'est
-pas laissée dans le plan terminé : elle se pose dans la session avant `a merger`,
-et c'est seulement faute de réponse qu'elle part au plan de suite (« Le tri »).
+n'en dépend pas. Une question restée sans réponse à la clôture devient une ligne
+`décision` de la base « Restes » (`_partage/restes.md`) ; elle ne fait un plan de
+suite que si du travail reste aussi (`_partage/plan-de-suite.md`). À la clôture, une
+question en attente n'est pas laissée dans le plan terminé : elle se pose dans la
+session avant `a merger`, et c'est seulement faute de réponse qu'elle devient une
+ligne `décision` de la base « Restes » (« Le tri »).
 
 ## 2. Traitée dans le plan (intégration directe)
 

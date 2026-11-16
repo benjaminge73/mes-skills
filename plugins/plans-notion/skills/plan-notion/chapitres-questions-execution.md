@@ -115,7 +115,7 @@ première réponse qui s'applique décide** :
 
 Restent dans `La suite`, parce qu'aucune étape ne peut les porter : ce qui **attend un
 événement** (une mesure à N jours, un merge, une version publiée), écrit avec son
-déclencheur et son propriétaire ; ce que **Benjamin a écarté** en toutes lettres, cité
+déclencheur et son propriétaire, et cité par sa ligne `suivi` de la base « Restes » (`_partage/restes.md`) ; ce que **Benjamin a écarté** en toutes lettres, cité
 avec sa décision ; et la **dette de carte** (ci-dessus). Une ligne sans déclencheur ni
 propriétaire se range donc au 1, au 2 ou au 3, jamais ici. Le chapitre est « Rien. » quand
 tout a trouvé sa place.
