@@ -26,6 +26,17 @@ qui est déjà su.** Six gisements, du moins cher au plus cher :
    repose pas — on cite la page et on avance. Dans ces journaux, les lignes
    `découverte — trouvable au plan` sont à lire en premier : elles disent, noir sur
    blanc, ce que l'enquête d'un plan précédent a manqué sur ce projet-là.
+
+   **La mémoire de Hal, avant les options.** Les préférences de Benjamin sur le
+   sujet vivent dans le `fact_store` de Hal (profil `jerome-kairviel`). Le chercher
+   par une recherche sans modèle, en lecture seule (aucun modèle appelé) :
+   `ssh ovh-vps '~/.hermes/hermes-agent/venv/bin/python ~/.hermes/scripts/fact-store-cli.py search --query "<mots>"'`,
+   qui rend du JSON (`fact_id`, `content`, `category`, `trust_score`). Depuis le VPS
+   lui-même, `ssh ovh-vps` est refusé : sans `ssh`, la même commande
+   `~/.hermes/hermes-agent/venv/bin/python ~/.hermes/scripts/fact-store-cli.py search --query "<mots>"`.
+   Mots de sujet seulement, jamais de secret ni de donnée personnelle. Chaque fait
+   retenu se cite par son `fact_id` dans l'option qu'il éclaire. Sans accès (session
+   cloud sans l'alias), la page écrit `Mémoire de Hal : non lue — <raison>`.
 3. **Le code.** Deux gestes, dans cet ordre : d'abord la **carte de voisinage**,
    dressée par le pilote lui-même (détail ci-dessous) ; puis invoquer l'agent
    **`enqueteur`** (outil `Agent`,
