@@ -7,9 +7,10 @@ Fichier référencé par `executer-plan-notion` (§6 et §7), à lire à la clô
 **Benjamin ne relit pas un plan terminé.** Un reste à faire écrit dans la page d'un
 plan clos (journal, `État final`, `La suite`) n'est lu par personne : il dort là
 jusqu'à ce qu'on le redécouvre. Chaque ligne de reste à faire atterrit donc là
-où il la verra : **une question posée dans la session, ou un plan**. Jamais une
-phrase seule dans la page du plan terminé ; seul ce qui attend un événement y dort,
-et le Récap le répète.
+où il la verra : **une question posée dans la session, un plan de suite, ou une
+ligne de la base « Restes »** (`${CLAUDE_PLUGIN_ROOT}/skills/_partage/restes.md`).
+Jamais une phrase seule dans la page du plan terminé : la page ne cite que la
+ligne, par son lien, et le Récap la cite de même.
 
 **La suite se montre dans la session avant de s'écrire dans la page.** Une section
 `La suite`, un reste de l'`État final` ou de la `Remontée sur main` n'est jamais
@@ -33,6 +34,8 @@ exactement la recherche qu'on lui épargne (relevé du 2026-11-09, sur sa demand
   **Reste à faire** du message : ce qu'il faut faire, qui s'en charge (le propriétaire
   du tri : sa réponse attendue, le plan de suite avec son lien, l'étape `D<n>`, ou
   l'événement et son déclencheur), et l'action précise s'il en attend une de lui.
+  Quand le point a sa ligne de la base « Restes » écrite à ce tour, le message la
+  cite avec son lien, à côté du texte recopié : le lien s'ajoute, il ne remplace pas le texte.
   Pas de « voir l'`État final` », pas de « les points ouverts du plan », pas de
   décompte seul : le lecteur ne doit rien avoir à chercher ailleurs.
 - **Un point devenu sans objet ne s'écrit pas.** Avant de recopier, chaque ligne est
@@ -63,9 +66,12 @@ première réponse qui s'applique décide :
    et ce qu'elle a changé se notent à l'`État final`.
    - **Pas de réponse** — session sans humain (`decouvertes.md` § 3), ou Benjamin
      qui répond « plus tard » ou ne répond pas : la question n'est pas laissée dans
-     le plan terminé, elle part en question ouverte (🧭, cases non cochées, une
-     reco) dans un plan de suite. Les restes dont la réponse gèle le travail
-     (sécurité, irréversible, `decouvertes.md` § 3) y vont aussi.
+     le plan terminé. Elle devient une ligne `décision` de la base « Restes »
+     (`restes.md`) : `Type` = `décision`, `Pour` = `Benjamin`, la question et sa reco
+     dans `Contexte`. Une décision sans réponse ne fait pas de plan de suite à elle
+     seule : le plan ne sert que si du travail reste aussi (point 2). Les restes dont
+     la réponse gèle le travail (sécurité, irréversible, `decouvertes.md` § 3) gardent
+     leur ligne ; le travail gelé, lui, reste, et c'est le plan de suite qui le porte.
 2. **C'est du travail qui reste** (une étape en échec ou sautée, un chantier mis de
    côté, une correction repérée trop tard) → le seuil est **plus d'une étape au
    total**, tout ce qui reste étant compté ensemble :
@@ -96,16 +102,29 @@ première réponse qui s'applique décide :
    découvertes en route (`decouvertes.md` § 2, sans plafond) : à la clôture, empiler
    des `D<n>` de sa propre initiative ferait ne jamais clore. Seul l'accord de
    Benjamin, donné dans la session, lève ce seuil.
-3. **Il attend un événement** (une mesure à N jours, un merge, une version
+3. **C'est un geste que seul Benjamin peut poser** (une option à activer dans
+   l'interface, une action sur un compte qu'aucun outil de la session n'atteint) →
+   rien à décider, donc pas de question : la session le **dit dans son message**, avec
+   l'action précise, et le reste devient une ligne de la base « Restes » : `Type` =
+   `geste`, `Pour` = `Benjamin`, `Plan d'origine` = ce plan. Une telle ligne n'exige
+   pas de `Condition` (le champ n'est obligatoire que pour `Hal`, `restes.md`, règle 9).
+   Si la session peut poser le geste elle-même, ce n'est pas ce cas : c'est du travail
+   (point 2) ou rien à faire.
+4. **Il attend un événement** (une mesure à N jours, un merge, une version
    publiée) → **sauf si l'événement est le passage d'un cron** (section « Un
    reste qui attend un cron se lance à la main », ci-dessous) : celui-là se lance
-   maintenant. Pour les autres, il reste dans `La suite` du plan, avec son déclencheur et son
-   propriétaire, **et** il est repris dans la rubrique ⏭️ du Récap (que Benjamin
-   lit, lui). C'est le seul reste qui dort dans la page terminée.
+   maintenant. Pour les autres, il devient une ligne de la base « Restes » : `Type` =
+   `suivi`, `Condition` = son déclencheur (date ou critère), `Pour` proposé par le
+   pilote (`Hal` s'il peut agir au déclencheur, `Benjamin` sinon), `Plan d'origine` =
+   ce plan, `Repo` = celui du plan. La ligne fait foi : la page (`La suite`) et le
+   Récap la citent par son lien, sans recopier son texte. Un `Pour` = `Hal` sans
+   `Condition` ne part pas tel quel : la question revient à Benjamin avant `a merger`
+   (`restes.md`, règle 9).
 
 Chaque ligne de reste à faire de l'`État final` nomme son propriétaire : la
 question posée (avec la réponse), le plan de suite (avec son lien), l'étape `D<n>`
-faite, ou l'événement attendu. Une ligne sans propriétaire se règle avant `a merger`.
+faite, ou la ligne de la base « Restes » qui la porte, citée par son lien. Une ligne
+sans propriétaire se règle avant `a merger`.
 
 ## Un reste qui attend un cron se lance à la main
 
@@ -134,17 +153,18 @@ s'ouvre que dans trois cas** :
 Ce qu'il a déjà validé dans la session (un effet externe tranché, un coût accepté)
 ne se redemande pas. Sans réponse (session sans humain, `decouvertes.md` § 3), ou si
 le lancement est réellement impossible (job sans script, accès manquant), le reste
-garde son déclencheur au point 3 et le message dit ce qui n'est pas prouvé, pourquoi,
-et la commande exacte du lancement (`cron-a-la-main.md`, « Jamais « à la prochaine
-exécution » »).
+garde son déclencheur au point 4 (une ligne `suivi`) et le message dit ce qui n'est
+pas prouvé, pourquoi, et la commande exacte du lancement (`cron-a-la-main.md`, « Jamais
+« à la prochaine exécution » »).
 
 ## Le plan de suite
 
 Une exécution se termine parfois avec du travail restant : des étapes en échec, des
-étapes sautées faute de dépendance, un chantier mis de côté, une question sans
-réponse. **Quand le tri ci-dessus y mène — Benjamin a choisi de le créer, ou n'a
-pas répondu — et seulement alors, créer un plan de suite.** L'autonomie ne se paie qu'à condition que ce qui a été mis de côté
-atterrisse quelque part de visible.
+étapes sautées faute de dépendance, un chantier mis de côté. Une question sans
+réponse n'en fait pas partie : elle devient une ligne `décision`. **Quand le tri
+ci-dessus y mène — Benjamin a choisi de le créer, ou n'a pas répondu alors qu'il
+reste du travail — et seulement alors, créer un plan de suite.** L'autonomie ne se
+paie qu'à condition que ce qui a été mis de côté atterrisse quelque part de visible.
 
 - **Même titre que le plan courant, suffixé du numéro suivant** :
   `[Plan] Projet - Titre thématique #2`, puis `#3`. Le plan sans suffixe compte
@@ -163,8 +183,10 @@ atterrisse quelque part de visible.
   - ce qui a été **laissé de côté**, et pourquoi — CI rouge dont le correctif
     était structurant, dépendance non satisfaite, arbitrage en attente ;
   - les **arbitrages restés sans réponse** (ceux que Benjamin a tranchés dans la
-    session n'y sont pas), sous la forme habituelle des questions
-    ouvertes : H3 `🧭 Q1 — …`, encadré orange, cases **non cochées**, une reco.
+    session n'y sont pas) : ils ne se recopient pas. Chacun est sa ligne `décision`
+    de la base « Restes », citée par son lien ; à l'ouverture du plan de suite,
+    `plan-notion` la reprend en question ouverte (🧭, cases **non cochées**, une
+    reco), `restes.md`, règle 7. Recopier la question ici en plus la ferait exister deux fois.
 - Les étapes non traitées sont **reprises dans le chapitre `Exécution`** du
   nouveau plan, renumérotées à partir de 1 et corrigées de ce que l'exécution a
   appris. Les recopier telles quelles alors qu'on en sait plus long serait
@@ -187,6 +209,6 @@ atterrisse quelque part de visible.
   rendu : c'est là que Benjamin le trouve.
 
 Ne pas créer de plan de suite quand rien ne reste, ou que le reste tient dans une
-étape `D<n>`, une question posée, un événement attendu, ou que Benjamin a choisi de
-le faire dans la session ou de l'écarter. Une page vide de contenu
-utile encombre la base et fait douter du statut de celle qui la précède.
+étape `D<n>`, une question posée, une ligne de la base « Restes » (décision, geste ou
+suivi), ou que Benjamin a choisi de le faire dans la session ou de l'écarter. Une page
+vide de contenu utile encombre la base et fait douter du statut de celle qui la précède.

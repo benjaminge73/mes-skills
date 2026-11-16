@@ -41,8 +41,10 @@ Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard »
   §4) : ce qui est livré, le verdict de la suite complète (point 1 ci-dessous),
   les écarts, le reste à faire s'il y en a — **chaque ligne avec son propriétaire** :
   la question posée dans la session (avec la réponse de Benjamin), le plan de suite
-  (§7, avec son lien) qui la porte, l'étape `D<n>` qui l'a faite, ou l'événement
-  qu'elle attend ; une ligne sans propriétaire se règle avant `a merger`
+  (§7, avec son lien) qui la porte, l'étape `D<n>` qui l'a faite, ou la ligne de la
+  base « Restes » qui la porte (`${CLAUDE_PLUGIN_ROOT}/skills/_partage/restes.md`),
+  citée par son lien : c'est là que le garde de clôture la cherche (point 7) ;
+  une ligne sans propriétaire se règle avant `a merger`
   (`plan-de-suite.md`, « Le tri » ; un reste qui attend un cron se lance à la main
   avant, sans demander sauf conflit, risque de sécurité ou coût non validé). Cette entrée porte aussi :
   - **le décompte des découvertes, vérifié mécaniquement** — jamais recompté
@@ -118,11 +120,16 @@ Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard »
   réécriture : les quatre rubriques **Nouveau, Amélioré, Corrigé, Reste à faire**,
   dans cet ordre, chaque ligne ✨ ou 🔧 avec sa source ; puis une ligne
   `PR : <lien> · Statut : <statut>` ; puis le bloc **« Côté technique »**.
-  Le texte des rubriques est celui du Récap de la page (point 7, geste b).
+  Le texte des rubriques est celui du Récap de la page (point 7, geste b), sauf
+  « Reste à faire » (ci-dessous).
   **La rubrique « Reste à faire » recopie chaque point ouvert en entier** (quoi, qui,
   l'action attendue de Benjamin), sans renvoi vers l'`État final` ni vers la page, et
   sans les points devenus sans objet : `plan-de-suite.md`, « Le reste à faire se
   recopie en entier dans la session ». Même exigence au message qui constate le merge.
+  **Chaque ligne créée à ce tour dans la base « Restes » (point « Avant le point 1 »)
+  est citée dans ce message avec son lien**, à côté du texte du point qu'elle porte.
+  Le Récap de la page, lui, ne recopie pas le texte : il cite la ligne par son lien
+  (`changelog-et-doc.md`, § 2.1).
 - **Côté technique** (le bloc replié, rien de perdu) : les étapes parties en
   sous-agent `executant` (Haiku) et, pour celles faites en direct, pourquoi (§3) ;
   la PR, son URL, prête — avec ou sans le label `review-required` selon ce que ce
@@ -142,8 +149,14 @@ Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard »
   `AskUserQuestion`, avant `a merger` ; du travail qui reste tient en une étape
   `D<n>` faite maintenant, ou — au-delà d'**une étape au total** — se **propose dans
   la session** (créer le plan de suite, §7 ; le faire maintenant en étapes `D<n>` si
-  c'est réversible et hors sécurité ; l'écarter), le plan de suite valant sans
-  réponse ; ce qui attend un événement reste dans `La suite`, repris au Récap. Ce que
+  c'est réversible et hors sécurité ; l'écarter). Ce qui n'a pas de réponse dans la
+  session devient une ligne de la base « Restes »
+  (`${CLAUDE_PLUGIN_ROOT}/skills/_partage/restes.md`) : une décision sans réponse
+  (`Type` `décision`), un geste que seul Benjamin peut poser (`geste`), un événement
+  attendu (`suivi`). Le plan de suite ne vaut sans réponse que s'il reste aussi du
+  travail. Les lignes s'écrivent ici, une par reste, `Plan d'origine` = ce plan, par la
+  cascade d'écriture de `changelog-et-doc.md` (§ 6) ; si toute la cascade échoue, la
+  ligne ne s'écrit pas ailleurs, et le garde du point 7 refuse `a merger`. Ce que
   la page garde d'une suite, la session l'a déjà montré. Le
   tri passe **avant** la suite complète du point 1 pour qu'un `D<n>` y soit couvert,
   avant l'ouverture de la PR, et avant le Récap du point 7, qui en reprend le
@@ -502,6 +515,18 @@ Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard »
      (point 5) : relire `gh pr view <n> --json isDraft`, `false` exigé. Un `true` veut
      dire que la PR n'est pas passée prête : la ligne `Doc :` écrite, on la passe
      prête ; seul un brouillon demandé par Benjamin reste tel quel (point 8, issue c).
+     **Avant de poser `a merger`, le garde des restes** (tout plan, PR en brouillon ou
+     non) : relire le miroir frais de la page du plan, puis jouer
+     `python3 ${CLAUDE_PLUGIN_ROOT}/skills/_partage/scripts/restes-sans-ligne.py <miroir-page> --lignes <lignes.json>`.
+     `<lignes.json>` vit dans le scratchpad de la session : c'est l'export des lignes de
+     la base « Restes » dont `Plan d'origine` est ce plan, relues après écriture, au format
+     de `restes.md` (clés `Reste`, `Pour`, `État`, `Plan d'origine`, et `url` = le lien de
+     la ligne). Le garde lit la rubrique « Reste à faire » de l'`État final` : chaque reste
+     en attente doit y citer sa ligne, par son lien ou par son texte. Code 0 : tout a sa ligne.
+     **Code 1 interdit `a merger`** : le garde écrit sur la sortie un défaut par reste sans
+     ligne ; on écrit la ligne (point « Avant le point 1 »), on relit, et on rejoue jusqu'au
+     code 0. Code 2 (page ou export illisible) : on le dit à Benjamin, et `a merger` ne se
+     pose pas.
      Puis le journal et le compte rendu : `État final` (avec la sortie du point 6),
      `Statut` = **`a merger`**, `PR` = l'URL, et le compte rendu à Benjamin, qui est le
      récap (plus haut). `a merger` est vrai à cet instant : le code n'est pas encore sur

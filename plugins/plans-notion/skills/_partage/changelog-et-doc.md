@@ -60,7 +60,7 @@ Plan : <lien vers la page du plan> · PR : <lien, ou « aucune (plan natif) »> 
 - ✨ Nouveau : ce qui existe désormais et n'existait pas.
 - 🔧 Amélioré : ce qui existait et marche mieux.
 - 🐛 Corrigé : un défaut connu, corrigé. Rédigé du point de vue de la personne qui s'en servait.
-- ⏭️ Reste à faire : ce qui n'est pas livré, **avec où cela atterrit** — le lien du plan de suite, l'événement attendu, ou la décision que Benjamin vient de rendre dans la session. Une décision qu'on attend de lui n'y reste pas en phrase : elle a été posée dans la session avant la clôture (`plan-de-suite.md`, « Le tri »), ou elle est une question ouverte du plan de suite, avec son lien.
+- ⏭️ Reste à faire : ce qui n'est pas livré, **avec où cela atterrit**. Chaque point ouvert est une puce qui **cite sa ligne** de la base « Restes » (`${CLAUDE_PLUGIN_ROOT}/skills/_partage/restes.md`) par son lien, sans recopier le texte du reste : la ligne fait foi, la page ne la répète pas (Q11). Forme d'une puce : `- <type de la ligne>, pour <Pour> : <lien de la ligne>`, par exemple `- suivi, pour Hal : <lien de la ligne>`. Le lien d'une ligne « décision » ou « geste » suit la même forme. Une décision qu'on attend de lui n'y reste pas en phrase : elle a été posée dans la session avant la clôture (`plan-de-suite.md`, « Le tri »), ou elle est une ligne `décision` de la base, citée par son lien. Le lien du plan de suite, s'il existe, s'y ajoute.
 
 ### 2.2 Règles de rédaction
 
@@ -142,6 +142,8 @@ Plan : aucun (sans plan) · PR : <lien> · Statut : mergée
 ## 3. Le récap et le compte rendu du chat
 
 Le compte rendu de clôture dans le chat **est** le récap, sans réécriture : les quatre rubriques, puis une ligne `PR : <lien> · Statut : <statut>`. Le bloc « Côté technique » suit. Le journal du plan garde son entrée `État final` telle quelle, comme trace complète.
+
+Une exception, pour « Reste à faire » : la page n'y cite que la ligne de la base « Restes » (§ 2.1), mais le compte rendu du chat **recopie** chaque point ouvert en entier, avec le lien de sa ligne à côté (`cloture.md`, compte rendu, et `plan-de-suite.md`, « Le reste à faire se recopie en entier »).
 
 ## 4. Les gestes d'écriture
 
