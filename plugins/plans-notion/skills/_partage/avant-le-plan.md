@@ -20,7 +20,8 @@ sans sauter d'étape :
    200 lignes : `${CLAUDE_PLUGIN_ROOT}/skills/_partage/lecture-deleguee.md`.
 4. **Invoquer `plans-notion:chercheur`** seulement si une étape fabrique un artefact qui n'est
    pas propre au projet : une ligne « Existant cherché : … / trouvé : … / fait maison parce
-   que … » par artefact (`enquete.md`, gisement 6, « L'extérieur »).
+   que … » par artefact (`enquete.md`, gisement 6, « L'extérieur »). Les dépôts étoilés se
+   listent avant lui, par la commande triée par date de mise en favori : `${CLAUDE_PLUGIN_ROOT}/skills/plan-notion/enquete.md`, gisement 6, « D'abord, les dépôts étoilés ».
 5. **Mesurer le POC, s'il y en a un.** Un POC (preuve de concept : une mesure jetable,
    faite avant de choisir) lève une incertitude mesurable du plan. Le pilote ne le joue
    **jamais** lui-même : il le délègue à `plans-notion:sondeur` si la réponse sort d'une
