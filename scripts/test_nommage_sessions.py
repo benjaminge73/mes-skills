@@ -183,6 +183,44 @@ class NommerSession(unittest.TestCase):
                                    session_title="[Sujet - VPS]"))
         self.assertEqual(self.titre_rendu(r), "[Pas-un-depot - VPS] Sujet")
 
+    def test_les_reglages_claude_ne_sont_pas_un_projet(self):
+        """Régression : sur le VPS, ~/.claude (dépôt git) titrait toutes les sessions « .claude - VPS »."""
+        maison = self.tmp / "maison"
+        reglages = maison / ".claude"
+        (reglages / "skills").mkdir(parents=True)
+        subprocess.run(["git", "init", "-q", str(reglages)], check=True)
+        subprocess.run(["git", "-C", str(reglages), "remote", "add", "origin",
+                        "https://github.com/benjaminge73/.claude"], check=True)
+        env = {"HOME": str(maison)}
+        self.jouer(self.entree(cwd=str(maison)), env_en_plus=env)
+        for chemin in (reglages / "skills" / "x.md", reglages / "memoire.md"):
+            self.jouer(self.outil(chemin, cwd=maison), env_en_plus=env)
+        self.jouer(self.outil(self.depot / "a.py", cwd=maison), env_en_plus=env)
+        r = self.jouer(self.entree(cwd=str(maison), prompt="suite",
+                                   session_title="[Plugin de nommage - VPS]"), env_en_plus=env)
+        self.assertEqual(self.titre_rendu(r), "[Mon-projet - VPS] Plugin de nommage")
+
+    def test_sans_autre_dossier_les_reglages_laissent_le_crochet_a_trois_mots(self):
+        maison = self.tmp / "maison"
+        (maison / ".claude").mkdir(parents=True)
+        env = {"HOME": str(maison)}
+        self.jouer(self.entree(cwd=str(maison)), env_en_plus=env)
+        self.jouer(self.outil(maison / ".claude" / "x.md", cwd=maison / ".claude"), env_en_plus=env)
+        r = self.jouer(self.entree(cwd=str(maison / ".claude"), prompt="suite",
+                                   session_title="[Plugin de nommage - VPS]"), env_en_plus=env)
+        self.assertIsNone(self.titre_rendu(r))
+
+    def test_un_etat_de_la_0_3_0_avec_un_dossier_cache_est_corrige(self):
+        self.jouer(self.entree(cwd=str(self.tmp)))
+        etat = self.data / "s1.json"
+        donnees = json.loads(etat.read_text())
+        donnees.update(projet=".claude", prefixe="[.claude - VPS]", sujet="Plugin de nommage")
+        etat.write_text(json.dumps(donnees))
+        self.jouer(self.outil(self.depot / "a.py", cwd=self.tmp))
+        r = self.jouer(self.entree(cwd=str(self.tmp), prompt="suite",
+                                   session_title="[.claude - VPS] Plugin de nommage"))
+        self.assertEqual(self.titre_rendu(r), "[Mon-projet - VPS] Plugin de nommage")
+
     def test_le_hook_d_outil_ne_parle_jamais(self):
         self.jouer(self.entree(cwd=str(self.lancement())))
         r = self.jouer(self.outil(self.depot / "a.py", cwd=self.lancement()))

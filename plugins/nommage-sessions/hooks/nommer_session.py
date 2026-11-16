@@ -17,7 +17,9 @@ répond, quand il a quelque chose à poser, par
   dossier repéré ; même nom sur le Mac, le VPS et le cloud, worktrees compris. À défaut
   de remote, le nom du dépôt local. Un dossier non git directement sous le dossier de
   lancement compte aussi. Ni la racine, ni le dossier personnel, ni le dossier de
-  lancement lui-même (sauf s'il est un dépôt) ne sont un projet. Première lettre en
+  lancement lui-même (sauf s'il est un dépôt) ne sont un projet ; ni ``~/.claude`` ni
+  aucun dossier caché ou système (``/etc``, ``/usr``…) non plus : lire un skill ou
+  une mémoire ne choisit pas le projet. Première lettre en
   majuscule ; un alias facultatif (``alias.json`` dans le dossier de données :
   ``{"hermes-custom": "Hermes"}``) remplace le nom du dépôt.
 - **Sans dossier de projet** : le crochet porte un sujet de 3 mots au plus (donné par
@@ -77,24 +79,36 @@ def depot_github(cwd: str) -> str | None:
     return dernier.removesuffix(".git") or None
 
 
+SYSTEME = ("/etc", "/opt", "/usr", "/var", "/proc", "/sys", "/dev", "/run", "/mnt")
+
+
+def hors_projet(chemin: Path) -> bool:
+    """Réglages (``~/.claude``), dossiers cachés et dossiers système : jamais un projet."""
+    if any(partie.startswith(".") and partie not in (".", "..") for partie in chemin.parts):
+        return True
+    return any(chemin == Path(d) or Path(d) in chemin.parents for d in SYSTEME)
+
+
 def racine_projet(chemin: str, lancement: str | None = None) -> str | None:
     """Dossier de projet qui contient ``chemin`` : racine git, ou premier dossier sous le lancement."""
     p = Path(chemin)
     while not p.is_dir() and p != p.parent:
         p = p.parent
-    if not p.is_dir():
+    if not p.is_dir() or hors_projet(p.resolve()):
         return None
     maison = Path.home()
     racine = _sortie_git(str(p), "rev-parse", "--show-toplevel")
-    if racine and Path(racine) not in (Path("/"), maison):
+    if racine and Path(racine) not in (Path("/"), maison) and not hors_projet(Path(racine)):
         return racine
     if lancement:
         try:
             reste = p.resolve().relative_to(Path(lancement).resolve())
         except ValueError:
             return None
-        if reste.parts and not reste.parts[0].startswith("."):
-            return str(Path(lancement).resolve() / reste.parts[0])
+        if reste.parts:
+            premier = Path(lancement).resolve() / reste.parts[0]
+            if not hors_projet(premier):
+                return str(premier)
     return None
 
 
@@ -245,7 +259,7 @@ def apres_outil(entree: dict) -> int:
     if not session_id:
         return 0
     etat = lire_etat(session_id)
-    if etat.get("projet"):
+    if etat.get("projet") and not etat["projet"].startswith("."):
         return 0
     etat.setdefault("lancement", entree.get("cwd") or os.getcwd())
     if reperer_projet(entree, etat) or not fichier_etat(session_id).exists():
@@ -268,6 +282,8 @@ def main() -> int:
     session_id = entree.get("session_id")
     etat = lire_etat(session_id) if session_id else {}
     etat.setdefault("lancement", entree.get("cwd") or os.getcwd())
+    if str(etat.get("projet") or "").startswith("."):
+        etat.pop("projet")  # état écrit par la 0.3.0 : « .claude » n'est pas un projet
     if not etat.get("projet"):
         reperer_projet({"cwd": entree.get("cwd") or os.getcwd()}, etat)
     if session_id and not fichier_etat(session_id).exists():
