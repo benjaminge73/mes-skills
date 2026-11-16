@@ -52,8 +52,8 @@ Un code 1 se corrige et se rejoue ; jamais `pret` « en attendant ». Les valeur
   décision (`_partage/decouvertes.md`) : une question qui n'a pas de reco, tu la lui
   poses dans le rapport, tu ne la passes pas au vert.
 - **Lancer un sous-agent**. Tu ne le fais pas, pour quatre raisons :
-  - le connecteur Notion de l'app n'existe pas chez les sous-agents : un sous-sous-agent
-    n'aurait donc pas accès à la page ;
+  - le connecteur Notion n'est pas garanti chez les sous-agents (absent de l'app de bureau,
+    chargeable depuis le VPS) : un sous-sous-agent n'aurait pas la page de façon sûre ;
   - tu joues les preuves toi-même : un sous-agent ne te rendrait que des preuves de
     seconde main ;
   - chaque niveau relirait la page une fois de plus, et le coût en jetons se multiplie

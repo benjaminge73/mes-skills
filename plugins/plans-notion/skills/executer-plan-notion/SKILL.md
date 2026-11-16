@@ -391,8 +391,8 @@ Tout ce qui précède décrit un plan. Quand une session en porte plusieurs,
 chacun garde son déroulé (§2 à §7) ; ce qui s'ajoute tient en cinq points.
 
 **Un pilote unique.** Le pilote conduit tous les plans, et aucun
-n'est confié à un « pilote » délégué. Raisons : le connecteur Notion n'existe
-pas chez les sous-agents ; les preuves se jouent soi-même, sans seconde main ;
+n'est confié à un « pilote » délégué. Raisons : le connecteur Notion n'est pas
+garanti chez les sous-agents (absent de l'app de bureau, chargeable depuis le VPS) ; les preuves se jouent soi-même, sans seconde main ;
 chaque niveau relirait la page, au coût en jetons ; les paliers et décisions
 restent au pilote.
 
