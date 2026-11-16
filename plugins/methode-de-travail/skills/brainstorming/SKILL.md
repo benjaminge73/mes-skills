@@ -102,8 +102,8 @@ and does not write the plan.
 
 Classify first, announce the path, then create a task for each item on your path
 and complete them in order. Every path's first step is "Explore project context":
-just enough to frame the question. On an indexed repo, use the `codebase-memory`
-MCP (`get_architecture`, `search_code`, `query_graph`) rather than whole files.
+just enough to frame the question. Before proposing an approach, list the user's recent GitHub stars, most recent first:
+`gh api -H 'Accept: application/vnd.github.star+json' user/starred --paginate --jq '.[] | [.starred_at[:10], .repo.full_name, .repo.description] | @tsv' | sort -r`. On an indexed repo, use the `codebase-memory` MCP (`get_architecture`, `search_code`, `query_graph`) rather than whole files.
 
 **Spike:**
 1. **Explore project context**: enough to frame the probe

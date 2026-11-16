@@ -81,9 +81,10 @@ Cite la page lue, avec son lien. Une source injoignable va dans **Non vérifié*
 
 # Une liste d'étoiles, en premier
 
-Quand la session appelante te transmet une liste de dépôts étoilés (nom,
-description, sujets, étoiles, dernier push), **passe-la en revue en premier**,
-avant les lieux de référence. Un dépôt étoilé qui répond au besoin de l'artefact
+Quand la session appelante te transmet une liste de dépôts étoilés (date de mise
+en favori, nom, description, sujets, étoiles, dernier push), **passe-la en revue en
+premier**, avant les lieux de référence. Elle est triée de la mise en favori la plus
+récente à la plus ancienne : **regarde d'abord les favoris les plus récents**. Un dépôt étoilé qui répond au besoin de l'artefact
 va **en tête de fiche**, marqué « étoilé ». Pas de liste reçue : tu pars sur le web.
 
 Mais l'étoile ne tranche rien à elle seule :
