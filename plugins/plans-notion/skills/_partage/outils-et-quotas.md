@@ -1260,9 +1260,14 @@ l'abonnement du poste et exprimée en équivalent API. Version mesurée : plugin
   0,26 dollar par fichier relu.
 - Passage Haiku, périmètre ciblé de trois fichiers (2026-11-13) : 3 fichiers sur 3
   relus, 3,01 dollars, coupé au plafond de 3 dollars pendant la validation, 26 minutes.
-- Estimation, non mesurée : revue complète sur Haiku, environ 75 dollars d'équivalent
-  API et plusieurs heures (règle de trois sur 292 fichiers). Opus : environ 100 dollars
-  estimés.
+- Passage Haiku, revue complète, tout le dépôt (2026-11-16) : 16,65 dollars d'équivalent
+  API pour 73 sessions (71 sous-sessions Haiku 15,37 dollars, parent 0,88 dollar, reprise
+  du parent 0,40 dollar), soit environ le cinquième de l'estimation de 75 dollars. 41
+  paquets, 293 fichiers sur 293 relus (175 029 lignes), scan scellé au statut partiel :
+  11 unités de déploiement différées faute de preuve d'exécution, aucun contrôle ASVS
+  marqué relu (0 sur 142). 5 constats élevés, 30 moyens, 132 faibles, 1 informatif.
+  Deux séances : 40 minutes jusqu'à la coupure, puis 46 minutes à la reprise.
+- Estimation, non mesurée : Opus, environ 100 dollars estimés.
 
 **Pièges datés** :
 
@@ -1284,6 +1289,15 @@ l'abonnement du poste et exprimée en équivalent API. Version mesurée : plugin
   validés sur le passage complet ; 14 candidats sur 29 non validés sur le ciblé.
 - **2026-11-11 : les hooks déjà branchés dans la passerelle ne partent qu'à son
   prochain redémarrage.**
+- **2026-11-16 : un garde-fou de Hermes coupe la session parent.** Après 54 appels de
+  délégation sans progrès, la session `--oneshot` s'arrête sans finaliser le scan et
+  sans export, avec un code de sortie de réussite. Une reprise par `--resume` (même
+  identifiant de session) a fini le scan en relançant les seuls relecteurs en échec.
+- **2026-11-16 : une délégation de plus de dix relecteurs est refusée** (« Too many
+  tasks ») ; le parent doit découper en lots de dix au plus.
+- **2026-11-16 : le parent peut changer de modèle en route.** À la reprise, la session
+  parent a basculé sur un autre fournisseur après une panne de celui de Haiku ; seuls
+  les relecteurs restent sur le modèle de `delegation.model`.
 
 **Bonne pratique** :
 
