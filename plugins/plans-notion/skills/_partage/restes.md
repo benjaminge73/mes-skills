@@ -22,7 +22,7 @@ remplace pas le tri : elle se branche dessus et recueille ce qu'il laisse dormir
 ## Où elle est
 
 - Page « Restes », sous la page « Claude », à côté de « Plans Claude ».
-- URL : https://app.notion.com/p/41ab8cc8aa1d8107aeeec751df2d8a73
+- Elle se retrouve par la recherche Notion (« Restes ») ou par sa source de données ci-dessous.
 - Source de données (l'identifiant qu'un appel API demande) :
   `collection://41ab8cc8-aa1d-81cf-b83c-000b76701db9`
 - Chaque page projet porte une vue liée, filtrée sur `Repo` = `benjaminge73/<repo>` (Q9).
