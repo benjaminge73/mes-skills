@@ -404,8 +404,8 @@ lecture.
 
    **Reprendre un fichier d'arguments laissé par un agent.** Quand un agent rend
    `BLOCKED` avec un fichier prêt (un `args.json` pour `composio execute
-   NOTION_UPDATE_PAGE_MARKDOWN -d @fichier`, ou une entrée de changelog sous
-   `~/brouillons/<projet>/changelog/`), c'est le pilote qui le reprend, jamais
+   NOTION_UPDATE_PAGE_MARKDOWN -d @fichier`, ou une entrée de changelog dans un
+   dossier de brouillons), c'est le pilote qui le reprend, jamais
    l'agent. Le pilote calcule l'empreinte sha256 du fichier, puis charge Hermes,
    par le même `hermes chat --query-file` et le même délai, de jouer lui-même une
    seule commande sur ce chemin exact, qui vérifie l'empreinte juste avant
@@ -499,7 +499,7 @@ ne figuraient pas dans la mesure, et leur coût n'a jamais été mesuré. `tout 
 désigne le banc de `plans-notion` ; `voyages` en compte un de plus (`billet`), soit
 27 cas au total.
 
-Mesure postérieure pour `decouvertes` : la PR #60 (run `38881638080`, le
+Mesure postérieure pour `decouvertes` : la PR #60 (son run du
 2026-10-16), à bras identiques puisqu'elle ne changeait aucun fichier du plugin.
 6 cas × 3 passages × 2 bras, aucune session en erreur, 18,68 $ pour les deux
 bras ensemble (montant brut, non divisé par deux).
