@@ -115,10 +115,13 @@ qui est déjà su.** Six gisements, du moins cher au plus cher :
    jugées dignes d'intérêt. Commande :
 
    ```bash
-   gh api user/starred --paginate --jq '.[] | [.full_name, .description, (.topics|join(",")), .stargazers_count, .pushed_at] | @tsv'
+   gh api -H 'Accept: application/vnd.github.star+json' user/starred --paginate --jq '.[] | [.starred_at[:10], .repo.full_name, .repo.description, (.repo.topics|join(",")), .repo.stargazers_count, .repo.pushed_at] | @tsv' | sort -r
    ```
 
-   Une ligne par dépôt : nom, description, sujets, étoiles, dernier push. Aucun nom
+   Une ligne par dépôt, triée de la mise en favori la plus récente à la plus
+   ancienne : date de mise en favori (`AAAA-MM-JJ`), nom, description, sujets, étoiles,
+   dernier push, séparés par des tabulations. L'en-tête `Accept` fait porter à `gh` la
+   date `starred_at`, sans laquelle la colonne serait vide. Aucun nom
    de compte n'est écrit dans le plugin, qui est public : `gh` lit le compte connecté.
 
    L'étoile met un dépôt en tête de fiche, elle ne tranche rien. La recherche web se
