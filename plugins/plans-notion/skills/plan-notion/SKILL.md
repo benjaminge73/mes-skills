@@ -282,7 +282,7 @@ d'écrire ou de remettre à jour** le chapitre concerné, pas de mémoire :
   📄 `${CLAUDE_PLUGIN_ROOT}/skills/plan-notion/chapitres-cadrage.md`
 
 - `Questions ouvertes` (un H3 et un encadré par question, cases vides sauf question née verte de choix validé, couleur
-  = état), `La suite` (un élément n'y reste que si un autre plan le porte ou s'il attend un événement : sinon étape du plan, ou plan à part s'il est gros), `Exécution` (tableau de tête, un H3 par étape, champs
+  = état), `La suite` (un élément n'y reste que si un autre plan le porte ou s'il attend un événement, et alors sa ligne `suivi` de la base « Restes » (`_partage/restes.md`) le porte : sinon étape du plan, ou plan à part s'il est gros), `Exécution` (tableau de tête, un H3 par étape, champs
   obligatoires, modifications datées) et `Journal d'exécution` (un H3 par entrée) :
 
   📄 `${CLAUDE_PLUGIN_ROOT}/skills/plan-notion/chapitres-questions-execution.md`
@@ -488,7 +488,7 @@ comment de la séance de code.
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/outils-et-quotas.md`,
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/schemas.md`,
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/cron-a-la-main.md`,
-  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/decouvertes.md`,
+  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/decouvertes.md`, `${CLAUDE_PLUGIN_ROOT}/skills/_partage/restes.md`,
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/changelog-et-doc.md`,
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/revue.md` et
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/bons-tests.md`, ses quatre fichiers de

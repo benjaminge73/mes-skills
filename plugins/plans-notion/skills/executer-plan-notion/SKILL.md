@@ -378,7 +378,7 @@ ligne `Evals`.
 Benjamin ne relit pas un plan terminé : **aucun reste à faire ne dort seul dans sa
 page.** La suite se montre dans la session avant de s'écrire. Avant `a merger`, chaque ligne se trie — une décision qu'on attend de lui se
 pose dans la session (`AskUserQuestion`) ; une étape au plus se fait en `D<n>` ;
-au-delà, la session **propose** : **plan de suite** (le défaut : titre suffixé, `Reprise du plan #N-1`, `Branche`, liens), ou les faire maintenant en `D<n>`, ou les écarter ; ce qui attend un événement reste, repris au Récap :
+au-delà (plus d'une étape de travail), la session **propose** : **plan de suite** (le défaut : titre suffixé, `Reprise du plan #N-1`, `Branche`, liens), ou les faire maintenant en `D<n>`, ou les écarter ; ce qui attend un événement ou un geste de Benjamin, et une décision restée sans réponse, devient une ligne de la base « Restes » (`${CLAUDE_PLUGIN_ROOT}/skills/_partage/restes.md`), que le Récap cite :
 
 📄 `${CLAUDE_PLUGIN_ROOT}/skills/_partage/plan-de-suite.md`
 
@@ -391,8 +391,8 @@ Tout ce qui précède décrit un plan. Quand une session en porte plusieurs,
 chacun garde son déroulé (§2 à §7) ; ce qui s'ajoute tient en cinq points.
 
 **Un pilote unique.** Le pilote conduit tous les plans, et aucun
-n'est confié à un « pilote » délégué. Raisons : le connecteur Notion n'existe
-pas chez les sous-agents ; les preuves se jouent soi-même, sans seconde main ;
+n'est confié à un « pilote » délégué. Raisons : le connecteur Notion n'est pas
+garanti chez les sous-agents (absent de l'app de bureau, chargeable depuis le VPS) ; les preuves se jouent soi-même, sans seconde main ;
 chaque niveau relirait la page, au coût en jetons ; les paliers et décisions
 restent au pilote.
 
@@ -485,7 +485,7 @@ parallèle ; le pilote ne garde que le croisement) vivent dans un seul fichier :
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/vagues.md`,
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/schemas.md`,
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/remontee-sur-main.md`,
-  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/plan-de-suite.md`,
+  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/plan-de-suite.md`, `${CLAUDE_PLUGIN_ROOT}/skills/_partage/restes.md`,
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/preuve-du-rouge.md`,
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/grille-doc.md`,
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/maquettes-html.md`,
