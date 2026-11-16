@@ -76,6 +76,18 @@ choix cochée**, et sa ligne de preuve cite son message mot pour mot :
 - L'encadré passe au vert avec `(choix validé par Benjamin)` à la place de
   `(reco appliquée par défaut)`, et le H3 passe à `✅ Q<n> — …` dans le même geste.
 
+**Les restes repris.** Chaque ligne `ouvert` de la base « Restes » du dépôt, relevée à la
+création (`plan-maitre.md`, « Le deuxième plan d'un projet crée le maître », point 1), s'écrit
+ici selon son `Type` (`${CLAUDE_PLUGIN_ROOT}/skills/_partage/restes.md`, règle 7) :
+
+- une ligne `décision` devient une question ouverte de ce chapitre, avec le lien de la ligne
+  dans son encadré ;
+- les autres vont dans un H2 `Restes repris`, en tête de page, une puce par ligne : son titre
+  en lien, puis `Pour` et `Condition`.
+
+**À la création de la page, et pas avant**, la propriété `Repris par` de chaque ligne reprise
+reçoit la page du plan (relation), et son `État` passe à `repris`.
+
 ### Le chapitre `La suite`
 
 `La suite` n'est pas une réserve où l'on range ce qu'on n'a pas envie de faire :

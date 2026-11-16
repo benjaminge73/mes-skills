@@ -112,6 +112,11 @@ lire, rien à déléguer, aucune enquête (celle-ci viendra à la préparation, 
    `Projet` diffère de celui du nouveau plan : un même dépôt peut porter deux sujets sous
    deux pages projet (§1 de `SKILL.md`), et ils ne se croisent pas. Séparer les pages
    `[Plan maître]` des plans.
+   **Relever aussi les restes** : une seconde requête, sur la base « Restes »
+   (`collection://41ab8cc8-aa1d-81cf-b83c-000b76701db9`), filtrée `Repo` = `benjaminge73/<repo>`
+   et `État` = `ouvert`, sans lecture de page : la ligne se lit par ses propriétés. Règle
+   d'ouverture : `_partage/restes.md`, règle 7 ; ce qu'elle rend s'écrit dans la page du plan
+   (`chapitres-questions-execution.md`, « Les restes repris »).
 2. **Trier**, premier cas qui s'applique :
    - **un maître ouvert** (« Le statut du plan maître et son lot ») couvre ce projet : le
      nouveau plan le **rejoint** ; avec plusieurs maîtres ouverts, ne pas choisir de tête :
