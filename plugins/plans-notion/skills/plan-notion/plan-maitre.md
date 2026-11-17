@@ -40,7 +40,7 @@ lecture qu'un plan classique délègue.
 
 Une page de la base `Plans Claude`, titre `[Plan maître] Nom_du_projet - Titre
 thématique`, propriétés `Projet`, `Repo` et `Date` comme un plan (§2 de
-`SKILL.md`), et un `Statut` **hérité** de ses plans (« Le statut du plan maître et
+`SKILL.md`), **icône fixe du projet** (table de `icones.md`, jamais une autre), et un `Statut` **hérité** de ses plans (« Le statut du plan maître et
 son lot ») : ce n'est pas un plan qu'on valide, et la porte d'entrée de
 `executer-plan-notion` ne lit jamais ce statut, qui n'est qu'un affichage. Une page par ensemble de
 plans : si une page maître couvre déjà ces plans, elle se met à jour au lieu

@@ -170,7 +170,7 @@ paie qu'à condition que ce qui a été mis de côté atterrisse quelque part de
   `[Plan] Projet - Titre thématique #2`, puis `#3`. Le plan sans suffixe compte
   pour `#1`. Jamais de date dans le titre.
 - Page créée dans la base **Plans Claude**, mêmes propriétés que l'originale
-  (`Projet`, `Repo`, `Date`), `Statut` = `brouillon` : c'est un plan comme un
+  (`Projet`, `Repo`, `Date`) et même icône (`plan-notion/icones.md`), `Statut` = `brouillon` : c'est un plan comme un
   autre, il repasse par la validation de Benjamin avant qu'on code dessus.
 - **`Branche` se tranche, jamais ne se laisse vide** — règle des trois cas dans
   `plan-notion` §2 : recopiée si la branche du `#N` vit encore, neuve et écrite si

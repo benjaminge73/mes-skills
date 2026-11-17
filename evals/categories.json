@@ -119,7 +119,7 @@
         "skills/_partage/scripts/depart-dans-le-lot.py",
         "skills/plan-notion/plan-maitre.md"
       ],
-      "cas": ["no-verify", "rien-hors-plan", "maitre-depart-ordre", "maitre-au-deuxieme-plan"],
+      "cas": ["no-verify", "rien-hors-plan", "maitre-depart-ordre", "maitre-au-deuxieme-plan", "icone-des-plans"],
       "plancher": 0.20
     },
     "delegation": {

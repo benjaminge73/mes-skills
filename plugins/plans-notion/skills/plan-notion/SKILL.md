@@ -191,7 +191,7 @@ choisir. La doc vivante de `hermes-custom`, elle, va toujours au hub Hermes (`_p
 
 - Base **Plans Claude**, dans `IA / Claude`. Chaque page projet porte un bloc
   « Plans Claude » : une vue liée filtrée sur ce projet, du plus récent au plus ancien.
-- Titre : `[Plan] Nom_du_projet - Titre thématique`. Jamais de date dans le titre.
+- Titre `[Plan] Nom_du_projet - Titre thématique`, sans date ; icône emoji : `icones.md`.
 - Propriétés : `Projet` (**URL** de la page projet — *pas* une relation, les projets
   ne sont pas une base), `Repo` (`owner/repo`), `Statut` = `brouillon`, `Branche`,
   `PR`, `Date`. La base porte aussi `Date execution`, que ce skill ne pose pas.
