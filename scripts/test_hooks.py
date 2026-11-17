@@ -512,8 +512,12 @@ class RetirerWorktreesClos(unittest.TestCase):
         self.dossier = racine / "etat" / "plans-notion" / "plans-en-cours"
         self.bin = racine / "bin"
         self.bin.mkdir()
-        self.env = {k: v for k, v in os.environ.items() if not k.startswith(("CLAUDE", "GIT_"))}
+        # Sessions isolées : aucune session réelle du poste ne doit peser sur ces tests.
+        self.sessions = racine / "sessions"
+        self.sessions.mkdir()
+        self.env = {k: v for k, v in os.environ.items() if not k.startswith(("CLAUDE", "GIT_", "PLANS_NOTION_"))}
         self.env["XDG_STATE_HOME"] = str(racine / "etat")
+        self.env["PLANS_NOTION_SESSIONS_DIR"] = str(self.sessions)
         self.env["PATH"] = f"{self.bin}{os.pathsep}{os.environ.get('PATH', '')}"
         self._depot_avec_un_worktree()
 
@@ -544,6 +548,33 @@ class RetirerWorktreesClos(unittest.TestCase):
 
     def lire_fiche(self) -> dict:
         return json.loads((self.dossier / "loc-retrait-1.json").read_text(encoding="utf-8"))
+
+    def poser_fiche_de(self, cle: str, *, worktree: Path, branche: str, pr: int):
+        """Une seconde fiche, pour un autre worktree : même dépôt, même plan de test."""
+        self.dossier.mkdir(parents=True, exist_ok=True)
+        fiche = fiche_de_test(cle, pr=pr, etat="a merger", branche=branche,
+                              worktree=str(worktree), depot=self.DEPOT, titre=f"Plan {cle}")
+        (self.dossier / f"{cle}.json").write_text(json.dumps(fiche), encoding="utf-8")
+
+    def lire_fiche_de(self, cle: str) -> dict:
+        return json.loads((self.dossier / f"{cle}.json").read_text(encoding="utf-8"))
+
+    def worktree_au_sha(self, nom: str) -> Path:
+        """Un second worktree, branche neuve posée sur le même commit que le premier."""
+        chemin = self.worktree.parent / nom
+        self._git("worktree", "add", "-q", "-b", f"feat/{nom}", str(chemin), self.sha, cwd=self.principal)
+        return chemin
+
+    def poser_session(self, nom: str, donnees):
+        """Un fichier ``<nom>.json`` dans le dossier de sessions ; ``donnees`` brut si c'est une chaîne."""
+        corps = donnees if isinstance(donnees, str) else json.dumps(donnees)
+        (self.sessions / f"{nom}.json").write_text(corps, encoding="utf-8")
+
+    def pid_mort(self) -> int:
+        """Le pid d'un processus déjà terminé et attendu : il n'existe plus."""
+        p = subprocess.Popen([sys.executable, "-c", "pass"])
+        p.wait()
+        return p.pid
 
     def faux_gh(self, sortie: str | None, code: int = 0):
         """Un ``gh`` jetable sur le PATH : il rend la sortie donnée, sans aucun réseau."""
@@ -609,6 +640,42 @@ class RetirerWorktreesClos(unittest.TestCase):
         self.assertEqual(self.jouer(cwd=self.worktree).returncode, 0)
         self.assertTrue(self.worktree.is_dir(), "le worktree de la session courante a été retiré")
         self.assertEqual(self.lire_fiche()["etat"], "a merger")
+
+    def test_worktree_d_une_session_vivante_reste_en_place_quand_une_autre_session_demarre(self):
+        # Panne attrapée : la session B retire le worktree de la session A, encore vivante, et close sa fiche.
+        # La session morte (A' : fichier de session resté là, pid mort) doit, elle, perdre son worktree.
+        self.pr_dans_cet_etat("MERGED")
+        ecarte = self.worktree_au_sha("y")
+        self.poser_fiche_de("loc-vivante", worktree=self.worktree, branche="feat/x", pr=7)
+        self.poser_fiche_de("loc-morte", worktree=ecarte, branche="feat/y", pr=8)
+        self.poser_session("loc-vivante-pid", {"pid": os.getpid(), "sessionId": "loc-vivante"})
+        self.poser_session("loc-morte-pid", {"pid": self.pid_mort(), "sessionId": "loc-morte"})
+        fiche_vivante_avant = self.lire_fiche_de("loc-vivante")
+
+        r = self.jouer()
+
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertTrue(self.worktree.is_dir(), "le worktree d'une session vivante a été retiré")
+        self.assertEqual(self.lire_fiche_de("loc-vivante"), fiche_vivante_avant, "la fiche d'une session vivante a bougé")
+        self.assertFalse(ecarte.exists(), "le worktree d'une session morte n'a pas été retiré")
+        self.assertEqual(self.lire_fiche_de("loc-morte")["etat"], "clos")
+
+    def test_fichier_de_session_illisible_d_un_pid_vivant_ne_retire_rien(self):
+        # Panne attrapée : un fichier de session illisible, dont le pid tourne, ne doit pas laisser retirer.
+        # Dans le doute, la session est vivante.
+        self.pr_dans_cet_etat("MERGED")
+        self.poser_fiche()
+        self.poser_session(str(os.getpid()), "{ pas du json")
+        self.assertRienRetire(self.jouer())
+
+    def test_worktree_dont_la_tete_est_detachee_en_avance_ne_retire_rien(self):
+        # Panne attrapée : HEAD détaché et en avance d'un commit, la branche reste au SHA du merge.
+        # Le commit serait perdu au retrait.
+        self.pr_dans_cet_etat("MERGED", sha=self.sha)
+        self.poser_fiche()
+        self._git("checkout", "-q", "--detach", cwd=self.worktree)
+        self._git("commit", "-q", "--allow-empty", "-m", "commit détaché après le merge", cwd=self.worktree)
+        self.assertRienRetire(self.jouer())
 
 
 if __name__ == "__main__":
