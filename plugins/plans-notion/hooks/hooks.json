@@ -1,5 +1,5 @@
 {
-  "description": "Garde-fous du plugin plans-notion : pas de --no-verify sur un commit, pas de Statut de plan Notion accentué. Rappel après ExitPlanMode : déléguer chaque étape à l'executant (silencieux si le plan cite une page Notion). Rappel après Read, Bash, Grep ou une lecture notion-fetch de plus de 20 000 caractères, dans le contexte du pilote seulement (jamais dans un sous-agent) : déléguer la suivante. Rappel au démarrage d'une session lancée par Hermes (HERMES_SESSION = code ou revue) : la méthode à charger pour ce mode. Au démarrage d'une session, réindexation asynchrone du graphe codebase-memory du dépôt quand son HEAD a avancé (reindexer_graphe.py, silencieux).",
+  "description": "Garde-fous du plugin plans-notion : pas de --no-verify sur un commit, pas de Statut de plan Notion accentué. Rappel après ExitPlanMode : déléguer chaque étape à l'executant (silencieux si le plan cite une page Notion). Rappel après Read, Bash, Grep ou une lecture notion-fetch de plus de 20 000 caractères, dans le contexte du pilote seulement (jamais dans un sous-agent) : déléguer la suivante. Rappel au démarrage d'une session lancée par Hermes (HERMES_SESSION = code ou revue) : la méthode à charger pour ce mode. Au démarrage d'une session, réindexation asynchrone du graphe codebase-memory du dépôt quand son HEAD a avancé (reindexer_graphe.py, silencieux). Au démarrage, retrait du worktree d'un plan à l'état « a merger » dont la PR est mergée au commit local et l'arbre propre (retirer_worktrees_clos.py, une ligne par plan concerné). Fin de tour : retient une session dont la fiche de plan est « en cours » (jusqu'à trois relances) ou « a merger » sans réveil armé (garde_fin_de_tour.py, sans réseau).",
   "hooks": {
     "SessionStart": [
       {
@@ -12,6 +12,10 @@
             "type": "command",
             "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/reindexer_graphe.py\"",
             "async": true
+          },
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/retirer_worktrees_clos.py\""
           }
         ]
       }
@@ -52,6 +56,16 @@
           {
             "type": "command",
             "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/refuser_statut_accentue.py\""
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/garde_fin_de_tour.py\""
           }
         ]
       }
