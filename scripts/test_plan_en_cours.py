@@ -4,7 +4,9 @@ La fiche est lue sans réseau par la garde de fin de tour. Ce qu'il faut
 prouver, ce sont les engagements du script, pas son code : une fiche relue
 porte ce qu'on y a écrit, une clôture sur une fiche absente ne crée rien,
 deux écritures concurrentes ne laissent jamais un JSON tronqué, et un fichier
-de session sans ``bridgeSessionId`` ne fait naître aucun identifiant.
+de session sans ``bridgeSessionId`` ne fait naître aucun identifiant. Le nom
+de la fiche est l'identifiant local de la session (celui que la garde reçoit),
+l'identifiant claude.ai n'est qu'un champ.
 
 Chaque test vit dans un ``HOME`` et un ``XDG_STATE_HOME`` jetables : aucun ne
 lit le vrai ``~/.claude`` ni n'écrit dans le vrai ``~/.local/state``. Les
@@ -34,6 +36,7 @@ SCRIPT = RACINE / "plugins" / "plans-notion" / "skills" / "_partage" / "scripts"
 PAGE = "3a1b2c3d-0000-4000-8000-000000000001"
 WORKTREE = "/home/ubuntu/repos/worktrees/mes-skills/feat-hal-veille-plans"
 SESSION_BRIDGE = "cse_bridge01"
+SESSION_LOCALE = "loc-1"
 
 
 class PlanEnCoursTest(unittest.TestCase):
@@ -119,9 +122,9 @@ class PlanEnCoursTest(unittest.TestCase):
         # pas lire. La raison d'attente est longue (100 ko) pour élargir la fenêtre
         # où une écriture non atomique se verrait ; sans atomicité, ce test échoue
         # avec forte probabilité, sans certitude.
-        self.poser_session(4242, {"bridgeSessionId": SESSION_BRIDGE})
+        self.poser_session(4242, {"bridgeSessionId": SESSION_BRIDGE, "sessionId": SESSION_LOCALE})
         self.assertEqual(self.ouvrir(pid=4242).returncode, 0)
-        fichier = self.dossier_fiches() / f"{SESSION_BRIDGE}.json"
+        fichier = self.dossier_fiches() / f"{SESSION_LOCALE}.json"
         codes: list[int] = []
 
         def ecrivain(lettre: str):
@@ -171,6 +174,10 @@ class PlanEnCoursTest(unittest.TestCase):
         self.assertIsNone(fiche["session_id"])
         self.assertIsNone(fiche["sonnette"])
         self.assertEqual(fiche["origine"], "app de bureau")
+        # Panne nommée : sans bridgeSessionId, `session_locale` ne porte pas l'identifiant
+        # local de la session, et la garde de fin de tour ne peut pas relier la fiche
+        # à sa session. Précondition : le champ existe (sa valeur est l'identifiant local).
+        self.assertEqual(fiche.get("session_locale"), "loc-local-1")
 
         # Aucune clé du tout (ni bridge, ni identifiant de session de l'environnement) :
         # le script refuse au lieu de fabriquer une clé de fiche.
@@ -179,22 +186,59 @@ class PlanEnCoursTest(unittest.TestCase):
         self.assertEqual(r.returncode, 2, r.stdout + r.stderr)
         self.assertEqual(sorted(p.name for p in self.dossier_fiches().iterdir()), avant)
 
-    def test_bridgeSessionId_est_la_cle_et_la_sonnette_de_la_session(self):
-        # Panne nommée : le script ignore `bridgeSessionId` ; la fiche n'a alors ni
-        # identifiant de session ni sonnette, et la garde ne sait pas réveiller la
-        # session. C'est le pendant positif de test_fichier_de_session_sans_bridge :
-        # sans lui, ce test-là passerait aussi avec un script qui n'écrit jamais rien.
-        self.poser_session(4245, {"bridgeSessionId": "cse_bridge05", "sessionId": "loc-5",
+    def test_fiche_nommee_par_identifiant_local_et_bridge_en_champ(self):
+        # Panne nommée : la fiche est nommée par le bridgeSessionId (claude.ai). La garde
+        # de fin de tour ne reçoit que l'identifiant local (session_id de l'entrée du
+        # hook) : elle ne retrouverait pas la fiche d'une session Remote Control. Le nom
+        # du fichier doit être l'identifiant local ; le bridge n'est qu'un champ.
+        self.poser_session(4245, {"bridgeSessionId": SESSION_BRIDGE, "sessionId": SESSION_LOCALE,
                                   "entrypoint": "sdk-cli"})
-        r = self.ouvrir("--sonnette", "trig_05", pid=4245)
+        r = self.ouvrir(pid=4245)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertTrue((self.dossier_fiches() / f"{SESSION_LOCALE}.json").is_file())
+        self.assertFalse((self.dossier_fiches() / f"{SESSION_BRIDGE}.json").exists())
+        fiche = self.lire(pid=4245)
+        self.assertEqual(fiche.get("session_id"), SESSION_BRIDGE)
+        self.assertEqual(fiche.get("session_locale"), SESSION_LOCALE)
+
+    def test_sonnette_et_session_id_viennent_du_bridge(self):
+        # Panne nommée : la sonnette ou le session_id partent sur l'identifiant local,
+        # que claude.ai ne reconnaît pas, au lieu du bridgeSessionId : la session Remote
+        # Control ne serait jamais réveillée. Pendant de contrôle : la sonnette suit le
+        # bridge, et la fiche d'une session Remote Control reste lisible.
+        self.poser_session(4248, {"bridgeSessionId": "cse_bridge05", "sessionId": "loc-5",
+                                  "entrypoint": "sdk-cli"})
+        r = self.ouvrir("--sonnette", "trig_05", pid=4248)
         self.assertEqual(r.returncode, 0, r.stderr)
         self.assertNotIn("pas de sonnette possible", r.stdout)
-        fiche = self.lire(pid=4245)
+        fiche = self.lire(pid=4248)
         self.assertEqual(fiche["session_id"], "cse_bridge05")
         self.assertEqual(fiche["sonnette"], "trig_05")
         self.assertEqual(fiche["origine"], "serveur Remote Control")
-        self.assertTrue((self.dossier_fiches() / "cse_bridge05.json").is_file())
-        self.assertFalse((self.dossier_fiches() / "loc-5.json").exists())
+
+    def test_lire_retrouve_la_fiche_par_identifiant_local_et_par_claude_ai(self):
+        # Panne nommée : `lire --session <identifiant local>` ne trouve pas la fiche, alors
+        # que l'identifiant local est le seul que la garde de fin de tour possède. Le
+        # bridgeSessionId doit retrouver la même fiche (recherche dans les champs).
+        self.poser_session(4250, {"bridgeSessionId": "cse_bridge06", "sessionId": "loc-6"})
+        self.assertEqual(self.ouvrir(pid=4250).returncode, 0)
+        for identifiant in ("loc-6", "cse_bridge06"):
+            r = self.lancer("lire", "--session", identifiant)
+            self.assertEqual(r.returncode, 0, f"{identifiant} : {r.stderr}")
+            self.assertEqual(json.loads(r.stdout)["page_id"], PAGE)
+
+    def test_sans_identifiant_local_la_fiche_est_refusee_et_pas_nommee_par_le_bridge(self):
+        # Panne nommée : sans identifiant local (ni CLAUDE_CODE_SESSION_ID, ni sessionId du
+        # fichier de session), le script nomme la fiche par le bridgeSessionId, clé que la
+        # garde de fin de tour ne peut pas deviner. Il doit sortir en 2 et ne rien écrire.
+        # Précondition positive : une session avec identifiant local s'ouvre, sans quoi
+        # un script absent (code 2 de Python) passerait ce test.
+        self.poser_session(4252, {"bridgeSessionId": "cse_bridge08", "sessionId": "loc-8"})
+        self.assertEqual(self.ouvrir(pid=4252).returncode, 0)
+        self.poser_session(4251, {"bridgeSessionId": "cse_bridge07"})
+        r = self.ouvrir(pid=4251)
+        self.assertEqual(r.returncode, 2, r.stdout + r.stderr)
+        self.assertFalse((self.dossier_fiches() / "cse_bridge07.json").exists())
 
     def test_identifiant_de_session_avec_separateur_de_chemin_est_refuse(self):
         # Panne nommée : `--session ../../x` écrit la fiche hors du dossier des fiches.
@@ -214,7 +258,7 @@ class PlanEnCoursTest(unittest.TestCase):
         # compte pas la relance ; la garde lit `relances` pour savoir combien de fois
         # la session a été réveillée. Ajouté au-delà de la liste du brief parce que
         # la garde de fin de tour lira exactement ces deux champs.
-        self.poser_session(4246, {"bridgeSessionId": SESSION_BRIDGE})
+        self.poser_session(4246, {"bridgeSessionId": SESSION_BRIDGE, "sessionId": "loc-4246"})
         self.assertEqual(self.ouvrir(pid=4246).returncode, 0)
         self.assertEqual(self.lancer("attente", "--raison", "relecture humaine", pid=4246).returncode, 0)
         fiche = self.lire(pid=4246)
@@ -232,10 +276,10 @@ class PlanEnCoursTest(unittest.TestCase):
         # Panne nommée : les fiches (chemins de worktree, numéros de PR) sont lisibles
         # par d'autres comptes du poste. Le brief fixe le dossier en mode 700 ; le
         # fichier doit l'être aussi, sans bit pour le groupe ni les autres.
-        self.poser_session(4247, {"bridgeSessionId": SESSION_BRIDGE})
+        self.poser_session(4247, {"bridgeSessionId": SESSION_BRIDGE, "sessionId": "loc-4247"})
         self.assertEqual(self.ouvrir(pid=4247).returncode, 0)
         self.assertEqual(stat.S_IMODE(os.stat(self.dossier_fiches()).st_mode), 0o700)
-        mode_fichier = stat.S_IMODE(os.stat(self.dossier_fiches() / f"{SESSION_BRIDGE}.json").st_mode)
+        mode_fichier = stat.S_IMODE(os.stat(self.dossier_fiches() / "loc-4247.json").st_mode)
         self.assertEqual(mode_fichier & 0o077, 0)
 
 
