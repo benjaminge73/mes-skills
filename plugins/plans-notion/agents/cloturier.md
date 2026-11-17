@@ -8,8 +8,6 @@ maxTurns: 40
 tools:
   - Bash
   - Read
-  - Edit
-  - Write
   - Grep
   - Glob
   - mcp__claude_ai_Notion__notion-fetch
@@ -61,7 +59,7 @@ une ligne.
 2. **Constater le merge sur pièce.** Ne rien supposer.
 
    ```bash
-   gh pr view <pr> --repo <depot> --json state,mergeCommit
+   gh pr view <pr> --repo <depot> --json state,mergeCommit,number
    git -C <dépôt principal> fetch origin main
    git -C <dépôt principal> merge-base --is-ancestor <mergeCommit.oid> origin/main
    ```
@@ -73,7 +71,14 @@ une ligne.
    Une PR fermée sans merge est une décision de Benjamin, pas la tienne.
 
 3. **Passer la page à `execute`.** Relire la page (`notion-fetch` sur `page_id`).
-   Propriété `Statut` :
+
+   **Avant tout `Statut`, la PR doit être la même partout.** Trois numéros se comparent :
+   le numéro lu dans l'URL de la propriété `PR` de la page (`…/pull/<n>`), le `pr` de la
+   fiche (étape 1), et le `number` de la PR mergée constatée à l'étape 2. Si l'un diffère
+   des deux autres, ou si la propriété `PR` est vide : `BLOCKED` avec les valeurs lues, et
+   rien n'est écrit. Une fiche qui porte la PR d'un autre plan ne se clôt pas ici.
+
+   Propriété `Statut`, une fois la comparaison passée :
    - déjà `execute` : rien à écrire ;
    - `a merger` : une écriture `notion-update-page`, `Statut` = `execute` (sans accent) ;
    - toute autre valeur : `BLOCKED`, rien n'est écrit.
@@ -83,7 +88,9 @@ une ligne.
 4. **Écrire « État final ».** Dans le `Journal d'exécution` :
    - si une entrée `État final` existe déjà (la session l'a écrite à la clôture), tu n'en
      crées pas une seconde : tu ajoutes en fin d'entrée une ligne datée,
-     `_maj <date> — PR #<n> mergée (commit <sha court>), Statut posé par le cloturier : session absente au merge._` ;
+     `_maj <date> — PR #<n> mergée (commit <sha court>), Statut posé par le cloturier : session absente au merge._`,
+     **sauf si une ligne `_maj` du cloturier pour cette PR (même `#<n>`) figure déjà dans la
+     page** : alors tu n'écris rien. Une relance ne duplique jamais une ligne ;
    - sinon, tu l'écris en H3 `État final` : la PR (numéro, URL), le commit de merge et sa
      date, la mention « clôturé par le cloturier, session absente au merge », et « verdicts
      et écarts : voir le journal ». Tu ne recalcules aucun verdict et tu ne rejoues aucune
@@ -127,6 +134,11 @@ une ligne.
 
    Une fiche restée `a merger` est reprise par le hook de démarrage ; une fiche close
    n'est plus lue par la garde. Clore avant le retrait fait perdre cette reprise.
+
+   Puis la sonnette (`sonnette` de `lire`) : si l'outil le permet (`RemoteTrigger` avec
+   `enabled: false`, ou l'outil de suppression de réveil), tu la retires. Tes outils n'incluent
+   pas `RemoteTrigger` : tu la notes dans le rapport comme restante. Sinon elle sonne dans le
+   vide, ce qui est sans effet.
 
 ## Ce que tu ne fais jamais
 

@@ -549,7 +549,10 @@ Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard »
        (`gh pr view <n> --json state,mergeCommit`, et le commit de merge présent
        dans `origin/main`), poser `execute`, ajouter une ligne datée à `État
        final`, retirer le worktree, puis `plan-en-cours.py clore` (la fiche passe `clos`,
-       et la garde de fin de tour la laisse passer). Ce tour peut être un tour ultérieur à celui du
+       et la garde de fin de tour la laisse passer). Puis retirer la sonnette de la fiche (`sonnette`
+       de `plan-en-cours.py lire`) si l'outil de la session le permet (`RemoteTrigger` avec
+       `enabled: false`, ou l'outil de suppression de réveil) ; sinon elle sonne dans le vide, ce qui est sans effet.
+       Ce tour peut être un tour ultérieur à celui du
        point 7 : `execute` se pose dans le tour où le merge est constaté.
        Plan couvert par un plan maître : rejouer `statut-maitre.py --actuel` dans ce
        même tour (`plan-notion/plan-maitre.md`, « Qui rejoue le calcul, et quand »).

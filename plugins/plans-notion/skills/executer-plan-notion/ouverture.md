@@ -367,7 +367,8 @@ continuer.
   ```
 
   Sortie 1 : une fiche existe déjà pour cette session. On la lit (`lire`), on ne
-  l'écrase pas. La sortie « pas de sonnette possible » dit que la session n'a pas
+  l'écrase pas. Si elle porte **un autre plan**, celui-ci est le second de la session : il
+  n'a pas de fiche (« Plusieurs plans : une fiche par session », en fin de fichier). La sortie « pas de sonnette possible » dit que la session n'a pas
   d'identifiant claude.ai : le réveil qu'on vient de créer n'a alors personne à réveiller,
   on le retire si l'outil le permet, et on le dit.
 
@@ -415,5 +416,19 @@ autre organisation — une PR par étape, plusieurs branches — ne se fait que 
 Benjamin la demande.
 
 Une session peut aussi porter **plusieurs plans** à la fois : tout ce qui
-précède vaut alors pour chacun, et la section « Plusieurs plans », plus bas,
-dit ce qui s'y ajoute.
+précède vaut alors pour chacun, **sauf la fiche**, qui ne suit qu'un plan. La règle
+est à la fin de ce fichier, « Plusieurs plans : une fiche par session » ; le reste
+de la section « Plusieurs plans » de `SKILL.md` s'applique à chacun.
+
+### Plusieurs plans : une fiche par session
+
+Une fiche ne suit que le **premier** plan ouvert dans la session. Pour les suivants,
+la session ne l'ouvre pas (`ouvrir`), ne lui appelle ni `pr`, ni `clore`, ni aucune autre
+sous-commande de `plan-en-cours.py` (`attendre`, `reprendre`, `etape` écriraient dans la
+fiche du premier), et le dit en une ligne. Le plan suivant n'a donc pas de fiche : la
+garde de fin de tour ne le retient pas, et le cloturier le rend `BLOCKED` faute de fiche.
+
+Pourquoi : la fiche est une par session, nommée par l'identifiant de la session. Un
+second `ouvrir` sort en 1 (une fiche existe déjà), et un `pr --numero` lancé pour le
+second plan écrirait dans la fiche du premier. Le cloturier constaterait alors le merge
+de la PR du second plan et poserait `execute` sur la page du premier.
