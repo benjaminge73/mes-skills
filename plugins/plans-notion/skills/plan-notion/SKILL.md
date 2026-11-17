@@ -19,7 +19,7 @@ détaille.
 - **Rien de livré avant `valide`** : ni fichier dans le dépôt, ni commit, ni
   sous-agent d'implémentation (« 2. Ne rien coder de livré… »).
 - **`Statut` sans accents** : `brouillon`, `en revue`, `valide`, `pret`,
-  `en cours`, `a merger`, `execute`, `archive` (fin de « 2. Ne rien coder… »).
+  `en cours`, `a merger`, `execute` (fin de « 2. Ne rien coder… »).
 - **Relevé avant d'écrire, recompte après** : cases cochées et textes libres
   relevés avant toute écriture, recomptés après (§4, `_partage/ecrire-dans-notion.md`).
 - **Ce qui est découvert s'écrit dans le plan**, avec sa conséquence sur les
@@ -98,8 +98,7 @@ Une fois le statut à `valide`, l'implémentation ne se fait pas ici : elle rel�
 skill **`executer-plan-notion`** (§8).
 
 ⚠️ Les valeurs réelles de la propriété `Statut` sont **sans accents** :
-`brouillon`, `en revue`, `valide`, `pret`, `en cours`, `a merger`, `execute`,
-`archive`. Écrire `exécuté` fait échouer l'appel avec une `validation_error`.
+`brouillon`, `en revue`, `valide`, `pret`, `en cours`, `a merger`, `execute`. Écrire `exécuté` fait échouer l'appel avec une `validation_error`.
 
 ## Quand s'appliquer, quand se taire
 
@@ -239,9 +238,8 @@ choisir. La doc vivante de `hermes-custom`, elle, va toujours au hub Hermes (`_p
   - **`execute`** — le travail est **sur `main`**. Ce statut se pose quand le
     merge est vérifié, et pas une minute avant : c'est la seule façon de lire
     d'un coup d'œil ce qui est réellement livré et ce qui attend encore.
-- **`execute` est le terminus.** La valeur `archive` existe dans la base mais ce
-  skill ne la pose jamais : ranger une page est une décision de Benjamin, pas un
-  effet de bord d'un merge.
+- **`execute` est le terminus**, le seul statut de fin : la valeur `archive` a été
+  supprimée de la base le 2026-11-17.
 
 ## 3. Structure du plan
 
@@ -479,7 +477,6 @@ comment de la séance de code.
 - Il ne résout pas les fils de commentaires.
 - Il n'ouvre pas de PR et ne merge rien : la PR du plan est ouverte par la
   clôture de `executer-plan-notion`.
-- Il ne passe jamais un plan en `archive`.
 - Il ne dépend d'aucun `CLAUDE.md`, d'aucun hook, d'aucun fichier du dépôt de
   travail. Ses compagnons sont les fichiers partagés
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/ecrire-dans-notion.md`,

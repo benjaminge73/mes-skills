@@ -56,7 +56,7 @@ DETAILS_COMPOSIO = "<details>\n<summary>Côté technique</summary>\n\nDétail te
 # titre sur la même ligne du <summary>, séparé par <br>, et le </summary> ferme cette ligne.
 DETAILS_COMPOSIO_REEL = (
     "<details>\n"
-    "<summary>Côté technique<br>- Plan : [exemple](https://app.notion.com/p/exemple), statut de la page : `archive`.<br>"
+    "<summary>Côté technique<br>- Plan : [exemple](https://app.notion.com/p/exemple), statut de la page : `execute`.<br>"
     "- Fichiers : `changelog-et-doc.md` (§ 5 et § 6).<br>"
     "- Coût réel : 89,60 \\$ d'équivalent API.</summary>\n"
     "</details>\n"

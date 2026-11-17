@@ -117,7 +117,7 @@ class RefuserStatutAccentue(unittest.TestCase):
     def test_un_statut_accentue_en_mise_a_jour_est_refuse_avec_les_valeurs_admises(self):
         r = jouer(self.SCRIPT, self.update("exécuté"))
         self.assertEqual(r.returncode, 2)
-        for valeur in ("brouillon", "en revue", "valide", "pret", "en cours", "a merger", "execute", "archive"):
+        for valeur in ("brouillon", "en revue", "valide", "pret", "en cours", "a merger", "execute"):
             self.assertIn(valeur, r.stderr)
 
     def test_un_statut_accentue_en_creation_est_refuse(self):
@@ -133,7 +133,7 @@ class RefuserStatutAccentue(unittest.TestCase):
         self.assertEqual(jouer(self.SCRIPT, self.create("brouillon")).returncode, 0)
 
     def test_toute_valeur_de_plan_accentuee_est_refusee(self):
-        for valeur in ("à merger", "archivé", "Exécuté", "  validé ", "prêt"):
+        for valeur in ("à merger", "Exécuté", "  validé ", "prêt"):
             r = jouer(self.SCRIPT, self.update(valeur))
             self.assertEqual(r.returncode, 2, valeur)
 

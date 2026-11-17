@@ -19,7 +19,7 @@ détaille.
   page avant toute ligne de code ; `valide` → préparation complète (§2) puis
   `pret` ; `en cours` ne se pose que sur une page `pret` (« La porte d'entrée »).
 - **`Statut` sans accents** : `brouillon`, `en revue`, `valide`, `pret`,
-  `en cours`, `a merger`, `execute`, `archive` (« La porte d'entrée »).
+  `en cours`, `a merger`, `execute` (« La porte d'entrée »).
 - **Ne jamais cocher une case** de Benjamin : le seul `- [x]` écrit est celui
   que le relevé portait déjà, ou une question née verte citée (§5, `ecrire-dans-notion.md`).
 - **Relevé avant d'écrire, recompte après** : chaque écriture Notion part du
@@ -97,7 +97,7 @@ protège à partir de la version qui la porte. (Historique : `docs/retex/execute
   « sauf choix de sécu majeur, financier ou irréversible que je n'aurais pas déjà validé »).
 
 ⚠️ Les valeurs de `Statut` sont **sans accents** : `brouillon`, `en revue`,
-`valide`, `pret`, `en cours`, `a merger`, `execute`, `archive`. Écrire `exécuté`
+`valide`, `pret`, `en cours`, `a merger`, `execute`. Écrire `exécuté`
 ou `prêt` fait échouer l'appel (le hook du plugin refuse aussi).
 
 Le connecteur **Notion** est indispensable. S'il manque, le dire immédiatement
@@ -324,8 +324,7 @@ Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard »
   Benjamin l'a demandé). **`execute`** se pose dès que le merge est
   vérifié sur `main`, dans le tour où on le constate ; `execute` ne se pose que
   sur du code **vérifié sur `main`**, et la symétrie est vraie aussi : jamais
-  `a merger` sur du travail déjà parti sur `main`. Ce skill ne pose jamais
-  `archive`.
+  `a merger` sur du travail déjà parti sur `main`. `execute` est le seul statut de fin.
 - `Branche` renseignée ; `PR` porte l'URL de la PR dès qu'elle existe, et reste
   **vide** tant que la PR n'a pas été ouverte.
 - `Journal d'exécution` clos par une entrée `État final` (H3) : ce qui est
@@ -472,7 +471,6 @@ parallèle ; le pilote ne garde que le croisement) vivent dans un seul fichier :
   laisse `a merger` sur un travail qui y est déjà (§6).
 - Il ne s'arrête pas entre deux étapes pour demander l'autorisation de continuer
   (§3).
-- Il ne passe jamais un plan en `archive`.
 - Il ne résout pas les fils de commentaires.
 - Ses fichiers de référence, à côté de ce `SKILL.md`, se lisent à l'endroit où
   le déroulé les cite : `ouverture.md` (§2), `etapes.md` (§3), `journal.md`

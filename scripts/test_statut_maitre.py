@@ -47,10 +47,8 @@ class StatutMaitre(unittest.TestCase):
             with self.subTest(lot=lot):
                 self.assertEqual(jouer(*lot)[1]["lot"], "ouvert")
 
-    def test_archive_ne_compte_pas(self):
-        self.assertEqual(jouer("archive", "en cours", "execute")[1]["statut"], "en cours")
-        self.assertEqual(jouer("archive", "execute", "execute")[1], {"statut": "execute", "lot": "ferme"})
-        self.assertEqual(jouer("archive", "archive")[1], {"statut": "archive", "lot": "ferme"})
+    def test_archive_n_existe_plus(self):
+        self.assertEqual(jouer("archive", "execute")[0], 2)
 
     def test_un_plan_seul_ne_fait_pas_un_maitre(self):
         code, _, erreur = jouer("en cours")
@@ -68,7 +66,7 @@ class StatutMaitre(unittest.TestCase):
     def test_un_maitre_reste_a_pret_alors_que_tous_ses_plans_sont_executes_est_signale(self):
         # Le cas du 2026-10-20 : maître Vahiny noté `pret` (lot ouvert) pendant que ses plans
         # passaient `en cours`, `a merger`, `execute` sans que personne ne rejoue le calcul.
-        code, sortie, _ = jouer("execute", "execute", "archive", actuel="pret")
+        code, sortie, _ = jouer("execute", "execute", "execute", actuel="pret")
         self.assertEqual(code, 3)
         self.assertEqual(sortie, {"statut": "execute", "lot": "ferme", "actuel": "pret"})
 

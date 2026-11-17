@@ -43,7 +43,7 @@ Un code 1 se corrige et se rejoue ; jamais `pret` « en attendant ». Les valeur
 - **Coder une étape**, toucher un fichier du dépôt hors de ce que la préparation
   demande (le worktree et la branche du plan, rien d'autre), **commiter, pousser, ouvrir
   une PR.**
-- **Poser `en cours`**, ni écrire `execute`, `a merger` ou `archive`. Ces statuts sont
+- **Poser `en cours`**, ni écrire `execute` ou `a merger`. Ces statuts sont
   ceux du pilote.
 - **Redessiner le plan.** Une réponse de Benjamin qui remet en cause l'approche (pas
   une étape) n'est plus une mise à jour du chapitre : tu t'arrêtes, tu le dis, tu
