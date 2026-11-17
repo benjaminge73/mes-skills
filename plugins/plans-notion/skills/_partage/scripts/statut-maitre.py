@@ -11,7 +11,7 @@ Usage : statut-maitre.py [--actuel <statut du maître>] <statut> <statut> [<stat
 (un argument par plan du lot). ``--actuel`` est le ``Statut`` lu sur la page maître, ``""``
 quand la propriété est vide : le script dit alors si le maître est périmé.
 Règle : l'ordre est brouillon < en revue < valide < pret < en cours < a merger <
-execute. ``archive`` ne compte pas dans le calcul (tout archivé : ``archive``).
+execute (``execute`` est le seul statut de fin : il n'y a pas de statut ``archive``).
 Dès qu'un plan est ``en cours``, le maître l'est aussi ; sinon il prend le statut du
 plan le moins avancé. Le lot est ``ferme`` quand le statut est ``a merger`` ou
 au-delà (aucun plan ne démarre ni n'avance plus, seules les PR attendent), sinon
@@ -31,10 +31,7 @@ ORDRE = ("brouillon", "en revue", "valide", "pret", "en cours", "a merger", "exe
 
 
 def calculer(statuts: list[str]) -> tuple[str, str]:
-    comptes = [s for s in statuts if s != "archive"]
-    if not comptes:
-        return "archive", "ferme"
-    statut = "en cours" if "en cours" in comptes else min(comptes, key=ORDRE.index)
+    statut = "en cours" if "en cours" in statuts else min(statuts, key=ORDRE.index)
     return statut, "ferme" if ORDRE.index(statut) >= ORDRE.index("a merger") else "ouvert"
 
 
@@ -51,10 +48,10 @@ def main(argv: list[str] | None = None) -> int:
         print("usage : statut-maitre.py <statut> <statut> […] — un plan maître couvre au moins "
               "deux plans", file=sys.stderr)
         return 2
-    inconnus = [s for s in statuts if s not in ORDRE + ("archive",)]
+    inconnus = [s for s in statuts if s not in ORDRE]
     if inconnus:
         print(f"valeur inconnue : {', '.join(repr(s) for s in inconnus)} — valeurs admises : "
-              f"{', '.join(ORDRE + ('archive',))}", file=sys.stderr)
+              f"{', '.join(ORDRE)}", file=sys.stderr)
         return 2
     statut, lot = calculer(statuts)
     print(f"statut={statut}\nlot={lot}")

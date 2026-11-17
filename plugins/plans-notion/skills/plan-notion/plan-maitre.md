@@ -108,7 +108,7 @@ compris, avant de rendre la main. C'est une requête et une écriture : aucune p
 lire, rien à déléguer, aucune enquête (celle-ci viendra à la préparation, plus bas).
 
 1. **Relever** les plans de la base `Plans Claude` dont `Repo` est celui du nouveau plan,
-   hors `execute` et `archive` : titre, `Statut`, `Projet`, parent. Écarter ceux dont
+   hors `execute` : titre, `Statut`, `Projet`, parent. Écarter ceux dont
    `Projet` diffère de celui du nouveau plan : un même dépôt peut porter deux sujets sous
    deux pages projet (§1 de `SKILL.md`), et ils ne se croisent pas. Séparer les pages
    `[Plan maître]` des plans.
@@ -201,7 +201,7 @@ par plan et par geste. Le pool d'une douzaine de places
 (`_partage/vagues.md`) borne le nombre d'appels simultanés.
 
 1. **Relever les plans** dans la base `Plans Claude` : une requête, filtrée sur
-   `Repo`, hors `execute` et `archive`. Rien à déléguer : la réponse est courte.
+   `Repo`, hors `execute`. Rien à déléguer : la réponse est courte.
 2. **Faire lire chaque page, pas la lire.** La lecture part à l'agent `lecteur`
    (`plans-notion:lecteur`, nom qualifié, sans `model` ni `effort`) : Haiku, avec
    les seuls outils Notion en lecture, une page par agent. Jamais un
@@ -293,7 +293,7 @@ Le script rend `statut=<valeur>` et `lot=ouvert|ferme`. La règle :
   `en cours` < `a merger` < `execute`). Le minimum strict ferait reculer le maître
   à `valide` quand on ajoute un plan à un lot déjà en route, et l'afficherait
   `pret` pendant que du code s'écrit ;
-- `archive` ne compte pas ; un plan abandonné **sort du lot** par une ligne datée
+- un plan abandonné **sort du lot** par une ligne datée
   dans la page maître (sinon il bloque le minimum) ;
 - le `Statut` du maître n'est **jamais vide** : il se pose à la création de la page,
   par ce même script, et non « plus tard ».
@@ -351,7 +351,7 @@ tour vient, pas avant. La page maître dit dans l'avancement quel plan reste
 
 Un statut dérivé ne reste juste que si quelqu'un le recalcule. Le 2026-10-20, le
 maître Vahiny « Les suites du 17 octobre » était encore `pret`, lot ouvert, alors
-que ses sept plans étaient `execute` ou `archive` : le calcul n'avait été joué qu'à la
+que ses sept plans étaient `execute` : le calcul n'avait été joué qu'à la
 préparation, et les passages `en cours`, `a merger` et `execute` s'étaient faits
 dans d'autres tours, parfois d'autres sessions, que personne ne chargeait de le
 rejouer. Le maître « La doc suit le plan » n'avait même jamais reçu de `Statut`.
@@ -359,21 +359,20 @@ rejouer. Le maître « La doc suit le plan » n'avait même jamais reçu de `Sta
 **Celui qui écrit le `Statut` d'un plan couvert par un maître rejoue le calcul dans
 le même tour**, comme `execute` se pose dans le tour où le merge est constaté. Ça
 vaut pour toute session, pas seulement le pilote du lot : la plupart des
-transitions (`execute` après un merge, `archive`, un plan de suite) se font hors de
+transitions (`execute` après un merge, un plan de suite) se font hors de
 lui.
 
 1. **Trouver le maître** : la puce **Orchestration** de l'entrée `Ouverture` du plan
    en cite le lien. Pas de lien (`sans objet — aucun plan maître`), pas de maître,
-   rien à faire. Un plan sans entrée `Ouverture` (clos avant la règle, ou archivé à
-   la main) : chercher dans la base les maîtres du même `Repo` non `execute` ni
-   `archive`, et lire leur tableau `Plans`.
+   rien à faire. Un plan sans entrée `Ouverture` (clos avant la règle) : chercher dans la base les maîtres du même `Repo` non
+   `execute`, et lire leur tableau `Plans`.
 2. **Relever les `Statut` de tous les plans du tableau `Plans`** par une requête sur
    la base (jamais la colonne recopiée dans la page) ; ajouter les plans de suite nés
    d'un plan du lot.
 3. **Jouer le script avec le statut actuel du maître** :
 
    ```bash
-   python3 "${CLAUDE_PLUGIN_ROOT}/skills/_partage/scripts/statut-maitre.py" --actuel "pret" execute execute archive
+   python3 "${CLAUDE_PLUGIN_ROOT}/skills/_partage/scripts/statut-maitre.py" --actuel "pret" execute execute "a merger"
    ```
 
    Code 0 : le maître est à jour, rien à écrire. **Code 3** : il est périmé (ou
@@ -382,7 +381,7 @@ lui.
    fermé, mettre à jour le tableau `Plans` et l'`État final`.
 
 À l'**entrée** d'un maître ou d'un de ses plans, la même vérification est un
-rattrapage : Benjamin change des statuts à la main (`archive` en tête), et rien
+rattrapage : Benjamin change des statuts à la main (`execute` en tête), et rien
 d'autre ne le voit. Un écart trouvé à ce moment se corrige tout de suite, sans
 attendre un événement, et se signale d'une ligne à Benjamin.
 
@@ -423,7 +422,7 @@ qu'il bloque.
 
 1. **Savoir si le plan est couvert** : sa propriété de parenté (voir « Les plans du
    lot, sous-éléments du maître »), la puce **Orchestration** de son entrée `Ouverture`,
-   et, à défaut des deux, les maîtres du même `Repo` non `execute` ni `archive` dont le
+   et, à défaut des deux, les maîtres du même `Repo` non `execute` dont le
    tableau `Plans` le liste. Un seul de ces trois suffit : le plan est couvert.
 2. **Lire le maître** : sa page entière par le `lecteur`, puis les `Statut` actuels des
    plans du lot par une requête sur la base (jamais la colonne de la page).

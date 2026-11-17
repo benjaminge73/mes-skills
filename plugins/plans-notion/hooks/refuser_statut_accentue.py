@@ -16,7 +16,7 @@ import json
 import sys
 import unicodedata
 
-ADMISES = ("brouillon", "en revue", "valide", "pret", "en cours", "a merger", "execute", "archive")
+ADMISES = ("brouillon", "en revue", "valide", "pret", "en cours", "a merger", "execute")
 
 
 def _textes(valeur):

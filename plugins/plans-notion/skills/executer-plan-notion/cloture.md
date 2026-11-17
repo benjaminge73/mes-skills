@@ -32,8 +32,7 @@ Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard »
   symétrie est vraie aussi, et c'est elle qu'on oublie** : laisser `a merger`
   sur du travail déjà parti sur `main` annonce un chantier en attente qui
   n'existe plus, et le plan suivant repart d'une base fausse.
-- Ce skill ne pose jamais `archive` : ranger une page est une décision de
-  Benjamin, pas un effet de bord d'un merge.
+- `archive` n'existe plus (supprimé le 2026-11-17) : `execute` est le seul statut de fin.
 - `Branche` renseignée : la branche du plan. `PR` porte l'URL de la PR dès
   qu'elle existe, et reste **vide** tant que la PR n'a pas été ouverte — une
   propriété remplie d'une PR qui n'existe pas ment autant qu'un statut faux.

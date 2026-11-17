@@ -19,8 +19,7 @@ contrainte en une phrase :
     (``execute`` si « jusqu'à » est omis : P1 est alors sur ``main``) ;
   - ``P2 exclut P4`` : P2 et P4 ne tournent pas ensemble (port e2e, base locale…) ; P2 ne
     démarre pas tant que P4 est ``en cours``, et réciproquement.
-Rien d'autre ne retient un plan : le parallèle est le défaut. Un plan ``archive`` ne retient
-personne.
+Rien d'autre ne retient un plan : le parallèle est le défaut.
 
 Codes : 0 départ permis ; 1 départ refusé, un motif par ligne ; 2 entrée illisible (section
 « Plans » ou « Croisement » absente, plan absent du tableau « Plans », statut manquant ou
@@ -65,9 +64,9 @@ def lire_statuts(args: list[str]) -> dict[str, str]:
         cle, valeur = cle.strip().upper(), valeur.strip()
         if not sep or not re.fullmatch(r"P\d+", cle):
             raise Illisible(f"--statuts attend « Pn=statut », reçu « {a} »")
-        if valeur not in ORDRE + ("archive",):
+        if valeur not in ORDRE:
             raise Illisible(f"statut inconnu pour {cle} : « {valeur} » (valeurs sans accents : "
-                            f"{', '.join(ORDRE + ('archive',))})")
+                            f"{', '.join(ORDRE)})")
         statuts[cle] = valeur
     return statuts
 
@@ -85,7 +84,7 @@ def refus(cible: str, croisement: str, statuts: dict[str, str]) -> list[str]:
             lu = statuts.get(b)
             if lu is None:
                 raise Illisible(f"statut de {b} non fourni (--statuts)")
-            if lu != "archive" and ORDRE.index(lu) < ORDRE.index(seuil):
+            if ORDRE.index(lu) < ORDRE.index(seuil):
                 motifs.append(f"{cible} attend {b} jusqu'à `{seuil}` : {b} est `{lu}`")
         else:
             autre = b if a == cible else a

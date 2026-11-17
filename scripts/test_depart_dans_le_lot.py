@@ -63,8 +63,8 @@ class DepartDansLeLot(unittest.TestCase):
         self.assertEqual(jouer("P3", "P1=a merger", "P2=pret", "P3=pret", "P4=valide")[0], 1)
         self.assertEqual(jouer("P3", "P1=execute", "P2=pret", "P3=pret", "P4=valide")[0], 0)
 
-    def test_un_plan_archive_ne_retient_personne(self):
-        self.assertEqual(jouer("P3", "P1=archive", "P2=pret", "P3=pret", "P4=valide")[0], 0)
+    def test_archive_n_existe_plus(self):
+        self.assertEqual(jouer("P3", "P1=archive", "P2=pret", "P3=pret", "P4=valide")[0], 2)
 
     def test_deux_plans_exclus_ne_tournent_pas_ensemble_dans_les_deux_sens(self):
         for plan, autre, statuts in (("P2", "P4", ("P1=execute", "P2=pret", "P3=pret", "P4=en cours")),
