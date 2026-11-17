@@ -66,7 +66,11 @@ Séquence, dans l'ordre :
      d'ouvrir, avec les trois réponses de `cloture.md` (ouvrir prête quand même,
      ouvrir en brouillon, attendre). Sans PR, `PR` reste vide et la page reste à
      `a merger`.
-   - `PR` renseignée sur la page dès l'ouverture.
+   - `PR` renseignée sur la page dès l'ouverture, puis `plan-en-cours.py pr --numero <n>` :
+     la fiche passe à `a merger`. Si `lire` rend `sonnette` vide, la session arme aussi un
+     réveil de 15 minutes (« lis ta boîte ») : sans réveil ni sonnette, la garde de fin de
+     tour retient la session à `a merger` (`executer-plan-notion/ouverture.md`, « La fiche
+     du plan »).
 2. **Attendre la CI, et lire son verdict.** La CI se suit en arrière-plan, sans
    abandon avant le verdict (`cloture.md`, point 8). Verte → point 3. Rouge : corriger
    **tout** en local, rejouer la suite complète, puis repousser une seule fois
@@ -92,6 +96,12 @@ Séquence, dans l'ordre :
    on constate, on ne suppose pas. Une PR fermée sans merge n'est pas un
    `execute` : c'est une décision à remonter à Benjamin, `a merger` reste, et la
    raison va au journal.
+
+   **Sans session vivante**, le constat se fait par `agents/cloturier.md` (modèle Haiku,
+   lancé en `claude -p` par `scripts/plans_veille.py`, côté hermes-custom) : il vérifie le
+   merge sur pièce, pose `execute`, retire le worktree, rejoue `statut-maitre.py` du plan
+   maître, écrit l'entrée `État final`, puis clôt la fiche (`plan-en-cours.py clore`). Il ne
+   merge jamais et ne coche aucune case.
 
 4 bis. **Mettre le poste à jour, si le dépôt en est la source.** Joué juste après
    le point 4, merge vérifié. Le dépôt est-il la source d'une marketplace
@@ -204,6 +214,7 @@ le ou les plan concernés ».
   dit dans son dernier message « PR non suivie » et écrit la même ligne au journal : la
   règle de la session suivante (point 4 : lire `a merger` avec une PR renseignée,
   vérifier, poser `execute`) est le filet, pas le plan. Elle ne remplace pas le suivi.
+  La fiche reste `a merger` : le cloturier la prend (point 4).
 
 **Le message qui annonce le merge recopie le reste à faire en entier** : chaque point
 encore ouvert, avec son propriétaire et l'action attendue, sans renvoi à l'`État final`

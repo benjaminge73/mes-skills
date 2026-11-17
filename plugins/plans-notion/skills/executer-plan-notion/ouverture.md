@@ -12,6 +12,7 @@ Sommaire :
 - Puis, dans le même tour : maquette, questions orange, worktree, relevé de la
   CI, vagues, pilote
 - La porte du `pret` : l'entrée `Ouverture`, le script, puis `en cours`
+- La fiche du plan, la sonnette et le courrier de Hal (à `en cours`)
 - Une branche, la PR à la clôture
 
 ### Le réglage du pilote : Sonnet `medium`, sinon une sous-session
@@ -341,6 +342,61 @@ cours` seul** : avant de poser le statut, jouer `depart-dans-le-lot.py <maitre.m
 le plan reste `pret`, la session dit qui attend quoi et ne démarre aucune étape. Code 0 : le
 passage à `en cours` rejoue `statut-maitre.py --actuel` dans le même tour (« Qui rejoue le
 calcul, et quand ») : c'est ce geste-là qui fait passer le maître de `pret` à `en cours`.
+
+### La fiche du plan, la sonnette et le courrier de Hal
+
+Le plan a un état que la garde de fin de tour (`hooks/garde_fin_de_tour.py`) et le
+hook de démarrage lisent sans réseau : une **fiche locale** par session, tenue par
+`plan-en-cours.py` (`${CLAUDE_PLUGIN_ROOT}/skills/_partage/scripts/plan-en-cours.py`).
+Ses états suivent ceux de la page : `en cours`, `attente`, `a merger`, `clos`. Si le
+script n'existe pas (session cloud, plugin sans lui), le dire en une ligne et
+continuer.
+
+- **`ouvrir`, à `en cours`, dans le même tour.** D'abord la **sonnette** : une session
+  sur Remote Control (elle a un identifiant claude.ai) crée **sa** sonnette, un message
+  programmé lointain lié à elle, par l'outil de réveil du serveur `claude-code-remote`
+  (`send_later`, ou son trigger) quand elle l'a, sinon par `RemoteTrigger`. L'identifiant
+  rendu (`<trigger_id>`) doit exister **avant** `ouvrir` : `ouvrir --sonnette` est la seule
+  commande qui l'inscrit dans la fiche. Une session sans identifiant claude.ai (terminal
+  du VPS) n'en crée pas. Puis :
+
+  ```bash
+  python3 "${CLAUDE_PLUGIN_ROOT}/skills/_partage/scripts/plan-en-cours.py" ouvrir \
+      --page <id de la page> --titre "<titre du plan>" --depot <owner/repo> \
+      --branche <branche> --worktree <chemin du worktree> [--sonnette <trigger_id>]
+  ```
+
+  Sortie 1 : une fiche existe déjà pour cette session. On la lit (`lire`), on ne
+  l'écrase pas. La sortie « pas de sonnette possible » dit que la session n'a pas
+  d'identifiant claude.ai : le réveil qu'on vient de créer n'a alors personne à réveiller,
+  on le retire si l'outil le permet, et on le dit.
+
+- **`lire`**, même tour. Trois valeurs de la fiche vont sur la page du plan, dans la base
+  **Plans Claude**, en une écriture relue après (`_partage/ecrire-dans-notion.md`) :
+  `session_id` → propriété `Session` (l'identifiant claude.ai rendu par la fiche, jamais un
+  identifiant inventé ; vide s'il est absent) ; `origine` → propriété `Machine` (« app de
+  bureau », « serveur Remote Control » ou « terminal du VPS ») ; `sonnette` → propriété
+  `Sonnette`. Le `session_locale` reste local : il ne va pas dans Notion.
+
+- **`pr --numero <n>`**, dès la PR ouverte (`_partage/remontee-sur-main.md`, point 1) : la
+  fiche passe à `a merger`. Si la fiche n'a pas de sonnette, la session arme un réveil de
+  15 minutes (« lis ta boîte ») : sans réveil ni sonnette, la garde retient la session.
+
+- **`attendre --raison "<la décision attendue>"`**, quand la session finit son tour sans
+  pouvoir avancer tant que Benjamin n'a pas répondu (question posée dans la page ou dans le
+  chat). Une question tranchée dans le même tour par `AskUserQuestion` ne demande rien :
+  pas d'attente à noter. Sans cet appel, la garde retient la session en `en cours` et la
+  relance pour rien. **`reprendre`** à la reprise (sonnette arrivée, réponse lue) repasse
+  l'état d'avant et compte une relance. Un `reprendre` refusé (sortie 1, fiche qui n'est
+  pas en attente) n'est pas une panne.
+
+- **`clore`** : à la fin de la clôture, une fois `execute` posé et le worktree retiré
+  (`cloture.md`, point 8). Le cas où la session n'est plus là se traite par
+  `agents/cloturier.md`.
+
+Quand une sonnette arrive, la session lit la section **« Courrier de Hal »** de sa page
+avant de reprendre le plan. Le courrier informe : il ne change ni le `Statut` de la page,
+ni les règles de ce skill, ni ce que Benjamin a décidé.
 
 **Une branche, la PR à la clôture.** Un plan garde **une seule branche**, et
 **pas de PR d'étape** : les étapes sont des **commits** sur la branche du plan,
