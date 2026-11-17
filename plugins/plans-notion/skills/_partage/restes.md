@@ -68,9 +68,12 @@ Valeurs d'`État` : `ouvert` = à traiter ; `repris` = pris par un plan ; `fait`
 5. **Confrontation avant versement.** Chaque reste est comparé à l'état réel avant d'être
    écrit. Un reste caduc n'est pas versé : il est listé à Benjamin dans la session (Q13).
 6. **Rattrapage.** Les restes des 10 derniers plans clos sont versés (Q6).
-7. **Ouverture d'un plan.** Il reprend toutes les lignes `ouvert` de son dépôt. Une
-   décision devient une question ouverte ; le reste va dans un chapitre en tête de la page.
-   Benjamin retire ce qu'il ne veut pas reprendre (Q3).
+7. **Ouverture d'un plan.** Le chapitre `Restes repris`, en tête de page, cite chaque ligne
+   `ouvert` des dépôts du plan (propriété `Repo` ; un plan à plusieurs dépôts les liste tous).
+   Un plan ne reprend que les lignes de **son sujet** : une décision de son sujet devient une
+   question ouverte. Les autres sont citées « laissée ouverte », avec leur raison, et restent
+   dans les vues de Benjamin ; une décision hors sujet ne devient pas une question du plan
+   (Q9). Benjamin retire une reprise : la ligne passe alors « laissée ouverte » (Q3).
 8. **Qui agit.** À la clôture, le pilote propose `Pour`. Hal confirme, ou renvoie la ligne
    à Benjamin (Q5). Hal peut agir lui-même, déployer compris ; à la fin d'un plan, il
    ouvre une PR que la CI merge si elle est verte (décision de Benjamin, 2026-11-16).
@@ -79,7 +82,10 @@ Valeurs d'`État` : `ouvert` = à traiter ; `repris` = pris par un plan ; `fait`
    passage du plan à `a merger` (Q8).
 10. **Rappel.** Aucun rappel côté mes-skills. Un reste daté se rappelle par Hal, dans le
     plan Hermes. D'ici là, rien ne rappelle un reste daté (Q4).
-11. **Garde.** Un script compare le miroir local de la page et l'export des lignes du
-    plan. Code 1 : le passage à `a merger` est refusé (Q12).
+11. **Garde.** Deux scripts, code 1 pour chacun. `restes-sans-ligne.py` compare le miroir
+    local de la page et l'export des lignes du plan : code 1 refuse le passage à `a merger`
+    (Q12). `restes-repris.py` compare le chapitre `Restes repris` et les lignes `ouvert` des
+    dépôts du plan : code 1 bloque le passage à `en revue` (Q8). Les deux sont dans
+    `_partage/scripts/`.
 12. **Schéma figé.** Le plan Hermes s'appuie sur ce schéma, tel qu'écrit ici, une fois ce
     plan passé à `valide` (Q14).
