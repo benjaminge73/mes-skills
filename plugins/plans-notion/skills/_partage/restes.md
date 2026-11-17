@@ -25,6 +25,9 @@ remplace pas le tri : elle se branche dessus et recueille ce qu'il laisse dormir
 - Elle se retrouve par la recherche Notion (« Restes ») ou par sa source de données ci-dessous.
 - Source de données (l'identifiant qu'un appel API demande) :
   `collection://41ab8cc8-aa1d-81cf-b83c-000b76701db9`
+- Pour la commande `composio` (`NOTION_QUERY_DATABASE`), l'identifiant à passer est le `database_id`
+  `41ab8cc8-aa1d-8107-aeee-c751df2d8a73` : le `collection://` ci-dessus y rend « object_not_found »
+  (relevé du 2026-11-16).
 - Chaque page projet porte une vue liée, filtrée sur `Repo` = `benjaminge73/<repo>` (Q9).
 
 ## Schéma
