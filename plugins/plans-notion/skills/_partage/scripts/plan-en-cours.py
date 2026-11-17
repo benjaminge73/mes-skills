@@ -17,21 +17,33 @@ par session, dans ``${XDG_STATE_HOME:-~/.local/state}/plans-notion/plans-en-cour
 et Machine de la base « Plans Claude » sont dans cette fiche (``session_id``,
 ``sonnette``, ``origine`` : Machine) ; c'est la session qui les écrit dans Notion.
 
-Identifiant de session. Ordre de recherche :
+Nom de la fiche : l'identifiant local de la session, celui que la garde de fin
+de tour reçoit (``session_id`` de l'entrée du hook, égal à
+``CLAUDE_CODE_SESSION_ID``). Ordre de recherche :
 
-1. ``--session <id>`` ;
-2. la clé ``bridgeSessionId`` du fichier ``~/.claude/sessions/<pid>.json``, le
-   pid venant de la variable ``CLAUDE_PID`` ;
-3. sinon aucun identifiant claude.ai : ``session_id`` reste vide, la sonnette
-   aussi (« pas de sonnette possible »).
+1. ``CLAUDE_CODE_SESSION_ID`` ;
+2. le ``sessionId`` du fichier ``~/.claude/sessions/<pid>.json``, le pid venant
+   de ``CLAUDE_PID`` ;
+3. ``--session <id>``, à l'ouverture seulement.
 
-Le script n'invente jamais d'identifiant. La clé du fichier de fiche est
-``session_id`` quand il existe ; sinon l'identifiant local de la session
-Claude Code (``CLAUDE_CODE_SESSION_ID``), qui est réel et stable. Sans aucune
-des deux, il sort en 2.
+Sans aucun des trois, le script sort en 2. Il ne nomme jamais une fiche par un
+autre identifiant, et surtout pas par le ``bridgeSessionId``.
+
+Deux champs d'identité, distincts :
+
+- ``session_locale`` porte l'identifiant local, c'est-à-dire le nom du fichier ;
+- ``session_id`` porte l'identifiant claude.ai (``bridgeSessionId`` du fichier de
+  session), vide quand il n'est pas connu. Il sert aux propriétés Notion et à la
+  sonnette, jamais de clé de fiche.
 
 Le ``sessionId`` local du fichier de session n'est jamais l'identifiant
-claude.ai : il ne sert ni de ``session_id`` ni de sonnette.
+claude.ai : il ne sert ni de ``session_id`` ni de sonnette. Un ``bridgeSessionId``
+absent ou de forme invalide ne fait naître aucun ``session_id``.
+
+Les sous-commandes autres que ``ouvrir`` acceptent ``--session`` avec
+l'identifiant local OU l'identifiant claude.ai : la fiche se retrouve par son nom
+de fichier, sinon par ``session_id`` ou ``session_locale``. Sans ``--session``,
+c'est la fiche de la session courante.
 
 Cycle de la fiche : ``en cours`` (à l'ouverture), ``attente`` (``attente``, puis
 ``reprendre`` compte une relance), ``a merger`` (à ``pr``), ``clos`` (à ``clore``).
@@ -85,9 +97,10 @@ class Refus(Exception):
 
 @dataclass
 class Identite:
-    session_id: str | None      # identifiant claude.ai, ou None
-    cle: str                    # nom du fichier de fiche, sans « .json »
+    session_id: str | None      # identifiant claude.ai (bridgeSessionId), ou None : jamais une clé
+    cle: str | None             # identifiant local : nom du fichier de fiche, sans « .json »
     origine: str
+    recherche: str | None       # valeur de --session : sert à retrouver une fiche existante
 
 
 # --- identifiant de session --------------------------------------------------
@@ -117,25 +130,60 @@ def _origine(fichier: dict | None, env) -> str:
 
 def identite(session_arg: str | None, env, home: Path) -> Identite:
     fichier = _fichier_session(env.get("CLAUDE_PID", ""), home)
-    if session_arg is not None:
-        if not _forme_valide(session_arg):
-            raise Refus(SORTIE_USAGE, "--session : forme d'identifiant refusée")
-        session_id = session_arg
-    else:
-        bridge = (fichier or {}).get("bridgeSessionId")
-        session_id = bridge if _forme_valide(bridge) else None
+    if session_arg is not None and not _forme_valide(session_arg):
+        raise Refus(SORTIE_USAGE, "--session : forme d'identifiant refusée")
 
-    cle = session_id
-    if cle is None:
-        local = env.get("CLAUDE_CODE_SESSION_ID", "")
-        if local:
-            if not _forme_valide(local):
-                raise Refus(SORTIE_USAGE, "CLAUDE_CODE_SESSION_ID : forme refusée, fiche non ouverte")
-            cle = local
-    if cle is None:
-        raise Refus(SORTIE_USAGE, "pas d'identifiant de session : ni --session, ni bridgeSessionId "
-                                  "(CLAUDE_PID et ~/.claude/sessions/<pid>.json), ni CLAUDE_CODE_SESSION_ID")
-    return Identite(session_id=session_id, cle=cle, origine=_origine(fichier, env))
+    bridge = (fichier or {}).get("bridgeSessionId")
+    session_id = bridge if _forme_valide(bridge) else None
+
+    local = env.get("CLAUDE_CODE_SESSION_ID", "")
+    if local:
+        if not _forme_valide(local):
+            raise Refus(SORTIE_USAGE, "CLAUDE_CODE_SESSION_ID : forme refusée, fiche non ouverte")
+    else:
+        sid_local = (fichier or {}).get("sessionId")
+        local = sid_local if _forme_valide(sid_local) else ""
+    cle = local or session_arg or None
+    return Identite(session_id=session_id, cle=cle, origine=_origine(fichier, env), recherche=session_arg)
+
+
+def cle_ouverture(ident: Identite) -> str:
+    """Nom de la nouvelle fiche : l'identifiant local. Sans lui, pas de fiche."""
+    if ident.cle is None:
+        raise Refus(SORTIE_USAGE, "pas d'identifiant local de session : ni CLAUDE_CODE_SESSION_ID, "
+                                  "ni sessionId du fichier ~/.claude/sessions/<pid>.json, ni --session. "
+                                  "Fiche non ouverte")
+    return ident.cle
+
+
+def _fiche_porte(chemin: Path, valeur: str) -> bool:
+    try:
+        fiche = json.loads(chemin.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return False
+    return isinstance(fiche, dict) and valeur in (fiche.get("session_id"), fiche.get("session_locale"))
+
+
+def cle_existante(dossier: Path, ident: Identite) -> str:
+    """Nom d'une fiche déjà ouverte. Avec --session : son nom de fichier, sinon ses champs
+    (identifiant local ou claude.ai). Sans --session : l'identifiant local de la session."""
+    if ident.cle is None and ident.recherche is None:
+        raise Refus(SORTIE_USAGE, "pas d'identifiant de session : ni --session, ni CLAUDE_CODE_SESSION_ID, "
+                                  "ni sessionId du fichier ~/.claude/sessions/<pid>.json")
+    if not dossier.is_dir():
+        raise Refus(SORTIE_REFUS, "pas de fiche pour cette session")
+    if ident.recherche is not None:
+        if (dossier / f"{ident.recherche}.json").is_file():
+            return ident.recherche
+        trouvees = [p.stem for p in sorted(dossier.glob("*.json")) if _fiche_porte(p, ident.recherche)]
+        if len(trouvees) > 1:
+            raise Refus(SORTIE_REFUS, "plusieurs fiches pour cet identifiant : refus")
+        if trouvees:
+            return trouvees[0]
+        raise Refus(SORTIE_REFUS, "pas de fiche pour cette session")
+    if (dossier / f"{ident.cle}.json").is_file():
+        return ident.cle
+    raise Refus(SORTIE_REFUS, "pas de fiche pour cette session")
 
 
 # --- stockage ----------------------------------------------------------------
@@ -217,6 +265,7 @@ def _refuser_si_clos(fiche: dict) -> None:
 
 def cmd_ouvrir(args, ident: Identite, dossier: Path) -> str:
     sonnette_demandee = args.sonnette
+    cle = cle_ouverture(ident)
 
     def neuve(_absent):
         return {
@@ -227,6 +276,7 @@ def cmd_ouvrir(args, ident: Identite, dossier: Path) -> str:
             "worktree": args.worktree,
             "pr": None,
             "session_id": ident.session_id,
+            "session_locale": cle,
             "etat": ETAT_EN_COURS,
             "raison_attente": None,
             "etapes_faites": None,
@@ -237,8 +287,8 @@ def cmd_ouvrir(args, ident: Identite, dossier: Path) -> str:
             "origine": ident.origine,
         }
 
-    _modifier(dossier, ident.cle, neuve, creer=True)
-    lignes = [f"fiche ouverte : {ident.cle}.json (origine : {ident.origine})"]
+    _modifier(dossier, cle, neuve, creer=True)
+    lignes = [f"fiche ouverte : {cle}.json (origine : {ident.origine})"]
     if ident.session_id is None:
         lignes.append("pas de sonnette possible : session hors Remote Control, pas de bridgeSessionId")
     elif sonnette_demandee is None:
@@ -252,7 +302,7 @@ def cmd_pr(args, ident: Identite, dossier: Path) -> str:
         fiche["pr"] = args.numero
         fiche["etat"] = ETAT_A_MERGER
         return fiche
-    _modifier(dossier, ident.cle, f)
+    _modifier(dossier, cle_existante(dossier, ident), f)
     return f"PR {args.numero} notée : etat=a merger"
 
 
@@ -262,7 +312,7 @@ def cmd_attente(args, ident: Identite, dossier: Path) -> str:
         fiche["etat"] = ETAT_ATTENTE
         fiche["raison_attente"] = args.raison
         return fiche
-    _modifier(dossier, ident.cle, f)
+    _modifier(dossier, cle_existante(dossier, ident), f)
     return "fiche en attente"
 
 
@@ -274,7 +324,7 @@ def cmd_reprendre(args, ident: Identite, dossier: Path) -> str:
         fiche["raison_attente"] = None
         fiche["relances"] = int(fiche.get("relances") or 0) + 1
         return fiche
-    fiche = _modifier(dossier, ident.cle, f)
+    fiche = _modifier(dossier, cle_existante(dossier, ident), f)
     return f"fiche reprise : relances={fiche['relances']}"
 
 
@@ -284,7 +334,7 @@ def cmd_etape(args, ident: Identite, dossier: Path) -> str:
         fiche["etapes_faites"] = args.faite
         fiche["etapes_restantes"] = args.restantes
         return fiche
-    _modifier(dossier, ident.cle, f)
+    _modifier(dossier, cle_existante(dossier, ident), f)
     return f"étapes : {args.faite} faites, {args.restantes} restantes"
 
 
@@ -293,14 +343,13 @@ def cmd_clore(args, ident: Identite, dossier: Path) -> str:
         fiche["etat"] = ETAT_CLOS
         fiche["raison_attente"] = None
         return fiche
-    _modifier(dossier, ident.cle, f)
+    _modifier(dossier, cle_existante(dossier, ident), f)
     return "fiche close"
 
 
 def cmd_lire(args, ident: Identite, dossier: Path) -> str:
-    if not dossier.is_dir():
-        raise Refus(SORTIE_REFUS, "pas de fiche pour cette session")
-    fiche = _lire_fiche(dossier / f"{ident.cle}.json")
+    cle = cle_existante(dossier, ident)
+    fiche = _lire_fiche(dossier / f"{cle}.json")
     if fiche is None:
         raise Refus(SORTIE_REFUS, "pas de fiche pour cette session")
     return json.dumps(fiche, ensure_ascii=False, indent=2, sort_keys=True)
@@ -341,7 +390,7 @@ def _entier_positif_ou_nul(texte: str) -> int:
 
 def _parser() -> argparse.ArgumentParser:
     commun = argparse.ArgumentParser(add_help=False)
-    commun.add_argument("--session", help="identifiant de session (sinon bridgeSessionId, sinon CLAUDE_CODE_SESSION_ID)")
+    commun.add_argument("--session", help="identifiant de session, local ou claude.ai (sinon la session courante ; à l'ouverture, repli si aucun identifiant local)")
 
     p = argparse.ArgumentParser(description="Fiche locale du plan en cours.")
     sous = p.add_subparsers(dest="commande", required=True)

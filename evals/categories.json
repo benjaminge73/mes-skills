@@ -89,7 +89,8 @@
         "skills/_partage/changelog-et-doc.md",
         "skills/_partage/scripts/controle-changelog.py",
         "skills/_partage/scripts/doc-de-cloture.py",
-        "skills/_partage/scripts/verifier-ligne-doc.py"
+        "skills/_partage/scripts/verifier-ligne-doc.py",
+        "skills/_partage/scripts/plan-en-cours.py"
       ],
       "cas": ["decouverte-irreversible", "decouverte-reversible", "decouverte-secret", "decouverte-trop-grande", "cloture-ouvre-la-pr", "cloture-preuve-doc", "cloture-porte-doc", "relecteur-garde-fou"],
       "plancher": 0.47
