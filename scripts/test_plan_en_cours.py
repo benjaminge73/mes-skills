@@ -54,10 +54,13 @@ class PlanEnCoursTest(unittest.TestCase):
     def dossier_fiches(self) -> Path:
         return self.etat / "plans-notion" / "plans-en-cours"
 
-    def env(self, pid=None, session_env=None) -> dict:
+    def env(self, pid=None, session_env=None, hote=None) -> dict:
         env = {k: v for k, v in os.environ.items() if not k.startswith("CLAUDE")}
         env["HOME"] = str(self.home)
         env["XDG_STATE_HOME"] = str(self.etat)
+        env.pop("PLAN_EN_COURS_HOTE", None)
+        if hote is not None:
+            env["PLAN_EN_COURS_HOTE"] = hote
         if pid is not None:
             env["CLAUDE_PID"] = str(pid)
         if session_env is not None:
@@ -67,19 +70,19 @@ class PlanEnCoursTest(unittest.TestCase):
     def poser_session(self, pid: int, donnees: dict) -> None:
         (self.home / ".claude" / "sessions" / f"{pid}.json").write_text(json.dumps(donnees))
 
-    def lancer(self, *args, pid=None, session_env=None) -> subprocess.CompletedProcess:
+    def lancer(self, *args, pid=None, session_env=None, hote=None) -> subprocess.CompletedProcess:
         return subprocess.run(
             [sys.executable, str(SCRIPT), *args],
-            env=self.env(pid=pid, session_env=session_env),
+            env=self.env(pid=pid, session_env=session_env, hote=hote),
             capture_output=True, text=True, timeout=60,
         )
 
-    def ouvrir(self, *extra, pid=None, session_env=None) -> subprocess.CompletedProcess:
+    def ouvrir(self, *extra, pid=None, session_env=None, hote=None) -> subprocess.CompletedProcess:
         return self.lancer(
             "ouvrir", "--page", PAGE, "--titre", "Hal veille",
             "--depot", "benjaminge73/mes-skills", "--branche", "feat/hal-veille-plans",
             "--worktree", WORKTREE, *extra,
-            pid=pid, session_env=session_env,
+            pid=pid, session_env=session_env, hote=hote,
         )
 
     def lire(self, pid=None, session_env=None) -> dict:
@@ -215,6 +218,22 @@ class PlanEnCoursTest(unittest.TestCase):
         fiche = self.lire(pid=4248)
         self.assertEqual(fiche["session_id"], "cse_bridge05")
         self.assertEqual(fiche["sonnette"], "trig_05")
+        self.assertEqual(fiche["origine"], "serveur Remote Control")
+
+    def test_fiche_porte_le_nom_d_hote_de_la_machine_distinct_de_l_origine(self):
+        # Panne nommée : la fiche ne porte pas le nom d'hôte de la machine. La propriété
+        # Machine de Notion reçoit alors l'origine (« serveur Remote Control »…) au lieu du
+        # nom que le relevé plans_veille compare à `hostname` : une session du VPS n'est
+        # jamais reconnue comme telle. Le nom d'hôte vient d'une surcharge de test
+        # (PLAN_EN_COURS_HOTE) pour que l'attendu ne dépende pas du poste ; `origine`
+        # reste un champ distinct, il ne sert pas de nom d'hôte.
+        self.poser_session(4257, {"bridgeSessionId": SESSION_BRIDGE, "sessionId": "loc-4257",
+                                  "entrypoint": "sdk-cli"})
+        r = self.ouvrir(pid=4257, hote="vps-test-4257")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertIn("vps-test-4257", r.stdout)
+        fiche = self.lire(pid=4257)
+        self.assertEqual(fiche.get("machine"), "vps-test-4257")
         self.assertEqual(fiche["origine"], "serveur Remote Control")
 
     def test_lire_retrouve_la_fiche_par_identifiant_local_et_par_claude_ai(self):
