@@ -2,14 +2,21 @@
 """Hook SessionStart : retire le worktree d'un plan fini, et rien d'autre.
 
 Pour chaque fiche locale (``plan-en-cours.py``) à l'état ``a merger`` qui porte
-une PR et un worktree, le worktree n'est retiré que si les quatre preuves
-tiennent, dans cet ordre :
+une PR et un worktree, le worktree n'est retiré que si les preuves tiennent,
+dans cet ordre :
 
+0. la session de la fiche n'est plus vivante : aucun fichier
+   ``<pid>.json`` du dossier de sessions ne porte son ``sessionId`` avec un pid
+   qui existe encore. Dans le doute (fichier illisible, pid absent), elle est
+   vivante ;
 1. le worktree existe, la branche locale a un SHA, et la session qui démarre
    ne se trouve pas dans ce worktree ;
-2. l'arbre du worktree est propre (``git status --porcelain`` vide) ;
-3. ``gh pr view`` rend la PR ``MERGED`` ;
-4. son ``headRefOid`` égale le SHA de la branche locale : aucun commit n'a été
+2. ``HEAD`` du worktree est la branche (``git symbolic-ref HEAD``) et pointe
+   sur le SHA de la branche locale : un worktree détaché ou en avance n'est
+   jamais retiré ;
+3. l'arbre du worktree est propre (``git status --porcelain`` vide) ;
+4. ``gh pr view`` rend la PR ``MERGED`` ;
+5. son ``headRefOid`` égale le SHA de la branche locale : aucun commit n'a été
    ajouté après le merge (c'est la règle du hook de démarrage du VPS).
 
 Retrait : ``git worktree remove`` sans ``--force``, puis fiche à ``clos``. La
@@ -46,6 +53,58 @@ def _charger_fiches():
     return module
 
 
+def repertoire_sessions(env, home: Path) -> Path:
+    """``~/.claude/sessions``, comme ``plan-en-cours.py`` ; ``PLANS_NOTION_SESSIONS_DIR`` le surcharge pour les tests."""
+    return Path(env.get("PLANS_NOTION_SESSIONS_DIR") or home / ".claude" / "sessions")
+
+
+def _pid_vivant(pid) -> bool:
+    """Vrai si le processus existe. Un pid absent ou invalide compte pour vivant : dans le doute."""
+    if isinstance(pid, bool) or not isinstance(pid, int) or pid < 1:
+        return True
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    except (OSError, OverflowError):
+        # Le processus existe mais n'est pas à nous (PermissionError), ou l'appel échoue : vivant.
+        return True
+    return True
+
+
+def session_vivante(cle: str, sessions: Path) -> bool:
+    """Vrai si une session locale porte l'identifiant ``cle`` et que son processus tourne encore.
+
+    Lit les ``<pid>.json`` du dossier de sessions de Claude Code (champs ``sessionId``
+    et ``pid``). Dans le doute, vrai : un dossier illisible est vivant ; un fichier
+    illisible est vivant si le pid de son nom tourne encore, ou si son nom n'est pas
+    un pid ; un fichier dont le ``sessionId`` est la clé, sans ``pid`` lisible, est
+    vivant.
+    """
+    if not sessions.exists():
+        return False
+    if not sessions.is_dir():
+        return True
+    try:
+        fichiers = sorted(sessions.glob("*.json"))
+    except OSError:
+        return True
+    for fichier in fichiers:
+        try:
+            donnees = json.loads(fichier.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            donnees = None
+        if not isinstance(donnees, dict):
+            # Illisible : on ne sait pas à quelle session il appartient. Son pid, dans le nom, fait foi.
+            pid_du_nom = int(fichier.stem) if fichier.stem.isdigit() else None
+            if _pid_vivant(pid_du_nom):
+                return True
+            continue
+        if donnees.get("sessionId") == cle and _pid_vivant(donnees.get("pid")):
+            return True
+    return False
+
+
 def _git(args: list[str], cwd: Path) -> subprocess.CompletedProcess | None:
     try:
         return subprocess.run(["git", *args], cwd=cwd, capture_output=True, text=True,
@@ -73,7 +132,7 @@ def _clore(fiche: dict) -> dict:
     return fiche
 
 
-def traiter(module, fiche: dict, cwd_session: Path, dossier: Path, cle: str) -> str:
+def traiter(module, fiche: dict, cwd_session: Path, dossier: Path, cle: str, sessions: Path) -> str:
     """Retire le worktree si les preuves tiennent et clôt la fiche ; sinon rend la raison, en une ligne."""
     titre = " ".join(str(fiche.get("titre") or "sans titre").split())
     numero = fiche["pr"]
@@ -82,6 +141,9 @@ def traiter(module, fiche: dict, cwd_session: Path, dossier: Path, cle: str) -> 
     def conserve(raison: str) -> str:
         return f"{etiquette} : worktree conservé, {raison}."
 
+    if session_vivante(cle, sessions):
+        # Une autre session démarre, mais celle de la fiche tourne encore : son worktree est à elle.
+        return conserve("session de la fiche encore vivante")
     worktree = Path(fiche["worktree"]).resolve()
     if not worktree.is_dir():
         return conserve("worktree absent du disque")
@@ -94,6 +156,15 @@ def traiter(module, fiche: dict, cwd_session: Path, dossier: Path, cle: str) -> 
     if local is None or local.returncode != 0 or not local.stdout.strip():
         return conserve("branche locale introuvable")
     sha_local = local.stdout.strip()
+    # Le SHA de la branche ne suffit pas : un `git checkout --detach` suivi d'un commit
+    # laisse la branche au SHA du merge, l'arbre propre, et le commit serait perdu au retrait.
+    tete_sur_branche = _git(["symbolic-ref", "--quiet", "HEAD"], worktree)
+    if tete_sur_branche is None or tete_sur_branche.returncode != 0 \
+            or tete_sur_branche.stdout.strip() != f"refs/heads/{branche}":
+        return conserve("HEAD détaché ou sur une autre branche")
+    tete = _git(["rev-parse", "--verify", "--quiet", "HEAD"], worktree)
+    if tete is None or tete.returncode != 0 or tete.stdout.strip() != sha_local:
+        return conserve("HEAD du worktree illisible ou différent de la branche")
     propre = _git(["status", "--porcelain"], worktree)
     if propre is None or propre.returncode != 0:
         return conserve("arbre illisible")
@@ -132,6 +203,7 @@ def main() -> int:
         if not dossier.is_dir():
             return 0
         cwd_session = Path(entree.get("cwd") or os.getcwd()).resolve()
+        sessions = repertoire_sessions(os.environ, Path(os.path.expanduser("~")))
     except Exception:
         return 0
     for chemin in sorted(dossier.glob("*.json")):
@@ -144,7 +216,7 @@ def main() -> int:
         if not isinstance(fiche.get("pr"), int) or not isinstance(fiche.get("worktree"), str):
             continue
         try:
-            ligne = traiter(module, fiche, cwd_session, dossier, chemin.stem)
+            ligne = traiter(module, fiche, cwd_session, dossier, chemin.stem, sessions)
         except Exception:
             # Une erreur peut venir après le retrait : on ne prétend pas que rien n'a bougé.
             ligne = f"plan « {fiche.get('titre', 'sans titre')} » : erreur pendant le contrôle, à vérifier à la main."
