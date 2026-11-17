@@ -36,6 +36,11 @@ Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard »
 - `Branche` renseignée : la branche du plan. `PR` porte l'URL de la PR dès
   qu'elle existe, et reste **vide** tant que la PR n'a pas été ouverte — une
   propriété remplie d'une PR qui n'existe pas ment autant qu'un statut faux.
+- **La fiche locale** (`plan-en-cours.py`, `ouverture.md`, « La fiche du plan ») suit
+  ces mêmes états : `pr` dès la PR ouverte (point 5), `attendre` quand la clôture attend
+  la réponse de Benjamin (points 3 et 5), `clore` quand `execute` est posé et le worktree
+  retiré (point 8, issue a). Une fiche `a merger` reste ouverte tant que la PR n'est pas
+  mergée : c'est elle que la garde de fin de tour lit.
 - `Journal d'exécution` clos par une entrée `État final` (H3, comme les autres,
   §4) : ce qui est livré, le verdict de la suite complète (point 1 ci-dessous),
   les écarts, le reste à faire s'il y en a — **chaque ligne avec son propriétaire** :
@@ -272,7 +277,9 @@ Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard »
        nommée sur sa ligne `non prouvée : Étape N — <raison>`. C'est le
        traitement du trou e2e : **question à Benjamin avant d'ouvrir la PR**
        (point 5), avec `AskUserQuestion` et trois réponses — **ouvrir prête
-       quand même**, **ouvrir en brouillon**, **attendre**. Pas de question
+       quand même**, **ouvrir en brouillon**, **attendre**. Si la réponse ne vient pas
+       dans le tour, la fiche passe en attente (`plan-en-cours.py attendre`, `ouverture.md`,
+       « La fiche du plan »). Pas de question
        si la CI du dépôt rejoue cette preuve sur la PR (label
        `review-required` là où il rejoue les e2e, « La PR, puis la remontée
        sur `main` ») : la preuve est alors couverte, et le nom reste au
@@ -299,7 +306,8 @@ Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard »
      `humanlayer/skills` `show-me`, MIT), la ligne `Evals:` (sous-section
      ci-dessous) et la ligne `Doc :` (point 7, « Ensuite »). Label : décidé en
      regardant ce dépôt-là (sous-section).
-     `PR` renseignée sur la page dès l'ouverture. **Un trou e2e non couvert par
+     `PR` renseignée sur la page dès l'ouverture, et `plan-en-cours.py pr --numero <n>`
+     pour la fiche (`_partage/remontee-sur-main.md`, point 1). **Un trou e2e non couvert par
      la CI du dépôt** se pose à Benjamin **avant** cette commande (sous-section
      « La PR, puis la remontée sur `main` ») : la PR ne part pas sans sa réponse.
   6. **Contrôle bloquant, avant d'attendre la CI.** Il ne dépend pas de la CI : il
@@ -540,7 +548,11 @@ Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard »
      - **(a) Verte, et mergée par la CI** → vérifier le merge sur pièce
        (`gh pr view <n> --json state,mergeCommit`, et le commit de merge présent
        dans `origin/main`), poser `execute`, ajouter une ligne datée à `État
-       final`, retirer le worktree. Ce tour peut être un tour ultérieur à celui du
+       final`, retirer le worktree, puis `plan-en-cours.py clore` (la fiche passe `clos`,
+       et la garde de fin de tour la laisse passer). Puis retirer la sonnette de la fiche (`sonnette`
+       de `plan-en-cours.py lire`) si l'outil de la session le permet (`RemoteTrigger` avec
+       `enabled: false`, ou l'outil de suppression de réveil) ; sinon elle sonne dans le vide, ce qui est sans effet.
+       Ce tour peut être un tour ultérieur à celui du
        point 7 : `execute` se pose dans le tour où le merge est constaté.
        Plan couvert par un plan maître : rejouer `statut-maitre.py --actuel` dans ce
        même tour (`plan-notion/plan-maitre.md`, « Qui rejoue le calcul, et quand »).
@@ -555,10 +567,14 @@ Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard »
        worktree, et dire dans le compte rendu « PR non suivie » : **la prochaine
        session qui lit `a merger` avec une PR renseignée vérifie l'état de la PR et
        pose `execute` si elle est mergée** (le filet, pas le plan). La branche reste : elle se rouvre par
-       `git worktree add`.
+       `git worktree add`. La fiche reste `a merger`, la garde la tient avec le réveil ou la
+       sonnette ; quand plus aucune session n'est là, `agents/cloturier.md` fait le constat du
+       merge et clôt la fiche.
 
      Retrait du worktree (issues a et c) : `git worktree remove
-     ~/repos/worktrees/<repo>/<branche-kebab>` — **la branche, elle, reste** : c'est
+     ~/repos/worktrees/<repo>/<branche-kebab>` — si le retrait échoue (arbre sale, par
+     exemple), la fiche ne se clôt pas : elle reste `a merger`, et le hook de démarrage
+     (`retirer_worktrees_clos.py`) retente une fois la PR mergée. **La branche, elle, reste** : c'est
      le hook `SessionStart` qui la nettoiera après le merge éventuel, et **une
      branche encore checked-out dans un worktree n'est jamais nettoyée par ce hook**
      tant que le worktree existe. Retirer le worktree avant le hook, jamais la

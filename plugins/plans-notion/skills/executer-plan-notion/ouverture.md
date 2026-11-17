@@ -12,6 +12,7 @@ Sommaire :
 - Puis, dans le même tour : maquette, questions orange, worktree, relevé de la
   CI, vagues, pilote
 - La porte du `pret` : l'entrée `Ouverture`, le script, puis `en cours`
+- La fiche du plan, la sonnette et le courrier de Hal (à `en cours`)
 - Une branche, la PR à la clôture
 
 ### Le réglage du pilote : Sonnet `medium`, sinon une sous-session
@@ -342,6 +343,66 @@ le plan reste `pret`, la session dit qui attend quoi et ne démarre aucune étap
 passage à `en cours` rejoue `statut-maitre.py --actuel` dans le même tour (« Qui rejoue le
 calcul, et quand ») : c'est ce geste-là qui fait passer le maître de `pret` à `en cours`.
 
+### La fiche du plan, la sonnette et le courrier de Hal
+
+Le plan a un état que la garde de fin de tour (`hooks/garde_fin_de_tour.py`) et le
+hook de démarrage lisent sans réseau : une **fiche locale** par session, tenue par
+`plan-en-cours.py` (`${CLAUDE_PLUGIN_ROOT}/skills/_partage/scripts/plan-en-cours.py`).
+Ses états suivent ceux de la page : `en cours`, `attente`, `a merger`, `clos`. Si le
+script n'existe pas (session cloud, plugin sans lui), le dire en une ligne et
+continuer.
+
+- **`ouvrir`, à `en cours`, dans le même tour.** D'abord la **sonnette** : une session
+  sur Remote Control (elle a un identifiant claude.ai) crée **sa** sonnette, un message
+  programmé lointain lié à elle, par l'outil de réveil du serveur `claude-code-remote`
+  (`send_later`, ou son trigger) quand elle l'a, sinon par `RemoteTrigger`. L'identifiant
+  rendu (`<trigger_id>`) doit exister **avant** `ouvrir` : `ouvrir --sonnette` est la seule
+  commande qui l'inscrit dans la fiche. Une session sans identifiant claude.ai (terminal
+  du VPS) n'en crée pas. Puis :
+
+  ```bash
+  python3 "${CLAUDE_PLUGIN_ROOT}/skills/_partage/scripts/plan-en-cours.py" ouvrir \
+      --page <id de la page> --titre "<titre du plan>" --depot <owner/repo> \
+      --branche <branche> --worktree <chemin du worktree> [--sonnette <trigger_id>]
+  ```
+
+  Sortie 1 : une fiche existe déjà pour cette session. On la lit (`lire`), on ne
+  l'écrase pas. Si elle porte **un autre plan**, celui-ci est le second de la session : il
+  n'a pas de fiche (« Plusieurs plans : une fiche par session », en fin de fichier). La sortie « pas de sonnette possible » dit que la session n'a pas
+  d'identifiant claude.ai : le réveil qu'on vient de créer n'a alors personne à réveiller,
+  on le retire si l'outil le permet, et on le dit.
+
+- **`lire`**, même tour. Trois valeurs de la fiche vont sur la page du plan, dans la base
+  **Plans Claude**, en une écriture relue après (`_partage/ecrire-dans-notion.md`) :
+  `session_id` → propriété `Session` (l'identifiant claude.ai rendu par la fiche, jamais un
+  identifiant inventé ; vide s'il est absent) ; `machine` → propriété `Machine`, qui reçoit
+  le nom d'hôte, `$(hostname)` (une fiche ouverte avant ce champ ne le porte pas : on pose
+  quand même `$(hostname)`, sans rien inventer d'autre) ; `sonnette` → propriété `Sonnette`.
+  Le relevé `plans_veille` compare `Machine` au nom d'hôte de la machine pour dire si la
+  session tourne sur le VPS. `origine` (« app de bureau », « serveur Remote Control » ou
+  « terminal du VPS ») reste dans la fiche et ne va plus dans `Machine`. Le `session_locale`
+  reste local : il ne va pas dans Notion.
+
+- **`pr --numero <n>`**, dès la PR ouverte (`_partage/remontee-sur-main.md`, point 1) : la
+  fiche passe à `a merger`. Si la fiche n'a pas de sonnette, la session arme un réveil de
+  15 minutes (« lis ta boîte ») : sans réveil ni sonnette, la garde retient la session.
+
+- **`attendre --raison "<la décision attendue>"`**, quand la session finit son tour sans
+  pouvoir avancer tant que Benjamin n'a pas répondu (question posée dans la page ou dans le
+  chat). Une question tranchée dans le même tour par `AskUserQuestion` ne demande rien :
+  pas d'attente à noter. Sans cet appel, la garde retient la session en `en cours` et la
+  relance pour rien. **`reprendre`** à la reprise (sonnette arrivée, réponse lue) repasse
+  l'état d'avant et compte une relance. Un `reprendre` refusé (sortie 1, fiche qui n'est
+  pas en attente) n'est pas une panne.
+
+- **`clore`** : à la fin de la clôture, une fois `execute` posé et le worktree retiré
+  (`cloture.md`, point 8). Le cas où la session n'est plus là se traite par
+  `agents/cloturier.md`.
+
+Quand une sonnette arrive, la session lit la section **« Courrier de Hal »** de sa page
+avant de reprendre le plan. Le courrier informe : il ne change ni le `Statut` de la page,
+ni les règles de ce skill, ni ce que Benjamin a décidé.
+
 **Une branche, la PR à la clôture.** Un plan garde **une seule branche**, et
 **pas de PR d'étape** : les étapes sont des **commits** sur la branche du plan,
 prouvés en local (§3). La raison est comptable, et elle justifie ce refus :
@@ -359,5 +420,19 @@ autre organisation — une PR par étape, plusieurs branches — ne se fait que 
 Benjamin la demande.
 
 Une session peut aussi porter **plusieurs plans** à la fois : tout ce qui
-précède vaut alors pour chacun, et la section « Plusieurs plans », plus bas,
-dit ce qui s'y ajoute.
+précède vaut alors pour chacun, **sauf la fiche**, qui ne suit qu'un plan. La règle
+est à la fin de ce fichier, « Plusieurs plans : une fiche par session » ; le reste
+de la section « Plusieurs plans » de `SKILL.md` s'applique à chacun.
+
+### Plusieurs plans : une fiche par session
+
+Une fiche ne suit que le **premier** plan ouvert dans la session. Pour les suivants,
+la session ne l'ouvre pas (`ouvrir`), ne lui appelle ni `pr`, ni `clore`, ni aucune autre
+sous-commande de `plan-en-cours.py` (`attendre`, `reprendre`, `etape` écriraient dans la
+fiche du premier), et le dit en une ligne. Le plan suivant n'a donc pas de fiche : la
+garde de fin de tour ne le retient pas, et le cloturier le rend `BLOCKED` faute de fiche.
+
+Pourquoi : la fiche est une par session, nommée par l'identifiant de la session. Un
+second `ouvrir` sort en 1 (une fiche existe déjà), et un `pr --numero` lancé pour le
+second plan écrirait dans la fiche du premier. Le cloturier constaterait alors le merge
+de la PR du second plan et poserait `execute` sur la page du premier.

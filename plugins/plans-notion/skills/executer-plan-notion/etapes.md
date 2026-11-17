@@ -360,6 +360,13 @@ en disant quelles étapes ont été faites en direct et pourquoi.
   `Co-Authored-By: Claude <noreply@anthropic.com>` et aucun nom de modèle — sur
   chaque commit d'un regroupement ou d'une étape testée, pas seulement le
   dernier.
+- **Noter l'avancement à la fiche** : après chaque étape finie, si la session porte la
+  fiche de ce plan (« Plusieurs plans : une fiche par session », `ouverture.md`),
+  `python3 "${CLAUDE_PLUGIN_ROOT}/skills/_partage/scripts/plan-en-cours.py" etape --faite <n> --restantes <k>`,
+  `<n>` étapes faites, `<k>` restantes. Ce geste remet à zéro le compteur de relances de la
+  garde de fin de tour. Sans lui, le compteur ne repart jamais de zéro : après trois
+  retenues sur l'ensemble du plan, la garde se tait, en plein travail. Sans le script
+  (session cloud), on saute.
 - **Faire relire par l'agent `relecteur` selon la colonne `Relecture`** :
   une étape `étape` se relit seule, ici ; une étape `lot` attend la preuve de
   fin de son lot, relu d'un seul coup avec les autres. On boucle jusqu'à
@@ -424,6 +431,12 @@ irréversible :
 Même là, s'arrêter ne veut pas dire attendre les bras ballants : faire **tout ce
 qui ne dépend pas** du point bloquant, écrire ce qui bloque au journal, et clore
 avec un plan de suite (§7).
+
+**Avant de s'arrêter pour Benjamin, demander à Hal.** Une question qu'il a déjà
+tranchée dans sa mémoire, ou un geste que la session ne peut pas tenir (commande
+longue, interactive, dans tmux), se pose d'abord à Hal :
+`${CLAUDE_PLUGIN_ROOT}/skills/_partage/demander-a-hal.md`. Un geste irréversible
+reste à Benjamin.
 
 **Poser la question en chat.** Si ton environnement fournit un outil de question
 structurée (dans Claude Code : `AskUserQuestion`), l'utiliser ; sinon, les

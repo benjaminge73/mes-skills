@@ -403,7 +403,7 @@ Quand Benjamin valide le plan :
    `Exécution` juste, ou il n'y passe pas : c'est ce chapitre-là, et pas les
    réponses éparpillées dans la page, qui part dans les briefs des sous-agents
    d'exécution.
-2. **Passer le plan au filtre de l'enquête.** Quatorze vérifications, et elles se
+2. **Passer le plan au filtre de l'enquête.** Quinze vérifications, et elles se
    font page ouverte, pas de mémoire :
    1. plus aucune question ouverte dont la réponse était vérifiable et n'a pas
       été vérifiée ;
@@ -442,10 +442,13 @@ Quand Benjamin valide le plan :
        étape `C<n>`, ou la page dit « Aucun cron touché » : `${CLAUDE_PLUGIN_ROOT}/skills/_partage/cron-a-la-main.md`.
    14. chaque étape qui touche un fichier cité par la doc du dépôt porte sa ligne
        « Docs relues » (`chapitres-questions-execution.md`, « Fichiers touchés » compris).
+   15. chaque ligne `ouvert` des dépôts du plan est citée dans `Restes repris` : reprise si elle
+       est du sujet, « laissée ouverte » avec sa raison sinon. Contrôle bloquant (Q8) :
+       `python3 "${CLAUDE_PLUGIN_ROOT}/skills/_partage/scripts/restes-repris.py" <miroir> --lignes <export>`
+       rend 0 (`_partage/restes.md`, règle 7).
 
-   Ce filtre vient de l'enquête sur les plans passés ; il coûte quelques minutes ici
-   et évite la découverte en pleine exécution, qui coûte une étape. Les mesures
-   et l'historique sont dans `docs/retex/plan-notion.md`.
+   Ce filtre vient de l'enquête sur les plans passés ; il coûte quelques minutes ici et évite
+   la découverte en pleine exécution, qui coûte une étape. Mesures : `docs/retex/plan-notion.md`.
 3. Passer `Statut` à `valide`.
 4. Le dire en une ligne, et **invoquer `executer-plan-notion`** si l'implémentation
    enchaîne dans la foulée. Un skill n'en charge pas un autre tout seul : sans
@@ -454,20 +457,16 @@ Quand Benjamin valide le plan :
 
 Le plus souvent, ce n'est pas moi qui valide : **Benjamin répond dans la page,
 passe `Statut` à `valide` lui-même et invoque `executer-plan-notion` directement**,
-sans repasser par ici. Ce skill n'a alors jamais vu ses réponses. C'est pourquoi
-`executer-plan-notion` refait cette mise à jour à son entrée (§2 de ce skill-là) :
-les deux passages font le même travail, exprès. On ne sait jamais d'avance lequel
-des deux sera sauté, et un chapitre `Exécution` en retard d'un tour produit un
-travail qui répond à la version d'avant.
+sans repasser par ici, et ce skill n'a jamais vu ses réponses. C'est pourquoi
+`executer-plan-notion` refait cette mise à jour à son entrée (§2 de ce skill-là) : les deux
+passages font le même travail, exprès. On ne sait pas d'avance lequel sera sauté, et un
+chapitre `Exécution` en retard d'un tour produit un travail qui répond à la version d'avant.
 
-Ce que `executer-plan-notion` prend en charge, et qu'il est donc inutile de
-détailler dans le plan : la découpe en sous-agents, le `Journal d'exécution`, la
-branche du plan — sa PR unique s'ouvre à la clôture —, le
-déroulé de bout en bout en autonomie, le
-statut de fin (`a merger`, puis `execute` une fois sur `main`), et le plan de
-suite `#N+1` s'il reste des arbitrages. Ce
-qui reste au plan, c'est le **contenu** du chapitre `Exécution` — le quoi, pas le
-comment de la séance de code.
+Ce que `executer-plan-notion` prend en charge, donc inutile de le détailler ici : la découpe
+en sous-agents, le `Journal d'exécution`, la branche du plan (sa PR unique s'ouvre à la clôture),
+le déroulé en autonomie, le statut de fin (`a merger`, puis `execute` une fois sur `main`), et le
+plan de suite `#N+1` s'il reste des arbitrages. Reste au plan le **contenu** du chapitre
+`Exécution` : le quoi, pas le comment de la séance de code.
 
 ## 9. Ce que ce skill ne fait pas
 

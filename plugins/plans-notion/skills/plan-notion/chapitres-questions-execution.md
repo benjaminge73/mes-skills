@@ -76,17 +76,21 @@ choix cochée**, et sa ligne de preuve cite son message mot pour mot :
 - L'encadré passe au vert avec `(choix validé par Benjamin)` à la place de
   `(reco appliquée par défaut)`, et le H3 passe à `✅ Q<n> — …` dans le même geste.
 
-**Les restes repris.** Chaque ligne `ouvert` de la base « Restes » du dépôt, relevée à la
-création (`plan-maitre.md`, « Le deuxième plan d'un projet crée le maître », point 1), s'écrit
-ici selon son `Type` (`${CLAUDE_PLUGIN_ROOT}/skills/_partage/restes.md`, règle 7) :
+**Les restes repris.** Chaque ligne `ouvert` de la base « Restes » des dépôts du plan, relevée
+à la création (`plan-maitre.md`, « Le deuxième plan d'un projet crée le maître », point 1), est
+tranchée ici (`${CLAUDE_PLUGIN_ROOT}/skills/_partage/restes.md`, règle 7) :
 
-- une ligne `décision` devient une question ouverte de ce chapitre, avec le lien de la ligne
-  dans son encadré ;
-- les autres vont dans un H2 `Restes repris`, en tête de page, une puce par ligne : son titre
-  en lien, puis `Pour` et `Condition`.
+- une ligne **du sujet du plan** est reprise : un H2 `Restes repris` en tête de page, une puce
+  par ligne, son titre en lien, puis `Pour` et `Condition`. Une ligne `décision` du sujet
+  devient en plus une question ouverte de ce chapitre, avec le lien de la ligne dans son encadré ;
+- une ligne **hors sujet** n'est pas reprise et ne devient pas une question : elle est citée dans
+  le même H2, en puce « laissée ouverte » avec sa raison (« — laissée ouverte : hors sujet, reste
+  dans la vue de Benjamin »). Sans raison, `restes-repris.py` refuse le passage à `en revue` ;
+- un plan qui touche plusieurs dépôts groupe le H2 par dépôt (un H3 `owner/repo` par dépôt).
 
-**À la création de la page, et pas avant**, la propriété `Repris par` de chaque ligne reprise
-reçoit la page du plan (relation), et son `État` passe à `repris`.
+**À la création de la page, et pas avant**, la propriété `Repris par` de chaque ligne **reprise**
+reçoit la page du plan (relation), et son `État` passe à `repris`. Une ligne laissée ouverte
+garde son `État`.
 
 ### Le chapitre `La suite`
 
