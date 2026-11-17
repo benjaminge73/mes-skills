@@ -5,7 +5,7 @@ Usage :
     plan-en-cours.py ouvrir --page <id> --titre <t> --depot <owner/repo> \
         --branche <b> --worktree <chemin> [--sonnette <trigger_id>] [--session <id>]
     plan-en-cours.py pr --numero <n> [--session <id>]
-    plan-en-cours.py attente --raison <texte> [--session <id>]
+    plan-en-cours.py attendre --raison <texte> [--session <id>]   (alias : attente)
     plan-en-cours.py reprendre [--session <id>]
     plan-en-cours.py etape --faite <n> --restantes <k> [--session <id>]
     plan-en-cours.py clore [--session <id>]
@@ -45,10 +45,12 @@ l'identifiant local OU l'identifiant claude.ai : la fiche se retrouve par son no
 de fichier, sinon par ``session_id`` ou ``session_locale``. Sans ``--session``,
 c'est la fiche de la session courante.
 
-Cycle de la fiche : ``en cours`` (à l'ouverture), ``attente`` (``attente``, puis
+Cycle de la fiche : ``en cours`` (à l'ouverture), ``attente`` (``attendre``, puis
 ``reprendre`` compte une relance), ``a merger`` (à ``pr``), ``clos`` (à ``clore``).
-``etape`` ne change pas l'état. Une fiche ``clos`` ne reçoit plus d'écriture
-hormis ``clore``.
+``attendre`` mémorise dans ``etat_avant_attente`` l'état qu'il quitte (sauf si la
+fiche est déjà en attente) ; ``reprendre`` le restaure, ``en cours`` à défaut.
+``etape`` ne change pas l'état, mais remet ``relances`` à zéro. Une fiche ``clos``
+ne reçoit plus d'écriture hormis ``clore``.
 
 Écriture : chaque modification se fait sous ``flock`` sur le dossier (pas de mise
 à jour perdue), dans un fichier temporaire du même dossier, puis ``os.replace``
@@ -279,6 +281,7 @@ def cmd_ouvrir(args, ident: Identite, dossier: Path) -> str:
             "session_locale": cle,
             "etat": ETAT_EN_COURS,
             "raison_attente": None,
+            "etat_avant_attente": None,
             "etapes_faites": None,
             "etapes_restantes": None,
             "relances": 0,
@@ -306,9 +309,13 @@ def cmd_pr(args, ident: Identite, dossier: Path) -> str:
     return f"PR {args.numero} notée : etat=a merger"
 
 
-def cmd_attente(args, ident: Identite, dossier: Path) -> str:
+def cmd_attendre(args, ident: Identite, dossier: Path) -> str:
     def f(fiche):
         _refuser_si_clos(fiche)
+        # Une fiche déjà en attente garde l'état d'avant : sinon `attente` s'enregistrerait
+        # comme état à restaurer, et `reprendre` ne sortirait jamais de l'attente.
+        if fiche["etat"] != ETAT_ATTENTE:
+            fiche["etat_avant_attente"] = fiche["etat"]
         fiche["etat"] = ETAT_ATTENTE
         fiche["raison_attente"] = args.raison
         return fiche
@@ -320,7 +327,8 @@ def cmd_reprendre(args, ident: Identite, dossier: Path) -> str:
     def f(fiche):
         if fiche["etat"] != ETAT_ATTENTE:
             raise Refus(SORTIE_REFUS, f"la fiche n'est pas en attente (etat : {fiche['etat']})")
-        fiche["etat"] = ETAT_EN_COURS
+        fiche["etat"] = fiche.get("etat_avant_attente") or ETAT_EN_COURS
+        fiche["etat_avant_attente"] = None
         fiche["raison_attente"] = None
         fiche["relances"] = int(fiche.get("relances") or 0) + 1
         return fiche
@@ -333,6 +341,8 @@ def cmd_etape(args, ident: Identite, dossier: Path) -> str:
         _refuser_si_clos(fiche)
         fiche["etapes_faites"] = args.faite
         fiche["etapes_restantes"] = args.restantes
+        # « Trois relances sans étape nouvelle » : une étape notée remet le compte à zéro.
+        fiche["relances"] = 0
         return fiche
     _modifier(dossier, cle_existante(dossier, ident), f)
     return f"étapes : {args.faite} faites, {args.restantes} restantes"
@@ -358,7 +368,8 @@ def cmd_lire(args, ident: Identite, dossier: Path) -> str:
 COMMANDES = {
     "ouvrir": cmd_ouvrir,
     "pr": cmd_pr,
-    "attente": cmd_attente,
+    "attendre": cmd_attendre,
+    "attente": cmd_attendre,  # alias de attendre : argparse rend le nom tapé
     "reprendre": cmd_reprendre,
     "etape": cmd_etape,
     "clore": cmd_clore,
@@ -406,7 +417,7 @@ def _parser() -> argparse.ArgumentParser:
     pr = sous.add_parser("pr", parents=[commun], help="noter la PR ouverte")
     pr.add_argument("--numero", type=_entier_positif, required=True)
 
-    at = sous.add_parser("attente", parents=[commun], help="passer en attente")
+    at = sous.add_parser("attendre", aliases=["attente"], parents=[commun], help="passer en attente")
     at.add_argument("--raison", required=True)
 
     sous.add_parser("reprendre", parents=[commun], help="repasser en cours après une attente")
