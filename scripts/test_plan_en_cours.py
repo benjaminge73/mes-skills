@@ -15,8 +15,9 @@ ne voit que ce que le test lui pose.
 
 Les attendus viennent du plan, pas du code : une fiche se relit telle qu'elle
 a été écrite ; ``clore`` sur une fiche absente sort en 1 ; ``reprendre`` depuis
-``attente`` repasse ``en cours`` et compte une relance ; le dossier des fiches
-est en mode 700.
+``attendre`` repasse ``en cours`` et compte une relance ; ``attendre`` depuis
+``a merger`` se reprend en ``a merger`` ; ``etape`` remet les relances à zéro ;
+le dossier des fiches est en mode 700.
 """
 from __future__ import annotations
 
@@ -129,7 +130,7 @@ class PlanEnCoursTest(unittest.TestCase):
 
         def ecrivain(lettre: str):
             for i in range(12):
-                r = self.lancer("attente", "--raison", lettre * 100_000, pid=4242)
+                r = self.lancer("attendre", "--raison", lettre * 100_000, pid=4242)
                 codes.append(r.returncode)
                 r = self.lancer("etape", "--faite", str(i), "--restantes", "3", pid=4242)
                 codes.append(r.returncode)
@@ -253,14 +254,14 @@ class PlanEnCoursTest(unittest.TestCase):
         self.assertFalse((self.etat / "x.json").exists())
         self.assertFalse((self.etat / "plans-notion" / "x.json").exists())
 
-    def test_attente_puis_reprendre_repasse_en_cours_et_compte_une_relance(self):
+    def test_attendre_puis_reprendre_repasse_en_cours_et_compte_une_relance(self):
         # Panne nommée : `reprendre` ne repasse pas la fiche en `en cours`, ou ne
         # compte pas la relance ; la garde lit `relances` pour savoir combien de fois
         # la session a été réveillée. Ajouté au-delà de la liste du brief parce que
         # la garde de fin de tour lira exactement ces deux champs.
         self.poser_session(4246, {"bridgeSessionId": SESSION_BRIDGE, "sessionId": "loc-4246"})
         self.assertEqual(self.ouvrir(pid=4246).returncode, 0)
-        self.assertEqual(self.lancer("attente", "--raison", "relecture humaine", pid=4246).returncode, 0)
+        self.assertEqual(self.lancer("attendre", "--raison", "relecture humaine", pid=4246).returncode, 0)
         fiche = self.lire(pid=4246)
         self.assertEqual(fiche["etat"], "attente")
         self.assertEqual(fiche["raison_attente"], "relecture humaine")
@@ -271,6 +272,65 @@ class PlanEnCoursTest(unittest.TestCase):
         self.assertEqual(fiche["etat"], "en cours")
         self.assertIsNone(fiche["raison_attente"])
         self.assertEqual(fiche["relances"], 1)
+
+    def test_cycle_a_merger_attendre_reprendre_restaure_a_merger(self):
+        # Panne nommée : `attendre` depuis `a merger` puis `reprendre` remet la fiche en
+        # `en cours`. La garde ne réclame alors plus de réveil pour la PR, et la fiche
+        # perd l'état qui dit que le plan attend son merge.
+        self.poser_session(4253, {"bridgeSessionId": SESSION_BRIDGE, "sessionId": "loc-4253"})
+        self.assertEqual(self.ouvrir(pid=4253).returncode, 0)
+        self.assertEqual(self.lancer("pr", "--numero", "9", pid=4253).returncode, 0)
+        self.assertEqual(self.lancer("attendre", "--raison", "relecture", pid=4253).returncode, 0)
+        self.assertEqual(self.lire(pid=4253)["etat"], "attente")
+
+        self.assertEqual(self.lancer("reprendre", pid=4253).returncode, 0)
+        fiche = self.lire(pid=4253)
+        self.assertEqual(fiche["etat"], "a merger")
+        self.assertEqual(fiche["pr"], 9)
+        self.assertEqual(fiche["relances"], 1)
+
+    def test_attendre_deux_fois_puis_reprendre_restaure_l_etat_d_origine(self):
+        # Panne nommée : un second `attendre` alors que la fiche est déjà en attente
+        # mémorise `attente` comme état d'avant, et `reprendre` rend une fiche en
+        # `attente` que la garde laisse passer pour toujours. Le plan doit revenir à
+        # `a merger`, pas rester en attente.
+        self.poser_session(4254, {"bridgeSessionId": SESSION_BRIDGE, "sessionId": "loc-4254"})
+        self.assertEqual(self.ouvrir(pid=4254).returncode, 0)
+        self.assertEqual(self.lancer("pr", "--numero", "10", pid=4254).returncode, 0)
+        self.assertEqual(self.lancer("attendre", "--raison", "premier", pid=4254).returncode, 0)
+        self.assertEqual(self.lancer("attendre", "--raison", "second", pid=4254).returncode, 0)
+
+        self.assertEqual(self.lancer("reprendre", pid=4254).returncode, 0)
+        self.assertEqual(self.lire(pid=4254)["etat"], "a merger")
+
+    def test_attente_reste_un_alias_fonctionnel_de_attendre(self):
+        # Panne nommée : le renommage en `attendre` casse les appels qui disent encore
+        # `attente` (notes, scripts déjà écrits) : la commande sortirait en 2 au lieu de
+        # poser la fiche en attente. Le rc 0 avant toute lecture de la fiche est la
+        # précondition : sans lui, un script absent (code 2 de Python) passerait ce test.
+        self.poser_session(4255, {"bridgeSessionId": SESSION_BRIDGE, "sessionId": "loc-4255"})
+        self.assertEqual(self.ouvrir(pid=4255).returncode, 0)
+        r = self.lancer("attente", "--raison", "relecture", pid=4255)
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        fiche = self.lire(pid=4255)
+        self.assertEqual(fiche["etat"], "attente")
+        self.assertEqual(fiche["raison_attente"], "relecture")
+        self.assertEqual(self.lancer("reprendre", pid=4255).returncode, 0)
+
+    def test_etape_remet_les_relances_a_zero(self):
+        # Panne nommée : `etape` ne remet pas `relances` à zéro, si bien que la garde compte
+        # les relances de toute la session alors que son seuil est « trois relances sans
+        # étape nouvelle ». Précondition : deux relances posées avant l'étape, sans quoi un
+        # `etape` sans effet passerait ce test.
+        self.poser_session(4256, {"bridgeSessionId": SESSION_BRIDGE, "sessionId": "loc-4256"})
+        self.assertEqual(self.ouvrir(pid=4256).returncode, 0)
+        for _ in range(2):
+            self.assertEqual(self.lancer("attendre", "--raison", "relecture", pid=4256).returncode, 0)
+            self.assertEqual(self.lancer("reprendre", pid=4256).returncode, 0)
+        self.assertEqual(self.lire(pid=4256)["relances"], 2)
+
+        self.assertEqual(self.lancer("etape", "--faite", "2", "--restantes", "1", pid=4256).returncode, 0)
+        self.assertEqual(self.lire(pid=4256)["relances"], 0)
 
     def test_dossier_des_fiches_en_mode_700(self):
         # Panne nommée : les fiches (chemins de worktree, numéros de PR) sont lisibles
