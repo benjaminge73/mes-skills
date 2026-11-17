@@ -189,8 +189,8 @@ maquette, les commandes de relevé de la CI, le calcul des vagues et la
 raison de la règle « une branche, pas de PR d'étape ».
 
 Une session peut aussi porter **plusieurs plans** à la fois : tout ce qui
-précède vaut alors pour chacun, et la section « Plusieurs plans », plus bas,
-dit ce qui s'y ajoute.
+précède vaut alors pour chacun, **sauf la fiche locale** (une seule, pour le
+premier plan ouvert : « Plusieurs plans », plus bas).
 
 ## 3. Dérouler les étapes
 
@@ -388,6 +388,7 @@ une étape `D<n>` suffit : pas de plan de suite, une page vide encombre la base.
 
 Tout ce qui précède décrit un plan. Quand une session en porte plusieurs,
 chacun garde son déroulé (§2 à §7) ; ce qui s'ajoute tient en cinq points.
+La fiche locale fait exception : une par session, pour le premier plan ouvert (`ouverture.md`).
 
 **Un pilote unique.** Le pilote conduit tous les plans, et aucun
 n'est confié à un « pilote » délégué. Raisons : le connecteur Notion n'est pas
@@ -481,6 +482,7 @@ parallèle ; le pilote ne garde que le croisement) vivent dans un seul fichier :
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/ecrire-dans-notion.md`,
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/decouvertes.md`,
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/vagues.md`,
+  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/demander-a-hal.md`,
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/schemas.md`,
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/remontee-sur-main.md`,
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/plan-de-suite.md`, `${CLAUDE_PLUGIN_ROOT}/skills/_partage/restes.md`,

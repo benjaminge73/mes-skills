@@ -432,6 +432,12 @@ Même là, s'arrêter ne veut pas dire attendre les bras ballants : faire **tout
 qui ne dépend pas** du point bloquant, écrire ce qui bloque au journal, et clore
 avec un plan de suite (§7).
 
+**Avant de s'arrêter pour Benjamin, demander à Hal.** Une question qu'il a déjà
+tranchée dans sa mémoire, ou un geste que la session ne peut pas tenir (commande
+longue, interactive, dans tmux), se pose d'abord à Hal :
+`${CLAUDE_PLUGIN_ROOT}/skills/_partage/demander-a-hal.md`. Un geste irréversible
+reste à Benjamin.
+
 **Poser la question en chat.** Si ton environnement fournit un outil de question
 structurée (dans Claude Code : `AskUserQuestion`), l'utiliser ; sinon, les
 options en texte, la recommandation en premier.
