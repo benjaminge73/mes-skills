@@ -370,5 +370,246 @@ class RappelMethodeHermes(unittest.TestCase):
                     self.assertEqual(r.stdout, "")
 
 
+# --- garde de fin de tour et retrait des worktrees clos (plan Hal, étape 2) ---
+
+SESSION_LOCALE = "loc-hal-1"
+PAGE = "3a1b2c3d-0000-4000-8000-000000000001"
+ENV_GIT_IDENTITE = {"GIT_AUTHOR_NAME": "test", "GIT_AUTHOR_EMAIL": "test@example.invalid",
+                    "GIT_COMMITTER_NAME": "test", "GIT_COMMITTER_EMAIL": "test@example.invalid"}
+
+
+def fiche_de_test(session: str, **champs) -> dict:
+    """Une fiche telle que plan-en-cours.py l'écrit à l'ouverture ; ``champs`` la fait évoluer."""
+    fiche = {"page_id": PAGE, "titre": "Hal veille", "depot": "benjaminge73/mes-skills",
+             "branche": "feat/hal-veille-plans", "worktree": "/nonexistant/worktree",
+             "pr": None, "session_id": None, "session_locale": session, "etat": "en cours",
+             "raison_attente": None, "etapes_faites": None, "etapes_restantes": None,
+             "relances": 0, "sonnette": None, "maj": "2026-11-17T00:00:00Z",
+             "origine": "terminal du VPS"}
+    fiche.update(champs)
+    return fiche
+
+
+class GardeFinDeTour(unittest.TestCase):
+    """Le hook ``Stop`` retient la fin de tour d'un plan en cours, sans réseau ni modèle.
+
+    Contrat observé : sortie vide et code 0 = laisser passer ; sortie JSON
+    ``{"decision": "block", "reason": ...}`` et code 0 = retenir la session.
+    """
+    SCRIPT = "garde_fin_de_tour.py"
+
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.etat = Path(tmp.name) / "etat"
+        self.dossier = self.etat / "plans-notion" / "plans-en-cours"
+        self.env = {k: v for k, v in os.environ.items() if not k.startswith("CLAUDE")}
+        self.env["XDG_STATE_HOME"] = str(self.etat)
+
+    def poser(self, **champs):
+        self.dossier.mkdir(parents=True, exist_ok=True)
+        chemin = self.dossier / f"{SESSION_LOCALE}.json"
+        chemin.write_text(json.dumps(fiche_de_test(SESSION_LOCALE, **champs)), encoding="utf-8")
+
+    def lire(self) -> dict:
+        return json.loads((self.dossier / f"{SESSION_LOCALE}.json").read_text(encoding="utf-8"))
+
+    def jouer(self, *, stop_hook_active=False, background_tasks=(), session_crons=(), entree=None):
+        if entree is None:
+            entree = {"session_id": SESSION_LOCALE, "stop_hook_active": stop_hook_active,
+                      "last_assistant_message": "étape 2 terminée", "background_tasks": list(background_tasks),
+                      "session_crons": list(session_crons)}
+        brut = entree if isinstance(entree, str) else json.dumps(entree)
+        return subprocess.run([sys.executable, str(HOOKS / self.SCRIPT)], input=brut,
+                              capture_output=True, text=True, timeout=30, env=self.env)
+
+    def assertPasse(self, r):
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(r.stdout, "")
+
+    def assertBloque(self, r) -> str:
+        self.assertEqual(r.returncode, 0, r.stderr)
+        decision = json.loads(r.stdout)
+        self.assertEqual(decision["decision"], "block")
+        self.assertTrue(decision["reason"].strip(), "une retenue sans consigne ne sert à rien")
+        return decision["reason"]
+
+    def test_garde_sans_fiche_ne_fait_rien(self):
+        # Une session ordinaire n'a pas de fiche : elle ne doit jamais être retenue.
+        self.assertPasse(self.jouer())
+
+    def test_garde_fiche_en_cours_bloque_et_compte_une_relance(self):
+        self.poser(etat="en cours")
+        self.assertBloque(self.jouer())
+        self.assertEqual(self.lire()["relances"], 1)
+
+    def test_garde_stop_hook_actif_laisse_passer_sans_compter(self):
+        # Sans ce garde, la retenue relance la session qui relance la retenue sans fin.
+        self.poser(etat="en cours")
+        self.assertPasse(self.jouer(stop_hook_active=True))
+        self.assertEqual(self.lire()["relances"], 0)
+
+    def test_garde_fiche_en_attente_laisse_passer(self):
+        self.poser(etat="attente", raison_attente="relecture par Benjamin")
+        self.assertPasse(self.jouer())
+
+    def test_garde_seuil_de_relances_atteint_laisse_passer(self):
+        # Trois relances sans avancée : la garde se tait pour que Hal regarde.
+        self.poser(etat="en cours", relances=3)
+        self.assertPasse(self.jouer())
+        self.assertEqual(self.lire()["relances"], 3)
+
+    def test_garde_fiche_illisible_laisse_passer_sans_erreur(self):
+        self.dossier.mkdir(parents=True, exist_ok=True)
+        (self.dossier / f"{SESSION_LOCALE}.json").write_text("{ pas du json", encoding="utf-8")
+        self.assertPasse(self.jouer())
+
+    def test_garde_entree_illisible_laisse_passer_meme_avec_une_fiche_en_cours(self):
+        # La fiche en cours seule bloquerait : le test prouve que c'est l'entrée illisible qui tait la garde.
+        self.poser(etat="en cours")
+        self.assertPasse(self.jouer(entree="pas du json {"))
+
+    def test_garde_taches_de_fond_en_cours_laissent_passer(self):
+        self.poser(etat="en cours")
+        self.assertPasse(self.jouer(background_tasks=[{"id": "veille"}]))
+        self.assertEqual(self.lire()["relances"], 0)
+
+    def test_garde_reveil_programme_en_cours_laisse_passer(self):
+        # Autre panne attrapée : la garde retient une session qui a déjà armé son réveil.
+        self.poser(etat="en cours")
+        self.assertPasse(self.jouer(session_crons=[{"id": "reveil"}]))
+
+    def test_garde_a_merger_sans_sonnette_ni_reveil_demande_d_armer_un_reveil(self):
+        self.poser(etat="a merger", pr=7)
+        reason = self.assertBloque(self.jouer())
+        self.assertIn("15 minutes", reason)
+
+    def test_garde_a_merger_avec_sonnette_laisse_passer(self):
+        self.poser(etat="a merger", pr=7, sonnette="declencheur-1")
+        self.assertPasse(self.jouer())
+
+    def test_garde_a_merger_avec_reveil_arme_laisse_passer(self):
+        # Autre panne attrapée : la garde réclame un réveil à une session qui en a déjà un.
+        self.poser(etat="a merger", pr=7)
+        self.assertPasse(self.jouer(session_crons=[{"id": "reveil"}]))
+
+
+class RetirerWorktreesClos(unittest.TestCase):
+    """Le hook ``SessionStart`` retire un worktree dont le plan est fini, et rien d'autre.
+
+    Le cas favorable exige les trois preuves : PR mergée, au SHA de la branche
+    locale, arbre du worktree propre. Tout le reste laisse le worktree en place.
+    """
+    SCRIPT = "retirer_worktrees_clos.py"
+    DEPOT = "benjaminge73/mes-skills"
+
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        racine = Path(tmp.name)
+        self.principal = racine / "depot"
+        self.worktree = racine / "worktrees" / "feat-x"
+        self.dossier = racine / "etat" / "plans-notion" / "plans-en-cours"
+        self.bin = racine / "bin"
+        self.bin.mkdir()
+        self.env = {k: v for k, v in os.environ.items() if not k.startswith(("CLAUDE", "GIT_"))}
+        self.env["XDG_STATE_HOME"] = str(racine / "etat")
+        self.env["PATH"] = f"{self.bin}{os.pathsep}{os.environ.get('PATH', '')}"
+        self._depot_avec_un_worktree()
+
+    def _git(self, *args, cwd) -> str:
+        r = subprocess.run(["git", *args], cwd=cwd, capture_output=True, text=True,
+                           env={**self.env, **ENV_GIT_IDENTITE}, check=True)
+        return r.stdout.strip()
+
+    def _depot_avec_un_worktree(self):
+        self.principal.mkdir(parents=True)
+        self._git("init", "-q", "-b", "main", cwd=self.principal)
+        (self.principal / "a.txt").write_text("base\n", encoding="utf-8")
+        self._git("add", "a.txt", cwd=self.principal)
+        self._git("commit", "-q", "-m", "base", cwd=self.principal)
+        self.worktree.parent.mkdir(parents=True)
+        self._git("worktree", "add", "-q", "-b", "feat/x", str(self.worktree), cwd=self.principal)
+        (self.worktree / "b.txt").write_text("travail\n", encoding="utf-8")
+        self._git("add", "b.txt", cwd=self.worktree)
+        self._git("commit", "-q", "-m", "travail", cwd=self.worktree)
+        self.sha = self._git("rev-parse", "HEAD", cwd=self.worktree)
+
+    def poser_fiche(self, **champs):
+        self.dossier.mkdir(parents=True, exist_ok=True)
+        fiche = fiche_de_test("loc-retrait-1", pr=7, etat="a merger", branche="feat/x",
+                              worktree=str(self.worktree), depot=self.DEPOT, titre="Plan de test")
+        fiche.update(champs)
+        (self.dossier / "loc-retrait-1.json").write_text(json.dumps(fiche), encoding="utf-8")
+
+    def lire_fiche(self) -> dict:
+        return json.loads((self.dossier / "loc-retrait-1.json").read_text(encoding="utf-8"))
+
+    def faux_gh(self, sortie: str | None, code: int = 0):
+        """Un ``gh`` jetable sur le PATH : il rend la sortie donnée, sans aucun réseau."""
+        corps = "#!/bin/sh\n"
+        if sortie is not None:
+            corps += f"printf '%s\\n' '{sortie}'\n"
+        corps += f"exit {code}\n"
+        chemin = self.bin / "gh"
+        chemin.write_text(corps, encoding="utf-8")
+        chemin.chmod(0o755)
+
+    def pr_dans_cet_etat(self, etat: str, sha: str | None = None):
+        self.faux_gh(json.dumps({"state": etat, "headRefOid": sha or self.sha}))
+
+    def jouer(self, cwd: Path | None = None) -> subprocess.CompletedProcess:
+        cwd = cwd or self.principal
+        entree = json.dumps({"session_id": "loc-session-courante", "cwd": str(cwd)})
+        return subprocess.run([sys.executable, str(HOOKS / self.SCRIPT)], input=entree,
+                              capture_output=True, text=True, timeout=60, env=self.env, cwd=cwd)
+
+    def assertRienRetire(self, r):
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertTrue(self.worktree.is_dir(), "le worktree a été retiré alors que la preuve manque")
+        self.assertEqual(self.lire_fiche()["etat"], "a merger", "la fiche a été close sans retrait")
+
+    def test_retirer_pr_mergee_au_meme_commit_et_arbre_propre_retire_le_worktree(self):
+        self.pr_dans_cet_etat("MERGED")
+        self.poser_fiche()
+        r = self.jouer()
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertFalse(self.worktree.exists(), "le worktree clos n'a pas été retiré")
+        self.assertEqual(self.lire_fiche()["etat"], "clos")
+        # Le hook retire le worktree, jamais la branche : elle doit rester, pour le balayeur.
+        self._git("rev-parse", "--verify", "refs/heads/feat/x", cwd=self.principal)
+
+    def test_retirer_arbre_sale_ne_retire_rien(self):
+        self.pr_dans_cet_etat("MERGED")
+        self.poser_fiche()
+        (self.worktree / "b.txt").write_text("modifié sans commit\n", encoding="utf-8")
+        self.assertRienRetire(self.jouer())
+
+    def test_retirer_commit_local_en_avance_sur_la_pr_mergee_ne_retire_rien(self):
+        self.pr_dans_cet_etat("MERGED", sha=self.sha)
+        self.poser_fiche()
+        self._git("commit", "-q", "--allow-empty", "-m", "commit ultérieur au merge", cwd=self.worktree)
+        self.assertRienRetire(self.jouer())
+
+    def test_retirer_gh_en_panne_ne_retire_rien(self):
+        self.faux_gh(None, code=1)
+        self.poser_fiche()
+        self.assertRienRetire(self.jouer())
+
+    def test_retirer_pr_encore_ouverte_ne_retire_rien(self):
+        # Autre panne attrapée : un worktree dont la PR n'est pas encore mergée.
+        self.pr_dans_cet_etat("OPEN")
+        self.poser_fiche()
+        self.assertRienRetire(self.jouer())
+
+    def test_retirer_worktree_de_la_session_courante_ne_retire_rien(self):
+        # Autre panne attrapée : le hook retire le dossier où tourne la session qui démarre.
+        self.pr_dans_cet_etat("MERGED")
+        self.poser_fiche()
+        self.assertEqual(self.jouer(cwd=self.worktree).returncode, 0)
+        self.assertTrue(self.worktree.is_dir(), "le worktree de la session courante a été retiré")
+        self.assertEqual(self.lire_fiche()["etat"], "a merger")
+
+
 if __name__ == "__main__":
     unittest.main()
