@@ -15,7 +15,11 @@ Le script ne parle jamais à Notion. Il tient une copie locale, un fichier JSON
 par session, dans ``${XDG_STATE_HOME:-~/.local/state}/plans-notion/plans-en-cours/
 <cle>.json`` (dossier en mode 700). Les valeurs des propriétés Session, Sonnette
 et Machine de la base « Plans Claude » sont dans cette fiche (``session_id``,
-``sonnette``, ``origine`` : Machine) ; c'est la session qui les écrit dans Notion.
+``sonnette``, ``machine`` : Machine) ; c'est la session qui les écrit dans Notion.
+``machine`` est le nom d'hôte (``socket.gethostname()``, la sortie de ``hostname``) :
+c'est lui que le relevé compare pour savoir si la session tourne sur le VPS.
+``origine`` (« app de bureau », « serveur Remote Control », « terminal du VPS ») reste
+un champ distinct, qui ne va pas dans Machine.
 
 Nom de la fiche : l'identifiant local de la session, celui que la garde de fin
 de tour reçoit (``session_id`` de l'entrée du hook, égal à
@@ -70,6 +74,7 @@ import fcntl
 import json
 import os
 import re
+import socket
 import sys
 import tempfile
 from dataclasses import dataclass
@@ -103,6 +108,7 @@ class Identite:
     cle: str | None             # identifiant local : nom du fichier de fiche, sans « .json »
     origine: str
     recherche: str | None       # valeur de --session : sert à retrouver une fiche existante
+    machine: str = ""           # nom d'hôte de la machine : la propriété Machine de Notion
 
 
 # --- identifiant de session --------------------------------------------------
@@ -146,7 +152,10 @@ def identite(session_arg: str | None, env, home: Path) -> Identite:
         sid_local = (fichier or {}).get("sessionId")
         local = sid_local if _forme_valide(sid_local) else ""
     cle = local or session_arg or None
-    return Identite(session_id=session_id, cle=cle, origine=_origine(fichier, env), recherche=session_arg)
+    # PLAN_EN_COURS_HOTE : surcharge de test, comme XDG_STATE_HOME et HOME ; vide, on prend le vrai nom.
+    machine = env.get("PLAN_EN_COURS_HOTE") or socket.gethostname()
+    return Identite(session_id=session_id, cle=cle, origine=_origine(fichier, env), recherche=session_arg,
+                    machine=machine)
 
 
 def cle_ouverture(ident: Identite) -> str:
@@ -288,10 +297,11 @@ def cmd_ouvrir(args, ident: Identite, dossier: Path) -> str:
             "sonnette": sonnette_demandee if ident.session_id else None,
             "maj": None,
             "origine": ident.origine,
+            "machine": ident.machine,
         }
 
     _modifier(dossier, cle, neuve, creer=True)
-    lignes = [f"fiche ouverte : {cle}.json (origine : {ident.origine})"]
+    lignes = [f"fiche ouverte : {cle}.json (origine : {ident.origine}, machine : {ident.machine})"]
     if ident.session_id is None:
         lignes.append("pas de sonnette possible : session hors Remote Control, pas de bridgeSessionId")
     elif sonnette_demandee is None:

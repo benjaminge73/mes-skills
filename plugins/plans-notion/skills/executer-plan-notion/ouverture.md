@@ -375,9 +375,13 @@ continuer.
 - **`lire`**, même tour. Trois valeurs de la fiche vont sur la page du plan, dans la base
   **Plans Claude**, en une écriture relue après (`_partage/ecrire-dans-notion.md`) :
   `session_id` → propriété `Session` (l'identifiant claude.ai rendu par la fiche, jamais un
-  identifiant inventé ; vide s'il est absent) ; `origine` → propriété `Machine` (« app de
-  bureau », « serveur Remote Control » ou « terminal du VPS ») ; `sonnette` → propriété
-  `Sonnette`. Le `session_locale` reste local : il ne va pas dans Notion.
+  identifiant inventé ; vide s'il est absent) ; `machine` → propriété `Machine`, qui reçoit
+  le nom d'hôte, `$(hostname)` (une fiche ouverte avant ce champ ne le porte pas : on pose
+  quand même `$(hostname)`, sans rien inventer d'autre) ; `sonnette` → propriété `Sonnette`.
+  Le relevé `plans_veille` compare `Machine` au nom d'hôte de la machine pour dire si la
+  session tourne sur le VPS. `origine` (« app de bureau », « serveur Remote Control » ou
+  « terminal du VPS ») reste dans la fiche et ne va plus dans `Machine`. Le `session_locale`
+  reste local : il ne va pas dans Notion.
 
 - **`pr --numero <n>`**, dès la PR ouverte (`_partage/remontee-sur-main.md`, point 1) : la
   fiche passe à `a merger`. Si la fiche n'a pas de sonnette, la session arme un réveil de

@@ -42,7 +42,9 @@ non écrite, rien n'est parti, à reprendre. Code 2 : usage incorrect.
 
 Le cron `plans-veille` relève la lettre à chaque passe (dix minutes au plus) et la rend à Hal.
 Hal répond dans la section « ## Courrier de Hal » de la page du plan, et la session reçoit la
-sonnette (le signal qui la réveille).
+sonnette (le signal qui la réveille). Après avoir posé un `geste`, la session arme un réveil
+(`plan-en-cours.py attendre --raison "geste demandé à Hal"`, puis son mécanisme de réveil habituel),
+car Hal ne sonne la session qu'en répondant : sans réveil, elle dort jusqu'à une relance.
 
 ## 3. Ce qu'on met dans la demande
 
