@@ -90,6 +90,8 @@ protège à partir de la version qui la porte. (Historique : `docs/retex/execute
 - Benjamin qui dit « go » ne remplace pas le statut. Il le dit de mémoire, la page
   dit ce qui a été tranché. **En cas de désaccord entre les deux, demander** — ça
   coûte un tour, refaire une implémentation en coûte dix.
+- **Case cochée = décision ; session pilotable par Hal** : dès `valide`, une case cochée (même hors
+  reco) ne se redemande pas, et pas d'`AskUserQuestion` : `${CLAUDE_PLUGIN_ROOT}/skills/_partage/pilotable-par-hal.md`.
 - **Un « go » sur un plan `valide` suffit à lancer l'exécution** : il ne se redemande pas,
   il enchaîne sur le `Statut` et la préparation prouvée. Outre les arrêts prévus dans ce skill
   (maquette, connecteur Notion, statut), la session s'arrête sur un choix de sécurité majeur,
@@ -479,22 +481,14 @@ parallèle ; le pilote ne garde que le croisement) vivent dans un seul fichier :
   `${CLAUDE_PLUGIN_ROOT}/skills/plan-notion/plan-maitre.md`.
 - Il ne dépend d'aucun `CLAUDE.md`, d'aucun hook, d'aucun fichier du dépôt de
   travail. Ses compagnons sont les fichiers partagés
-  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/ecrire-dans-notion.md`,
-  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/decouvertes.md`,
-  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/vagues.md`,
-  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/demander-a-hal.md`,
-  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/schemas.md`,
-  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/remontee-sur-main.md`,
+  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/ecrire-dans-notion.md`, `${CLAUDE_PLUGIN_ROOT}/skills/_partage/decouvertes.md`,
+  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/vagues.md`, `${CLAUDE_PLUGIN_ROOT}/skills/_partage/demander-a-hal.md`,
+  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/schemas.md`, `${CLAUDE_PLUGIN_ROOT}/skills/_partage/remontee-sur-main.md`,
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/plan-de-suite.md`, `${CLAUDE_PLUGIN_ROOT}/skills/_partage/restes.md`,
-  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/preuve-du-rouge.md`,
-  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/grille-doc.md`,
-  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/maquettes-html.md`,
-  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/revue.md`,
-  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/bons-tests.md`,
-  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/poc.md`,
-  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/machine-partagee.md`,
-  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/cron-a-la-main.md`,
-  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/cout-des-plans.md`,
-  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/ranger-claude-md.md`,
-  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/changelog-et-doc.md` et
+  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/preuve-du-rouge.md`, `${CLAUDE_PLUGIN_ROOT}/skills/_partage/grille-doc.md`,
+  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/maquettes-html.md`, `${CLAUDE_PLUGIN_ROOT}/skills/_partage/revue.md`,
+  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/bons-tests.md`, `${CLAUDE_PLUGIN_ROOT}/skills/_partage/poc.md`,
+  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/machine-partagee.md`, `${CLAUDE_PLUGIN_ROOT}/skills/_partage/cron-a-la-main.md`,
+  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/cout-des-plans.md`, `${CLAUDE_PLUGIN_ROOT}/skills/_partage/ranger-claude-md.md`,
+  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/changelog-et-doc.md`, `${CLAUDE_PLUGIN_ROOT}/skills/_partage/pilotable-par-hal.md`,
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/outils-et-quotas.md`, livrés par le plugin `plans-notion` — pas par le dépôt de travail, quel qu'il soit.

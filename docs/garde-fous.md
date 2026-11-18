@@ -190,3 +190,4 @@ n'est prévu (`bypass_actors` vide). Retour arrière :
    vérifie. Un garde qu'on ne peut pas encore écrire prend « prévu — étape X » ou
    « manquant » — jamais un « en place » sans garde.
 4. Ajouter le garde dans **la même PR** que la ligne.
+| Une case cochée vaut décision, et la session reste pilotable par Hal | qu'à partir de `valide`, une case cochée hors reco ne soit pas redemandée en session, et qu'aucune question ne passe par `AskUserQuestion` (que Hal ne peut pas débloquer) : question en texte, recopiée dans la page, fin de tour | 2026-11-18, incident de Benjamin sur un plan `valide` (plans-notion 0.67.0) | `scripts/test_pilotable_par_hal.py`, cas d'éval `case-cochee` (écrit, non joué) | CI, job `validation` (tests des scripts de garde), via `scripts/ci_locale.sh` | en place |
