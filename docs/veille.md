@@ -59,8 +59,8 @@ plus simplement en variante `.md`.
    si la série en compte plusieurs). Depuis le plan « Veille par articles » (PR
    `feat/veille-articles` de `hermes-custom`), il lit aussi les articles des flux de
    neuf blogs : claude.dev, Addy Osmani, martinfowler.com, Jesse Vincent, Simon Willison,
-   Hamel Husain, et, sous filtre strict, Armin Ronacher, Geoffrey Huntley et le blog
-   GitHub (rubrique IA), ainsi que les liens que Benjamin envoie à Hal. Il en tire des
+   Hamel Husain, et Armin Ronacher, Geoffrey Huntley et le blog
+   GitHub (rubrique IA), marqués `strict` dans la config (étiquette transmise à la session, sans effet propre), ainsi que les liens que Benjamin envoie à Hal. Il en tire des
    bonnes pratiques, confrontées à ce que `mes-skills` fait déjà ; elles arrivent dans
    un chapitre « Adopter une bonne pratique » de la même page. La passe manuelle garde
    son rôle : vérifier les faits porteurs avant une PR de skill. Le journal des passes
