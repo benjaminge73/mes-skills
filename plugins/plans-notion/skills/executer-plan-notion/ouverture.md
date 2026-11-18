@@ -31,7 +31,7 @@ préparation est le travail du pilote, elle se joue donc déjà à ce réglage.
   - **Le brief est court** : l'URL de la page, « exécute ce plan avec
     `executer-plan-notion` », la page du plan maître s'il y en a une, la branche si elle
     existe déjà. Le détail est dans la page ; un brief long déborde du lien. **Un humain
-    est là** : les questions passent par `AskUserQuestion`, pas par la variante sans
+    est là** : les questions passent en texte, pilotables par Hal (`_partage/pilotable-par-hal.md`), pas par la variante sans
     humain de `_partage/decouvertes.md` §3.
   - **Dans l'app Claude Code Desktop** (la voie d'abord) : un lien
     `claude://code/new?q=<brief encodé>&folder=<chemin absolu du dépôt, encodé>`, ouvert
@@ -103,6 +103,11 @@ loin.
 Donc, **avant la première étape, sans exception** — même si le plan a l'air à
 jour, même s'il a été écrit dans la même session :
 
+0. **Une case cochée vaut décision**, même hors reco : elle s'applique sans confirmation
+   (`${CLAUDE_PLUGIN_ROOT}/skills/_partage/pilotable-par-hal.md`, §1). À partir de `valide`,
+   la session ne pose aucune question par `AskUserQuestion` (§2 du même fichier : question en
+   texte, recopiée dans la page, fin de tour), et pose `Session` et `Machine` sur la page dès
+   le début de la préparation pour que Hal la trouve.
 1. Reprendre le relevé du §1 : chaque case cochée, chaque texte libre, chaque fil
    non résolu, chaque commentaire de la dernière passe.
 2. **Confronter chaque réponse au chapitre `Exécution`, étape par étape.** Une
