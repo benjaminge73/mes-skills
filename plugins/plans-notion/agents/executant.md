@@ -238,6 +238,13 @@ Le serveur `codebase-memory` te donne cinq outils, et seulement ceux-là :
    le garde toi-même : le pilote décide, à la clôture, si l'incident devient une
    règle tenue par un garde.
 
+   **Champ « effet sur »** : une ligne par fichier modifié (pièce 2), disant ce que
+   le changement touche ailleurs — appelants, docs, tests, hooks — ou `aucun`.
+   Pour les appelants d'un symbole modifié, `trace_path` d'abord. Un `aucun` ne se
+   dit qu'après un `grep` du nom du fichier ou du symbole hors de ta liste : le
+   graphe ne voit pas tout (« Lire le code », plus haut). Le pilote reporte ce
+   champ au journal, sous une puce `**Effets**`.
+
 ## Pourquoi cet agent existe
 
 Il porte `model: haiku` et `effort: high` dans son frontmatter, et c'est sa

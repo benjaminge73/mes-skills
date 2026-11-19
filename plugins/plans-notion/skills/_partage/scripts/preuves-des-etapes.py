@@ -32,6 +32,9 @@ une étape « lot » ou sans puce « Relecture » n'est pas contrôlée sur ce p
 De même, une étape dont « Impact fonctionnel » (chapitre « Exécution ») n'est pas « Rien… » doit
 porter une puce « **Maquette** » dans son entrée de journal (le rendu de l'écran) ; une étape à
 impact « Rien », ou sans puce d'impact, n'est pas contrôlée sur ce point.
+Dès qu'une étape du journal porte une puce « **Effets** » (ce que le changement touche ailleurs,
+pièce 5 du rapport), chaque étape doit en porter une : « aucun » est admis. Un journal qui n'en
+porte aucune n'est pas contrôlé sur ce point (adoption progressive : plans clos, fixtures).
 Bibliothèque standard uniquement.
 """
 from __future__ import annotations
@@ -66,6 +69,9 @@ IMPACT = re.compile(r"^[ \t]*[-*][ \t]+(?:\*\*)?Impact fonctionnel(?:\*\*)?[ \t]
 # La puce « Maquette » de l'entrée de journal d'une étape : le rendu de l'écran (etapes.md).
 # Ce n'est pas la puce « Maquette » de l'ouverture, qui ne vit pas dans une étape.
 MAQUETTE = re.compile(r"^[ \t]*[-*][ \t]+(?:\*\*)?Maquette(?:\*\*)?[ \t]*:")
+# La puce « Effets » de l'entrée de journal : ce que le changement touche ailleurs (pièce 5 du
+# rapport, « effet sur »). Présence seulement : « aucun » est une valeur admise.
+EFFETS = re.compile(r"^[ \t]*[-*][ \t]+(?:\*\*)?Effets(?:\*\*)?[ \t]*:")
 RIEN = re.compile(r"rien(?!\w)")
 # Les balises d'une retouche en bleu (« <span color="blue">étape</span> ») : retirées avant lecture.
 SPAN = re.compile(r"</?span[^>]*>")
@@ -203,6 +209,11 @@ def a_maquette(entree: list[str]) -> bool:
     return any(MAQUETTE.match(SPAN.sub("", ligne)) for ligne in entree)
 
 
+def a_effets(entree: list[str]) -> bool:
+    """Vrai si l'entrée de journal de l'étape porte sa puce « Effets » (ce qu'elle touche ailleurs)."""
+    return any(EFFETS.match(SPAN.sub("", ligne)) for ligne in entree)
+
+
 def _nom_champ(brut: str) -> str:
     if brut.startswith("Commit"):
         return "Commit"
@@ -255,6 +266,9 @@ def controler_apres(texte: str) -> tuple[list[str], list[str], int]:
     defauts = _doublons(blocs)
     non_prouvees: list[str] = []
     numeros = list(dict.fromkeys(n for n, _ in blocs))
+    # Adoption progressive : la puce « Effets » n'est exigée que si le journal la porte déjà à
+    # une étape. Un journal qui n'en porte aucune (plans clos, fixtures) n'est pas contrôlé.
+    effets_adoptes = any(a_effets(b) for entrees_ in journal.values() for b in entrees_)
     # Première occurrence de chaque étape, comme pour le journal : la puce « Relecture » lue
     # dans le chapitre (une étape écrite deux fois est déjà un défaut, _doublons).
     relues = {}
@@ -281,6 +295,8 @@ def controler_apres(texte: str) -> tuple[list[str], list[str], int]:
             defauts.append(f"{etiq} : Relecture « étape » sans ligne Revue")
         if ecran.get(numero) and not a_maquette(entrees[0]):
             defauts.append(f"{etiq} : impact à l'écran sans puce Maquette")
+        if effets_adoptes and not a_effets(entrees[0]):
+            defauts.append(f"{etiq} : pas de puce Effets")
         mot, raison = verdict(val.get("Verdict", ""))
         if mot is None:
             defauts.append(f"{etiq} : Verdict absent ou hors vocabulaire")
