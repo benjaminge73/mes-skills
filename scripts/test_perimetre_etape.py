@@ -112,6 +112,40 @@ class PerimetreEtape(unittest.TestCase):
         self.assertEqual(r.returncode, 1, msg=r.stderr)
         self.assertEqual(r.stdout.splitlines(), ["docs/ancien.md"])
 
+    def test_fichier_sous_un_dossier_liste_avec_barre_finale_sort_en_0(self) -> None:
+        # Panne : le brief nomme souvent un dossier (« evals/x/ »). Si la liste ne lit qu'un
+        # chemin exact, chaque fichier du dossier sort hors liste à tort.
+        dossier = "evals/plans-notion/relecteur-checkout"
+        self._commit("étape", {f"{dossier}/case.yaml": TEST, f"{dossier}/prompt.md": NOTES})
+        r = self._lancer("--base", self.base, "--fichiers", f"{dossier}/")
+        self.assertEqual(r.returncode, 0, msg=r.stderr)
+        self.assertEqual(r.stdout, "")
+
+    def test_dossier_liste_sans_barre_finale_ne_couvre_pas_ses_fichiers_sort_en_1(self) -> None:
+        # Garde contre un élargissement trop large : sans « / » final, la liste reste un chemin
+        # exact, et le fichier du dossier sort hors liste.
+        dossier = "evals/plans-notion/relecteur-checkout"
+        self._commit("étape", {f"{dossier}/prompt.md": NOTES})
+        r = self._lancer("--base", self.base, "--fichiers", dossier)
+        self.assertEqual(r.returncode, 1, msg=r.stderr)
+        self.assertEqual(r.stdout.splitlines(), [f"{dossier}/prompt.md"])
+
+    def test_dossier_voisin_au_nom_prefixe_sort_en_1(self) -> None:
+        # Garde contre un préfixe de chaîne nu : « evals/a-b/ » n'est pas dans « evals/a/ ».
+        self._commit("étape", {"evals/a-b/x.md": NOTES})
+        r = self._lancer("--base", self.base, "--fichiers", "evals/a/")
+        self.assertEqual(r.returncode, 1, msg=r.stderr)
+        self.assertEqual(r.stdout.splitlines(), ["evals/a-b/x.md"])
+
+    def test_dossier_avec_point_slash_initial_sort_en_0(self) -> None:
+        # Panne : « ./evals/a/ » se normalise en perdant sa barre finale (posixpath.normpath),
+        # et le dossier ne couvre plus ses fichiers. En plus du budget du brief : le correctif
+        # touche justement cette normalisation.
+        self._commit("étape", {"evals/a/x.md": NOTES})
+        r = self._lancer("--base", self.base, "--fichiers", "./evals/a/")
+        self.assertEqual(r.returncode, 0, msg=r.stderr)
+        self.assertEqual(r.stdout, "")
+
 
 if __name__ == "__main__":
     unittest.main()
