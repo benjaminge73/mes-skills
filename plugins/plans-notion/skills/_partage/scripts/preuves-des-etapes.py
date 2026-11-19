@@ -26,6 +26,9 @@ Codes : 0 conforme ; 1 au moins un défaut, un par ligne sur la sortie standard
 (les défauts d'abord) ; 3 (--apres seulement) aucun défaut mais une étape
 ``unverifiable``, une ligne « non prouvée : Étape N — <raison> » par étape ;
 2 entrée illisible (page, chapitre ou journal absent, aucune étape trouvée).
+--apres exige aussi, pour une étape dont la puce « Relecture » du chapitre vaut
+« étape » (relue seule, revue.md), une puce « **Revue** » dans son entrée de journal ;
+une étape « lot » ou sans puce « Relecture » n'est pas contrôlée sur ce point.
 Bibliothèque standard uniquement.
 """
 from __future__ import annotations
@@ -52,6 +55,10 @@ CRITERE = re.compile(r"^[ \t]*[-*][ \t]+\*\*Crit[èe]re de succ[èe]s\*\*[ \t]*:
 CHAMP = re.compile(
     r"(?:^[ \t]*[-*][ \t]+|\.[ \t]+)\*\*(Preuve|Commit(?:s|\(s\))?|D[ée]couvertes|Verdict)\*\*"
     r"[ \t]*(?:\([^)]*\)[ \t]*)?:")
+# La puce « Relecture » d'une étape du chapitre (revue.md) : « étape » (relue seule) ou « lot ».
+RELECTURE = re.compile(r"^[ \t]*[-*][ \t]+\*\*Relecture\*\*[ \t]*:[ \t]*(.*)$")
+# La puce « Revue » du journal (revue.md, « Journal ») : clé en gras, en tête de puce.
+REVUE = re.compile(r"^[ \t]*[-*][ \t]+\*\*Revue\*\*")
 VALEURS_VIDES = {"", "—", "-", "aucune", "à définir", "à voir"}
 # Commit et Découvertes : « aucun » ou « aucune » sont des valeurs légitimes (étape sans
 # fichier, rien à signaler) ; seul le vide ou le tiret seul est une coquille.
@@ -150,6 +157,20 @@ def preuve_de_fin(bloc: list[str], numero: str = "") -> str:
     return ""
 
 
+def relecture(bloc: list[str]) -> str:
+    """Valeur de la puce « Relecture » de l'étape, en minuscules ; vide si la puce est absente."""
+    for ligne in bloc:
+        m = RELECTURE.match(ligne)
+        if m:
+            return m.group(1).strip().strip("`*").strip().rstrip(".").strip().lower()
+    return ""
+
+
+def _relue_seule(valeur: str) -> bool:
+    """Vrai pour « étape », « étape (relue seule) »… ; faux pour « lot » et pour une valeur vide."""
+    return re.match(r"étape(?!\w)", valeur) is not None
+
+
 def _nom_champ(brut: str) -> str:
     if brut.startswith("Commit"):
         return "Commit"
@@ -202,6 +223,11 @@ def controler_apres(texte: str) -> tuple[list[str], list[str], int]:
     defauts = _doublons(blocs)
     non_prouvees: list[str] = []
     numeros = list(dict.fromkeys(n for n, _ in blocs))
+    # Première occurrence de chaque étape, comme pour le journal : la puce « Relecture » lue
+    # dans le chapitre (une étape écrite deux fois est déjà un défaut, _doublons).
+    relues = {}
+    for n, bloc in blocs:
+        relues.setdefault(n, relecture(bloc))
     for numero in numeros:
         etiq = _etiquette(numero)
         entrees = journal.get(numero, [])
@@ -215,6 +241,8 @@ def controler_apres(texte: str) -> tuple[list[str], list[str], int]:
                               ("Découvertes", _tiret_ou_vide)):
             if coquille(val.get(nom, "")):
                 defauts.append(f"{etiq} : pas de {nom}")
+        if _relue_seule(relues.get(numero, "")) and not any(REVUE.match(l) for l in entrees[0]):
+            defauts.append(f"{etiq} : Relecture « étape » sans ligne Revue")
         mot, raison = verdict(val.get("Verdict", ""))
         if mot is None:
             defauts.append(f"{etiq} : Verdict absent ou hors vocabulaire")

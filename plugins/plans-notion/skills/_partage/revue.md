@@ -141,10 +141,11 @@ c'est faux » (`preuve-du-rouge.md`).
 
 ## Journal
 
-Sous l'entrée de l'étape (§4 du skill), une ligne `Revue` :
+Sous l'entrée de l'étape (§4 du skill), une puce `- **Revue** : …` (clé en gras, comme
+les autres champs du journal) :
 
 ```
-Revue — N tour(s)
+- **Revue** : N tour(s)
   [écart au plan] fichier:ligne — retenue, fix abc1234
   [bug] fichier:ligne — écartée : <raison>
   Verdict final : RIEN À SIGNALER
@@ -152,7 +153,10 @@ Revue — N tour(s)
 
 Une ligne par remarque, quel que soit le tour où elle est apparue. Une remarque
 `Découverte hors plan` s'y écrit « traitée en découverte », comme une remarque
-`Sécurité (hors diff)` : elle ne se corrige pas dans l'étape.
+`Sécurité (hors diff)` : elle ne se corrige pas dans l'étape. Cette puce est
+**exigée** pour une étape dont `Relecture` vaut `étape` : `preuves-des-etapes.py --apres`
+refuse l'étape qui ne la porte pas (code 1, son numéro nommé) ; une étape `lot` n'est pas
+contrôlée sur ce point.
 
 ## Coût assumé
 
