@@ -102,6 +102,76 @@ class RefuserNoVerify(unittest.TestCase):
         self.assertNotEqual(r.stderr.strip(), "")
 
 
+class RefuserGitStash(unittest.TestCase):
+    """Hook PreToolUse (Bash) : pas de ``git stash``, sous aucune forme.
+
+    Un hook absent fait échouer ``setUp`` : sans cela, le code 2 que Python rend
+    pour un fichier introuvable aurait l'air d'un refus réussi. Le refus doit
+    aussi porter son motif (« WIP » : l'alternative), ce qui sépare le rouge
+    « le hook ne refuse pas » du rouge « le fichier manque ».
+    """
+    SCRIPT = "refuser_git_stash.py"
+
+    def setUp(self):
+        self.assertTrue((HOOKS / self.SCRIPT).is_file(), f"hook absent : {HOOKS / self.SCRIPT}")
+
+    def refuse(self, commande: str):
+        r = jouer(self.SCRIPT, bash(commande))
+        self.assertEqual(r.returncode, 2, f"{commande!r} aurait dû être refusée : {r.stderr}")
+        self.assertIn("stash", r.stderr)
+        self.assertIn("WIP", r.stderr)
+
+    def permis(self, commande: str):
+        r = jouer(self.SCRIPT, bash(commande))
+        self.assertEqual(r.returncode, 0, f"{commande!r} aurait dû passer : {r.stderr}")
+        self.assertEqual(r.stdout + r.stderr, "")
+
+    def test_un_git_stash_nu_est_refuse_avec_le_motif(self):
+        self.refuse("git stash")
+
+    def test_git_dash_C_stash_push_est_refuse(self):
+        self.refuse("git -C /x stash push")
+
+    def test_les_autres_sous_commandes_de_stash_sont_refusees(self):
+        # Panne attrapée en plus : le hook ne reconnaîtrait que « git stash push ».
+        for commande in ("git stash pop", "git stash apply", "git stash list"):
+            with self.subTest(commande=commande):
+                self.refuse(commande)
+
+    def test_stash_apres_une_chaine_est_refuse(self):
+        # Panne attrapée en plus : seul le premier segment de la commande serait lu.
+        self.refuse("git status && git stash push")
+
+    def test_stash_sur_une_ligne_suivante_est_refuse(self):
+        # Panne attrapée en plus : un saut de ligne ne sépare pas deux commandes
+        # pour shlex seul ; le découpage du hook doit le compter comme séparateur.
+        self.refuse("git status\ngit stash push")
+
+    def test_git_log_n_3_est_permis(self):
+        self.permis("git log -n 3")
+
+    def test_git_stash_dans_le_texte_du_message_est_permis(self):
+        self.permis("git commit -m 'note: pas de git stash'")
+
+    def test_echo_git_stash_est_permis(self):
+        self.permis("echo git stash")
+
+    def test_un_outil_autre_que_bash_est_ignore(self):
+        # Panne attrapée en plus : le hook bloquerait un autre outil dont le texte
+        # contient « git stash » (lecture d'un fichier, par exemple).
+        r = jouer(self.SCRIPT, {"tool_name": "Read", "tool_input": {"command": "git stash"}})
+        self.assertEqual(r.returncode, 0)
+
+    def test_une_commande_non_decoupable_laisse_passer(self):
+        r = jouer(self.SCRIPT, bash("git stash 'guillemet jamais fermé"))
+        self.assertEqual(r.returncode, 0)
+
+    def test_un_json_illisible_laisse_passer_avec_un_mot_sur_stderr(self):
+        r = jouer(self.SCRIPT, "pas du json {")
+        self.assertEqual(r.returncode, 0)
+        self.assertNotEqual(r.stderr.strip(), "")
+
+
 class RefuserStatutAccentue(unittest.TestCase):
     SCRIPT = "refuser_statut_accentue.py"
 
