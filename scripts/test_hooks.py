@@ -66,6 +66,20 @@ class RefuserNoVerify(unittest.TestCase):
     def test_no_verify_apres_une_chaine_est_refuse(self):
         self.refuse('git add -A && git commit --no-verify -m "x"')
 
+    def test_no_verify_sur_une_ligne_suivante_est_refuse(self):
+        # Panne attrapée : un saut de ligne ne sépare pas deux commandes pour shlex
+        # seul ; « git status⏎git commit --no-verify » passait avec le code 0.
+        self.refuse('git status\ngit commit --no-verify -m "x"')
+
+    def test_saut_de_ligne_dans_le_message_ne_coupe_pas_la_commande(self):
+        # Garde : un saut de ligne entre guillemets fait partie du message. Le
+        # découpage ne doit pas le prendre pour un séparateur (commande permise).
+        self.permis("git commit -m 'a\nb'")
+
+    def test_commit_sans_no_verify_sur_une_ligne_suivante_est_permis(self):
+        # Garde : le découpage par ligne ne doit pas refuser un commit ordinaire.
+        self.permis('git status\ngit commit -m "x"')
+
     def test_S_sans_keyid_ne_masque_pas_le_n_suivant(self):
         # -S a une valeur facultative, collée : le mot suivant n'est pas sa valeur.
         self.refuse('git commit -S -n -m "x"')
