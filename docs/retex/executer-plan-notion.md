@@ -101,5 +101,7 @@ de poser `a merger`.
 > Écarté : une PR par étape, un run de CI chacune.
 
 Règle conservée : une étape `étape` a son worktree et sa branche
-`<branche-du-plan>-etape-N` ; une étape `lot` reste sur la branche du plan. Un plan
-déjà ouvert garde sa branche unique.
+`<branche-du-plan>-etape-N` ; une étape `lot` reste sur la branche du plan. La règle
+vaut pour les plans dont l'entrée `Ouverture` est écrite après la mise à jour du
+plugin ; un plan déjà en cours à ce moment-là garde sa branche unique jusqu'à sa
+clôture.

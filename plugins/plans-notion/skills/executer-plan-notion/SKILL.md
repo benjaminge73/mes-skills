@@ -205,8 +205,8 @@ premier plan ouvert : « Plusieurs plans », plus bas).
 Le chapitre `Exécution` de la page est la feuille de route ; il ne se réécrit
 pas pour raconter l'avancement, qui va dans `Journal d'exécution` (§4).
 
-- **Une étape = un commit sur la branche du plan**, prouvé en local : pas de
-  sous-branche, pas de PR d'étape. La preuve, ce sont **les tests des fichiers
+- **Une étape = un commit sur la branche du plan**, prouvé en local : pas de PR d'étape ; une sous-branche seulement pour une étape `Relecture : étape` (`vagues.md`).
+  La preuve, ce sont **les tests des fichiers
   impactés** (liste réelle, `git diff --name-only`), **jouée par le
   pilote** (la session qui orchestre le plan), jamais la suite complète ni les e2e — ceux-là passent une fois, à
   la clôture (§6). Rouge → on corrige jusqu'au vert, jamais de contournement ;

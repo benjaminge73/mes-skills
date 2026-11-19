@@ -105,9 +105,9 @@ Deux exceptions, où le serveur MCP passe avant la CLI :
    (2026-10-09, fiche « codebase-memory »).
 2. **Notion, quand la session a son connecteur.** Le connecteur MCP de la session passe
    en premier, la commande `composio` n'est que le second palier de la chaîne de repli.
-   Raison : `composio` est posé à la main sur le VPS, hors de la cascade d'installation,
-   sans manifeste, et une session cloud ne l'a pas. Le repli prend le relais quand le
-   connecteur tombe, après trois essais sur une dizaine de minutes.
+   Raison : une session cloud n'a pas `composio` ; le connecteur de la session, lui, y
+   est, et passe donc en premier. Le repli prend le relais quand le connecteur tombe,
+   après trois essais sur une dizaine de minutes.
 
 Pour un autre service, la question se tranche par une mesure, comme pour un outil absent
 (« Règle pour un outil absent ») : la même tâche jouée par la CLI et par le serveur, la
@@ -420,8 +420,9 @@ lecture.
    Rien n'est parti, donc pas de doublon. Pendant ce temps, avancer sur ce qui
    ne dépend pas de l'app.
 2. **La commande `composio` du VPS**, en lecture et en écriture. Elle est
-   installée à `~/.local/bin/composio` (lien vers `~/.composio/composio`, version
-   0.4.0). Lecture : `echo '{"page_id":"<id>"}' | composio execute
+   installée à `~/.local/bin/composio` (lien vers le shim `mise`
+   `~/.local/share/mise/shims/composio`, version 0.4.5 relevée le 2026-11-19, déclarée
+   dans `config/mise.toml` de hermes-custom). Lecture : `echo '{"page_id":"<id>"}' | composio execute
    NOTION_GET_PAGE_MARKDOWN -d -` ; une grosse page revient dans un fichier
    (`storedInFile`, puis `outputFilePath`, champ `data.markdown`). Écriture de
    contenu : `composio execute NOTION_UPDATE_PAGE_MARKDOWN -d @args.json`, et
@@ -465,9 +466,10 @@ lecture.
    pilote lui-même, comme le veut la bonne pratique plus haut, et l'empreinte
    vérifiée par ce code avant toute écriture.
 
-Limite : `composio` est posé à la main sur le VPS, hors de la cascade
-d'installation de `installer-un-outil.md`, sans manifeste ; rien ne le met à
-jour. Une session cloud ne l'a pas : là-bas, on passe du palier 1 au palier 3.
+Limite : `composio` est installé par `mise` (cran 3 de la cascade de
+`installer-un-outil.md`), déclaré dans `config/mise.toml` de hermes-custom et suivi
+par le veilleur `upstream-watch`. Une session cloud ne l'a pas : là-bas, on passe du
+palier 1 au palier 3.
 
 ## Fiche — DeepSeek vision
 

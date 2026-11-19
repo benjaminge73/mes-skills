@@ -128,7 +128,7 @@ Une étape dont la puce `Relecture` vaut `étape` (la chaîne `Relecture : étap
 de sa fiche, colonne `Relecture` du chapitre `Exécution`) se joue comme une
 étape parallèle, **même seule dans sa vague** : elle a son worktree, son
 `<branche-du-plan>-etape-N` depuis la tête de la branche du plan, et son report
-par la procédure « Au retour » ci-dessus. Le paragraphe « se déroule comme
+par la procédure « Au retour » ci-dessous. Le paragraphe « se déroule comme
 avant » plus haut ne la couvre pas. Les étapes `lot` restent directement sur la
 branche du plan (`etapes.md`).
 
@@ -137,8 +137,9 @@ Pourquoi : la revue d'une étape seule porte sur sa plage de commits
 cette plage, et le checkout partagé n'en voit rien avant le report, une fois
 revue et preuve vertes. Écarté : une PR par étape, un run de CI chacune.
 
-Ce partage se décide à l'ouverture du plan : un plan dont la branche du plan est
-déjà ouverte garde sa branche unique pour toutes ses étapes restantes.
+Ce partage se décide à l'ouverture du plan. La règle vaut pour les plans dont
+l'entrée `Ouverture` est écrite après la mise à jour du plugin qui la porte ; un plan
+déjà en cours à ce moment-là garde sa branche unique jusqu'à sa clôture.
 
 ## Le plafond de concurrence
 
