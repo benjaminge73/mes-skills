@@ -11,7 +11,8 @@ Usage :
 
   --base     : commit d'avant l'étape ; le contrôle porte sur ``<base>..HEAD``.
   --fichiers : fichiers autorisés, relatifs à la racine du dépôt, séparés par des virgules.
-               L'option peut se répéter (``--fichiers a --fichiers b``).
+               L'option peut se répéter (``--fichiers a --fichiers b``). Une entrée qui finit
+               par ``/`` désigne un dossier : tout fichier situé dessous est dans la liste.
 
 Codes :
   0 tout fichier touché entre ``<base>`` et ``HEAD`` est dans la liste (rien sur la sortie)
@@ -43,8 +44,18 @@ def _sha_connu(sha: str) -> bool:
 
 
 def _normaliser(chemin: str) -> str:
-    """`./src/a.py` devient `src/a.py` : sans cela, la liste du brief ne reconnaît rien."""
-    return posixpath.normpath(chemin.strip())
+    """`./src/a.py` devient `src/a.py` : sans cela, la liste du brief ne reconnaît rien.
+    Une barre finale (dossier) est remise : ``posixpath.normpath`` l'efface."""
+    brut = chemin.strip()
+    normal = posixpath.normpath(brut)
+    return normal + "/" if brut.endswith("/") else normal
+
+
+def _autorise(chemin: str, autorises: list[str]) -> bool:
+    """Exact pour un fichier ; préfixe de dossier pour une entrée qui finit par ``/``
+    (``evals/a/`` couvre ``evals/a/x`` mais pas ``evals/a-b/x``)."""
+    return any(chemin == entree or (entree.endswith("/") and chemin.startswith(entree))
+               for entree in autorises)
 
 
 def _liste(valeurs: list[str]) -> list[str]:
@@ -70,8 +81,7 @@ def verifier(base: str, autorises: list[str]) -> tuple[int, list[str]]:
         touches = _fichiers_touches(base)
     except RuntimeError as erreur:
         return PANNE, [str(erreur)]
-    permis = set(autorises)
-    hors = [chemin for chemin in touches if chemin not in permis]
+    hors = [chemin for chemin in touches if not _autorise(chemin, autorises)]
     return (HORS_LISTE if hors else OK), hors
 
 
@@ -82,7 +92,8 @@ def main(argv: list[str]) -> int:
                          help="commit d'avant l'étape ; le contrôle porte sur base..HEAD")
     parseur.add_argument("--fichiers", required=True, action="append", metavar="LISTE",
                          help="fichiers autorisés, relatifs à la racine du dépôt, séparés par "
-                              "des virgules ; l'option peut se répéter")
+                              "des virgules ; l'option peut se répéter ; une entrée finie par "
+                              "'/' désigne un dossier")
     args = parseur.parse_args(argv)
 
     autorises = _liste(args.fichiers)
