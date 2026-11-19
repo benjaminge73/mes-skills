@@ -12,8 +12,11 @@ Un fichier de test est, dans cet ordre : tout fichier du commit rouge (le rouge 
 tests, par construction) ; ceux que désigne `--tests` ; sans `--tests`, ceux qui sont dans un
 dossier `tests/`, `test/` ou `__tests__/`, ou dont le nom suit `test_*`, `*_test.*`, `*.test.*`
 ou `*.spec.*`. Un vert qui ajoute, modifie ou supprime la configuration du lanceur de tests
-(`conftest.py`, `pytest.ini`, `pyproject.toml`, `tox.ini`, `setup.cfg`, `jest.config.*`,
-`vitest.config.*`) fait aussi code 1 : sans toucher à un test, il ferait sauter les tests.
+(`conftest.py`, `pytest.ini`, `jest.config.*`, `vitest.config.*`) fait aussi code 1 : sans toucher
+à un test, il ferait sauter les tests. `pyproject.toml`, `tox.ini` et `setup.cfg` ne comptent que
+si le changement tombe dans une section de test (`[tool.pytest…]`, `[pytest]`, `[tool:pytest]`,
+`[testenv…]`, ou une ligne qui porte `addopts`, `testpaths`, `norecursedirs`, `markers`) : une
+dépendance ajoutée à `pyproject.toml` ne fait sauter aucun test, elle ne fait pas code 1.
 Le détail dit pourquoi (désactivation, assertion retirée, fichier supprimé, configuration
 retouchée) pour que le pilote voie la triche, mais la sortie ne dépend pas de ce détail.
 
@@ -50,8 +53,16 @@ DOSSIERS_DE_TEST = {"tests", "test", "__tests__"}
 MOTIF_NOM_DE_TEST = re.compile(r"^(test_.*|.*_test\..*|.*\.test\..*|.*\.spec\..*)$")
 
 # La configuration qui fait tourner les tests : la retoucher fait sauter des tests sans en toucher un.
-CONFIG_LANCEUR = {"conftest.py", "pytest.ini", "pyproject.toml", "tox.ini", "setup.cfg"}
+CONFIG_LANCEUR = {"conftest.py", "pytest.ini"}
 MOTIFS_CONFIG_LANCEUR = ("jest.config.*", "vitest.config.*")
+# Configuration partagée avec autre chose que les tests (`pyproject.toml` porte aussi les
+# dépendances) : elle ne compte que si un changement tombe dans une section de test.
+CONFIG_PAR_SECTION = {"pyproject.toml", "tox.ini", "setup.cfg"}
+# Ce qui, dans une section, dit qu'elle est celle du lanceur de tests.
+MARQUEURS_SECTION_DE_TEST = ("[tool.pytest", "[pytest]", "[tool:pytest]", "[testenv",
+                             "addopts", "testpaths", "norecursedirs", "markers")
+EN_TETE_DE_SECTION = re.compile(r"^\s*\[[^\]]*\]\s*$")
+ENTETE_DE_HUNK = re.compile(r"^@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@")
 
 # Une désactivation : `.skip`, `@unittest.skip`, `skipTest`, `xfail`.
 DESACTIVATION = re.compile(r"\bskip|\bxfail\b")
@@ -100,6 +111,51 @@ def _est_un_test(chemin: str, tests: list[str] | None, fichiers_du_rouge: set[st
 def _est_config_du_lanceur(chemin: str) -> bool:
     nom = chemin.rsplit("/", 1)[-1]
     return nom in CONFIG_LANCEUR or any(fnmatch.fnmatchcase(nom, m) for m in MOTIFS_CONFIG_LANCEUR)
+
+
+def _est_config_par_section(chemin: str) -> bool:
+    return chemin.rsplit("/", 1)[-1] in CONFIG_PAR_SECTION
+
+
+def _contenu(sha: str, chemin: str) -> list[str]:
+    """Lignes du fichier à ce commit ; vide si le fichier n'y existe pas (ajout, suppression)."""
+    sortie = _git(["show", f"{sha}:{chemin}"])
+    return sortie.stdout.splitlines() if sortie.returncode == 0 else []
+
+
+def _section_de_test(lignes: list[str], i: int) -> bool:
+    """Vrai si la ligne i porte un marqueur de test, ou si l'en-tête de section au-dessus porte un."""
+    if not 0 <= i < len(lignes):
+        return False
+    if any(m in lignes[i] for m in MARQUEURS_SECTION_DE_TEST):
+        return True
+    for j in range(i, -1, -1):
+        if EN_TETE_DE_SECTION.match(lignes[j]):
+            return any(m in lignes[j] for m in MARQUEURS_SECTION_DE_TEST)
+    return False
+
+
+def _touche_une_section_de_test(rouge: str, vert: str, chemin: str) -> bool:
+    """Vrai si un changement du fichier tombe dans une section de test.
+
+    Le diff sans contexte (`--unified=0`) donne les lignes changées, avec leur position dans
+    l'ancien fichier (`-a,b`) et le nouveau (`+c,d`). Chacune est jugée sur sa propre ligne et sur
+    l'en-tête de la section qui la contient, lu dans le fichier du commit où la ligne existe. Le
+    contexte de diff n'est pas lu : une section de test peut commencer loin au-dessus du changement.
+    """
+    avant, apres = _contenu(rouge, chemin), _contenu(vert, chemin)
+    diff = _git(["diff", "--unified=0", "--no-renames", rouge, vert, "--", chemin]).stdout
+    for ligne in diff.splitlines():
+        m = ENTETE_DE_HUNK.match(ligne)
+        if not m:
+            continue
+        ancien_debut, ancien_nombre = int(m.group(1)), int(m.group(2) or 1)
+        nouveau_debut, nouveau_nombre = int(m.group(3)), int(m.group(4) or 1)
+        changees = [(avant, ancien_debut - 1 + k) for k in range(ancien_nombre)]
+        changees += [(apres, nouveau_debut - 1 + k) for k in range(nouveau_nombre)]
+        if any(_section_de_test(lignes, i) for lignes, i in changees):
+            return True
+    return False
 
 
 def _fichiers_modifies(rouge: str, vert: str) -> list[tuple[str, str]]:
@@ -158,6 +214,8 @@ def verifier(rouge: str, vert: str, tests: list[str] | None) -> tuple[int, list[
                 raisons = _raisons_de_modification(rouge, vert, chemin)
         elif _est_config_du_lanceur(chemin):
             raisons = ["configuration du lanceur de tests retouchée (aucun fichier de test)"]
+        elif _est_config_par_section(chemin) and _touche_une_section_de_test(rouge, vert, chemin):
+            raisons = ["configuration du lanceur de tests retouchée dans une section de test"]
         else:
             continue
         lignes.append(f"  {statut} {chemin} — {'; '.join(raisons)}")
