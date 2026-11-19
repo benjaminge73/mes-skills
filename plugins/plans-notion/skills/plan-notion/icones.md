@@ -12,7 +12,7 @@ l'autre. Le projet se lit dans `Repo` (`owner/repo`).
 | Projet (`Repo`) | Icône du maître |
 | --- | --- |
 | `benjaminge73/mes-skills` | 🔧 |
-| `benjaminge73/hermes-custom` | 🪽 |
+| `benjaminge73/hermes-custom` | 🦉 |
 | `benjaminge73/vahiny` | 🌴 |
 | `benjaminge73/carnet-de-voyage-crete` | 🏛 |
 | `benjaminge73/bolossabalos` | 🏛 |
@@ -30,6 +30,7 @@ l'autre. Le projet se lit dans `Repo` (`owner/repo`).
 | Amersports (projet sans dépôt propre, lu dans `Projet`) | 🏔 |
 
 Validé par Benjamin le 2026-11-17.
+L'icône de `hermes-custom` est passée de 🪽 à 🦉 le 2026-11-19, à la demande de Benjamin : l'API Notion refuse 🪽 (« Invalid page icon URL »).
 
 **Un projet absent de ce tableau** : l'agent choisit l'icône du maître à la
 **première** création d'un maître de ce projet, puis l'ajoute au tableau
