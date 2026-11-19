@@ -66,7 +66,8 @@ repartir de zéro.
   fini. Constaté le 2026-09-24 : un exécutant a utilisé `git stash` malgré cet
   interdit posé dans le brief — sans dégât cette fois, mais le risque de perte
   pour une autre session reste entier tant que l'interdit n'est pas ici. Un
-  hook (`refuser_git_stash.py`) refuse la commande de toute façon.
+  hook (`refuser_git_stash.py`) refuse la forme directe de la commande ; un
+  contournement par `bash -c` ou `eval` n'est pas vu.
 
 ## Quand tu écris un test
 
