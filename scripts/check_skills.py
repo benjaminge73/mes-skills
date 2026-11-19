@@ -86,6 +86,10 @@ Les règles, et le fait de doc qui fonde chacune (voir ``docs/veille.md``) :
     règle (b) : un plafond ne peut que baisser, et un skill absent de la table
     est refusé. Chaque description est lue dans la liste des skills de toutes
     les sessions ; sans ce garde, elle regrossit sans que personne le voie.
+(p) Chaque agent de ``agents/`` déclare sa surface d'outils : ``tools`` (liste fermée)
+    ou ``disallowedTools`` (liste de retrait). Un agent qui n'en a aucune reçoit tous
+    les outils de la session, MCP compris, et son frontmatter ne dit pas ce qu'il peut
+    faire. Le ``preparateur`` a tourné ainsi depuis sa création, sans que personne le voie.
 
 Exceptions datées
 -----------------
@@ -452,6 +456,17 @@ def _regles_agent(cible: str, champs: dict) -> list[Anomalie]:
     return anomalies
 
 
+def _regle_p(cible: str, champs: dict) -> list[Anomalie]:
+    """Un agent déclare ``tools`` ou ``disallowedTools`` : sans l'un des deux, il a tout."""
+    if "tools" in champs or "disallowedTools" in champs:
+        return []
+    return [Anomalie("p", cible, (
+        "cet agent ne déclare ni `tools` ni `disallowedTools` : sans liste, il reçoit tous les "
+        "outils de la session, MCP compris, et son frontmatter ne dit pas ce qu'il peut faire. "
+        "Lui donner `tools:` (la liste fermée de ce qu'il utilise), ou `disallowedTools:` pour "
+        "un agent qui doit garder presque tout."))]
+
+
 def _regle_h(racine: Path) -> list[Anomalie]:
     trouves = []
     for chemin in sorted(racine.rglob("agent-memory*")):
@@ -802,6 +817,7 @@ def controler(racine: Path, limites: dict, sans_exceptions: bool = False) -> Res
             champs = lire_frontmatter(agent.read_text(encoding="utf-8"))
             anomalies += _regle_a(cible, champs)
             anomalies += _regles_agent(cible, champs)
+            anomalies += _regle_p(cible, champs)
         anomalies += _regle_d(racine, plugin)
         anomalies += _regles_e(racine, plugin)
         anomalies += _regle_i(racine, plugin)

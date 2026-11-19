@@ -76,6 +76,43 @@ dans cet ordre : **Quota ou coût** (avec la source et la date de lecture),
 **Pièges datés**, **Bonne pratique**, **Repli**. Une rubrique sans objet
 s'écrit « aucun connu au <date> », elle ne disparaît pas.
 
+## Choisir entre CLI et serveur MCP
+
+Un même service peut se joindre de deux façons : une **CLI**, commande lancée par
+`Bash` dont la sortie revient en texte, ou un **serveur MCP**, dont les outils sont
+branchés dans la session et dont les schémas occupent le contexte. Quand les deux
+existent, la règle est la **CLI**, pour deux mesures déjà faites dans ce fichier :
+
+- **Le contexte.** Un appel `claude -p` sans outil a chargé **186 651 jetons** de
+  connecteurs MCP du compte, contre **8 984** avec `--strict-mcp-config` (2026-10-16,
+  fiche « Claude Code (CLI `claude`) sur un serveur à plusieurs comptes »). Un serveur
+  MCP attaché à une session coûte ses schémas à chaque tour ; une CLI ne coûte rien
+  tant qu'on ne l'appelle pas.
+- **Le canal.** Les connecteurs claude.ai relayés par l'app de bureau tombent avec le
+  hook de l'app (2026-10-08 à 2026-10-10, fiche « Connecteurs MCP d'une session Claude
+  Code »). Le 2026-10-10, la commande `composio` du VPS a tenu les
+  écritures Notion pendant que le connecteur de l'app restait injoignable plus de vingt
+  minutes. Une CLI qui tourne sur la machine ne dépend ni de l'app ni de la session.
+
+Deux exceptions, où le serveur MCP passe avant la CLI :
+
+1. **Quand la mesure de justesse tranche pour le serveur.** Pour le graphe de code,
+   `codebase-memory` (serveur MCP) retrouve **11 éléments sur 11** en 41 appels ; la CLI
+   `graphify` n'en retrouve que **5 sur 11** (`affected`, `explain`) ou **7 sur 11**
+   (`query`), sur la même mesure (2026-11-11). Le critère est la justesse mesurée, pas le
+   canal : la CLI a perdu, on garde le serveur. Son coût reste à borner, par exemple aux
+   étapes à risque : une carte de voisinage sur un plan de 24 étapes a pris 57 appels
+   (2026-10-09, fiche « codebase-memory »).
+2. **Notion, quand la session a son connecteur.** Le connecteur MCP de la session passe
+   en premier, la commande `composio` n'est que le second palier de la chaîne de repli.
+   Raison : `composio` est posé à la main sur le VPS, hors de la cascade d'installation,
+   sans manifeste, et une session cloud ne l'a pas. Le repli prend le relais quand le
+   connecteur tombe, après trois essais sur une dizaine de minutes.
+
+Pour un autre service, la question se tranche par une mesure, comme pour un outil absent
+(« Règle pour un outil absent ») : la même tâche jouée par la CLI et par le serveur, la
+justesse comparée, le coût en jetons relevé. Sans mesure, la CLI reste le défaut.
+
 ## Fiche — Google Places
 
 **Quota ou coût** (relevé au 2026-09-29, d'après les incidents datés

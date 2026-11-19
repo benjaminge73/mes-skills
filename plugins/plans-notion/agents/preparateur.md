@@ -5,6 +5,22 @@ description: >-
 model: sonnet
 effort: medium
 maxTurns: 80
+tools:
+  - Bash
+  - Read
+  - Write
+  - Edit
+  - Grep
+  - Glob
+  - mcp__claude_ai_Notion__notion-fetch
+  - mcp__claude_ai_Notion__notion-search
+  - mcp__claude_ai_Notion__notion-update-page
+  - mcp__notion__notion-fetch
+  - mcp__notion__notion-search
+  - mcp__notion__notion-update-page
+  - mcp__Notion__notion-fetch
+  - mcp__Notion__notion-search
+  - mcp__Notion__notion-update-page
 ---
 
 # Préparer un plan jusqu'à `pret`
