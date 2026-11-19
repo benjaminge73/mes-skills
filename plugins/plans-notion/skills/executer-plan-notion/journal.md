@@ -65,7 +65,7 @@ Sous ce titre, l'entrée d'une étape porte :
 - le **reste à faire**, s'il en reste, chaque ligne avec son propriétaire : question posée en session (et sa réponse : plan de suite, faire maintenant, écarter), plan de suite, étape `D<n>` ou événement attendu — jamais une ligne que la session n’a pas montrée (voir « Découvertes hors plan » et `_partage/plan-de-suite.md`).
 
 Dans l'entrée, quatre champs portent ces clés, en gras et suivies de ` :` :
-`**Preuve**`, `**Commit**`, `**Découvertes**`, `**Verdict**`. Une puce `**Effets**` (l'« effet sur » du rapport de l'exécutant, ou « aucun ») s'y ajoute : elle est exigée à toute étape dès qu'une étape du journal la porte. La clôture les
+`**Preuve**`, `**Commit**`, `**Découvertes**`, `**Verdict**`. Une puce `**Effets**` (l'« effet sur » du rapport de l'exécutant, ou « aucun ») s'y ajoute : elle est exigée à partir de la première étape, dans l'ordre du journal, qui la porte, et à toutes les suivantes (les étapes antérieures ne sont pas contrôlées). La clôture les
 contrôle par script (`preuves-des-etapes.py --apres`, §6, point 3) : une
 étape sans entrée, ou un champ vide, est refusée. Une clé écrite autrement
 (sans gras, ou « Découvertes : » seul) n'est pas lue.

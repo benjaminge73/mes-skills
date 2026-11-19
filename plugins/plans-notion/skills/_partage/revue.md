@@ -165,7 +165,10 @@ Une ligne par remarque, quel que soit le tour où elle est apparue. Une remarque
 **exigée** pour une étape dont la puce `Relecture` du chapitre vaut `étape` :
 `preuves-des-etapes.py --apres` refuse l'étape qui ne la porte pas (code 1, son numéro
 nommé). Une étape sans puce `Relecture` au chapitre n'est pas contrôlée sur ce point, pas
-plus qu'une étape `lot` : le script ne voit pas son régime.
+plus qu'une étape `lot` : le script ne voit pas son régime. Une étape écartée, jamais jouée, n'a
+pas de revue à tracer : son entrée porte `**Verdict** : unverifiable — étape écartée` (le mot
+« écartée » dans l'entrée), et le script l'exempte alors de la ligne Revue, de la Maquette et de la
+puce Effets.
 
 ## Coût assumé
 

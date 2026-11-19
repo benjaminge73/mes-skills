@@ -32,9 +32,11 @@ une étape « lot » ou sans puce « Relecture » n'est pas contrôlée sur ce p
 De même, une étape dont « Impact fonctionnel » (chapitre « Exécution ») n'est pas « Rien… » doit
 porter une puce « **Maquette** » dans son entrée de journal (le rendu de l'écran) ; une étape à
 impact « Rien », ou sans puce d'impact, n'est pas contrôlée sur ce point.
-Dès qu'une étape du journal porte une puce « **Effets** » (ce que le changement touche ailleurs,
-pièce 5 du rapport), chaque étape doit en porter une : « aucun » est admis. Un journal qui n'en
-porte aucune n'est pas contrôlé sur ce point (adoption progressive : plans clos, fixtures).
+La puce « **Effets** » (ce que le changement touche ailleurs, pièce 5 du rapport) est exigée à partir
+de la première étape, dans l'ordre du journal, qui la porte, et à toutes les suivantes : « aucun »
+est admis. Les étapes antérieures ne sont pas contrôlées (adoption progressive : plans clos, fixtures).
+Une étape écartée (jamais jouée : verdict ``unverifiable`` et « écartée » dans son entrée) n'est
+exemptée ni de la ligne Revue, ni de la Maquette, ni de la puce Effets (revue.md, « Journal »).
 Bibliothèque standard uniquement.
 """
 from __future__ import annotations
@@ -43,6 +45,7 @@ import argparse
 import html
 import re
 import sys
+import unicodedata
 from collections import Counter
 from pathlib import Path
 
@@ -84,6 +87,8 @@ VALEURS_VIDES = {"", "—", "-", "aucune", "à définir", "à voir"}
 TIRETS_VIDES = {"", "—", "-"}
 VERDICT = re.compile(r"\s*`?(verified|unverifiable)(?![\w-])`?(.*)$")
 TIRET = re.compile(r"\s*[—–-]+\s*(.*)$")
+# « écartée » dans l'entrée d'une étape jamais jouée, lu sans accents ni majuscules (voir ecartee).
+ECARTEE = re.compile(r"\becartee\b")
 
 
 # Le connecteur Notion de l'app (notion-fetch) rend le gras en <b>…</b> et le code en
@@ -242,6 +247,21 @@ def verdict(valeur: str) -> tuple[str | None, str]:
     return m.group(1), (tiret.group(1).strip() if tiret else "")
 
 
+def _sans_accents(texte: str) -> str:
+    """Minuscules sans accents : « écartée » et « ecartee » se comparent de la même façon."""
+    decompose = unicodedata.normalize("NFD", texte.lower())
+    return "".join(c for c in decompose if not unicodedata.combining(c))
+
+
+def ecartee(entree: list[str]) -> bool:
+    """Vrai si l'étape a été écartée, jamais jouée : verdict « unverifiable » et « écartée » dans l'entrée.
+
+    Le verdict seul ne suffit pas : une étape non prouvée pour une autre raison reste contrôlée.
+    """
+    mot, _ = verdict(champs(entree).get("Verdict", ""))
+    return mot == "unverifiable" and ECARTEE.search(_sans_accents("\n".join(entree))) is not None
+
+
 def _etiquette(numero: str) -> str:
     return f"Étape {numero}"
 
@@ -266,9 +286,12 @@ def controler_apres(texte: str) -> tuple[list[str], list[str], int]:
     defauts = _doublons(blocs)
     non_prouvees: list[str] = []
     numeros = list(dict.fromkeys(n for n, _ in blocs))
-    # Adoption progressive : la puce « Effets » n'est exigée que si le journal la porte déjà à
-    # une étape. Un journal qui n'en porte aucune (plans clos, fixtures) n'est pas contrôlé.
-    effets_adoptes = any(a_effets(b) for entrees_ in journal.values() for b in entrees_)
+    # Adoption progressive : la puce « Effets » n'est exigée qu'à partir de la première étape,
+    # dans l'ordre du journal, qui la porte, et pour toutes les suivantes. Les étapes jouées avant
+    # l'adoption ne sont pas contrôlées : on ne remplit pas après coup des « aucun » jamais vérifiés.
+    rangs = {n: i for i, n in enumerate(journal)}
+    premier_effets = min((rangs[n] for n, entrees_ in journal.items()
+                          if any(a_effets(b) for b in entrees_)), default=None)
     # Première occurrence de chaque étape, comme pour le journal : la puce « Relecture » lue
     # dans le chapitre (une étape écrite deux fois est déjà un défaut, _doublons).
     relues = {}
@@ -291,11 +314,15 @@ def controler_apres(texte: str) -> tuple[list[str], list[str], int]:
                               ("Découvertes", _tiret_ou_vide)):
             if coquille(val.get(nom, "")):
                 defauts.append(f"{etiq} : pas de {nom}")
-        if _relue_seule(relues.get(numero, "")) and not any(REVUE.match(l) for l in entrees[0]):
+        # Une étape écartée (jamais jouée) n'a ni revue, ni rendu d'écran, ni effet à déclarer.
+        est_ecartee = ecartee(entrees[0])
+        if (_relue_seule(relues.get(numero, "")) and not est_ecartee
+                and not any(REVUE.match(l) for l in entrees[0])):
             defauts.append(f"{etiq} : Relecture « étape » sans ligne Revue")
-        if ecran.get(numero) and not a_maquette(entrees[0]):
+        if ecran.get(numero) and not est_ecartee and not a_maquette(entrees[0]):
             defauts.append(f"{etiq} : impact à l'écran sans puce Maquette")
-        if effets_adoptes and not a_effets(entrees[0]):
+        if (premier_effets is not None and rangs[numero] >= premier_effets
+                and not est_ecartee and not a_effets(entrees[0])):
             defauts.append(f"{etiq} : pas de puce Effets")
         mot, raison = verdict(val.get("Verdict", ""))
         if mot is None:
