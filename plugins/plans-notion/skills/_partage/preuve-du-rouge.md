@@ -88,14 +88,18 @@ bloquée. Celui qui n'a pas écrit le test ne le réécrit pas.
 Le `git diff` ci-dessus se joue aussi en une commande, sur les deux SHA :
 
 ```bash
-python3 plugins/plans-notion/skills/_partage/scripts/verifier-rouge-vert.py <sha-rouge> <sha-vert> [--tests <chemin> ...]
+python3 "${CLAUDE_PLUGIN_ROOT}/skills/_partage/scripts/verifier-rouge-vert.py" <sha-rouge> <sha-vert> [--tests <chemin> ...]
 ```
 
-- **Code 0** : entre le rouge et le vert, aucun fichier de test n'a bougé (le vert ne touche que le code).
-- **Code 1** : un fichier de test a été ajouté, modifié ou supprimé. La liste dit pourquoi : test désactivé (`skip`, `xfail`, `skipTest`), assertion retirée ou remplacée par `assert True` / `pass`, fichier supprimé. L'étape repart.
+- **Code 0** : entre le rouge et le vert, aucun fichier de test ni configuration du lanceur de tests n'a bougé (le vert ne touche que le code).
+- **Code 1** : un fichier de test a été ajouté, modifié ou supprimé, ou la configuration du lanceur de tests a été retouchée. La liste dit pourquoi : test désactivé (`skip`, `xfail`, `skipTest`), assertion retirée ou remplacée par `assert True` / `pass`, fichier supprimé, configuration du lanceur retouchée. L'étape repart.
 - **Code 2** : panne (SHA inconnu, dossier qui n'est pas un dépôt git). À corriger avant de conclure quoi que ce soit.
 
-`--tests` liste les fichiers ou dossiers de test (relatifs à la racine du dépôt) ; sans lui, un fichier est tenu pour un test s'il est dans `tests/`, `test/` ou `__tests__/`, ou si son nom suit `test_*`, `*_test.*`, `*.test.*`, `*.spec.*`. Le script ne lit que les deux commits : il se joue donc sur le commit vert une fois créé, en local, avant le push. Sur un code 1, on défait ce commit local (`git reset --soft HEAD~1`), on corrige, et on rejoue. Il ne remplace pas le rejeu du rouge ci-dessous : il prouve seulement que le vert n'a pas touché les tests.
+Est un fichier de test, dans cet ordre : tout fichier du commit rouge (le rouge ne porte que des tests, le script n'a pas à deviner) ; ceux que désigne `--tests` (relatifs à la racine du dépôt, `./tests` et `tests` sont équivalents) ; sans lui, ceux qui sont dans `tests/`, `test/` ou `__tests__/`, ou dont le nom suit `test_*`, `*_test.*`, `*.test.*`, `*.spec.*`. Est une configuration du lanceur de tests, à n'importe quel niveau de l'arbre : `conftest.py`, `pytest.ini`, `pyproject.toml`, `tox.ini`, `setup.cfg`, `jest.config.*`, `vitest.config.*`. Un vert qui retouche l'un de ces fichiers fait sauter les tests sans toucher à aucun test : code 1. Un `package.json` ne compte pas, sa clé `scripts.test` ne se lit pas dans un `git diff`.
+
+`--tests` remplace la détection par nom, il ne s'y ajoute pas : un fichier de test hors de ces dossiers, absent du rouge, passe inaperçu si `--tests` ne le nomme pas.
+
+Limite : le script ne lit que les deux commits et les fichiers qu'ils changent. Il ne voit pas un skip posé hors de ces fichiers, p.ex. une variable d'environnement. Le script se joue donc sur le commit vert une fois créé, en local, avant le push. Sur un code 1, on défait ce commit local (`git reset --soft HEAD~1`), on corrige, et on rejoue. Il ne remplace pas le rejeu du rouge ci-dessous : il prouve seulement que le vert n'a pas touché les tests ni leur lanceur.
 
 ## Le geste du pilote : rejouer les tests sur le commit rouge
 

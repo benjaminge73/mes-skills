@@ -8,19 +8,28 @@ commiter le vert. Un test désactivé (`skip`, `xfail`), une assertion retirée 
 existe pour empêcher.
 
 Règle : entre le rouge et le vert, tout fichier de test ajouté, modifié ou supprimé fait code 1.
-Le détail dit pourquoi (désactivation, assertion retirée, fichier supprimé) pour que le pilote
-voie la triche, mais la sortie ne dépend pas de ce détail : un fichier de test bougé suffit.
+Un fichier de test est, dans cet ordre : tout fichier du commit rouge (le rouge ne porte que des
+tests, par construction) ; ceux que désigne `--tests` ; sans `--tests`, ceux qui sont dans un
+dossier `tests/`, `test/` ou `__tests__/`, ou dont le nom suit `test_*`, `*_test.*`, `*.test.*`
+ou `*.spec.*`. Un vert qui ajoute, modifie ou supprime la configuration du lanceur de tests
+(`conftest.py`, `pytest.ini`, `pyproject.toml`, `tox.ini`, `setup.cfg`, `jest.config.*`,
+`vitest.config.*`) fait aussi code 1 : sans toucher à un test, il ferait sauter les tests.
+Le détail dit pourquoi (désactivation, assertion retirée, fichier supprimé, configuration
+retouchée) pour que le pilote voie la triche, mais la sortie ne dépend pas de ce détail.
+
+Limite : le script ne lit que les deux commits. Un skip posé hors de ces fichiers, p.ex. une
+variable d'environnement qui fait sauter un test, lui échappe.
 
 Usage :
   verifier-rouge-vert.py <sha-rouge> <sha-vert> [--tests <chemin> ...]
 
-  --tests : fichiers ou dossiers de test, relatifs à la racine du dépôt. Sans cette option, un
-            fichier est tenu pour un test s'il est dans un dossier `tests/`, `test/` ou
-            `__tests__/`, ou si son nom suit `test_*`, `*_test.*`, `*.test.*` ou `*.spec.*`.
+  --tests : fichiers ou dossiers de test, relatifs à la racine du dépôt (`./tests` et `tests`
+            sont équivalents). Il remplace la détection par nom, il ne s'y ajoute pas.
 
 Codes :
-  0 aucun fichier de test n'a bougé entre les deux commits (le vert ne touche que le code)
-  1 au moins un fichier de test a bougé ; la liste est sur la sortie standard
+  0 aucun fichier de test ni de configuration du lanceur n'a bougé entre les deux commits
+  1 au moins un fichier de test ou de configuration du lanceur a bougé ; la liste est sur la
+    sortie standard
   2 panne : un SHA est inconnu, ce dossier n'est pas un dépôt git, ou usage incorrect
 
 Lance `git` dans le dossier courant, et rien d'autre : il ne lit ni ne modifie l'arbre de travail.
@@ -29,6 +38,8 @@ Bibliothèque standard uniquement.
 from __future__ import annotations
 
 import argparse
+import fnmatch
+import posixpath
 import re
 import subprocess
 import sys
@@ -37,6 +48,10 @@ OK, TRICHE, PANNE = 0, 1, 2
 
 DOSSIERS_DE_TEST = {"tests", "test", "__tests__"}
 MOTIF_NOM_DE_TEST = re.compile(r"^(test_.*|.*_test\..*|.*\.test\..*|.*\.spec\..*)$")
+
+# La configuration qui fait tourner les tests : la retoucher fait sauter des tests sans en toucher un.
+CONFIG_LANCEUR = {"conftest.py", "pytest.ini", "pyproject.toml", "tox.ini", "setup.cfg"}
+MOTIFS_CONFIG_LANCEUR = ("jest.config.*", "vitest.config.*")
 
 # Une désactivation : `.skip`, `@unittest.skip`, `skipTest`, `xfail`.
 DESACTIVATION = re.compile(r"\bskip|\bxfail\b")
@@ -54,12 +69,37 @@ def _sha_connu(sha: str) -> bool:
     return _git(["rev-parse", "--verify", "--quiet", f"{sha}^{{commit}}"]).returncode == 0
 
 
-def _est_un_test(chemin: str, tests: list[str] | None) -> bool:
+def _normaliser(chemin: str) -> str:
+    """`./tests/` devient `tests` : sans cela, `--tests ./tests` ne reconnaît aucun fichier."""
+    return posixpath.normpath(chemin.strip())
+
+
+def _fichiers_du_rouge(rouge: str) -> set[str]:
+    """Chemins touchés par le commit rouge. Un rouge racine n'a pas de parent : on lit alors le
+    commit lui-même avec `diff-tree --root`, et non `git show`, qui rend une liste vide pour le
+    commit racine quand `log.showRoot=false` (le fichier du rouge disparaîtrait sans bruit)."""
+    if _git(["rev-parse", "--verify", "--quiet", f"{rouge}^"]).returncode == 0:
+        sortie = _git(["diff", "--name-only", "--no-renames", "-z", f"{rouge}^", rouge])
+    else:
+        sortie = _git(["diff-tree", "--root", "--no-commit-id", "--name-only", "-r", "-z", rouge])
+    if sortie.returncode != 0:
+        raise RuntimeError(sortie.stderr.strip() or "lecture du commit rouge impossible")
+    return {m for m in sortie.stdout.split("\0") if m}
+
+
+def _est_un_test(chemin: str, tests: list[str] | None, fichiers_du_rouge: set[str]) -> bool:
+    if chemin in fichiers_du_rouge:
+        return True
     if tests is not None:
-        return any(chemin == t or chemin.startswith(t.rstrip("/") + "/") for t in tests)
+        return any(t == "." or chemin == t or chemin.startswith(t + "/") for t in tests)
     parties = chemin.split("/")
     return (any(p in DOSSIERS_DE_TEST for p in parties[:-1])
             or bool(MOTIF_NOM_DE_TEST.match(parties[-1])))
+
+
+def _est_config_du_lanceur(chemin: str) -> bool:
+    nom = chemin.rsplit("/", 1)[-1]
+    return nom in CONFIG_LANCEUR or any(fnmatch.fnmatchcase(nom, m) for m in MOTIFS_CONFIG_LANCEUR)
 
 
 def _fichiers_modifies(rouge: str, vert: str) -> list[tuple[str, str]]:
@@ -99,21 +139,27 @@ def verifier(rouge: str, vert: str, tests: list[str] | None) -> tuple[int, list[
     for sha in (rouge, vert):
         if not _sha_connu(sha):
             return PANNE, [f"SHA inconnu dans ce dépôt : {sha}"]
+    if tests is not None:
+        tests = [_normaliser(t) for t in tests]
     try:
+        fichiers_du_rouge = _fichiers_du_rouge(rouge)
         modifies = _fichiers_modifies(rouge, vert)
     except RuntimeError as panne:
         return PANNE, [str(panne)]
 
     lignes = []
     for statut, chemin in modifies:
-        if not _est_un_test(chemin, tests):
-            continue
-        if statut == "D":
-            raisons = ["fichier de test supprimé"]
-        elif statut == "A":
-            raisons = ["fichier de test ajouté au vert"]
+        if _est_un_test(chemin, tests, fichiers_du_rouge):
+            if statut == "D":
+                raisons = ["fichier de test supprimé"]
+            elif statut == "A":
+                raisons = ["fichier de test ajouté au vert"]
+            else:
+                raisons = _raisons_de_modification(rouge, vert, chemin)
+        elif _est_config_du_lanceur(chemin):
+            raisons = ["configuration du lanceur de tests retouchée (aucun fichier de test)"]
         else:
-            raisons = _raisons_de_modification(rouge, vert, chemin)
+            continue
         lignes.append(f"  {statut} {chemin} — {'; '.join(raisons)}")
     return (TRICHE if lignes else OK), lignes
 
@@ -124,7 +170,8 @@ def main(argv: list[str]) -> int:
     parseur.add_argument("rouge", help="SHA du commit rouge (tests seuls)")
     parseur.add_argument("vert", help="SHA du commit vert (code)")
     parseur.add_argument("--tests", nargs="+", metavar="CHEMIN",
-                         help="fichiers ou dossiers de test, relatifs à la racine du dépôt")
+                         help="fichiers ou dossiers de test, relatifs à la racine du dépôt "
+                              "(`./` accepté)")
     args = parseur.parse_args(argv)
 
     code, lignes = verifier(args.rouge, args.vert, args.tests)
@@ -132,11 +179,11 @@ def main(argv: list[str]) -> int:
         print("\n".join(lignes), file=sys.stderr)
         return PANNE
     if code == TRICHE:
-        print(f"Fichiers de test modifiés entre {args.rouge[:12]} (rouge) et "
-              f"{args.vert[:12]} (vert) : le vert ne doit en toucher aucun.")
+        print(f"Fichiers de test ou configuration du lanceur modifiés entre {args.rouge[:12]} "
+              f"(rouge) et {args.vert[:12]} (vert) : le vert ne doit en toucher aucun.")
         print("\n".join(lignes))
     else:
-        print("Aucun fichier de test modifié entre le rouge et le vert.")
+        print("Aucun fichier de test ni configuration du lanceur modifié entre le rouge et le vert.")
     return code
 
 
