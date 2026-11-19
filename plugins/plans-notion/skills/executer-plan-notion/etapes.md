@@ -335,6 +335,7 @@ en disant quelles étapes ont été faites en direct et pourquoi.
   (`git diff --name-only`), pas sur celle du brief (§3). Un sous-agent qui
   annonce « les tests passent » a parfois lancé autre chose que ce qu'on croit,
   ou touché un fichier de plus que ce que la commande couvrait.
+- **Au retour de l'exécutant, le pilote joue `perimetre-etape.py --base <sha d'avant l'étape> --fichiers <liste du brief>` (dans `skills/_partage/scripts/`) : un fichier hors liste (code 1) se traite comme une découverte du journal, sans commit pour ce fichier.**
 - **Poser le `Verdict` de l'étape**, dans son entrée de journal (écrite
   ci-dessous), **après ce rejeu** : `- **Verdict** : verified` si la preuve du
   brief a été rejouée par le pilote et qu'elle est verte ; `- **Verdict** :
