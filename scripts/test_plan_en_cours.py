@@ -351,6 +351,39 @@ class PlanEnCoursTest(unittest.TestCase):
         self.assertEqual(self.lancer("etape", "--faite", "2", "--restantes", "1", pid=4256).returncode, 0)
         self.assertEqual(self.lire(pid=4256)["relances"], 0)
 
+    def test_etape_liste_les_etapes_faites_pas_seulement_des_compteurs(self):
+        # Panne nommée : la fiche ne garde que des compteurs (`etapes_faites`,
+        # `etapes_restantes`) : après deux `etape`, rien ne dit quelles étapes sont
+        # finies, et la fiche ne peut pas les montrer. Attendu : les deux étapes
+        # apparaissent comme faites. Les compteurs restent ceux que lit la garde.
+        self.poser_session(4258, {"bridgeSessionId": SESSION_BRIDGE, "sessionId": "loc-4258"})
+        self.assertEqual(self.ouvrir(pid=4258).returncode, 0)
+        self.assertEqual(self.lancer("etape", "--faite", "1", "--restantes", "2", pid=4258).returncode, 0)
+        self.assertEqual(self.lancer("etape", "--faite", "2", "--restantes", "1", pid=4258).returncode, 0)
+
+        fiche = self.lire(pid=4258)
+        self.assertEqual(fiche["etapes_liste"], [1, 2])
+        self.assertEqual(fiche["etapes_faites"], 2)
+        self.assertEqual(fiche["etapes_restantes"], 1)
+
+    def test_fiche_ecrite_sans_liste_reste_lisible_et_etape_la_complete(self):
+        # Au-delà du brief (preuve : « une fiche écrite par l'ancienne version doit rester
+        # lisible ») : une fiche sans la clé `etapes_liste` doit rester lisible, et `etape`
+        # doit la compléter au lieu de sortir en erreur. Panne attrapée : un `etape` qui
+        # lit la liste sans la trouver (KeyError) sur une fiche ancienne. Les deux
+        # premiers attendus (lecture, `etape` rc 0) passent déjà ; le dernier échoue
+        # tant que la liste n'existe pas.
+        self.poser_session(4259, {"bridgeSessionId": SESSION_BRIDGE, "sessionId": "loc-4259"})
+        self.assertEqual(self.ouvrir(pid=4259).returncode, 0)
+        chemin = self.dossier_fiches() / "loc-4259.json"
+        ancienne = json.loads(chemin.read_text(encoding="utf-8"))
+        ancienne.pop("etapes_liste", None)
+        chemin.write_text(json.dumps(ancienne), encoding="utf-8")
+
+        self.assertEqual(self.lire(pid=4259)["etat"], "en cours")
+        self.assertEqual(self.lancer("etape", "--faite", "1", "--restantes", "0", pid=4259).returncode, 0)
+        self.assertEqual(self.lire(pid=4259)["etapes_liste"], [1])
+
     def test_dossier_des_fiches_en_mode_700(self):
         # Panne nommée : les fiches (chemins de worktree, numéros de PR) sont lisibles
         # par d'autres comptes du poste. Le brief fixe le dossier en mode 700 ; le
