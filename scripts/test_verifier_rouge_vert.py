@@ -22,6 +22,21 @@ Pannes attrapées :
   le fichier de test efface les assertions d'un coup, sans aucune ligne « assertion » retirée
   dans le diff. Les tests ci-dessus ne le voient pas : ``bons-tests.md`` (règle 8) le range
   pourtant parmi les gestes de contournement.
+- ``test_fichier_du_rouge_hors_des_dossiers_de_test_sort_en_1`` (correctif D2) : un test écrit
+  hors de ``tests/`` et sans nom de test (``spec/calc_spec.rb``) n'était pas vu : le script ne
+  reconnaissait un test qu'à son dossier ou son nom. Le rouge ne porte que des tests : tout
+  fichier qu'il contient en est un.
+- ``test_chemin_de_tests_avec_dot_slash_est_normalise`` (correctif D2) : ``--tests ./tests``
+  ne reconnaissait aucun fichier sous ``tests/`` (sortie 0). Deux cas : le relecteur (un test du
+  rouge réduit à ``pass``), et un fichier sous ``tests/`` absent du rouge, qui isole la
+  normalisation (la règle « fichier du rouge » ne le rattrape pas).
+- ``test_conftest_ajoute_au_vert_sort_en_1`` (correctif D2) : un ``conftest.py`` ajouté au vert
+  fait sauter des tests (``collect_ignore``) sans toucher à aucun fichier de test.
+- ``test_rouge_racine_sans_parent_ne_plante_pas`` (correctif D2, en plus du brief) : un rouge
+  sans parent n'a pas de ``<rouge>^`` ; le repli doit lire les fichiers du rouge sans planter.
+  Le dépôt est configuré avec ``log.showRoot=false`` : ``git show`` y rend une liste vide pour
+  le commit racine, ce qui cacherait le fichier du rouge ; le repli ne doit pas dépendre de
+  cette option.
 """
 from __future__ import annotations
 
@@ -77,6 +92,24 @@ AFFAIBLISSEMENTS = {
                                      "        pass\n"),
 }
 
+# Un test RSpec : ``spec/`` n'est pas ``tests/`` et le nom ne suit aucun motif de test.
+SPEC = "spec/calc_spec.rb"
+SPEC_ROUGE = (
+    'require "calc"\n'
+    "\n"
+    'RSpec.describe "somme" do\n'
+    '  it "additionne deux nombres" do\n'
+    "    expect(somme(2, 3)).to eq(5)\n"
+    "  end\n"
+    "end\n"
+)
+SPEC_VERT_SKIP = SPEC_ROUGE.replace(
+    "    expect(somme(2, 3)).to eq(5)\n", '    skip "plus tard"\n', 1)
+
+# Un ``conftest.py`` posé au vert : il fait sauter un test sans toucher à aucun fichier de test.
+CONFTEST = "conftest.py"
+CONFTEST_VERT = 'collect_ignore = ["tests/test_calc.py"]\n'
+
 
 class VerifierRougeVert(unittest.TestCase):
     def setUp(self):
@@ -94,7 +127,7 @@ class VerifierRougeVert(unittest.TestCase):
                            capture_output=True, text=True, check=True)
         return r.stdout.strip()
 
-    def _depot(self):
+    def _depot(self, amorce=True):
         self._compteur += 1
         depot = self.dossier / f"depot-{self._compteur}"
         depot.mkdir()
@@ -102,7 +135,8 @@ class VerifierRougeVert(unittest.TestCase):
         self._git(depot, "config", "user.email", "test@example.invalid")
         self._git(depot, "config", "user.name", "test")
         self._git(depot, "config", "commit.gpgsign", "false")
-        self._commit(depot, {"README.md": "demo\n"}, "chore: amorce")
+        if amorce:
+            self._commit(depot, {"README.md": "demo\n"}, "chore: amorce")
         return depot
 
     def _commit(self, depot, fichiers, message):
@@ -122,9 +156,11 @@ class VerifierRougeVert(unittest.TestCase):
         return self._commit(depot, {TEST: TEST_ROUGE},
                             "test(demo): étape 5 — rouge (la somme)")
 
-    def _jouer(self, depot, rouge, vert):
-        r = subprocess.run([sys.executable, str(SCRIPT), rouge, vert], cwd=depot,
-                           env=self.env, capture_output=True, text=True)
+    def _jouer(self, depot, rouge, vert, tests=("tests",)):
+        argv = [sys.executable, str(SCRIPT), rouge, vert]
+        if tests:
+            argv += ["--tests", *tests]
+        r = subprocess.run(argv, cwd=depot, env=self.env, capture_output=True, text=True)
         return r.returncode, r.stdout + r.stderr
 
     def test_skip_ajoute_au_vert_sort_en_1(self):
@@ -173,6 +209,57 @@ class VerifierRougeVert(unittest.TestCase):
         code, sortie = self._jouer(depot, rouge, vert)
         self.assertEqual(code, 1, sortie)
         self.assertIn(TEST, sortie)
+
+    def test_fichier_du_rouge_hors_des_dossiers_de_test_sort_en_1(self):
+        # Attrape : le spec n'est ni sous tests/ ni nommé test_*. Seul le fait qu'il est dans
+        # le commit rouge le fait tenir pour un test ; --tests tests ne le couvre pas.
+        depot = self._depot()
+        rouge = self._commit(depot, {SPEC: SPEC_ROUGE}, "test(demo): étape 5 — rouge (la somme)")
+        vert = self._commit(depot, {SPEC: SPEC_VERT_SKIP}, "feat(demo): étape 5 — la somme")
+        code, sortie = self._jouer(depot, rouge, vert)
+        self.assertEqual(code, 1, sortie)
+        self.assertIn(SPEC, sortie)
+
+    def test_chemin_de_tests_avec_dot_slash_est_normalise(self):
+        # Attrape : ``--tests ./tests`` ne reconnaissait aucun fichier sous tests/ (sortie 0).
+        # Le premier cas passerait aussi par la règle « fichier du rouge » ; le second, un
+        # fichier sous tests/ absent du rouge, ne passe que par la normalisation.
+        cas = {
+            "test du rouge réduit à pass": {TEST: "pass\n"},
+            "fixture hors du rouge ajoutée sous tests/": {"tests/dados.json": '{"cas": 1}\n'},
+        }
+        for nom, fichiers_du_vert in cas.items():
+            with self.subTest(cas=nom):
+                depot = self._depot()
+                rouge = self._rouge(depot)
+                vert = self._commit(depot, fichiers_du_vert, "feat(demo): étape 5 — la somme")
+                code, sortie = self._jouer(depot, rouge, vert, tests=("./tests",))
+                self.assertEqual(code, 1, sortie)
+                self.assertIn("tests/", sortie)
+
+    def test_conftest_ajoute_au_vert_sort_en_1(self):
+        # Attrape : un conftest.py ajouté au vert fait sauter des tests (collect_ignore) sans
+        # qu'aucun fichier de test ne bouge. Le script doit le dire, avec le mot « lanceur ».
+        depot = self._depot()
+        rouge = self._rouge(depot)
+        vert = self._commit(depot, {CONFTEST: CONFTEST_VERT}, "feat(demo): étape 5 — la somme")
+        code, sortie = self._jouer(depot, rouge, vert)
+        self.assertEqual(code, 1, sortie)
+        self.assertIn(CONFTEST, sortie)
+        self.assertIn("configuration du lanceur de tests", sortie)
+
+    def test_rouge_racine_sans_parent_ne_plante_pas(self):
+        # Attrape : un rouge racine n'a pas de <rouge>^ ; le repli doit tourner, sans Traceback.
+        # log.showRoot=false : git show rendrait une liste vide pour ce commit ; le repli
+        # ne doit pas dépendre de cette option, sinon le spec du rouge serait invisible.
+        depot = self._depot(amorce=False)
+        self._git(depot, "config", "log.showRoot", "false")
+        rouge = self._commit(depot, {SPEC: SPEC_ROUGE}, "test(demo): étape 5 — rouge (la somme)")
+        vert = self._commit(depot, {SPEC: SPEC_VERT_SKIP}, "feat(demo): étape 5 — la somme")
+        code, sortie = self._jouer(depot, rouge, vert)
+        self.assertEqual(code, 1, sortie)
+        self.assertNotIn("Traceback", sortie)
+        self.assertIn(SPEC, sortie)
 
 
 if __name__ == "__main__":
