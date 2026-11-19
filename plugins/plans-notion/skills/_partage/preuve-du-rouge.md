@@ -83,6 +83,20 @@ Si le second exécutant croit le test faux, il ne le corrige pas : il rend
 nouveau commit rouge, qui rejoue tout le geste depuis le début, ou une étape
 bloquée. Celui qui n'a pas écrit le test ne le réécrit pas.
 
+## Le contrôle du vert, par script
+
+Le `git diff` ci-dessus se joue aussi en une commande, sur les deux SHA :
+
+```bash
+python3 plugins/plans-notion/skills/_partage/scripts/verifier-rouge-vert.py <sha-rouge> <sha-vert> [--tests <chemin> ...]
+```
+
+- **Code 0** : entre le rouge et le vert, aucun fichier de test n'a bougé (le vert ne touche que le code).
+- **Code 1** : un fichier de test a été ajouté, modifié ou supprimé. La liste dit pourquoi : test désactivé (`skip`, `xfail`, `skipTest`), assertion retirée ou remplacée par `assert True` / `pass`, fichier supprimé. L'étape repart.
+- **Code 2** : panne (SHA inconnu, dossier qui n'est pas un dépôt git). À corriger avant de conclure quoi que ce soit.
+
+`--tests` liste les fichiers ou dossiers de test (relatifs à la racine du dépôt) ; sans lui, un fichier est tenu pour un test s'il est dans `tests/`, `test/` ou `__tests__/`, ou si son nom suit `test_*`, `*_test.*`, `*.test.*`, `*.spec.*`. Le script ne lit que les deux commits : il se joue donc sur le commit vert une fois créé, en local, avant le push. Sur un code 1, on défait ce commit local (`git reset --soft HEAD~1`), on corrige, et on rejoue. Il ne remplace pas le rejeu du rouge ci-dessous : il prouve seulement que le vert n'a pas touché les tests.
+
 ## Le geste du pilote : rejouer les tests sur le commit rouge
 
 Le pilote — la session qui orchestre le plan — rejoue la commande de preuve du
