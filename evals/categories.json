@@ -154,7 +154,7 @@
         "skills/_partage/decouvertes.md",
         "skills/_partage/relecture-par-hal.md"
       ],
-      "cas": ["revue-hors-plan", "revue-sans-avis-de-hal"]
+      "cas": ["revue-hors-plan", "revue-sans-avis-de-hal", "relecteur-checkout"]
     },
     "escalade-bornee": {
       "exerce": [

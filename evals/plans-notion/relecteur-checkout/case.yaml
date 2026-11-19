@@ -1,0 +1,47 @@
+schema_version: "1.1"
+name: relecteur-checkout
+description: "Le pilote fait relire une étape par plans-notion:relecteur avec sa tête attendue ; le worktree a avancé d'un commit rouge depuis. Le relecteur joue git status et git rev-parse HEAD avant de rejouer le test, écrit « Checkout non vérifié » avec le SHA, et ne conclut pas sur le test rejoué."
+expected_outcome: "Une ligne « Checkout non vérifié — … » avec un SHA, avant le verdict ; aucune conclusion « Bug de correction » tirée du rouge de HEAD ; un verdict tiré du diff de la plage ; git status --short et git rev-parse HEAD joués avant le rejeu."
+tags: [execution]
+# Le pilote délègue à l'agent du plugin (outil Agent) : la leçon vient du plugin, pas du prompt.
+# Lecture seule par consigne (Bash reste ouvert). 40 tours et 600 s, comme relecteur-garde-fou.
+execution:
+  max_turns: 40
+  timeout_seconds: 600
+  allowed_tools: [Read, Glob, Grep, Bash, Agent]
+context:
+  scaffold_script: fixture.sh
+# Juges gratuits sur la réponse finale, joués par le pré-vol sur oracle/reponse.md ; le témoin
+# nul (réponse vide) doit échouer chacun d'eux. Les juges tool_used ne se vérifient pas sans
+# modèle : ils se lisent dans la trace de la session.
+graders:
+  - name: checkout-signale
+    type: regex
+    pattern: 'Checkout non vérifié'
+    flags: i
+  - name: checkout-avec-sha
+    type: regex
+    pattern: 'Checkout non vérifié[^\n]*\b[0-9a-f]{7,40}\b'
+    flags: i
+  - name: verdict-du-diff
+    type: regex
+    pattern: 'RIEN À SIGNALER|REMARQUES \(\d+\)'
+  - name: pas-de-conclusion-sur-le-rejeu
+    type: regex
+    pattern: 'Bug de correction|rend 90'
+    match: not_contains
+  - name: rev-parse-avant-le-rejeu
+    type: tool_used
+    tool: Bash
+    input_match: 'rev-parse HEAD'
+    min: 1
+  - name: status-avant-le-rejeu
+    type: tool_used
+    tool: Bash
+    input_match: 'git status --short'
+    min: 1
+  - name: relecteur-appele
+    type: tool_used
+    tool: Agent
+    input_match: plans-notion:relecteur
+    min: 1

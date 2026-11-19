@@ -67,17 +67,22 @@ Le brief du relecteur, et rien de plus :
 2. **Le répertoire** où travailler : le worktree de l'étape pour une vague,
    sinon le worktree du plan — jamais le checkout principal (§2 du skill).
 3. **La plage de commits**, `<base>..<tête>`.
+4. **La tête attendue**, un SHA : le commit que le répertoire doit avoir en tête
+   pour que le rejeu d'un test porte sur l'étape. Relève-le par `git rev-parse`
+   et donne-le tel quel, pas un nom comme `HEAD` qui bouge. Le relecteur le
+   compare à la tête du répertoire avant tout rejeu (`relecteur.md`, « Avant de
+   rejouer un test »).
 
 **Rien de la session** : ni le plan entier, ni la discussion, ni pourquoi tel
 choix a été fait — c'est tout l'intérêt d'un regard neuf (`relecteur.md`,
 « Pourquoi cet agent existe »). Aux tours suivants, le brief change : les
-seuls correctifs depuis le dernier passage (nouvelle plage), plus les
+seuls correctifs depuis le dernier passage (nouvelle plage, donc nouvelle tête attendue), plus les
 remarques que le pilote a écartées et sa raison de le faire.
 
 **Mode plan entier.** Il se joue **une fois**, à la clôture, après la suite
 complète et avant la porte (`cloture.md`, point 2 ter). Par exception à « Rien
 de la session », son brief porte aussi le chapitre `Exécution` du plan, recopié,
-et le mot « mode plan entier » ; la plage est `origin/main..<branche-du-plan>`,
+et le mot « mode plan entier » ; la plage est `origin/main..<branche-du-plan>`, sa tête attendue le SHA de la branche à la clôture,
 le répertoire le worktree du plan. La boucle ci-dessous s'applique telle quelle.
 Chaque écart rendu (`relecteur.md`, « Le mode « plan entier » ») devient une
 découverte traitée selon `decouvertes.md` : étape `D<n>` dans le même plan si
@@ -113,7 +118,7 @@ l'étape, elle entre dans le brief des tours suivants avec sa raison, comme les
 autres remarques écartées.
 
 Puis nouvel appel au relecteur, brief réduit aux seuls correctifs (nouvelle
-plage de commits) plus les remarques écartées et leurs raisons. Le relecteur
+plage de commits, donc nouvelle tête attendue) plus les remarques écartées et leurs raisons. Le relecteur
 prend position sur chacune — maintenue avec un argument nouveau, ou
 abandonnée (`relecteur.md`, « Aux tours suivants »). On recommence jusqu'à
 `RIEN À SIGNALER`. **Aucun tour de cette boucle n'ouvre de plan de suite** :
