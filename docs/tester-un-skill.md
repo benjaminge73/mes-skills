@@ -282,9 +282,22 @@ exécution à l'autre sur la même version (horodatage, hasard) est listé à pa
 verdict : il n'est pas comparable. `scripts/ci_locale.sh` joue ce contrôle, dans
 le bloc qui a besoin d'une base.
 
-**Limite à connaître** : le plan est passé comme seul argument. Un script qui
-attend une sous-commande (`plan-en-cours.py attendre`) ne rend alors que son
-message d'usage : l'écart qu'on voit est celui de l'usage, pas celui du comportement.
+**Le plan est passé comme dernier argument, après les arguments de la table
+`ARGUMENTS_PAR_SCRIPT`** (dans `scripts/comparer_versions.py`) : aujourd'hui
+`doc-de-cloture.py --porte`, `preparation-prete.py --depot .`,
+`preuves-des-etapes.py --apres`. Un script qui n'a pas d'entrée et qui exige une
+option ou une sous-commande ne fait que rendre son message d'usage des deux côtés :
+il est listé « usage seul », sans compter comme comparé. Le rapport dit combien de
+scripts ont été réellement joués, et liste ceux qui ne l'ont pas été. Ajouter une
+entrée à la table suppose de vérifier que le script sort de son usage avec elle.
+
+**Limites à connaître** : une entrée qui fait sortir un script de son usage peut
+le faire tomber sur « entrée illisible » (chapitre absent d'un plan) : il est alors
+compté comme comparé, mais sa logique ne l'est pas. Les plans de
+`scripts/fixtures_plans/` n'ont pas de chapitre « Exécution » ; un changement dans ce
+chapitre, comme celui de `preuves-des-etapes.py --apres`, n'y est donc pas vu. Un
+plan qui porte le chapitre le fait voir : vérifié sur un plan de test hors dépôt, où
+`preuves-des-etapes.py --apres` passe du code 0 au code 1 entre la base et la tête.
 
 ## La forme de la consigne et les micro-tests de formulation
 

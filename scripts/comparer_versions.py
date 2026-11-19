@@ -26,6 +26,11 @@ Un script dont la sortie varie d'une exécution à l'autre sur la même version 
 hasard) n'est pas comparable : il est listé à part, sans verdict. Un script absent de
 la tête est un écart ; un script nouveau n'a pas de base et n'est pas comparé.
 
+Un script joué sur le seul plan qui rend son message d'usage (code 2, ``usage:``) des
+deux côtés, sur chaque plan, n'a jamais tourné : il est listé « usage seul », sans être
+compté comme comparé. ``ARGUMENTS_PAR_SCRIPT`` donne les arguments qui précèdent le plan
+pour les scripts qui n'en tournent pas sans.
+
 Codes de sortie : ``0`` aucun écart non déclaré, ``1`` écart non déclaré ou
 déclaration invalide, ``2`` panne (base illisible, ou aucun plan : rien n'est
 comparé, donc rien n'est vert).
@@ -48,9 +53,20 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 PLANS_PAR_DEFAUT = REPO_ROOT / "scripts" / "fixtures_plans"
 DELAI_S = 30
 
+# Arguments placés avant le plan (qui reste le dernier) pour un script qui ne tourne pas
+# sur le seul plan. Clé : nom du fichier du script. Un script absent de la table est joué
+# sur le plan seul. Ajouter une entrée : vérifier que le script sort de son message d'usage
+# avec ces arguments, sinon l'entrée ne fait que déplacer le script vers « entrée illisible ».
+ARGUMENTS_PAR_SCRIPT: dict[str, list[str]] = {
+    "doc-de-cloture.py": ["--porte"],
+    "preparation-prete.py": ["--depot", "."],
+    "preuves-des-etapes.py": ["--apres"],
+}
+
 SCRIPT_PARTAGE = re.compile(r"^plugins/[^/]+/skills/_partage/scripts/[^/]+\.(?:py|sh)$")
 LIGNE_ECART = re.compile(r"^Ecart-admis:[ \t]*(.*?)[ \t]*$", re.MULTILINE)
 DECLARATION = re.compile(r"^(\S+)[ \t]+(?:—|–|--|-)[ \t]*(\S.*)$")
+USAGE = re.compile(r"^usage[ \t]*:", re.MULTILINE)  # « usage: » argparse, « usage : » maison
 
 
 class Panne(RuntimeError):
@@ -69,7 +85,8 @@ class Verdict:
     base_sha: str
     tete_sha: str
     plans: list[str]
-    comparables: list[str] = field(default_factory=list)
+    comparables: list[str] = field(default_factory=list)  # réellement joués
+    usage_seul: list[str] = field(default_factory=list)   # non comparés : message d'usage seul
     nouveaux: list[str] = field(default_factory=list)
     instables: list[str] = field(default_factory=list)
     ecarts: list[str] = field(default_factory=list)      # non déclarés : refusent
@@ -83,9 +100,13 @@ class Verdict:
     def rapport(self) -> str:
         lignes = [
             f"Scripts de _partage, base {self.base_sha} → tête {self.tete_sha} : "
-            f"{len(self.comparables)} script(s) comparé(s) sur {len(self.plans)} plan(s) "
-            f"({', '.join(self.plans)})."
+            f"{len(self.comparables)} script(s) réellement comparé(s) sur {len(self.plans)} "
+            f"plan(s) ({', '.join(self.plans)})."
         ]
+        if self.usage_seul:
+            lignes.append("Non comparés, usage seul (sur chaque plan, le script rend son message "
+                          "d'usage des deux côtés : il n'a pas tourné) : "
+                          + ", ".join(self.usage_seul))
         if self.instables:
             lignes.append("Non comparés (sortie qui varie d'une exécution à l'autre sur la "
                           "même version) : " + ", ".join(self.instables))
@@ -177,6 +198,7 @@ def _scripts(depot: Path) -> list[str]:
 
 def _executer(arbre: Path, script: str, plan: str) -> Sortie:
     commande = [sys.executable, script] if script.endswith(".py") else ["bash", script]
+    commande += ARGUMENTS_PAR_SCRIPT.get(script.rsplit("/", 1)[-1], [])
     commande.append(f"../plans/{plan}")
     env = {
         "PATH": os.environ.get("PATH", os.defpath),
@@ -206,6 +228,12 @@ def _sorties(arbre: Path, scripts: list[str], plans: list[str]) -> dict[tuple[st
             seconde = _executer(arbre, script, plan)
             res[(script, plan)] = premiere if premiere == seconde else None
     return res
+
+
+def _usage_seul(a: Sortie, b: Sortie) -> bool:
+    """Code 2 et ``usage:`` des deux côtés : le script a rendu son aide, il n'a pas tourné."""
+    return all(s.code == 2 and USAGE.search(s.erreur + "\n" + s.sortie) is not None
+               for s in (a, b))
 
 
 def _detail(a: Sortie, b: Sortie) -> str:
@@ -294,6 +322,9 @@ def analyser(racine: Path, base: str, plans_dir: Path, tete: str = "HEAD") -> Ve
         couples = [(p, sorties_base[(script, p)], sorties_tete[(script, p)]) for p in plans]
         if any(a is None or b is None for _, a, b in couples):
             verdict.instables.append(script)
+            continue
+        if all(_usage_seul(a, b) for _, a, b in couples):
+            verdict.usage_seul.append(script)
             continue
         verdict.comparables.append(script)
         for plan, a, b in couples:
