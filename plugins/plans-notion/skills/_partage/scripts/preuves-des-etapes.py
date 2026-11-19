@@ -35,8 +35,8 @@ impact « Rien », ou sans puce d'impact, n'est pas contrôlée sur ce point.
 La puce « **Effets** » (ce que le changement touche ailleurs, pièce 5 du rapport) est exigée à partir
 de la première étape, dans l'ordre du journal, qui la porte, et à toutes les suivantes : « aucun »
 est admis. Les étapes antérieures ne sont pas contrôlées (adoption progressive : plans clos, fixtures).
-Une étape écartée (jamais jouée : verdict ``unverifiable`` et « écartée » dans son entrée) n'est
-exemptée ni de la ligne Revue, ni de la Maquette, ni de la puce Effets (revue.md, « Journal »).
+Une étape écartée (jamais jouée : verdict ``unverifiable`` et « écartée » dans son entrée) est
+exemptée de la ligne Revue, de la Maquette et de la puce Effets (revue.md, « Journal »).
 Bibliothèque standard uniquement.
 """
 from __future__ import annotations

@@ -83,7 +83,7 @@ sans juge (code 3), le pilote relit chaque passage relevé.
 > décision du 2026-09-04, qui revient sur la PR de clôture automatique du
 > 2026-09-03.
 
-Règle conservée : l'exécution s'arrête à la branche, sans PR.
+Règle conservée : l'exécution s'arrête à la branche, sans PR. [état au 2026-11-06 : la règle a été revue depuis ; la PR s'ouvre désormais à la clôture, prête (`cloture.md`, passage « La PR s'ouvre à la clôture, prête »).]
 
 ## Branches de vague survivantes (`cloture.md`)
 

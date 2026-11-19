@@ -293,11 +293,11 @@ entrée à la table suppose de vérifier que le script sort de son usage avec el
 
 **Limites à connaître** : une entrée qui fait sortir un script de son usage peut
 le faire tomber sur « entrée illisible » (chapitre absent d'un plan) : il est alors
-compté comme comparé, mais sa logique ne l'est pas. Les plans de
-`scripts/fixtures_plans/` n'ont pas de chapitre « Exécution » ; un changement dans ce
-chapitre, comme celui de `preuves-des-etapes.py --apres`, n'y est donc pas vu. Un
-plan qui porte le chapitre le fait voir : vérifié sur un plan de test hors dépôt, où
-`preuves-des-etapes.py --apres` passe du code 0 au code 1 entre la base et la tête.
+compté comme comparé, mais sa logique ne l'est pas. Un changement dans le
+chapitre « Exécution », comme celui de `preuves-des-etapes.py --apres`, ne se voit que
+sur un plan qui porte ce chapitre : c'est le rôle de
+`scripts/fixtures_plans/plan_avec_chapitre.md` (où `--apres` passe du code 0 au code 1
+entre la base et la tête) ; les deux autres plans de référence n'en ont pas.
 
 ## La forme de la consigne et les micro-tests de formulation
 
