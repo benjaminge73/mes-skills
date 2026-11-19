@@ -99,6 +99,11 @@ class RefuserNoVerify(unittest.TestCase):
     def test_no_verify_dans_le_texte_du_message_est_permis(self):
         self.permis('git commit -m "retire --no-verify du script"')
 
+    def test_no_verify_colle_a_une_redirection_est_refuse(self):
+        # Panne attrapée : depuis le correctif D3, « > » n'est plus ponctuation pour
+        # shlex ; « --no-verify>/dev/null » devient un seul mot, qui passe avec le code 0.
+        self.refuse("git commit -m x --no-verify>/dev/null")
+
     def test_n_d_une_autre_commande_git_est_permis(self):
         self.permis("git log -n 3")
 
@@ -216,6 +221,19 @@ class RefuserGitStash(unittest.TestCase):
         # Panne attrapée en plus : un « <<EOF » dans un message ouvrirait un heredoc
         # fantôme, et avalerait le « git stash » qui suit.
         self.refuse('echo "<<EOF"\ngit stash push')
+
+    def test_stash_colle_a_une_redirection_est_refuse(self):
+        # Panne attrapée : « > » n'est plus ponctuation pour shlex (punctuation_chars
+        # sans « <> ») ; « git stash>/dev/null » devient un mot inconnu et passe avec le code 0.
+        self.refuse("git stash>/dev/null")
+
+    def test_stash_suivi_d_une_redirection_d_erreur_reste_refuse(self):
+        # Garde : « 2>&1 » séparé par un blanc ne masque pas « git stash ».
+        self.refuse("git stash 2>&1")
+
+    def test_echo_stash_colle_a_une_redirection_est_permis(self):
+        # Garde : « stash » en argument d'echo, collé à une redirection, reste permis.
+        self.permis("echo stash>/dev/null")
 
     def test_grep_d_un_texte_git_stash_est_permis(self):
         # Garde : le nom de commande (premier mot), pas le texte, décide.
