@@ -263,6 +263,29 @@ on rejoue, on ne tranche pas sur un seul tirage.
 score identique peut cacher un cas gagné pour la mauvaise raison ; un score en
 baisse peut venir d'un juge trop strict. Les transcriptions sont ce qui le dit.
 
+### Les scripts de `_partage`, entre deux versions
+
+Un script de `plugins/<p>/skills/_partage/scripts/` change la sortie de toutes
+les sessions qui l'appellent, et aucune éval de skill ne le voit à coup sûr.
+`scripts/comparer_versions.py --base <réf>` le vérifie sans rien payer : il extrait
+la base par `git archive`, puis rejoue chaque script sur chaque plan de référence
+(`scripts/fixtures_plans/`), côté base puis côté tête (`HEAD`, le commit : le travail
+non commité n'est pas vu). Chaque couple est joué deux fois de chaque côté. Un écart est une sortie qui
+change (code de retour, sortie standard ou d'erreur) ; il refuse la PR, sauf s'il
+est déclaré dans un commit de la PR :
+
+    Ecart-admis: <script> — <raison>
+
+Le nom du script peut être donné court (`vagues`) ou complet. La raison est
+obligatoire : sans elle, la ligne refuse. Un script dont la sortie varie d'une
+exécution à l'autre sur la même version (horodatage, hasard) est listé à part, sans
+verdict : il n'est pas comparable. `scripts/ci_locale.sh` joue ce contrôle, dans
+le bloc qui a besoin d'une base.
+
+**Limite à connaître** : le plan est passé comme seul argument. Un script qui
+attend une sous-commande (`plan-en-cours.py attendre`) ne rend alors que son
+message d'usage : l'écart qu'on voit est celui de l'usage, pas celui du comportement.
+
 ## La forme de la consigne et les micro-tests de formulation
 
 Cette section reprend deux points du skill `writing-skills` de
