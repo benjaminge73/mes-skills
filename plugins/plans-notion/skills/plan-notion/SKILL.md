@@ -161,6 +161,8 @@ répétition à blanc, le registre des outils et le cas du report de décision :
 À lire **avant d'écrire la première question, option ou étape** de la passe — le
 résumé ci-dessus ne suffit pas à les faire bien.
 
+**Le cadrage avec Hal et la relecture de la page avant `en revue`** : 📄 `${CLAUDE_PLUGIN_ROOT}/skills/_partage/relecture-par-hal.md`
+
 **Plusieurs plans à croiser — le plan maître.** C'est concevoir chacun d'eux : même
 enquête, plan par plan, **en parallèle** (`lecteur`, `enqueteur`, `sondeur`) ; le
 pilote ne garde que le croisement et l'écriture. La page, les gestes, la raison :
@@ -227,6 +229,7 @@ choisir. La doc vivante de `hermes-custom`, elle, va toujours au hub Hermes (`_p
   `a merger` → `execute` (valeurs **sans accents**, cf. la règle en tête).
   - **`brouillon`** = rédaction partielle ; **`en revue`** = l'agent a **fini de rédiger**,
     Benjamin relit : `_partage/ecrire-dans-notion.md`, « Rappel de vocabulaire ».
+    `en revue` se pose **après l'avis de Hal** (section `Avis de Hal`, après `Questions ouvertes`) : `_partage/relecture-par-hal.md`.
   **`pret`** : préparation faite et prouvée, posé à l'ouverture
   (`executer-plan-notion` §2), jamais ici.
 - **`a merger` et `execute` ne disent pas la même chose**, et les confondre fait
@@ -485,6 +488,7 @@ plan de suite `#N+1` s'il reste des arbitrages. Reste au plan le **contenu** du 
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/schemas.md`,
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/cron-a-la-main.md`,
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/decouvertes.md`, `${CLAUDE_PLUGIN_ROOT}/skills/_partage/restes.md`,
+  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/relecture-par-hal.md`,
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/changelog-et-doc.md`,
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/revue.md` et
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/bons-tests.md`, ses quatre fichiers de

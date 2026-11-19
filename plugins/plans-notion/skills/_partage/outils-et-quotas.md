@@ -475,7 +475,7 @@ commune pour comparer les postes.
   environ 55 $, et une A/B ciblée sur une catégorie 3 à 14 $ (chiffres du
   2026-09-30). Le coût d'un bras à 26 cas n'a pas été remesuré.
 - **Par catégorie**, pour un bras de 3 passages, puis pour un seul passage (le
-  coût d'une fumée), mesuré le 2026-09-30. La colonne « Cas au 2026-10-16 »
+  coût d'une fumée), mesuré le 2026-09-30. La colonne « Cas au 2026-11-19 »
   donne le nombre de cas que chaque catégorie compte aujourd'hui :
 
 | Catégorie | Cas au 2026-11-19 | Cas mesurés le 2026-09-30 | Un bras, 3 passages | Un passage |
@@ -488,16 +488,16 @@ commune pour comparer les postes.
 | `perimetre` | 5 | 2 | 2,56 $ | 0,85 $ |
 | `delegation` | 1 | — | non mesuré | non mesuré |
 | `preuves` | 13 | — | non mesuré | non mesuré |
-| `revue-hors-plan` | 1 | — | non mesuré | non mesuré |
+| `revue-hors-plan` | 2 | — | non mesuré | non mesuré |
 | `escalade-bornee` | 1 | — | non mesuré | non mesuré |
-| **tout le banc** | 43 | 16 | 27,53 $ | ≈ 9,2 $ |
+| **tout le banc** | 44 | 16 | 27,53 $ | ≈ 9,2 $ |
 
 Les coûts datent du 2026-09-30 et ne sont extrapolés à aucune catégorie. Les
 catégories `existant` et `decouvertes` ont gagné des cas depuis : elles coûtent
 plus que leur ligne. `delegation`, `preuves`, `revue-hors-plan` et `escalade-bornee`
 ne figuraient pas dans la mesure, et leur coût n'a jamais été mesuré. `tout le banc`
 désigne le banc de `plans-notion` ; `voyages` en compte un de plus (`billet`), soit
-27 cas au total.
+45 cas au total.
 
 Mesure postérieure pour `decouvertes` : la PR #60 (son run du
 2026-10-16), à bras identiques puisqu'elle ne changeait aucun fichier du plugin.

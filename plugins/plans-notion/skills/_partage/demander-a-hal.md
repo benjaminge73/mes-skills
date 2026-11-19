@@ -1,8 +1,8 @@
 # Quand s'adresser à Hal
 
 Hal est l'agent Hermes qui tourne sur le VPS, avec la mémoire de Benjamin (le `fact_store`,
-profil `jerome-kairviel`). Une session peut lui poser une **question** ou lui demander un
-**geste**. Ce fichier dit quand, comment, et ce qu'on ne lui demande jamais.
+profil `jerome-kairviel`). Une session peut lui poser une **question**, lui faire **relire un plan**
+avant sa revue, ou lui demander un **geste**. Ce fichier dit quand, comment, et ce qu'on ne lui demande jamais.
 
 ## 1. Poser une question
 
@@ -24,6 +24,54 @@ Si Hal ne répond pas dans les 120 secondes, ou rend une sortie vide, la command
 code non nul et une erreur lisible sur la sortie d'erreur. Ce n'est pas une réponse : on le dit
 au pilote, on n'invente pas la réponse. Il n'y a aucun plafond d'appels (décision de Benjamin) ;
 ce qui compte, c'est de ne pas poser une question que la mémoire tranche déjà.
+
+## 1 bis. Faire relire le plan
+
+Avant de poser `Statut` = `en revue`, la session fait relire la page du plan par Hal. Hal est
+appelé en direct : il n'a ni Notion ni le contexte de la session, donc la session lui passe le
+texte de la page sur l'entrée standard.
+
+```bash
+python3 ~/.hermes/scripts/demander_a_hal.py relire --plan <page du plan> --tour <1|2> <<'EOF'
+<le texte de la page, tel que la session le relit, suivi du bloc « Plans ouverts des mêmes dépôts »>
+EOF
+```
+
+- `--tour 1` pour la première relecture, `--tour 2` pour la seconde, après les réponses de la
+  session aux réserves du tour 1. Deux tours au plus.
+- Délai de **300 secondes** (contre 120 pour `question`) : Hal lit l'état du VPS avant de répondre.
+- Hal tourne avec le toolset `terminal` (la mémoire et la recherche de sessions s'y ajoutent),
+  12 tours au plus, **en lecture seule**. La consigne nomme les commandes permises : `ls`, `cat`,
+  `grep`, `git log`, `git diff`, `git show`, `git status`, `hermes cron list`, `systemctl --user status`.
+- Hal ne coche aucune case. Il peut appuyer ou contester une recommandation ; la décision reste à Benjamin.
+
+Codes de sortie :
+
+- **0** : avis rendu. La session le recopie dans la section `Avis de Hal` de la page.
+- **1** : pas d'avis (délai dépassé, sortie vide, avis illisible, ou code non nul de Hal). La commande
+  ne fait qu'un appel par exécution : elle note cet échec au registre et rend 1, sans relancer. C'est
+  la **session** qui relance une fois, avec le même `--tour`. Deux échecs notés au registre valent un
+  avis rendu pour le hook, quel que soit leur tour. C'est alors seulement que la session écrit la
+  variante « Avis non rendu : <erreur>, deux essais, <dates> » dans `Avis de Hal`. Un avis n'est
+  jamais inventé.
+- **2** : usage incorrect, ou tour 1 refusé (aucun appel, rien n'est noté) : la page n'a pas la ligne
+  `Cadrage avec Hal : …`, en n'importe quel endroit avant le bloc des plans ouverts.
+
+Un avis illisible (sans ligne `VERDICT:`, réserve sans `(source :`, `OK` sans la liste de ce qui a
+été vérifié) compte comme une sortie vide : il déclenche le second essai.
+
+**Commandes jouées par Hal.** Chaque commande que Hal joue est notée au registre
+(`~/.hermes/state/relectures-hal/`) et recopiée sous « Commandes jouées par Hal » dans l'avis. Une
+commande qui écrit (redirection, `rm`, `mv`, `git fetch`, `git commit`, `sed -i`, `systemctl start`…)
+est signalée en tête par « Écriture signalée : <commande> ». Elle est signalée, pas empêchée : la
+session le relève dans son compte rendu.
+
+**Pré-lecture.** Avant l'appel, la session lance un agent `plans-notion:lecteur` par plan ouvert des
+mêmes dépôts et joint ses fiches à la page. Cela se fait hors du délai de 300 secondes. Le détail
+(quels plans, quelle forme de fiche, le tour 2) est dans `${CLAUDE_PLUGIN_ROOT}/skills/_partage/relecture-par-hal.md`.
+
+**Hors VPS.** Sur un Mac sans script, `relire` n'existe pas et le hook laisse passer `en revue`. Une
+session ouverte depuis le Mac par Remote Control tourne sur le VPS : elle a le script, et la règle s'y applique.
 
 ## 2. Demander un geste
 

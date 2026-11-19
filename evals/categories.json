@@ -150,9 +150,10 @@
         "skills/executer-plan-notion/",
         "agents/relecteur.md",
         "skills/_partage/revue.md",
-        "skills/_partage/decouvertes.md"
+        "skills/_partage/decouvertes.md",
+        "skills/_partage/relecture-par-hal.md"
       ],
-      "cas": ["revue-hors-plan"]
+      "cas": ["revue-hors-plan", "revue-sans-avis-de-hal"]
     },
     "escalade-bornee": {
       "exerce": [

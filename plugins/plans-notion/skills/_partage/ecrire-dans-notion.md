@@ -207,7 +207,7 @@ le signal « prêt à être relu » sur lequel Benjamin filtre la base. Il se po
 toutes les questions sont posées avec leur recommandation, que preuves et POC sont
 dans la page, que `Exécution` est écrit et que le filtre de l'enquête
 (`plan-notion/SKILL.md` §8, point 2, hors la répercussion des réponses de Benjamin)
-passe ; sinon le plan reste `brouillon`. Après une passe de la boucle de commentaires,
+passe ; sinon le plan reste `brouillon`. Sur le VPS, `en revue` attend en plus l'avis de Hal, rendu par `demander_a_hal.py relire` (`_partage/demander-a-hal.md`, § 1 bis) et noté dans `Avis de Hal` : sans avis au registre de `relire`, le hook refuse le passage. Après une passe de la boucle de commentaires,
 le statut suit l'état de la page (`en revue` si complète, `brouillon` si la passe l'a
 laissée partielle), jamais en deçà de `valide` une fois posé par Benjamin. L'ordre
 `brouillon` < `en revue` < `valide` ne change pas : `statut-maitre.py` et

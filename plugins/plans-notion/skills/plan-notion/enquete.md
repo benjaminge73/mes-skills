@@ -37,6 +37,10 @@ qui est déjà su.** Six gisements, du moins cher au plus cher :
    Mots de sujet seulement, jamais de secret ni de donnée personnelle. Chaque fait
    retenu se cite par son `fact_id` dans l'option qu'il éclaire. Sans accès (session
    cloud sans l'alias), la page écrit `Mémoire de Hal : non lue — <raison>`. Quand la mémoire ne tranche pas, la question part à Hal, par la commande du fichier partagé `${CLAUDE_PLUGIN_ROOT}/skills/_partage/demander-a-hal.md`.
+
+   Le cadrage avec Hal (après l'enquête, avant les questions) et la relecture de la page
+   avant `en revue` : 📄 `${CLAUDE_PLUGIN_ROOT}/skills/_partage/relecture-par-hal.md`
+
 3. **Le code.** Deux gestes, dans cet ordre : d'abord la **carte de voisinage**,
    dressée par le pilote lui-même (détail ci-dessous) ; puis invoquer l'agent
    **`enqueteur`** (outil `Agent`,

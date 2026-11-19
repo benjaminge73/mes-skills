@@ -381,6 +381,8 @@ lui.
    `Avancement` (ancien statut, nouveau, plan qui a bougé), et, quand le lot devient
    fermé, mettre à jour le tableau `Plans` et l'`État final`.
 
+**Le maître se relit comme un plan.** Avant d'écrire `en revue` sur une page maître, la session lance un agent `plans-notion:lecteur` par plan du lot, puis, après les fiches `lecteur` de son lot, les joint à la page maître et appelle `demander_a_hal.py relire` sur elle (détail : `${CLAUDE_PLUGIN_ROOT}/skills/_partage/relecture-par-hal.md`). Un maître relu une fois passe ses recalculs de `Statut` suivants sans nouvelle relecture : l'avis vaut pour la page. La page maître porte la même ligne de cadrage qu'un plan, sans quoi `relire --tour 1` refuse (code 2) : la session l'écrit juste après le tableau du `Récap du lot`, en ligne isolée, `Cadrage avec Hal : sans objet — plan maître, relu à la place`.
+
 À l'**entrée** d'un maître ou d'un de ses plans, la même vérification est un
 rattrapage : Benjamin change des statuts à la main (`execute` en tête), et rien
 d'autre ne le voit. Un écart trouvé à ce moment se corrige tout de suite, sans

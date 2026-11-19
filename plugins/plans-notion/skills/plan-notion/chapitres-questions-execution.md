@@ -5,6 +5,7 @@ Référence de `plan-notion`, lue **avant d'écrire ou de remettre à jour** l'u
 ## Sommaire
 
 - Les questions ouvertes
+- La section `Avis de Hal`
 - Le chapitre `La suite`
 - Le chapitre `Exécution`
 - Le `Journal d'exécution`
@@ -91,6 +92,24 @@ tranchée ici (`${CLAUDE_PLUGIN_ROOT}/skills/_partage/restes.md`, règle 7) :
 **À la création de la page, et pas avant**, la propriété `Repris par` de chaque ligne **reprise**
 reçoit la page du plan (relation), et son `État` passe à `repris`. Une ligne laissée ouverte
 garde son `État`.
+
+### La section `Avis de Hal`
+
+Dans la structure de la page, la section `Avis de Hal` se place **juste après le chapitre
+`Questions ouvertes`**, et avant `La suite`. Elle ne reçoit que la relecture du plan par Hal
+(`${CLAUDE_PLUGIN_ROOT}/skills/_partage/demander-a-hal.md`, § 1 bis) : la session ne la remplit
+pas à la main, elle y recopie l'avis rendu, puis sa réponse à chaque réserve.
+
+Pour chaque tour (deux au plus) : la date, le verdict (`VERDICT: OK` ou `VERDICT: RESERVES`), les
+réserves `R<n>` avec la source de chacune, les rubriques « Ce que j'ai vérifié », « À vérifier par la
+session » et « Commandes jouées par Hal ». Sous chaque réserve, la réponse de la session : retenue ou
+écartée, et pourquoi. Après le tour 2, un encadré « Réserves restantes » liste ce qui reste ouvert.
+Si Hal ne rend pas d'avis, la section porte la variante « Avis non rendu : <erreur>, deux essais,
+<dates> », et rien d'autre n'y est inventé.
+
+Hal ne coche aucune case de cette section ni des questions ouvertes. La décision reste à Benjamin.
+Le détail de la relecture (pré-lecture, repli, registre) est dans
+`${CLAUDE_PLUGIN_ROOT}/skills/_partage/relecture-par-hal.md`.
 
 ### Le chapitre `La suite`
 
