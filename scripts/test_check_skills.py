@@ -37,10 +37,18 @@ def _skill(racine: Path, plugin: str, nom: str, description: str = "Un skill.",
     )
 
 
-def _agent(racine: Path, plugin: str, nom: str, champs: str = "", fixe: bool = True) -> Path:
-    """Un agent ; ``fixe`` lui pose ``model`` et ``effort``, que la règle (m) exige de tous."""
+def _agent(racine: Path, plugin: str, nom: str, champs: str = "", fixe: bool = True,
+           outils: bool = True) -> Path:
+    """Un agent ; ``fixe`` lui pose ``model`` et ``effort``, que la règle (m) exige de tous.
+
+    ``outils`` lui pose une surface d'outils (``disallowedTools``, neutre pour les règles
+    g et h) si ``champs`` n'en déclare aucune, que la règle (p) exige de tous.
+    """
     if fixe:
         champs = "model: haiku\neffort: high\n" + champs
+    if outils and not any(ligne.startswith(("tools:", "disallowedTools:"))
+                          for ligne in champs.splitlines()):
+        champs += "disallowedTools:\n  - Bash\n"
     return _ecrire(
         racine / "plugins" / plugin / "agents" / f"{nom}.md",
         f"---\nname: {nom}\ndescription: Un agent.\n{champs}---\nCorps.\n",
@@ -131,7 +139,8 @@ class RegleA_DescriptionTropLongue(Depot):
     def test_un_agent_trop_long_est_refuse_aussi(self):
         _manifeste(self.racine, "p")
         _ecrire(self.racine / "plugins/p/agents/a.md",
-                "---\nname: a\ndescription: " + "z" * 1600 + "\nmodel: haiku\neffort: high\n---\nCorps.\n")
+                "---\nname: a\ndescription: " + "z" * 1600 + "\nmodel: haiku\neffort: high\n"
+                "disallowedTools: [Bash]\n---\nCorps.\n")
         res = self.controler()
         self.assertEqual([a.regle for a in res.refus if a.cible.endswith("a.md")], ["a"])
 
@@ -394,7 +403,8 @@ class RegleE_Compagnons(Depot):
         self.partage("a")
         _skill(self.racine, "p", "s")
         _ecrire(self.racine / "plugins/p/agents/ag.md",
-                f"---\nname: ag\ndescription: d\nmodel: haiku\neffort: high\n---\n📄 `{self.renvoi('a')}`\n")
+                f"---\nname: ag\ndescription: d\nmodel: haiku\neffort: high\ntools: [Read]\n"
+                f"---\n📄 `{self.renvoi('a')}`\n")
         self.assertEqual(self.controler().refus, [])
 
     def test_un_compagnon_cite_dans_le_corps_mais_absent_de_la_liste_est_refuse(self):
@@ -1011,6 +1021,39 @@ class RegleN_SyntaxesNotionInterdites(Depot):
         # Témoin nul : la forme admise (couleur par attribut de balise) ne déclenche rien.
         self.ecrire_corps(self.SKILL, 'Un titre <span color="blue">en bleu</span>')
         self.assertEqual(self.refus_n(), [])
+
+
+class RegleP_SurfaceDOutilsDesAgents(Depot):
+    """Chaque agent de ``agents/`` déclare sa surface d'outils : ``tools`` ou ``disallowedTools``.
+
+    Panne évitée : un agent sans liste reçoit tous les outils de la session, MCP compris,
+    et son frontmatter ne dit nulle part ce qu'il peut faire. Le ``preparateur`` a tourné
+    ainsi depuis sa création, sans que personne le voie.
+    """
+
+    def agent(self, champs, outils=True):
+        _manifeste(self.racine, "p", description="agent ag")
+        _agent(self.racine, "p", "ag", champs=champs, outils=outils)
+
+    def refus_p(self):
+        return [a for a in self.controler().refus if a.regle == "p"]
+
+    def test_un_agent_sans_tools_ni_disallowedtools_est_refuse_et_nomme(self):
+        # Attrape une règle qui ne lirait pas la surface d'outils : l'agent passerait en silence.
+        self.agent("", outils=False)
+        refus = self.refus_p()
+        self.assertEqual([a.cible for a in refus], ["plugins/p/agents/ag.md"])
+        self.assertIn("tools", refus[0].message)
+        self.assertIn("disallowedTools", refus[0].message)
+
+    def test_un_agent_qui_declare_tools_passe(self):
+        self.agent("tools:\n  - Bash\n  - Read\n")
+        self.assertEqual(self.refus_p(), [])
+
+    def test_un_agent_qui_declare_disallowedtools_passe(self):
+        # Témoin nul : la forme du relecteur, qui garde presque tout et se prive d'Edit et Write.
+        self.agent("disallowedTools:\n  - Edit\n  - Write\n")
+        self.assertEqual(self.refus_p(), [])
 
 
 ENTETE_FICHE = "| Catégorie | Cas au 2026-10-16 | Cas mesurés le 2026-09-30 | Un bras, 3 passages | Un passage |"
