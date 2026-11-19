@@ -229,6 +229,13 @@ Le serveur `codebase-memory` te donne cinq outils, et seulement ceux-là :
    suffisent, la valeur ne doit pas se retrouver dans un rapport que le
    pilote écrira ensuite dans Notion.
 
+   **Un incident** (une consigne du brief violée, une panne qui a coûté un tour,
+   un interdit qu'il a fallu poser) se signale avec la formule « règle convertie ? »
+   en tête de sa ligne, suivie de la consigne qui n'a pas suffi :
+   `règle convertie ? <incident> — <consigne qui n'a pas tenu>`. Tu ne poses pas
+   le garde toi-même : le pilote décide, à la clôture, si l'incident devient une
+   règle tenue par un garde.
+
 ## Pourquoi cet agent existe
 
 Il porte `model: haiku` et `effort: high` dans son frontmatter, et c'est sa

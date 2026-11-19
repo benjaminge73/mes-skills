@@ -99,6 +99,7 @@ Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard »
     qu'est-ce qu'on ferait autrement, quelle consigne du skill ou du `CLAUDE.md`
     n'a rien changé à cette exécution ? C'est ce qui nourrira la prochaine
     relecture d'historique sans re-dépouiller les plans passés un par un ;
+  - **la boucle incident → règle tenue** : pour chaque incident ou découverte signalé dans le journal (pièce 5 de l'exécutant, formule « règle convertie ? »), la session pose la question : « règle convertie ? » — cet incident ou cette découverte est-il devenu une règle tenue par un garde, ou reste-t-il une ligne de prose ? Une ligne de prose se dit telle quelle, avec sa raison. Une règle convertie se dit avec le chemin de son garde, en code, et sa ligne de `docs/garde-fous.md` (statut « manquant » si le garde vient plus tard). Un garde qui reste à écrire part en découverte (`decouvertes.md`), pas dans la clôture. La réponse se recopie dans l'entrée `État final`, une ligne par incident ;
   - **les schémas relus** — contrôle de `schemas.md` : autant de nœuds
     d'étape dans « le plan en un schéma » que de titres H3 `Étape N` sur la
     page, et les vagues réellement déroulées (§3 ci-dessus, `vagues.md`)
