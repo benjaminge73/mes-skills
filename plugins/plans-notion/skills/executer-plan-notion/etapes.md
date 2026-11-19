@@ -362,6 +362,17 @@ en disant quelles étapes ont été faites en direct et pourquoi.
   `Co-Authored-By: Claude <noreply@anthropic.com>` et aucun nom de modèle — sur
   chaque commit d'un regroupement ou d'une étape testée, pas seulement le
   dernier.
+- **Lire le diff de l'étape avant d'écrire « fait »** : le pilote lit
+  `git diff <base>..<tête>`, où `<tête>` est le SHA du commit de l'étape et
+  `<base>` son parent (`<tête>^`) ; pour un regroupement de commits, `<base>`
+  est le parent du premier et `<tête>` le dernier. Il compare ce diff au brief :
+  chaque fichier de `git diff --name-only` figure dans « Fichiers touchés » du
+  brief, et chaque changement sert l'objectif de l'étape. Un écart (fichier hors
+  liste, changement que le brief ne demandait pas) se traite dans l'étape, comme
+  une preuve rouge, avant de poser « fait » au journal. Au-delà de 200 lignes,
+  la lecture se délègue (`${CLAUDE_PLUGIN_ROOT}/skills/_partage/lecture-deleguee.md`) :
+  l'agent rend les écarts au brief, et le pilote vérifie ceux qu'il signale.
+  Un hook ne remplace pas ce regard : il ne voit ni le diff ni son contenu.
 - **Noter l'avancement à la fiche** : après chaque étape finie, si la session porte la
   fiche de ce plan (« Plusieurs plans : une fiche par session », `ouverture.md`),
   `python3 "${CLAUDE_PLUGIN_ROOT}/skills/_partage/scripts/plan-en-cours.py" etape --faite <n> --restantes <k>`,
