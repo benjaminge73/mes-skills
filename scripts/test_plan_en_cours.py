@@ -351,20 +351,71 @@ class PlanEnCoursTest(unittest.TestCase):
         self.assertEqual(self.lancer("etape", "--faite", "2", "--restantes", "1", pid=4256).returncode, 0)
         self.assertEqual(self.lire(pid=4256)["relances"], 0)
 
-    def test_etape_liste_les_etapes_faites_pas_seulement_des_compteurs(self):
-        # Panne nommée : la fiche ne garde que des compteurs (`etapes_faites`,
-        # `etapes_restantes`) : après deux `etape`, rien ne dit quelles étapes sont
-        # finies, et la fiche ne peut pas les montrer. Attendu : les deux étapes
-        # apparaissent comme faites. Les compteurs restent ceux que lit la garde.
+    def test_etape_liste_les_numeros_nommes_pas_le_compte_des_etapes(self):
+        # Panne nommée : `--faite <n>` est un compte (étapes 1, 2 et 12 finies → 3), et la
+        # liste recevait ce compte comme un numéro : elle disait [1, 2, 3], l'étape 3
+        # apparaissait faite et la 12 absente. Attendu : la liste porte les numéros donnés
+        # par `--numero`, dans l'ordre d'arrivée, et le compte `--faite 3` n'y entre pas.
+        # Les compteurs restent ceux que lit la garde.
         self.poser_session(4258, {"bridgeSessionId": SESSION_BRIDGE, "sessionId": "loc-4258"})
         self.assertEqual(self.ouvrir(pid=4258).returncode, 0)
-        self.assertEqual(self.lancer("etape", "--faite", "1", "--restantes", "2", pid=4258).returncode, 0)
-        self.assertEqual(self.lancer("etape", "--faite", "2", "--restantes", "1", pid=4258).returncode, 0)
+        self.assertEqual(self.lancer("etape", "--faite", "1", "--restantes", "3", "--numero", "1", pid=4258).returncode, 0)
+        self.assertEqual(self.lancer("etape", "--faite", "2", "--restantes", "2", "--numero", "2", pid=4258).returncode, 0)
+        self.assertEqual(self.lancer("etape", "--faite", "3", "--restantes", "1", "--numero", "12", pid=4258).returncode, 0)
 
         fiche = self.lire(pid=4258)
-        self.assertEqual(fiche["etapes_liste"], [1, 2])
-        self.assertEqual(fiche["etapes_faites"], 2)
+        self.assertEqual(fiche["etapes_liste"], ["1", "2", "12"])
+        self.assertEqual(fiche["etapes_faites"], 3)
         self.assertEqual(fiche["etapes_restantes"], 1)
+
+    def test_numero_d1_et_c1_entrent_dans_la_liste_dans_l_ordre_d_arrivee(self):
+        # Panne nommée : une étape non entière (`D1`, `C1`) est refusée, ou la liste est
+        # triée comme des nombres et ne garde pas l'ordre d'arrivée. Attendu : `D1` et `C1`
+        # entrent comme chaînes, après le `2` et le `12` déjà notés, dans l'ordre où ils
+        # arrivent.
+        self.poser_session(4260, {"bridgeSessionId": SESSION_BRIDGE, "sessionId": "loc-4260"})
+        self.assertEqual(self.ouvrir(pid=4260).returncode, 0)
+        for numero in ("2", "D1", "12", "C1"):
+            r = self.lancer("etape", "--faite", "1", "--restantes", "0", "--numero", numero, pid=4260)
+            self.assertEqual(r.returncode, 0, f"--numero {numero} : {r.stderr}")
+
+        self.assertEqual(self.lire(pid=4260)["etapes_liste"], ["2", "D1", "12", "C1"])
+
+    def test_sans_numero_la_liste_ne_change_pas(self):
+        # Panne nommée : `etape` sans `--numero` ajoute encore `--faite` à la liste, comme
+        # avant la correction : après `--faite 2`, la liste contiendrait un numéro que personne
+        # n'a donné. Attendu : la liste reste [1], seul le compte passe à 2. La liste [1] est
+        # posée directement dans la fiche (forme ancienne) pour que le seul geste testé soit
+        # l'`etape` sans `--numero`, et non un `--numero` qui n'existerait pas encore.
+        self.poser_session(4261, {"bridgeSessionId": SESSION_BRIDGE, "sessionId": "loc-4261"})
+        self.assertEqual(self.ouvrir(pid=4261).returncode, 0)
+        chemin = self.dossier_fiches() / "loc-4261.json"
+        fiche_posee = json.loads(chemin.read_text(encoding="utf-8"))
+        fiche_posee["etapes_liste"] = [1]
+        chemin.write_text(json.dumps(fiche_posee), encoding="utf-8")
+
+        self.assertEqual(self.lancer("etape", "--faite", "2", "--restantes", "1", pid=4261).returncode, 0)
+
+        fiche = self.lire(pid=4261)
+        self.assertEqual(fiche["etapes_liste"], [1])
+        self.assertEqual(fiche["etapes_faites"], 2)
+
+    def test_liste_ancienne_en_entiers_reste_lisible_et_sans_doublon(self):
+        # Panne nommée : une fiche écrite par l'ancienne version (liste d'entiers) ne se
+        # relit pas, ou un `--numero 2` la double d'une entrée `2` qui s'y trouve déjà.
+        # Attendu : lecture OK, `--numero 2` sans effet, `--numero 3` ajouté à la fin.
+        self.poser_session(4262, {"bridgeSessionId": SESSION_BRIDGE, "sessionId": "loc-4262"})
+        self.assertEqual(self.ouvrir(pid=4262).returncode, 0)
+        chemin = self.dossier_fiches() / "loc-4262.json"
+        ancienne = json.loads(chemin.read_text(encoding="utf-8"))
+        ancienne["etapes_liste"] = [1, 2]
+        chemin.write_text(json.dumps(ancienne), encoding="utf-8")
+
+        self.assertEqual(self.lire(pid=4262)["etapes_liste"], [1, 2])
+        self.assertEqual(self.lancer("etape", "--faite", "2", "--restantes", "1", "--numero", "2", pid=4262).returncode, 0)
+        self.assertEqual(self.lire(pid=4262)["etapes_liste"], [1, 2])
+        self.assertEqual(self.lancer("etape", "--faite", "3", "--restantes", "0", "--numero", "3", pid=4262).returncode, 0)
+        self.assertEqual(self.lire(pid=4262)["etapes_liste"], [1, 2, "3"])
 
     def test_fiche_ecrite_sans_liste_reste_lisible_et_etape_la_complete(self):
         # Au-delà du brief (preuve : « une fiche écrite par l'ancienne version doit rester
@@ -372,7 +423,7 @@ class PlanEnCoursTest(unittest.TestCase):
         # doit la compléter au lieu de sortir en erreur. Panne attrapée : un `etape` qui
         # lit la liste sans la trouver (KeyError) sur une fiche ancienne. Les deux
         # premiers attendus (lecture, `etape` rc 0) passent déjà ; le dernier échoue
-        # tant que la liste n'existe pas.
+        # tant que `--numero` ne complète pas la liste.
         self.poser_session(4259, {"bridgeSessionId": SESSION_BRIDGE, "sessionId": "loc-4259"})
         self.assertEqual(self.ouvrir(pid=4259).returncode, 0)
         chemin = self.dossier_fiches() / "loc-4259.json"
@@ -382,7 +433,8 @@ class PlanEnCoursTest(unittest.TestCase):
 
         self.assertEqual(self.lire(pid=4259)["etat"], "en cours")
         self.assertEqual(self.lancer("etape", "--faite", "1", "--restantes", "0", pid=4259).returncode, 0)
-        self.assertEqual(self.lire(pid=4259)["etapes_liste"], [1])
+        self.assertEqual(self.lancer("etape", "--faite", "1", "--restantes", "0", "--numero", "1", pid=4259).returncode, 0)
+        self.assertEqual(self.lire(pid=4259)["etapes_liste"], ["1"])
 
     def test_dossier_des_fiches_en_mode_700(self):
         # Panne nommée : les fiches (chemins de worktree, numéros de PR) sont lisibles
