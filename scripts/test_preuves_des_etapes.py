@@ -20,6 +20,8 @@ SCRIPT = RACINE / "plugins" / "plans-notion" / "skills" / "_partage" / "scripts"
 
 ENTETE = "# Plan de test\n\n## Cartes\n\n- une carte\n\n"
 PREUVE_DE_FIN = "- **Preuve de fin** : `pytest -q` → tout vert"
+RELECTURE_ETAPE = "- **Relecture** : étape"
+RELECTURE_LOT = "- **Relecture** : lot"
 
 # Les quatre champs d'une entrée de journal conforme, dans l'ordre de la page.
 CHAMPS_OK = {
@@ -203,6 +205,31 @@ class PorteApres(_Dossier):
         code, sortie, _ = jouer(p, "--apres")
         self.assertEqual(code, 1, sortie)
         self.assertIn("Étape 2 : pas d'entrée de journal", sortie)
+
+    def test_etape_relue_seule_sans_ligne_revue_est_refusee(self):
+        # Panne : une étape dont « Relecture » vaut « étape » passe la porte d'après sans sa
+        # ligne « Revue » : la relecture seule n'est jamais tracée au journal, et le verdict
+        # du relecteur ne compte pas avant « fait ».
+        p = self.ecrire("p.md", ENTETE + chapitre(
+            etape("1", PREUVE_DE_FIN, RELECTURE_ETAPE),
+            etape("2", PREUVE_DE_FIN, RELECTURE_ETAPE)) + journal(
+            entree("1", remplace={"Revue": "- **Revue** : 1 tour(s)"}), entree("2")))
+        code, sortie, _ = jouer(p, "--apres")
+        self.assertEqual(code, 1, sortie)
+        self.assertIn("Étape 2 : Relecture « étape » sans ligne Revue", sortie)
+        self.assertNotIn("Étape 1", sortie)
+
+    # Test en plus, hors liste du brief : une étape « lot » ne porte pas de ligne Revue
+    # propre (sa revue se trace sous la dernière étape du lot, revue.md). Panne : la règle
+    # s'étend aux étapes « lot » et refuse un plan conforme.
+    def test_etape_lot_sans_ligne_revue_passe(self):
+        p = self.ecrire("p.md", ENTETE + chapitre(
+            etape("1", PREUVE_DE_FIN, RELECTURE_LOT),
+            etape("2", PREUVE_DE_FIN, RELECTURE_ETAPE)) + journal(
+            entree("1"), entree("2", remplace={"Revue": "- **Revue** : 1 tour(s)"})))
+        code, sortie, _ = jouer(p, "--apres")
+        self.assertEqual(code, 0, sortie)
+        self.assertIn("toutes verified", sortie)
 
     def test_entree_sans_preuve_est_refusee(self):
         # Panne : une entrée sans « Preuve » (ni rejouée) passe.
