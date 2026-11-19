@@ -1,0 +1,1 @@
+Étape 1 faite en deux exécutants : le premier a écrit `tests/test_plafond.py` et l'a joué rouge (commit `3f1c2a9`) ; j'ai commité ce rouge, puis le second, avec le SHA du rouge et la liste des fichiers de test en lecture seule, a écrit `src/plafond.py` ; le `git diff` des tests est vide, je commite le vert (`8d4e0b7`).

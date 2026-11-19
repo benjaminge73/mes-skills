@@ -1,0 +1,6 @@
+COMMIT 3f1c2a9 | test(plafond): étape 1 — rouge (plafond au-delà de 500 €)
+FILES: tests/test_plafond.py
+STATUS: 
+COMMIT 8d4e0b7 | feat(plafond): étape 1 — plafond à 500 €
+FILES: src/plafond.py
+STATUS: 
