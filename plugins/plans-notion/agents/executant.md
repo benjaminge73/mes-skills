@@ -97,8 +97,9 @@ Une étape testée peut se faire en deux appels enchaînés (`executer-plan-noti
   assertion, ni un import, ni un `skip`, ni un nouveau fichier de test. Si un
   test te paraît faux, tu ne le corriges pas : tu rends `BLOCKED`, avec
   l'assertion en cause et la raison, et le pilote décide. Tu ne commites pas :
-  le pilote commite le vert, après avoir vérifié que
-  `git diff <sha-rouge>..HEAD -- <fichiers-de-test>` est vide.
+  le pilote commite le vert, après avoir vérifié, sur l'arbre de travail et
+  avant le commit, que `git diff <sha-rouge> -- <fichiers-de-test>` et
+  `git status --porcelain -- <dossier des tests>` sont vides.
 
 ## Quand l'étape est un retrait
 

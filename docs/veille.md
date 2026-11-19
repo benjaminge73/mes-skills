@@ -27,9 +27,11 @@ PR (ou dans un plan si c'est plus gros) ; l'entrée datée s'ajoute au journal
 nouveau : une passe récente peut devenir fausse le jour où sort un modèle, ou le jour
 où un alias change de sens. Donc, en plus de la règle des 30 jours : quand Anthropic sort
 un modèle (une nouvelle génération d'Opus, de Sonnet ou de Haiku) ou qu'un alias (`opus`,
-`sonnet`, `haiku`) se met à servir un autre modèle, la passe de veille se fait avant la
-prochaine PR qui touche un skill, un agent, un hook ou un `_partage/`, sans attendre
-l'échéance. On relit alors l'alias et le modèle servi, l'effort par défaut, les tarifs
+`sonnet`, `haiku`) se met à servir un autre modèle, la session le dit à Benjamin et lui
+propose une passe de veille avant la prochaine PR qui touche un skill, un agent, un hook
+ou un `_partage/`, sans bloquer celle en cours. Le rappel de clôture ne bloque ni la porte
+ni `a merger` : faire la passe d'abord est une décision de Benjamin. La passe reste exigée
+par `scripts/check_veille.py` selon son propre garde (30 jours). On relit alors l'alias et le modèle servi, l'effort par défaut, les tarifs
 (les lignes de la partie 2 qui les citent), puis on ajoute une entrée au journal. Exemple
 vécu : la 2.1.293, relevée dans la passe du 2026-10-08, a fait de `haiku` Haiku 5.5 sur
 l'API Anthropic. La clôture d'un plan qui touche ces fichiers rappelle ce déclencheur

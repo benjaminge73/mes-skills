@@ -70,9 +70,13 @@ forme, dans le brief ; le sous-agent ne la décide pas.
   liste des fichiers de test, **en lecture seule**. Il écrit le code qui les
   fait passer, et ne modifie aucun de ces fichiers : ni assertion, ni import,
   ni `skip`, ni nouveau fichier de test. Il ne commite pas non plus.
-- **Le pilote contrôle, puis commite le vert.** `git diff <sha-rouge>..HEAD --
-  <fichiers-de-test>` doit être vide. Un diff non vide, c'est l'étape qui
-  repart, comme dans la section « Trois issues ».
+- **Le pilote contrôle, puis commite le vert.** Les deux contrôles se jouent
+  **avant** le commit, sur l'arbre de travail, et doivent être vides :
+  `git diff <sha-rouge> -- <fichiers-de-test>` (sans `..HEAD` : à ce moment
+  HEAD est encore le commit rouge, et une plage entre deux commits ignore
+  l'arbre de travail) et `git status --porcelain -- <dossier des tests>` (aucun
+  fichier de test nouveau ou modifié, fichiers non suivis compris). Un résultat
+  non vide, c'est l'étape qui repart, comme dans la section « Trois issues ».
 
 Si le second exécutant croit le test faux, il ne le corrige pas : il rend
 `BLOCKED`, avec l'assertion en cause et la raison. Le pilote tranche : un
@@ -141,7 +145,7 @@ couvre pas le cas visé. Retour au sous-agent avec la sortie verte et la
 demande de corriger le test, pas le code ; un nouveau commit rouge remplace
 l'ancien.
 
-**`git diff <sha-rouge>..HEAD -- <fichiers-de-test>` n'est pas vide.** Le
+**`git diff <sha-rouge> -- <fichiers-de-test>` ou `git status --porcelain -- <dossier des tests>` n'est pas vide.** Le
 code a retouché un fichier que le rouge avait déjà jugé — exactement ce que
 la preuve du rouge existe pour empêcher. L'étape repart : le commit vert ne
 doit toucher aucun fichier de test. Si le test était réellement faux — une
