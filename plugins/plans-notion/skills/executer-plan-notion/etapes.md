@@ -418,7 +418,7 @@ en disant quelles étapes ont été faites en direct et pourquoi.
 - **Écrire l'entrée de journal de l'étape dans la page** (§4), sous son propre
   H3. Pour une vague, les entrées se posent **dans l'ordre des numéros
   d'étape**, jamais dans l'ordre d'arrivée des rapports de sous-agent
-  (`vagues.md`). La puce **Effets** de cette entrée reprend le champ « effet sur » de la pièce 5 du rapport (`aucun` admis) ; dès qu'une étape du journal la porte, `preuves-des-etapes.py --apres` l'exige à chaque étape.
+  (`vagues.md`). La puce **Effets** de cette entrée reprend le champ « effet sur » de la pièce 5 du rapport (`aucun` admis) ; à partir de la première étape du journal qui la porte, `preuves-des-etapes.py --apres` l'exige à chaque étape suivante (une étape écartée en est exemptée).
 - **Afficher un récap de l'étape dans la session** : ce qui a été fait, les
   fichiers touchés, le commit et le verdict de la preuve, les écarts, l'étape
   suivante.
