@@ -436,7 +436,9 @@ avec un plan de suite (§7).
 tranchée dans sa mémoire, ou un geste que la session ne peut pas tenir (commande
 longue, interactive, dans tmux), se pose d'abord à Hal :
 `${CLAUDE_PLUGIN_ROOT}/skills/_partage/demander-a-hal.md`. Un geste irréversible
-reste à Benjamin.
+reste à Benjamin, sauf la dépense **déjà validée** dans le plan (case cochée, plafond
+écrit) : une étape déjà validée et confiée à Hal se transmet sans « go », par le § 2 bis du
+même fichier, et un dépassement de ce plafond reste à Benjamin.
 
 **Poser la question en chat.** Si ton environnement fournit un outil de question
 structurée (dans Claude Code : `AskUserQuestion`), l'utiliser ; sinon, les

@@ -165,7 +165,10 @@ Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard »
   tri passe **avant** la suite complète du point 1 pour qu'un `D<n>` y soit couvert,
   avant l'ouverture de la PR, et avant le Récap du point 7, qui en reprend le
   résultat sans le décider. Un reste né de la suite complète elle-même repasse par
-  ce tri.
+  ce tri. Une étape **déjà validée** dans le plan (case cochée, plafond écrit) et confiée à Hal ne
+  part pas à Benjamin comme un reste : elle se transmet à Hal, `${CLAUDE_PLUGIN_ROOT}/skills/_partage/demander-a-hal.md`
+  (§ 2 bis), et le compte rendu écrit « transmise à Hal, plafond X $, validé en Qn ». Jamais « dis-moi go ».
+  Un dépassement de ce plafond, lui, reste une question à Benjamin.
 - **Livrer la PR, prête, et la suivre jusqu'au merge.** La PR s'ouvre à la
   clôture ; c'est la CI qui la merge, jamais la session (points 5 et 8). La
   séquence de clôture est courte :

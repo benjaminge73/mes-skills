@@ -97,7 +97,7 @@
         "hooks/retirer_worktrees_clos.py",
         "agents/cloturier.md"
       ],
-      "cas": ["case-cochee", "decouverte-irreversible", "decouverte-reversible", "decouverte-secret", "decouverte-trop-grande", "cloture-ouvre-la-pr", "cloture-preuve-doc", "cloture-porte-doc", "relecteur-garde-fou"],
+      "cas": ["case-cochee", "decouverte-irreversible", "decouverte-reversible", "decouverte-secret", "decouverte-trop-grande", "cloture-ouvre-la-pr", "cloture-preuve-doc", "cloture-porte-doc", "relecteur-garde-fou", "go-deja-valide", "go-plafond-depasse"],
       "plancher": 0.47
     },
     "perimetre": {
