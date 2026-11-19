@@ -1,0 +1,1 @@
+Étape 14 : pas de transmission à Hal, son estimation (35 $) dépasse le plafond que tu as validé (20 $, Q3), et je ne transmets pas un dépassement sans ta décision. Question pour Benjamin : veux-tu relever le plafond à 35 $, ou que je ramène le passage de rattrapage sous 20 $ ?

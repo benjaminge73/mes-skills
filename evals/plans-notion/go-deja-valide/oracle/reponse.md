@@ -1,0 +1,1 @@
+Étape 14 transmise à Hal : elle est déjà validée (Q3 cochée, plafond 20 $) et son estimation (12 $) tient sous ce plafond. La commande geste est écrite dans demandes.md, avec --valide et --plafond 20 ; la clôture attend le retour de Hal.
