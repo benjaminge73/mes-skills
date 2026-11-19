@@ -15,6 +15,12 @@ Pannes attrapées :
 - ``test_declaration_sans_raison_...`` (en plus du budget du brief) : une
   déclaration sans raison exempterait n'importe quel écart ; la forme est refusée,
   comme ``Eval-cas: aucun`` sans raison.
+- ``test_script_qui_ne_rend_que_son_usage_...`` (budget du correctif D1b) : un script
+  qui ne tourne jamais (il rend son message d'usage des deux côtés) est compté comme
+  comparé : le garde paraît voir ce qu'il ne voit pas.
+- ``test_script_joue_avec_ses_arguments_connus_...`` (en plus du correctif D1b) : la
+  table ``ARGUMENTS_PAR_SCRIPT`` ignorée laisse un script à option en « usage seul »,
+  donc jamais joué.
 """
 from __future__ import annotations
 
@@ -23,12 +29,21 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 RACINE = Path(__file__).resolve().parents[1]
 COMPARER = RACINE / "scripts" / "comparer_versions.py"
 SCRIPT = "plugins/demo/skills/_partage/scripts/sortie.py"
 V1 = "import sys\nprint('sortie v1 pour', sys.argv[1])\n"
 V2 = "import sys\nprint('sortie v2 pour', sys.argv[1])\n"
+# Un script qui exige deux arguments : jouer sur le seul plan rend son usage (rc 2).
+USAGE_SEUL = (
+    "import sys\n"
+    "if len(sys.argv) < 3:\n"
+    "    print('usage: sortie.py MODE PLAN', file=sys.stderr)\n"
+    "    sys.exit(2)\n"
+    "print('sortie pour', sys.argv[1], sys.argv[2])\n"
+)
 
 
 def _git(depot: Path, *args: str) -> subprocess.CompletedProcess:
@@ -109,6 +124,32 @@ class DeclarationSansRaison(DepotDeDeux):
         sortie = res.stdout + res.stderr
         self.assertEqual(res.returncode, 1, sortie)
         self.assertIn("invalide", sortie)
+
+
+class UsageSeul(DepotDeDeux):
+    def test_script_qui_ne_rend_que_son_usage_n_est_pas_compte_comme_compare(self):
+        base = self._commiter(SCRIPT, USAGE_SEUL, "feat: script qui exige deux arguments")
+        self._commiter(SCRIPT, USAGE_SEUL + "# retouche sans effet\n", "docs: commentaire")
+        res = self._comparer(base)
+        sortie = res.stdout + res.stderr
+        self.assertEqual(res.returncode, 0, sortie)
+        self.assertIn("0 script(s) réellement comparé(s)", sortie)
+        self.assertIn("usage seul", sortie)
+        self.assertIn("sortie.py", sortie)
+
+
+class ArgumentsConnus(DepotDeDeux):
+    def test_script_joue_avec_ses_arguments_connus_est_compare(self):
+        sys.path.insert(0, str(COMPARER.parent))
+        import comparer_versions as cv  # dans scripts/ : importé ici, pas au chargement
+        base = self._commiter(SCRIPT, USAGE_SEUL, "feat: script qui exige deux arguments")
+        self._commiter(SCRIPT, USAGE_SEUL + "# retouche sans effet\n", "docs: commentaire")
+        sans_table = cv.analyser(self.depot, base, self.plans)
+        with mock.patch.dict(cv.ARGUMENTS_PAR_SCRIPT, {"sortie.py": ["mode-a"]}):
+            avec_table = cv.analyser(self.depot, base, self.plans)
+        self.assertIn(SCRIPT, sans_table.usage_seul)
+        self.assertIn(SCRIPT, avec_table.comparables)
+        self.assertFalse(avec_table.refuse())
 
 
 if __name__ == "__main__":
