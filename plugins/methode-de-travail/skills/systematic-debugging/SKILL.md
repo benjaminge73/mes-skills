@@ -74,6 +74,7 @@ You MUST complete each phase before proceeding to the next.
    - They often contain the exact solution
    - Read stack traces completely
    - Note line numbers, file paths, error codes
+   - Production: read `get_runtime_errors` or the logs before any fix.
 
 2. **Reproduce Consistently**
    - Can you trigger it reliably?
@@ -251,8 +252,6 @@ If you catch yourself thinking:
 - **Each fix reveals new problem in different place**
 
 **ALL of these mean: STOP. Return to Phase 1.**
-
-**If 3+ fixes failed:** Question architecture (Phase 4, step 5)
 
 ## Signals From Your Human Partner That You're Doing It Wrong
 
