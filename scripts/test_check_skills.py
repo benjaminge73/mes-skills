@@ -60,8 +60,12 @@ def _limites(racine: Path, **plus) -> dict:
         p.relative_to(racine).as_posix(): dict(PLAFOND_LARGE)
         for p in racine.glob("plugins/*/skills/*/SKILL.md")
     }
-    limites = {"taille_skill_md": tailles, "invariants_en_tete": [],
-               "veille_jours_max": 30, "exceptions": []}
+    longueurs = {
+        p.relative_to(racine).as_posix(): {"caracteres": 10_000}
+        for p in racine.glob("plugins/*/skills/*/SKILL.md")
+    }
+    limites = {"taille_skill_md": tailles, "longueur_description": longueurs,
+               "invariants_en_tete": [], "veille_jours_max": 30, "exceptions": []}
     limites.update(plus)
     return limites
 
@@ -179,6 +183,38 @@ class RegleB_TailleDesSkillMd(Depot):
         self.assertIn("limites.json", refus[0].message)
 
 
+class RegleO_DescriptionSousSonPlafond(Depot):
+    CHEMIN = "plugins/p/skills/s/SKILL.md"
+
+    def test_une_description_plus_longue_que_son_plafond_est_refusee(self):
+        _manifeste(self.racine, "p")
+        _skill(self.racine, "p", "s", description="x" * 301)
+        limites = _limites(self.racine)
+        limites["longueur_description"][self.CHEMIN] = {"caracteres": 300}
+        refus = [a for a in self.controler(limites).refus if a.regle == "o"]
+        self.assertEqual(len(refus), 1)
+        self.assertIn("300", refus[0].message)
+
+    def test_une_description_sous_son_plafond_passe(self):
+        # Vert avant le code : c'est le garde-fou contre un refus à tort une fois la règle écrite.
+        _manifeste(self.racine, "p")
+        _skill(self.racine, "p", "s", description="x" * 299)
+        limites = _limites(self.racine)
+        limites["longueur_description"][self.CHEMIN] = {"caracteres": 300}
+        self.assertEqual(self.controler(limites).refus, [])
+
+    def test_un_skill_sans_plafond_de_description_est_refuse(self):
+        # En plus du budget : sans ce refus, un skill ajouté hors de la table échappe
+        # à la règle en silence (même garde que la règle b pour la taille).
+        _manifeste(self.racine, "p")
+        _skill(self.racine, "p", "s", description="Court.")
+        limites = _limites(self.racine)
+        limites["longueur_description"] = {}
+        refus = [a for a in self.controler(limites).refus if a.regle == "o"]
+        self.assertEqual(len(refus), 1)
+        self.assertIn("limites.json", refus[0].message)
+
+
 class Cliquet(unittest.TestCase):
     def base(self):
         return {"taille_skill_md": {"x/SKILL.md": {"lignes": 100, "octets": 5000}},
@@ -213,6 +249,20 @@ class Cliquet(unittest.TestCase):
         tete = self.base()
         tete["taille_skill_md"] = {}
         self.assertEqual(len(check_skills.verifier_cliquet(tete, self.base())), 1)
+
+    def test_une_hausse_du_plafond_de_description_est_refusee(self):
+        base = {"longueur_description": {"x/SKILL.md": {"caracteres": 1000}}}
+        tete = {"longueur_description": {"x/SKILL.md": {"caracteres": 1001}}}
+        anomalies = check_skills.verifier_cliquet(tete, base)
+        self.assertEqual([a.regle for a in anomalies], ["o"])
+        self.assertIn("baisser", anomalies[0].message)
+
+    def test_un_plafond_de_description_retire_alors_qu_il_existait_est_refuse(self):
+        # Retirer la clé relèverait le plafond à l'infini : même panne que la hausse, sans chiffre.
+        base = {"longueur_description": {"x/SKILL.md": {"caracteres": 1000}}}
+        tete = {"longueur_description": {}}
+        anomalies = check_skills.verifier_cliquet(tete, base)
+        self.assertEqual([a.regle for a in anomalies], ["o"])
 
     def test_le_seuil_de_veille_ne_peut_que_baisser(self):
         tete = self.base()
