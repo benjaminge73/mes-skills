@@ -236,6 +236,10 @@ que la porte du `pret`, plus bas, n'est pas franchie) :
 
   📄 `${CLAUDE_PLUGIN_ROOT}/skills/_partage/vagues.md`
 
+  Une étape dont `Relecture` vaut `étape` a son worktree et sa branche d'étape
+  même seule dans sa vague (`vagues.md`, « Une étape relue seule ») : le calcul
+  ci-dessus ne change pas pour elle.
+
   Le résultat — la liste des vagues, une ligne par vague — s'ajoute à l'entrée
   `Ouverture` du journal (§4), à côté des trois réponses sur la CI ci-dessus :
   les deux relevés commandent la suite de la même façon, et se lisent

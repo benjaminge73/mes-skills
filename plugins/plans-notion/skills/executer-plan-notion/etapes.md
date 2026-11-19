@@ -19,9 +19,11 @@ pour raconter l'avancement : l'avancement va dans `Journal d'exécution` (§4).
 
 Le défaut, sauf avis contraire de Benjamin :
 
-- Chaque étape se code **directement sur la branche du plan**. Pas de
-  sous-branche, pas de PR d'étape : une PR, c'est un run de CI, et c'est
-  précisément ce qu'on économise (§2).
+- Chaque étape `lot` se code **directement sur la branche du plan**. Une étape
+  `étape` (relue seule) se joue sur sa branche d'étape, dans son worktree, et se
+  rapatrie sur la branche du plan (`vagues.md`, « Une étape relue seule »). Pour une
+  étape `lot`, pas de sous-branche, pas de PR d'étape : une PR, c'est un run de CI,
+  et c'est précisément ce qu'on économise (§2).
 - **La preuve de l'étape est locale, et c'est le pilote qui la
   joue** — pas le rapport du sous-agent. Rejouer la commande de preuve du brief,
   et recopier sa sortie au journal (§4). **Cette preuve, ce sont les tests des
