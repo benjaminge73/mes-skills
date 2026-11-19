@@ -40,7 +40,7 @@ lire ce skill depuis lui. Code 2 : lecture impossible, à dire.
 ## 1. Envoyer les étapes
 
 - Brief : la forme de `${CLAUDE_PLUGIN_ROOT}/skills/executer-plan-notion/etapes.md`,
-  sans recopier la définition de l'`executant`.
+  sans recopier l'`executant` ni le code : chemin et la ligne.
 - **En parallèle** si les fichiers sont disjoints, sinon en séquence (`${CLAUDE_PLUGIN_ROOT}/skills/_partage/vagues.md`).
 
 ## 2. Relire et rejouer

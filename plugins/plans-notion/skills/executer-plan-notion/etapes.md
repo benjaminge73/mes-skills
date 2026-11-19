@@ -302,6 +302,8 @@ et c'est ce qui donne ensuite l'envie de « faire soi-même ». Le brief porte d
      corrige pas ; d'un secret, il ne recopie jamais la valeur. Le pilote en
      fait des découvertes traitées (§4).
 
+Ce que le code dit déjà ne se recopie pas dans le brief : on donne le chemin et la ligne à lire, pas un extrait. Le texte du brief reste à ce que le code ne dit pas : l'intention, la contrainte, la preuve.
+
 ### Ce qui reste chez le pilote
 
 La liste est courte, et c'est voulu :
