@@ -37,6 +37,19 @@ Pannes attrapées :
   Le dépôt est configuré avec ``log.showRoot=false`` : ``git show`` y rend une liste vide pour
   le commit racine, ce qui cacherait le fichier du rouge ; le repli ne doit pas dépendre de
   cette option.
+- ``test_sans_tests_fichier_de_test_ajoute_au_vert_sort_en_1`` (correctif D4b) : sans ``--tests``,
+  la détection par nom et par dossier doit voir un fichier de test ajouté au vert, hors du rouge
+  (``tests/test_x.py``, ``x_test.go``, ``foo.spec.ts``). Aucun autre test ne joue cette branche.
+- ``test_sans_tests_retouche_du_code_seul_sort_en_0`` (correctif D4b) : sans ``--tests``, un
+  vert qui ne retouche que ``src/calc.py`` ne doit pas être pris pour un test. Panne attrapée :
+  une détection trop large, qui ferait un faux rouge sur chaque vert légitime.
+- ``test_config_du_lanceur_hors_section_de_test_sort_en_0`` (correctif D4b) : une dépendance
+  ajoutée à ``pyproject.toml``, ou une ligne de ``tox.ini`` hors de ``[testenv]``, ne fait pas
+  sauter de test : le script ne doit pas les signaler comme retouche du lanceur.
+- ``test_section_de_test_retouchee_sort_en_1`` (correctif D4b) : ``addopts`` sous
+  ``[tool.pytest.ini_options]``, et une ligne ajoutée à ``tox.ini`` sept lignes sous
+  ``[testenv]`` (hors du contexte de diff de trois lignes) : la section qui contient le
+  changement doit suffire à le signaler.
 """
 from __future__ import annotations
 
@@ -109,6 +122,34 @@ SPEC_VERT_SKIP = SPEC_ROUGE.replace(
 # Un ``conftest.py`` posé au vert : il fait sauter un test sans toucher à aucun fichier de test.
 CONFTEST = "conftest.py"
 CONFTEST_VERT = 'collect_ignore = ["tests/test_calc.py"]\n'
+
+# Le code, dans un sous-dossier : un vert qui le retouche seul doit sortir en 0 sans ``--tests``.
+CODE_SRC = "src/calc.py"
+CODE_SRC_AMORCE = "def somme(a, b):\n    raise NotImplementedError\n"
+
+# pyproject.toml : une dépendance (hors section de test) et une option pytest (dans la section).
+PYPROJECT_AMORCE = '[project]\nname = "demo"\n'
+PYPROJECT_AVEC_DEPENDANCE = PYPROJECT_AMORCE + 'dependencies = ["requests"]\n'
+PYPROJECT_AMORCE_PYTEST = PYPROJECT_AMORCE + '\n[tool.pytest.ini_options]\ntestpaths = ["tests"]\n'
+PYPROJECT_AVEC_ADDOPTS = PYPROJECT_AMORCE_PYTEST + 'addopts = "-k nothing"\n'
+
+# tox.ini : ``envlist`` est hors de ``[testenv]``, ``echo cinq`` est à sept lignes de son en-tête.
+TOX_AMORCE = (
+    "[tox]\n"
+    "envlist = py3\n"
+    "\n"
+    "[testenv]\n"
+    "deps =\n"
+    "    pytest\n"
+    "commands =\n"
+    "    python -m pytest\n"
+    "    echo une\n"
+    "    echo deux\n"
+    "    echo trois\n"
+    "    echo quatre\n"
+)
+TOX_ENVLIST_CHANGE = TOX_AMORCE.replace("envlist = py3", "envlist = py3, py312", 1)
+TOX_ECHO_CINQ = TOX_AMORCE + "    echo cinq\n"
 
 
 class VerifierRougeVert(unittest.TestCase):
@@ -260,6 +301,71 @@ class VerifierRougeVert(unittest.TestCase):
         self.assertEqual(code, 1, sortie)
         self.assertNotIn("Traceback", sortie)
         self.assertIn(SPEC, sortie)
+
+    # Les cas qui suivent jouent SANS ``--tests`` (``tests=None``) : c'est la détection par défaut
+    # qu'ils testent. Les tests plus haut passent ``--tests tests`` et ne la testent pas.
+
+    def test_sans_tests_fichier_de_test_ajoute_au_vert_sort_en_1(self):
+        # Attrape : sans --tests, un fichier de test ajouté au vert, hors du rouge, passerait
+        # inaperçu si la détection par dossier ou par nom ne le reconnaissait pas.
+        for nom in ("tests/test_x.py", "x_test.go", "foo.spec.ts"):
+            with self.subTest(fichier=nom):
+                depot = self._depot()
+                rouge = self._rouge(depot)
+                vert = self._commit(depot, {nom: "# nouveau test\n"},
+                                    "feat(demo): étape 5 — la somme")
+                code, sortie = self._jouer(depot, rouge, vert, tests=None)
+                self.assertEqual(code, 1, sortie)
+                self.assertIn(nom, sortie)
+
+    def test_sans_tests_retouche_du_code_seul_sort_en_0(self):
+        # Attrape : sans --tests, un vert qui ne retouche que le code serait pris pour un test
+        # par une détection trop large, et sortirait en 1 sans raison : un faux rouge.
+        depot = self._depot()
+        self._commit(depot, {CODE_SRC: CODE_SRC_AMORCE}, "feat(demo): amorce du code")
+        rouge = self._rouge(depot)
+        vert = self._commit(depot, {CODE_SRC: CODE_VERT}, "feat(demo): étape 5 — la somme")
+        code, sortie = self._jouer(depot, rouge, vert, tests=None)
+        self.assertEqual(code, 0, sortie)
+
+    def test_config_du_lanceur_hors_section_de_test_sort_en_0(self):
+        # Attrape : une dépendance ajoutée à pyproject.toml, ou une ligne de tox.ini hors de
+        # [testenv], signalées comme retouche du lanceur alors qu'aucun test ne saute.
+        cas = {
+            "dépendance ajoutée à pyproject.toml": (
+                "pyproject.toml", PYPROJECT_AMORCE, PYPROJECT_AVEC_DEPENDANCE),
+            "envlist de tox.ini retouché": ("tox.ini", TOX_AMORCE, TOX_ENVLIST_CHANGE),
+        }
+        for nom, (fichier, amorce, vert_contenu) in cas.items():
+            with self.subTest(cas=nom):
+                depot = self._depot()
+                self._commit(depot, {fichier: amorce}, "chore(demo): amorce de la config")
+                rouge = self._rouge(depot)
+                vert = self._commit(depot, {fichier: vert_contenu},
+                                    "feat(demo): étape 5 — la somme")
+                code, sortie = self._jouer(depot, rouge, vert, tests=None)
+                self.assertEqual(code, 0, sortie)
+
+    def test_section_de_test_retouchee_sort_en_1(self):
+        # Attrape : une option pytest ajoutée dans pyproject.toml, ou une ligne ajoutée sous
+        # [testenv] de tox.ini à sept lignes de l'en-tête (hors du contexte de diff de trois
+        # lignes) : une lecture du seul contexte de diff laisserait passer ce second cas.
+        cas = {
+            "addopts ajouté sous [tool.pytest.ini_options]": (
+                "pyproject.toml", PYPROJECT_AMORCE_PYTEST, PYPROJECT_AVEC_ADDOPTS),
+            "ligne ajoutée loin sous [testenv]": ("tox.ini", TOX_AMORCE, TOX_ECHO_CINQ),
+        }
+        for nom, (fichier, amorce, vert_contenu) in cas.items():
+            with self.subTest(cas=nom):
+                depot = self._depot()
+                self._commit(depot, {fichier: amorce}, "chore(demo): amorce de la config")
+                rouge = self._rouge(depot)
+                vert = self._commit(depot, {fichier: vert_contenu},
+                                    "feat(demo): étape 5 — la somme")
+                code, sortie = self._jouer(depot, rouge, vert, tests=None)
+                self.assertEqual(code, 1, sortie)
+                self.assertIn(fichier, sortie)
+                self.assertIn("configuration du lanceur de tests", sortie)
 
 
 if __name__ == "__main__":
