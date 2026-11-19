@@ -81,6 +81,11 @@ Les règles, et le fait de doc qui fonde chacune (voir ``docs/veille.md``) :
     ``{color=…}`` comme texte visible et convertit ``<details>`` en ``<toggle>``
     avec l'avertissement « legacy Markdown » (mesuré le 2026-10-21, voir
     ``docs/veille.md``). La couleur passe par l'attribut d'une balise.
+(o) La ``description`` de chaque ``SKILL.md`` tient sous son plafond de
+    ``longueur_description`` dans ``scripts/limites.json``, à cliquet comme la
+    règle (b) : un plafond ne peut que baisser, et un skill absent de la table
+    est refusé. Chaque description est lue dans la liste des skills de toutes
+    les sessions ; sans ce garde, elle regrossit sans que personne le voie.
 
 Exceptions datées
 -----------------
@@ -323,6 +328,30 @@ def _regle_c(cible: str, texte: str) -> list[Anomalie]:
             f"{_milliers(JETONS_INVARIANTS)} premiers jetons que la compaction conserve. "
             "Raccourcir le bloc ou le remonter."))]
     return []
+
+
+def _regle_o(cible: str, champs: dict, limites: dict) -> list[Anomalie]:
+    """La ``description`` d'un SKILL.md tient sous son plafond de ``limites.json``.
+
+    La longueur se mesure comme la preuve de l'étape : ``_texte`` du champ, sans
+    rognage, ce qui compte le saut de ligne d'un bloc replié. Un skill absent de
+    la table est refusé, comme pour la règle (b).
+    """
+    plafond = limites.get("longueur_description", {}).get(cible)
+    longueur = len(_texte(champs, "description"))
+    if not isinstance(plafond, dict) or not isinstance(plafond.get("caracteres"), int):
+        return [Anomalie("o", cible, (
+            "aucun plafond de longueur de `description` dans scripts/limites.json "
+            "(`longueur_description`). Ajouter une entrée avec la longueur actuelle : "
+            f"{{\"caracteres\": {longueur}}}."))]
+    maximum = plafond["caracteres"]
+    if longueur <= maximum:
+        return []
+    return [Anomalie("o", cible, (
+        f"`description` fait {_milliers(longueur)} caractères, au-dessus du plafond de "
+        f"{_milliers(maximum)} posé dans scripts/limites.json. Raccourcir la description : "
+        "les phrases de déclenchement d'abord, le détail dans le corps du fichier. "
+        "Le plafond ne peut que baisser, jamais monter."))]
 
 
 def _regle_d(racine: Path, plugin: Path) -> list[Anomalie]:
@@ -764,6 +793,7 @@ def controler(racine: Path, limites: dict, sans_exceptions: bool = False) -> Res
             texte = skill.read_text(encoding="utf-8")
             anomalies += _regle_a(cible, lire_frontmatter(texte))
             anomalies += _regle_b(cible, skill, limites)
+            anomalies += _regle_o(cible, lire_frontmatter(texte), limites)
             if cible in marques:
                 anomalies += _regle_c(cible, texte)
         for agent in sorted(plugin.glob("agents/*.md")):
@@ -814,6 +844,18 @@ def verifier_cliquet(limites: dict, limites_base: dict | None) -> list[Anomalie]
     if limites_base is None:
         return []
     anomalies: list[Anomalie] = []
+    for fichier, ancien in limites_base.get("longueur_description", {}).items():
+        nouveau = limites.get("longueur_description", {}).get(fichier)
+        if nouveau is None:
+            anomalies.append(Anomalie("o", fichier, (
+                "le plafond de description de ce skill a disparu de limites.json : retirer un "
+                "plafond revient à le relever à l'infini. Le remettre.")))
+            continue
+        if nouveau.get("caracteres", math.inf) > ancien.get("caracteres", math.inf):
+            anomalies.append(Anomalie("o", fichier, (
+                f"plafond de description relevé de {ancien.get('caracteres')} à "
+                f"{nouveau.get('caracteres')} caractères dans limites.json : un plafond ne peut "
+                "que baisser. Raccourcir la description au lieu de relever le plafond.")))
     for fichier, ancien in limites_base.get("taille_skill_md", {}).items():
         nouveau = limites.get("taille_skill_md", {}).get(fichier)
         if nouveau is None:

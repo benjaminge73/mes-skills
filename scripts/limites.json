@@ -30,6 +30,29 @@
       "octets": 5986
     }
   },
+  "longueur_description": {
+    "plugins/methode-de-travail/skills/brainstorming/SKILL.md": {
+      "caracteres": 390
+    },
+    "plugins/methode-de-travail/skills/systematic-debugging/SKILL.md": {
+      "caracteres": 91
+    },
+    "plugins/methode-de-travail/skills/verification-before-completion/SKILL.md": {
+      "caracteres": 225
+    },
+    "plugins/plans-notion/skills/deleguer-a-haiku/SKILL.md": {
+      "caracteres": 1125
+    },
+    "plugins/plans-notion/skills/executer-plan-notion/SKILL.md": {
+      "caracteres": 1419
+    },
+    "plugins/plans-notion/skills/plan-notion/SKILL.md": {
+      "caracteres": 868
+    },
+    "plugins/voyages/skills/organiser-voyage/SKILL.md": {
+      "caracteres": 816
+    }
+  },
   "invariants_en_tete": [
     "plugins/plans-notion/skills/plan-notion/SKILL.md",
     "plugins/plans-notion/skills/executer-plan-notion/SKILL.md"
