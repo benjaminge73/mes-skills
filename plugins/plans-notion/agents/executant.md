@@ -65,7 +65,8 @@ repartir de zéro.
   --detach <tmp> <sha>`, puis `git worktree remove --force <tmp>` une fois
   fini. Constaté le 2026-09-24 : un exécutant a utilisé `git stash` malgré cet
   interdit posé dans le brief — sans dégât cette fois, mais le risque de perte
-  pour une autre session reste entier tant que l'interdit n'est pas ici.
+  pour une autre session reste entier tant que l'interdit n'est pas ici. Un
+  hook (`refuser_git_stash.py`) refuse la commande de toute façon.
 
 ## Quand tu écris un test
 
