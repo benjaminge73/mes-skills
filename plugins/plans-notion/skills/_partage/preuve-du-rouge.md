@@ -52,7 +52,32 @@ L'exécutant commite **d'abord** les tests seuls, puis le code — deux commits,
 jamais un seul qui mélange les deux. C'est la seconde exception à la règle
 « ni `commit` » du brief standard (`executant.md`, « Ce que tu ne fais
 jamais »), au même titre que le regroupement de deux étapes (`vagues.md`) :
-sur ordre explicite du brief, et seulement dans ce cadre.
+sur ordre explicite du brief, et seulement dans ce cadre. Dans la forme à
+deux exécutants (section « Deux exécutants », plus bas), ce n'est pas un
+exécutant qui commite : c'est le pilote, le rouge comme le vert.
+
+## Deux exécutants : le second ne touche pas au test
+
+Une étape testée peut se faire en deux appels d'`executant` enchaînés
+(`executer-plan-notion`, `etapes.md`, §3). C'est le pilote qui choisit cette
+forme, dans le brief ; le sous-agent ne la décide pas.
+
+- **Le premier exécutant** n'écrit que les tests de l'étape, les joue, et rend
+  sa sortie rouge. Il ne touche à aucun code et ne commite rien.
+- **Le pilote commite le rouge** (tests seuls, `test(…): étape N — rouge`),
+  puis rejoue la preuve sur ce commit, comme décrit plus haut.
+- **Le second exécutant** reçoit dans son brief le SHA de ce commit rouge et la
+  liste des fichiers de test, **en lecture seule**. Il écrit le code qui les
+  fait passer, et ne modifie aucun de ces fichiers : ni assertion, ni import,
+  ni `skip`, ni nouveau fichier de test. Il ne commite pas non plus.
+- **Le pilote contrôle, puis commite le vert.** `git diff <sha-rouge>..HEAD --
+  <fichiers-de-test>` doit être vide. Un diff non vide, c'est l'étape qui
+  repart, comme dans la section « Trois issues ».
+
+Si le second exécutant croit le test faux, il ne le corrige pas : il rend
+`BLOCKED`, avec l'assertion en cause et la raison. Le pilote tranche : un
+nouveau commit rouge, qui rejoue tout le geste depuis le début, ou une étape
+bloquée. Celui qui n'a pas écrit le test ne le réécrit pas.
 
 ## Le geste du pilote : rejouer les tests sur le commit rouge
 

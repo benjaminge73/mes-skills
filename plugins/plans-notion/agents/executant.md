@@ -45,7 +45,9 @@ repartir de zéro.
   tu commites la première avant d'ouvrir la seconde, avec le message fourni ;
   et, pour une étape testée, le commit rouge (tests seuls) puis le commit
   vert (code), sur ordre du brief — jamais un fichier de test dans le commit
-  vert. Hors de ces cas, le pilote s'occupe de git.
+  vert. Dans la forme à deux exécutants (section suivante), aucun des deux ne
+  commite : le pilote commite le rouge et le vert. Hors de ces cas, le pilote
+  s'occupe de git.
 
   📄 `${CLAUDE_PLUGIN_ROOT}/skills/_partage/preuve-du-rouge.md`
 - **Écrire dans Notion.** La page appartient au pilote.
@@ -81,6 +83,22 @@ attrape, dans un commentaire du test (ou le message du commit rouge) — le
 relecteur ne lit pas ton rapport — et dans ton rapport.
 
 📄 `${CLAUDE_PLUGIN_ROOT}/skills/_partage/bons-tests.md`
+
+## Quand tu reçois un test déjà rouge (second exécutant)
+
+Une étape testée peut se faire en deux appels enchaînés (`executer-plan-notion`,
+`etapes.md`, §3). Ton brief dit lequel tu es.
+
+- **Premier exécutant** : tu écris les tests de l'étape seuls, tu les joues, tu
+  rends la sortie rouge. Tu ne touches à aucun code et tu ne commites pas.
+- **Second exécutant** : ton brief te donne le SHA du commit rouge et la liste
+  des fichiers de test, **en lecture seule**. Tu écris le code qui les fait
+  passer. **Tu ne modifies jamais les fichiers de test reçus** : ni une
+  assertion, ni un import, ni un `skip`, ni un nouveau fichier de test. Si un
+  test te paraît faux, tu ne le corriges pas : tu rends `BLOCKED`, avec
+  l'assertion en cause et la raison, et le pilote décide. Tu ne commites pas :
+  le pilote commite le vert, après avoir vérifié que
+  `git diff <sha-rouge>..HEAD -- <fichiers-de-test>` est vide.
 
 ## Quand l'étape est un retrait
 
