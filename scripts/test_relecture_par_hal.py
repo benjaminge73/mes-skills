@@ -51,7 +51,10 @@ class RelectureParHal(unittest.TestCase):
 
     def test_b_deux_tours_au_plus(self):
         t = lire(RELECTURE)
-        self.assertTrue(re.search(r"\b(deux|2)\s+tours\b", t, re.IGNORECASE), "relecture-par-hal.md ne borne pas la relecture à deux tours")
+        self.assertTrue(
+            re.search(r"\bdeux\s+tours\s+au\s+plus\b|\bjamais\s+plus\s+de\s+deux\s+tours\b", t, re.IGNORECASE),
+            "relecture-par-hal.md ne borne pas la relecture à deux tours au plus",
+        )
 
     def test_c_hal_ne_coche_aucune_case(self):
         t = lire(RELECTURE)
@@ -68,7 +71,12 @@ class RelectureParHal(unittest.TestCase):
         )
         self.assertTrue(re.search(r"avis\s+non\s+rendu", t, re.IGNORECASE), "relecture-par-hal.md ne dit pas « Avis non rendu » en repli")
         self.assertTrue(
-            phrase_avec(t, r"\bavis\b", r"invent|fabriqu|improvis", r"\b(sans|jamais)\b|\bne\b|n['’]"),
+            phrase_avec(
+                t, r"\bavis\b",
+                r"\bne\s+(?:s['’]|l['’])?(?:invente|fabrique|improvise)\w*\s+jamais"
+                r"|\bjamais\b[^.;!?]*\b(?:invent|fabriqu|improvis)\w*"
+                r"|\bsans\s+(?:invent|fabriqu|improvis)\w*",
+            ),
             "relecture-par-hal.md ne dit pas qu'un avis ne s'invente pas quand Hal ne répond pas",
         )
 

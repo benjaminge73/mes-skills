@@ -46,7 +46,10 @@ EOF
 
 Hal n'a ni Notion ni le contexte de la session : c'est donc la session qui lui passe le texte de
 la page. L'entrée se compose de la page, du bloc « Plans ouverts des mêmes dépôts » (§ 7) et des
-fiches de la pré-lecture (§ 2). Le délai de `relire` est de 300 secondes (constante
+fiches de la pré-lecture (§ 2). La commande coupe la page au premier de deux titres, écrits à
+l'identique par la session : `## Plans ouverts des mêmes dépôts` (le bloc § 7) et `## Fiches de
+pré-lecture` (les fiches). Tout ce qui précède le premier titre est « la page » : la ligne
+`Cadrage avec Hal :` doit s'y trouver, sinon le contrôle du tour 1 refuse. Le délai de `relire` est de 300 secondes (constante
 `DELAI_RELECTURE_S`) ; `question` garde 120 secondes.
 
 La sortie de Hal a une forme fixe : une ligne `VERDICT: OK` ou `VERDICT: RESERVES` ; une
@@ -72,8 +75,9 @@ Une sortie n'est pas utilisable, et compte comme vide, si elle est dans l'un de 
 dépassé, sortie vide, pas de ligne `VERDICT:`, réserve sans `(source :`, ou `OK` sans la liste de
 ce qui a été vérifié.
 
-Sur un échec, un second essai tout de suite. Si lui aussi échoue, la commande note les deux
-échecs au registre (§ 10), et la session écrit dans `Avis de Hal` :
+Sur un échec (code 1 de `relire`), la session relance une fois, avec le même `--tour`. La commande
+ne relance rien elle-même : elle note chaque échec au registre (§ 10). Deux échecs notés valent un
+avis rendu pour le hook. Si le second échoue aussi, la session écrit dans `Avis de Hal` :
 
 ```
 Avis non rendu : <erreur>, deux essais, <dates>
@@ -117,7 +121,8 @@ pas empêchée : la session décide quoi en faire.
 
 ## 7. Le bloc « Plans ouverts des mêmes dépôts »
 
-Avant `relire`, la session le compose depuis la base `Plans Claude` : les plans dont `Repo` vaut
+Avant `relire`, la session le compose, sous le titre `## Plans ouverts des mêmes dépôts` (à l'identique,
+c'est le titre qui coupe la page, § 3), depuis la base `Plans Claude` : les plans dont `Repo` vaut
 le dépôt de la page et dont `Statut` n'est pas `execute` (seul statut de fin, `SKILL.md` § 2), la
 page elle-même exclue. Pour chaque plan : titre, `Statut`, `Branche`, et les fichiers touchés quand
 la page les porte. Ce qui manque reste marqué absent : rien ne se devine.
@@ -155,8 +160,12 @@ note aussi chaque commande jouée par Hal, et chaque échec.
 Un avis vaut pour la page entière : les passes suivantes qui reposent `en revue` ne relancent pas
 la relecture.
 
+Le registre ne compte que les appels faits : un refus de la commande (code 2, usage ou tour 1
+sans cadrage) n'y entre pas.
+
 Le hook `refuser_revue_sans_avis.py` refuse `en revue` sans avis enregistré. Il laisse passer si le
-tour 1 rend `OK`, si un tour 2 a été rendu quel que soit son verdict, ou si deux échecs sont notés.
+tour 1 rend `OK`, si un tour 2 a été rendu quel que soit son verdict, ou si deux échecs sont notés,
+quel que soit leur tour.
 Il ne s'active que si `~/.hermes/scripts/demander_a_hal.py` existe et déclare
 `RELECTURE_DISPONIBLE = True`. Il couvre aussi `composio execute NOTION_UPDATE_PAGE` (le slug entier,
 pas `NOTION_UPDATE_PAGE_MARKDOWN`) quand sa charge, en ligne ou dans `-d @fichier`, pose
@@ -168,6 +177,7 @@ Une session ouverte depuis le Mac par Remote Control (ou par l'app de bureau) to
 c'est le service `claude-remote-control-vps.service`, avec `HOME=/home/ubuntu`. Elle voit le script,
 le registre et le hook, donc cette règle s'y applique tout entière.
 
-Une session qui tourne sur le Mac lui-même est hors périmètre. Il n'y a pas de script : le hook
-laisse passer, et la demande passe par la section `## Demandes à Hal` de la page
-(`demander-a-hal.md` § 5).
+Une session qui tourne sur le Mac lui-même est hors périmètre. Il n'y a pas de script, donc pas de
+relecture par Hal : le hook laisse passer `en revue`. La session l'écrit dans `Avis de Hal` :
+« Avis non rendu : session hors du VPS ». C'est Benjamin qui relit le plan. La demande ne passe pas
+par `## Demandes à Hal` : cette section ne porte que des gestes (`demander-a-hal.md` § 5).

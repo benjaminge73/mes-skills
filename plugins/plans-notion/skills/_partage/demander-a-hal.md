@@ -48,11 +48,14 @@ EOF
 Codes de sortie :
 
 - **0** : avis rendu. La session le recopie dans la section `Avis de Hal` de la page.
-- **1** : pas d'avis après deux essais. La commande fait un second essai tout de suite, puis note
-  les deux échecs au registre. La session écrit alors la variante « Avis non rendu : <erreur>,
-  deux essais, <dates> » dans `Avis de Hal`. Un avis n'est jamais inventé.
-- **2** : usage incorrect, ou tour 1 refusé : la page n'a pas la ligne `Cadrage avec Hal : …` dans
-  « Contraintes techniques vérifiées ».
+- **1** : pas d'avis (délai dépassé, sortie vide, avis illisible, ou code non nul de Hal). La commande
+  ne fait qu'un appel par exécution : elle note cet échec au registre et rend 1, sans relancer. C'est
+  la **session** qui relance une fois, avec le même `--tour`. Deux échecs notés au registre valent un
+  avis rendu pour le hook, quel que soit leur tour. C'est alors seulement que la session écrit la
+  variante « Avis non rendu : <erreur>, deux essais, <dates> » dans `Avis de Hal`. Un avis n'est
+  jamais inventé.
+- **2** : usage incorrect, ou tour 1 refusé (aucun appel, rien n'est noté) : la page n'a pas la ligne
+  `Cadrage avec Hal : …`, en n'importe quel endroit avant le bloc des plans ouverts.
 
 Un avis illisible (sans ligne `VERDICT:`, réserve sans `(source :`, `OK` sans la liste de ce qui a
 été vérifié) compte comme une sortie vide : il déclenche le second essai.
