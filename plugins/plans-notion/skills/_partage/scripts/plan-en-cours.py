@@ -7,7 +7,7 @@ Usage :
     plan-en-cours.py pr --numero <n> [--session <id>]
     plan-en-cours.py attendre --raison <texte> [--session <id>]   (alias : attente)
     plan-en-cours.py reprendre [--session <id>]
-    plan-en-cours.py etape --faite <n> --restantes <k> [--session <id>]
+    plan-en-cours.py etape --faite <n> --restantes <k> [--numero <id>] [--session <id>]
     plan-en-cours.py clore [--session <id>]
     plan-en-cours.py lire [--session <id>]
 
@@ -56,12 +56,13 @@ fiche est déjà en attente) ; ``reprendre`` le restaure, ``en cours`` à défau
 ``etape`` ne change pas l'état, mais remet ``relances`` à zéro. Une fiche ``clos``
 ne reçoit plus d'écriture hormis ``clore``.
 
-``etape --faite <n>`` ajoute le numéro ``n`` à ``etapes_liste`` : la liste des étapes
-faites, triée, sans doublon, ``0`` n'y entre pas. Les étapes se finissant dans l'ordre,
-``n`` désigne l'étape finie en dernier ; le script ne vérifie pas cet ordre. Les
-compteurs ``etapes_faites`` et ``etapes_restantes`` restent ceux que lit la garde de
-fin de tour. Une fiche écrite avant cette clé (sans ``etapes_liste``) reste lisible,
-et ``etape`` la complète.
+``etape --faite <n> --restantes <k>`` pose les deux compteurs, ``n`` étapes faites et ``k``
+restantes, que lit la garde de fin de tour, et ne touche pas à la liste. ``--numero <id>``,
+optionnel, ajoute cet identifiant d'étape (``3``, ``12``, ``D1``, ``C1``) à ``etapes_liste``,
+en fin de liste, sans doublon ; l'ordre d'arrivée est conservé, sans tri. Sans ``--numero``,
+``etapes_liste`` reste telle quelle. Une liste écrite par une version antérieure (entiers)
+reste lisible, et un numéro déjà présent, entier ou chaîne, n'est pas ajouté une seconde fois.
+Une fiche écrite sans cette clé reste lisible, et ``--numero`` la crée.
 
 Écriture : chaque modification se fait sous ``flock`` sur le dossier (pas de mise
 à jour perdue), dans un fichier temporaire du même dossier, puis ``os.replace``
@@ -359,8 +360,12 @@ def cmd_etape(args, ident: Identite, dossier: Path) -> str:
         _refuser_si_clos(fiche)
         fiche["etapes_faites"] = args.faite
         fiche["etapes_restantes"] = args.restantes
-        if args.faite >= 1:
-            fiche["etapes_liste"] = sorted(set(fiche.get("etapes_liste") or []) | {args.faite})
+        if args.numero is not None:
+            liste = list(fiche.get("etapes_liste") or [])
+            # Comparaison en texte : une entrée ancienne (entier 2) et « 2 » sont la même étape.
+            if str(args.numero) not in {str(entree) for entree in liste}:
+                liste.append(args.numero)
+            fiche["etapes_liste"] = liste
         # « Trois relances sans étape nouvelle » : une étape notée remet le compte à zéro.
         fiche["relances"] = 0
         return fiche
@@ -419,6 +424,17 @@ def _entier_positif_ou_nul(texte: str) -> int:
     return valeur
 
 
+_FORME_NUMERO = re.compile(r"[A-Za-z0-9]{1,8}")
+
+
+def _numero_d_etape(texte: str) -> str:
+    # Identifiant d'étape : un nombre (« 12 ») ou une lettre et un nombre (« D1 », « C1 »).
+    # Il ne sert jamais de chemin : la garde de forme est là pour refuser le reste.
+    if not _FORME_NUMERO.fullmatch(texte):
+        raise argparse.ArgumentTypeError(f"identifiant d'étape attendu (3, 12, D1, C1) : {texte!r}")
+    return texte
+
+
 def _parser() -> argparse.ArgumentParser:
     commun = argparse.ArgumentParser(add_help=False)
     commun.add_argument("--session", help="identifiant de session, local ou claude.ai (sinon la session courante ; à l'ouverture, repli si aucun identifiant local)")
@@ -445,6 +461,7 @@ def _parser() -> argparse.ArgumentParser:
     et = sous.add_parser("etape", parents=[commun], help="noter les étapes faites et restantes")
     et.add_argument("--faite", type=_entier_positif_ou_nul, required=True)
     et.add_argument("--restantes", type=_entier_positif_ou_nul, required=True)
+    et.add_argument("--numero", type=_numero_d_etape, default=None, help="identifiant de l'étape finie (3, 12, D1, C1), ajouté à la liste")
 
     sous.add_parser("clore", parents=[commun], help="clore la fiche")
     sous.add_parser("lire", parents=[commun], help="rendre la fiche en JSON")

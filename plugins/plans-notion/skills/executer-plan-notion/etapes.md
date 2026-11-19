@@ -365,7 +365,7 @@ en disant quelles étapes ont été faites en direct et pourquoi.
 - **Noter l'avancement à la fiche** : après chaque étape finie, si la session porte la
   fiche de ce plan (« Plusieurs plans : une fiche par session », `ouverture.md`),
   `python3 "${CLAUDE_PLUGIN_ROOT}/skills/_partage/scripts/plan-en-cours.py" etape --faite <n> --restantes <k>`,
-  `<n>` étapes faites, `<k>` restantes. Ce geste remet à zéro le compteur de relances de la
+  `<n>` étapes faites, `<k>` restantes. L'option `--numero <id>` (optionnelle) ajoute l'identifiant de l'étape finie (`3`, `12`, `D1`, `C1`) à la liste des étapes faites de la fiche ; sans elle, la liste ne change pas. Ce geste remet à zéro le compteur de relances de la
   garde de fin de tour. Sans lui, le compteur ne repart jamais de zéro : après trois
   retenues sur l'ensemble du plan, la garde se tait, en plein travail. Sans le script
   (session cloud), on saute.
