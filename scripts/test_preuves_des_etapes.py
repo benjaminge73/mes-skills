@@ -34,6 +34,11 @@ IMPACT_RIEN = "- **Impact fonctionnel** : Rien à l'écran."
 IMPACT_RIEN_BLEU = '- **Impact fonctionnel** : <span color="blue">Rien à l\'écran.</span>'
 # La puce « Maquette » de l'entrée de journal d'une étape : le rendu de l'écran (etapes.md).
 MAQUETTE = "- **Maquette** : rendu de l'écran, aucun écart."
+# La puce « Effets » de l'entrée de journal : ce que le changement touche ailleurs (pièce 5 du
+# rapport, « effet sur »). « aucun » est une valeur légitime. La version bleue enveloppe le
+# libellé et la valeur dans un <span>, à retirer avant lecture comme pour les puces voisines.
+EFFETS_AUCUN = "- **Effets** : aucun."
+EFFETS_BLEU = '- <span color="blue">**Effets** : aucun.</span>'
 
 # Les quatre champs d'une entrée de journal conforme, dans l'ordre de la page.
 CHAMPS_OK = {
@@ -300,6 +305,29 @@ class PorteApres(_Dossier):
         # « Maquette » qu'elle n'a pas lieu d'avoir.
         p = self.ecrire("p.md", ENTETE + chapitre(
             etape("1", PREUVE_DE_FIN, IMPACT_RIEN_BLEU)) + journal(entree("1")))
+        code, sortie, _ = jouer(p, "--apres")
+        self.assertEqual(code, 0, sortie)
+        self.assertIn("toutes verified", sortie)
+
+    # Panne : une étape sans puce « Effets » passe la porte d'après dans un journal qui en porte
+    # déjà une à une autre étape : l'effet de bord de cette étape n'est jamais noté. Le cas
+    # d'un journal sans aucune puce « Effets » passe (adoption progressive, plans clos et
+    # fixtures) ; le test « Effets : aucun » de l'étape 1 garde la valeur admise, car un refus
+    # de cette étape écrirait « Étape 1 : pas de puce Effets ».
+    def test_etape_sans_puce_effets_dans_un_journal_qui_en_porte_est_refusee(self):
+        p = self.ecrire("p.md", ENTETE + chapitre_ok("1", "2") + journal(
+            entree("1", remplace={"Effets": EFFETS_AUCUN}), entree("2")))
+        code, sortie, _ = jouer(p, "--apres")
+        self.assertEqual(code, 1, sortie)
+        self.assertIn("Étape 2 : pas de puce Effets", sortie)
+        self.assertNotIn("Étape 1", sortie)
+
+    # Panne : une puce « Effets » retouchée en bleu (« - <span color="blue">…</span> ») n'est pas
+    # vue : l'étape porte pourtant sa puce, et la porte la refuse à tort.
+    def test_puce_effets_en_span_bleu_est_vue(self):
+        p = self.ecrire("p.md", ENTETE + chapitre_ok("1", "2") + journal(
+            entree("1", remplace={"Effets": EFFETS_BLEU}),
+            entree("2", remplace={"Effets": EFFETS_AUCUN})))
         code, sortie, _ = jouer(p, "--apres")
         self.assertEqual(code, 0, sortie)
         self.assertIn("toutes verified", sortie)
