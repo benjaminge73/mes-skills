@@ -33,7 +33,8 @@ MOTIF = ("Refusé : `git commit` avec `--no-verify` (ou `-n`) contourne les hook
 def _segments(commande: str) -> list[list[str]]:
     # Le saut de ligne sépare deux commandes : il est donc lexé comme ponctuation,
     # et non comme un blanc ignoré par shlex. Entre guillemets, il reste dans le mot.
-    lexer = shlex.shlex(commande, posix=True, punctuation_chars="();&|\n")
+    # Les chevrons « <> » sont aussi ponctuation : « --no-verify>/dev/null » se coupe.
+    lexer = shlex.shlex(commande, posix=True, punctuation_chars="();<>&|\n")
     lexer.whitespace_split = True
     lexer.whitespace = " \t\r"
     segments, courant = [], []

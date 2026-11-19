@@ -113,8 +113,9 @@ def _sans_corps_de_heredoc(commande: str) -> str:
 
 def _segments(commande: str) -> list[list[str]]:
     # Le saut de ligne est un séparateur de commandes : il est donc lexé comme
-    # ponctuation, et non comme un blanc ignoré par shlex.
-    lexer = shlex.shlex(commande, posix=True, punctuation_chars="();&|\n")
+    # ponctuation, et non comme un blanc ignoré par shlex. Les chevrons « <> » sont
+    # aussi ponctuation : sans eux, « git stash>/dev/null » ne fait qu'un seul mot.
+    lexer = shlex.shlex(commande, posix=True, punctuation_chars="();<>&|\n")
     lexer.whitespace_split = True
     lexer.whitespace = " \t\r"
     segments, courant = [], []
