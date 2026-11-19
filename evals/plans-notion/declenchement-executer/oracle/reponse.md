@@ -1,0 +1,1 @@
+Statut lu : `valide`. Aucune étape ne démarre sur un « go » : le plan se prépare d'abord (§2 de executer-plan-notion). Ce cadre n'a ni réseau, ni shell, ni connecteur Notion : la préparation s'arrête là, je le dis à Benjamin, et `hello.txt` n'est pas écrit.

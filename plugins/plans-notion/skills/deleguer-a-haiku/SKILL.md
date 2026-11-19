@@ -1,13 +1,19 @@
 ---
 name: deleguer-a-haiku
 description: >-
-  Se charge DÈS LE LANCEMENT d'une session en mode plan natif de Claude Code (sans page Notion), pour enquêter avant d'écrire le plan : carte de voisinage, agent enqueteur, agent chercheur si l'artefact n'est pas propre au projet, le tout écrit dans le plan natif. Exécute aussi un plan natif approuvé, en le déléguant à des sous-agents Haiku. À utiliser quand on demande d'exécuter, dérouler ou implémenter un plan validé qui vit dans un fichier et non dans Notion : « exécute le plan », « déroule plan.md », plan natif approuvé après ExitPlanMode, ou consigne d'Hermes qui lance une session en mode plan et lit son compte rendu final. Découpe le plan en étapes de cinq fichiers au plus, chacune avec sa preuve ; envoie chaque étape à plans-notion:executant, en parallèle quand les fichiers sont disjoints ; relit chaque rapport et rejoue la preuve ; ajoute un relecteur au-delà de cinq fichiers touchés en tout ; cite dans le compte rendu la commande de preuve de chaque étape. Rien ne s'écrit dans Notion, sauf le changelog et les fiches du projet à la clôture. Pour un plan dans une page Notion, c'est executer-plan-notion.
+  Se charge dès le lancement d'une session en mode plan natif (sans page Notion), avant d'écrire le plan, et quand on demande d'exécuter un plan validé qui vit dans un fichier : il le délègue à des sous-agents Haiku. Une étape par appel, cinq fichiers au plus, chacune avec sa preuve, envoyée à plans-notion:executant ; chaque rapport relu et sa preuve rejouée ; relecteur au-delà de cinq fichiers. Rien ne s'écrit dans Notion hors changelog et fiches, à la clôture. Déclencheurs complets : section « Quand charger ce skill ». Pour un plan dans une page Notion, c'est executer-plan-notion.
 ---
 
 # Déléguer un plan natif à Haiku
 
 Ce skill sert une session qui a un plan **sans page Notion**, à écrire ou approuvé.
 Il ne lit ni n'écrit de page hors clôture.
+
+## Quand charger ce skill
+
+- **Au lancement en mode plan natif**, sans page Notion, avant d'écrire le plan : enquêter d'abord (« Avant le plan »). Vaut aussi quand Hermes lance la session en mode plan et lit son compte rendu final.
+- **Exécution d'un plan natif approuvé** : « exécute le plan », « déroule plan.md », plan approuvé après `ExitPlanMode`, ou consigne qui le demande.
+- **Pour un plan dans une page Notion**, ce n'est pas ce skill : c'est `executer-plan-notion`.
 
 ## Avant le plan
 

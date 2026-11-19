@@ -1,7 +1,7 @@
 ---
 name: executer-plan-notion
 description: >-
-  Implémente un plan de travail cadré dans Notion — vérification du statut avant de coder, découpe en étapes, sous-agents, journal d'exécution écrit sur la page, statut final. À charger AVANT d'écrire la moindre ligne de code dès que Benjamin donne le feu vert sur un travail déjà cadré, par exemple « go », « vas-y », « on y va », « attaque », « tu peux coder », « lance l'implémentation », « déroule le plan », « on passe à la réalisation », « c'est bon pour moi ». À charger aussi pour reprendre un chantier commencé — « reprends là où on s'est arrêté », « continue le refacto », « t'en étais à l'étape 2 », « on continue l'exécution ». À charger aussi quand Benjamin demande la PR ou la remontée sur `main` d'un travail déjà livré — « ouvre la PR », « merge sur main », « tu peux merger directement », « pousse ça sur main » — y compris dans une session où rien n'a été codé : la clôture ouvre elle-même la PR, prête, suit la CI jusqu'au merge et fait passer la page de `a merger` à `execute`. Vaut même si ni Notion ni le mot « plan » ne sont cités, même si seule une partie des étapes est demandée, et même si le plan n'est pas encore validé, car c'est ce skill qui dit quoi faire dans ce cas. Commence toujours par remettre le chapitre Exécution à jour des dernières réponses et commentaires de Benjamin. Ne couvre pas la conception du plan, qui relève du skill plan-notion, ni une tâche isolée sans plan derrière.
+  Implémente un plan cadré dans Notion : vérification du statut, découpe en étapes, sous-agents, journal sur la page, statut final. À charger AVANT toute ligne de code dès que Benjamin donne le feu vert sur un plan (« go », « vas-y »), pour reprendre un chantier commencé (« reprends là où on s'est arrêté ») et pour ouvrir la PR ou remonter sur `main` un travail livré (« ouvre la PR »), même sans code écrit dans la session. Déclencheurs complets : section « Quand charger ce skill ». Ne couvre ni la conception du plan (skill plan-notion), ni une tâche sans plan.
 ---
 
 # Exécuter un plan Notion
@@ -106,6 +106,12 @@ Le connecteur **Notion** est indispensable. S'il manque, le dire immédiatement
 plutôt que de contourner : exécuter sans pouvoir écrire le journal produit un
 travail dont il ne reste aucune trace hors du fil de discussion, et le fil
 disparaît au compactage du contexte.
+
+## Quand charger ce skill
+
+- **Feu vert sur un plan cadré** : « go », « vas-y », « on y va », « attaque », « tu peux coder », « lance l'implémentation », « déroule le plan », « on passe à la réalisation », « c'est bon pour moi ». Vaut même si ni Notion ni le mot « plan » ne sont cités, même si seule une partie des étapes est demandée, et même si le plan n'est pas encore validé : c'est ce skill qui dit quoi faire (« La porte d'entrée »).
+- **Reprise d'un chantier commencé** : « reprends là où on s'est arrêté », « continue le refacto », « t'en étais à l'étape 2 », « on continue l'exécution ». Commencer par remettre le chapitre `Exécution` à jour des dernières réponses et commentaires de Benjamin (§2).
+- **PR ou remontée sur `main`** d'un travail déjà livré : « ouvre la PR », « merge sur main », « tu peux merger directement », « pousse ça sur main ». Vaut aussi dans une session où rien n'a été codé : la clôture ouvre la PR, prête, suit la CI et fait passer la page de `a merger` à `execute` (§6).
 
 ## 1. Charger le plan
 
