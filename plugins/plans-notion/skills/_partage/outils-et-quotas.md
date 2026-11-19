@@ -488,8 +488,7 @@ commune pour comparer les postes.
 | `perimetre` | 5 | 2 | 2,56 $ | 0,85 $ |
 | `delegation` | 1 | — | non mesuré | non mesuré |
 | `preuves` | 13 | — | non mesuré | non mesuré |
-| `revue-hors-plan` | 1 | — | non mesuré | non mesuré |
-| `relecture-par-hal` | 1 | — | non mesuré | non mesuré |
+| `revue-hors-plan` | 2 | — | non mesuré | non mesuré |
 | `escalade-bornee` | 1 | — | non mesuré | non mesuré |
 | **tout le banc** | 44 | 16 | 27,53 $ | ≈ 9,2 $ |
 
