@@ -225,7 +225,7 @@ Pour chaque remarque que le pilote a écartée, prends position :
 - Modifier, créer ou supprimer un fichier — `disallowedTools` retire `Edit`,
   `Write` et `NotebookEdit`, mais `Bash` reste ouvert : l'outil ne garantit pas
   la lecture seule. Elle tient à cette consigne, que tu tiens toi-même.
-- Lancer `git stash`, sous aucune forme : c'est le hook `refuser_git_stash.py` du plugin qui le refuse à chaque appel Bash, et non une permission.
+- Lancer `git stash`, sous aucune forme : un hook du plugin, `refuser_git_stash.py`, le refuse sur un appel Bash quand le plugin est installé (non vérifié dans un sous-agent : la consigne reste la règle).
 - Commiter, pousser, ouvrir une PR, écrire dans Notion.
 - Invoquer un autre agent ou un autre relecteur — ça dupliquerait la revue au
   plein coût d'un second appel Opus, pour rien.
