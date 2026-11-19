@@ -161,6 +161,66 @@ class RefuserGitStash(unittest.TestCase):
         # pour shlex seul ; le découpage du hook doit le compter comme séparateur.
         self.refuse("git status\ngit stash push")
 
+    def test_un_chemin_absolu_vers_git_stash_est_refuse(self):
+        # Panne attrapée : le hook comparait le premier mot brut à « git » ;
+        # « /usr/bin/git stash » passait avec le code 0.
+        self.refuse("/usr/bin/git stash")
+
+    def test_command_devant_git_stash_est_refuse(self):
+        # Panne attrapée : le mot de tête « command » masquait « git ».
+        self.refuse("command git stash")
+
+    def test_une_affectation_de_variable_devant_git_stash_est_refusee(self):
+        # Panne attrapée : « GIT_DIR=… » en tête faisait passer la commande.
+        self.refuse("GIT_DIR=/x git stash")
+
+    def test_then_devant_git_stash_est_refuse(self):
+        # Panne attrapée : « then git stash » dans un « if » passait.
+        self.refuse("if true; then git stash; fi")
+
+    def test_accolade_devant_git_stash_est_refusee(self):
+        # Panne attrapée : le groupe « { git stash; } » passait.
+        self.refuse("{ git stash; }")
+
+    def test_les_autres_prefixes_de_commande_devant_git_stash_sont_refuses(self):
+        # Panne attrapée en plus : chaque mot de tête connu du hook est un passage.
+        for commande in ("env git stash", "sudo git stash", "time git stash",
+                         "nohup git stash", "exec git stash", "xargs git stash",
+                         "do git stash", "else git stash", "! git stash"):
+            with self.subTest(commande=commande):
+                self.refuse(commande)
+
+    def test_git_stash_dans_un_heredoc_ecrit_dans_un_fichier_est_permis(self):
+        # Panne attrapée : le saut de ligne lisait le corps d'un heredoc comme des
+        # commandes ; « git stash list » du texte du fichier était refusé à tort.
+        self.permis("cat > f.sh <<'EOF'\ngit stash list\nEOF")
+
+    def test_git_stash_dans_le_message_d_un_commit_en_heredoc_est_permis(self):
+        # Panne attrapée : même cause, avec un message lu par « git commit -F - ».
+        self.permis("git commit -F - <<EOF\nmsg\ngit stash interdit\nEOF")
+
+    def test_heredoc_a_tirets_saute_son_corps_indente(self):
+        # Panne attrapée en plus : « <<-EOF » et son terminateur indenté de tabulations
+        # ne doivent pas faire lire le corps comme des commandes.
+        self.permis("cat <<-EOF\n\tgit stash\n\tEOF")
+
+    def test_git_stash_apres_le_terminateur_de_heredoc_est_refuse(self):
+        # Garde : le corps s'arrête à la ligne terminatrice ; la commande suivante est lue.
+        self.refuse("cat <<EOF\nx\nEOF\ngit stash push")
+
+    def test_git_stash_avant_un_heredoc_est_refuse(self):
+        # Garde : la commande qui précède le heredoc n'est pas avalée par lui.
+        self.refuse("git stash push && cat <<EOF\nx\nEOF")
+
+    def test_un_chevron_double_entre_guillemets_n_ouvre_pas_de_heredoc(self):
+        # Panne attrapée en plus : un « <<EOF » dans un message ouvrirait un heredoc
+        # fantôme, et avalerait le « git stash » qui suit.
+        self.refuse('echo "<<EOF"\ngit stash push')
+
+    def test_grep_d_un_texte_git_stash_est_permis(self):
+        # Garde : le nom de commande (premier mot), pas le texte, décide.
+        self.permis("grep 'git stash' f")
+
     def test_git_log_n_3_est_permis(self):
         self.permis("git log -n 3")
 
