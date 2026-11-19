@@ -315,20 +315,20 @@ lesquelles jouer. Le plan choisit, la CI tient un plancher.
 la **seule** liste (les cas n'ont pas d'étiquette). Chaque catégorie nomme les
 cas qu'elle regroupe et les fichiers qu'elle exerce. Pour `plans-notion` :
 
-| Catégorie | Skills et agents exercés | Cas |
-|---|---|---|
-| `existant` | `skills/plan-notion/`, `agents/chercheur.md`, `agents/sondeur.md` | `existant-jeu-de-donnees`, `existant-jeu-de-questions`, `poc-mecanique` |
-| `bruit` | `skills/plan-notion/` | `bruit-bounded`, `bruit-doc-seule`, `report-sans-seuil` |
-| `etat-de-depart` | `skills/plan-notion/`, `agents/enqueteur.md`, `agents/lecteur.md` | `appelants`, `garde-fou-cache`, `hook-claude`, `depart-rouge` |
-| `maquette` | `skills/plan-notion/` | `maquette-requise` |
-| `decouvertes` | `skills/executer-plan-notion/`, `agents/executant.md`, `agents/relecteur.md` | les quatre `decouverte-*`, `cloture-ouvre-la-pr`, `cloture-preuve-doc`, `cloture-porte-doc` et `relecteur-garde-fou` |
-| `perimetre` | `skills/executer-plan-notion/`, `agents/executant.md` | `no-verify`, `rien-hors-plan` |
-| `revue-hors-plan` | `skills/executer-plan-notion/`, `agents/relecteur.md` | `revue-hors-plan` |
-| `escalade-bornee` | `skills/executer-plan-notion/`, `agents/executant.md`, `skills/deleguer-a-haiku/` | `escalade-bornee` |
-| `delegation` | `skills/deleguer-a-haiku/`, `agents/executant.md` | `deleguer-sans-notion` |
-| `preuves` | `agents/evaluateur.md` | `poc-jugement`, `preuve-par-reponse`, `cron-a-la-main`, `decouverte-sans-humain` |
+| Catégorie | Skills et agents exercés |
+|---|---|
+| `existant` | `skills/plan-notion/`, `agents/chercheur.md`, `agents/sondeur.md` |
+| `bruit` | `skills/plan-notion/` |
+| `etat-de-depart` | `skills/plan-notion/`, `agents/enqueteur.md`, `agents/lecteur.md` |
+| `maquette` | `skills/plan-notion/` |
+| `decouvertes` | `skills/executer-plan-notion/`, `agents/executant.md`, `agents/relecteur.md` |
+| `perimetre` | `skills/executer-plan-notion/`, `agents/executant.md` |
+| `revue-hors-plan` | `skills/executer-plan-notion/`, `agents/relecteur.md` |
+| `escalade-bornee` | `skills/executer-plan-notion/`, `agents/executant.md`, `skills/deleguer-a-haiku/` |
+| `delegation` | `skills/deleguer-a-haiku/`, `agents/executant.md` |
+| `preuves` | `agents/evaluateur.md` |
 
-La colonne ne nomme que les skills et les agents. Les fichiers de `skills/_partage/` qu'une catégorie exerce (consignes et scripts partagés, par exemple `cron-a-la-main.md` pour `preuves`) ne sont pas recopiés ici : ils changent presque à chaque PR, et la clé `exerce` de `evals/categories.json` les donne, elle seule.
+La colonne « Skills et agents exercés » ne nomme que les skills et les agents, et aucun cas : les cas de chaque catégorie se lisent dans `evals/categories.json`, clé `cas`. Les fichiers de `skills/_partage/` qu'une catégorie exerce (consignes et scripts partagés, par exemple `cron-a-la-main.md` pour `preuves`) ne sont pas recopiés ici : ils changent presque à chaque PR, et la clé `exerce` de `evals/categories.json` les donne, elle seule.
 
 `preuves` n'a pas de plancher : la fumée la nomme sans la juger, comme le dit
 « Une catégorie sans plancher est écartée, et nommée » plus bas.
