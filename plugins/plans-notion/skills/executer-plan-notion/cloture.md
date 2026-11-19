@@ -99,6 +99,7 @@ Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard »
     qu'est-ce qu'on ferait autrement, quelle consigne du skill ou du `CLAUDE.md`
     n'a rien changé à cette exécution ? C'est ce qui nourrira la prochaine
     relecture d'historique sans re-dépouiller les plans passés un par un ;
+  - **la boucle incident → règle tenue** : pour chaque incident ou découverte signalé dans le journal (pièce 5 de l'exécutant, formule « règle convertie ? »), la session pose la question : « règle convertie ? » — cet incident ou cette découverte est-il devenu une règle tenue par un garde, ou reste-t-il une ligne de prose ? Une ligne de prose se dit telle quelle, avec sa raison. Une règle convertie se dit avec le chemin de son garde, en code, et sa ligne de `docs/garde-fous.md` (statut « manquant » si le garde vient plus tard). Un garde qui reste à écrire part en découverte (`decouvertes.md`), pas dans la clôture. La réponse se recopie dans l'entrée `État final`, une ligne par incident ;
   - **les schémas relus** — contrôle de `schemas.md` : autant de nœuds
     d'étape dans « le plan en un schéma » que de titres H3 `Étape N` sur la
     page, et les vagues réellement déroulées (§3 ci-dessus, `vagues.md`)
@@ -252,7 +253,10 @@ Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard »
      chapitre `Exécution` du plan, phrase par phrase (source du passage :
      `github/spec-kit`, `converge`, MIT). Le brief porte l'objectif du plan et son
      chapitre `Exécution`, recopiés depuis le miroir local de la page, et la
-     plage `origin/main..<branche-du-plan>`.
+     plage `origin/main..<branche-du-plan>`. Il porte aussi la tête attendue :
+     le SHA de la branche à la clôture (`git rev-parse HEAD` joué par le pilote
+     juste avant d'appeler le relecteur). Sans elle, le relecteur écrit
+     « Checkout non vérifié » et ne conclut sur aucun test rejoué.
      - **Chaque écart rendu** (manquant, partiel, contradictoire, non demandé)
        devient une découverte `D<n>` qui s'exécute dans le même plan (décision de
        Benjamin du 2026-10-28). Le tri suit `decouvertes.md` : § 1 pour ce qui est
@@ -265,6 +269,17 @@ Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard »
        complète), 2 et 2 bis avant la porte (point 3). Le verdict
        (`RIEN À SIGNALER` ou `REMARQUES (n)`) et chaque écart se recopient à
        l'`État final`.
+
+  2 quater. **Rappel du déclencheur « nouveau modèle ».** Ce point ne s'applique que si ce
+     plan touche un skill, un agent, un hook ou un `_partage/` du dépôt `mes-skills`. La
+     session compare la date de la dernière entrée du journal de `docs/veille.md` aux modèles
+     sortis, et aux alias qui servent un autre modèle, depuis cette date (le déclencheur
+     est écrit au paragraphe « Le déclencheur » de `docs/veille.md`). Si un modèle est arrivé
+     depuis, le compte rendu le dit à Benjamin et lui propose une passe de veille avant la prochaine
+     PR qui touche un skill, sans bloquer celle de ce plan.
+     Le constat ne bloque ni la porte (point 3) ni `a merger` : faire la passe d'abord est une
+     décision de Benjamin. La passe reste exigée par `check_veille.py` selon son propre garde
+     (30 jours), qui ne voit pas ce cas : ce rappel est le seul à le couvrir.
 
   3. **La porte des preuves, avant le push.** Le contrôle des journaux se joue
      par script, sur le miroir local de la page, avant tout push et toute PR :

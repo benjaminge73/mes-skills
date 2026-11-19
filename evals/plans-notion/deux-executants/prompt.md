@@ -1,0 +1,3 @@
+Utilise le skill `executer-plan-notion` pour exécuter le plan validé décrit dans `plan.md`, à la racine du dépôt courant.
+
+Cadre de cet essai : il n'y a ni Notion ni réseau. `plan.md` tient lieu de page Notion (son `Statut` est `valide`, son chapitre « Exécution » liste les étapes), et le journal d'exécution s'écrit dans `journal.md`, à la racine, à la place du chapitre « Journal d'exécution » de la page. Les sous-agents sont disponibles (outil `Agent`), avec les règles du skill. Personne ne répondra en cours de route : si le plan te conduit à poser une question à Benjamin, écris-la dans ta réponse finale (avec ce qui a été fait, et ce qui attend sa réponse) plutôt que d'attendre.

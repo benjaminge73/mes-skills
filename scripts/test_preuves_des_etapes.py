@@ -20,6 +20,28 @@ SCRIPT = RACINE / "plugins" / "plans-notion" / "skills" / "_partage" / "scripts"
 
 ENTETE = "# Plan de test\n\n## Cartes\n\n- une carte\n\n"
 PREUVE_DE_FIN = "- **Preuve de fin** : `pytest -q` → tout vert"
+RELECTURE_ETAPE = "- **Relecture** : étape"
+RELECTURE_LOT = "- **Relecture** : lot"
+# La puce « Relecture » retouchée en bleu (règle « Le bleu des retouches ») : la valeur est
+# enveloppée d'un <span>, que le script doit retirer avant de lire « étape ».
+RELECTURE_ETAPE_BLEUE = '- **Relecture** : <span color="blue">étape</span>'
+# L'ancienne forme de la puce « Revue » du journal : sans gras, sans tiret (évals/…/journal.md).
+REVUE_ANCIENNE = "Revue — 1 tour : [Découverte hors plan] src/autre.py:6 — traitée en découverte (étape D1)."
+# La puce « Impact fonctionnel » du chapitre « Exécution » : ce que l'utilisateur voit changer.
+IMPACT_ECRAN = "- **Impact fonctionnel** : le menu change de place."
+IMPACT_RIEN = "- **Impact fonctionnel** : Rien à l'écran."
+# Le même « Rien », retouché en bleu : la valeur est enveloppée d'un <span>, à retirer avant lecture.
+IMPACT_RIEN_BLEU = '- **Impact fonctionnel** : <span color="blue">Rien à l\'écran.</span>'
+# La puce « Maquette » de l'entrée de journal d'une étape : le rendu de l'écran (etapes.md).
+MAQUETTE = "- **Maquette** : rendu de l'écran, aucun écart."
+# La puce « Effets » de l'entrée de journal : ce que le changement touche ailleurs (pièce 5 du
+# rapport, « effet sur »). « aucun » est une valeur légitime. La version bleue enveloppe le
+# libellé et la valeur dans un <span>, à retirer avant lecture comme pour les puces voisines.
+EFFETS_AUCUN = "- **Effets** : aucun."
+EFFETS_BLEU = '- <span color="blue">**Effets** : aucun.</span>'
+# Une étape écartée (jamais jouée) : sa preuve et son verdict le disent, « écartée » compris (revue.md).
+PREUVE_ECARTEE = "- **Preuve** : sans objet — étape écartée"
+VERDICT_ECARTEE = "- **Verdict** : unverifiable — étape écartée"
 
 # Les quatre champs d'une entrée de journal conforme, dans l'ordre de la page.
 CHAMPS_OK = {
@@ -203,6 +225,163 @@ class PorteApres(_Dossier):
         code, sortie, _ = jouer(p, "--apres")
         self.assertEqual(code, 1, sortie)
         self.assertIn("Étape 2 : pas d'entrée de journal", sortie)
+
+    def test_etape_relue_seule_sans_ligne_revue_est_refusee(self):
+        # Panne : une étape dont « Relecture » vaut « étape » passe la porte d'après sans sa
+        # ligne « Revue » : la relecture seule n'est jamais tracée au journal, et le verdict
+        # du relecteur ne compte pas avant « fait ».
+        p = self.ecrire("p.md", ENTETE + chapitre(
+            etape("1", PREUVE_DE_FIN, RELECTURE_ETAPE),
+            etape("2", PREUVE_DE_FIN, RELECTURE_ETAPE)) + journal(
+            entree("1", remplace={"Revue": "- **Revue** : 1 tour(s)"}), entree("2")))
+        code, sortie, _ = jouer(p, "--apres")
+        self.assertEqual(code, 1, sortie)
+        self.assertIn("Étape 2 : Relecture « étape » sans ligne Revue", sortie)
+        self.assertNotIn("Étape 1", sortie)
+
+    # Test en plus, hors liste du brief : une étape « lot » ne porte pas de ligne Revue
+    # propre (sa revue se trace sous la dernière étape du lot, revue.md). Panne : la règle
+    # s'étend aux étapes « lot » et refuse un plan conforme.
+    def test_etape_lot_sans_ligne_revue_passe(self):
+        p = self.ecrire("p.md", ENTETE + chapitre(
+            etape("1", PREUVE_DE_FIN, RELECTURE_LOT),
+            etape("2", PREUVE_DE_FIN, RELECTURE_ETAPE)) + journal(
+            entree("1"), entree("2", remplace={"Revue": "- **Revue** : 1 tour(s)"})))
+        code, sortie, _ = jouer(p, "--apres")
+        self.assertEqual(code, 0, sortie)
+        self.assertIn("toutes verified", sortie)
+
+    def test_relecture_etape_en_span_bleu_sans_ligne_revue_est_refusee(self):
+        # Panne : une puce « Relecture » en bleu (<span color="blue">étape</span>) n'est pas
+        # lue comme « étape ». L'étape relue seule passe alors la porte d'après sans sa ligne
+        # « Revue » (rc 0 au lieu de 1) : la relecture n'est jamais tracée.
+        p = self.ecrire("p.md", ENTETE + chapitre(
+            etape("1", PREUVE_DE_FIN, RELECTURE_ETAPE_BLEUE)) + journal(entree("1")))
+        code, sortie, _ = jouer(p, "--apres")
+        self.assertEqual(code, 1, sortie)
+        self.assertIn("Étape 1 : Relecture « étape » sans ligne Revue", sortie)
+
+    def test_ancienne_forme_revue_sans_gras_est_acceptee(self):
+        # Panne : l'ancienne puce « Revue — N tour(s) » (sans gras ni tiret, écrite par les plans
+        # d'avant la forme en gras) est refusée (rc 1 « sans ligne Revue ») : un plan en cours
+        # ne peut pas passer la porte d'après.
+        p = self.ecrire("p.md", ENTETE + chapitre(
+            etape("1", PREUVE_DE_FIN, RELECTURE_ETAPE)) + journal(
+            entree("1", remplace={"Revue": REVUE_ANCIENNE})))
+        code, sortie, _ = jouer(p, "--apres")
+        self.assertEqual(code, 0, sortie)
+        self.assertIn("apres : 1 étape(s), toutes verified", sortie)
+
+    def test_etape_d_ecran_sans_maquette_au_journal_est_refusee(self):
+        # Panne : une étape dont l'« Impact fonctionnel » n'est pas « Rien » passe la porte
+        # d'après sans la puce « Maquette » au journal : le rendu de l'écran n'est jamais noté.
+        p = self.ecrire("p.md", ENTETE + chapitre(
+            etape("1", PREUVE_DE_FIN, IMPACT_ECRAN), etape("2", PREUVE_DE_FIN)) + journal(
+            entree("1"), entree("2")))
+        code, sortie, _ = jouer(p, "--apres")
+        self.assertEqual(code, 1, sortie)
+        self.assertIn("Étape 1 : impact à l'écran sans puce Maquette", sortie)
+        self.assertNotIn("Étape 2", sortie)
+
+    def test_etape_a_impact_rien_sans_maquette_passe(self):
+        # Panne : la porte exige une « Maquette » de toute étape, même à impact « Rien » : un
+        # plan sans écran touché serait refusé à tort.
+        p = self.ecrire("p.md", ENTETE + chapitre(
+            etape("1", PREUVE_DE_FIN, IMPACT_RIEN), etape("2", PREUVE_DE_FIN, IMPACT_RIEN)) + journal(
+            entree("1"), entree("2")))
+        code, sortie, _ = jouer(p, "--apres")
+        self.assertEqual(code, 0, sortie)
+        self.assertIn("toutes verified", sortie)
+
+    def test_etape_d_ecran_avec_maquette_au_journal_passe(self):
+        # Panne : une étape à impact à l'écran qui porte sa « Maquette » au journal est refusée.
+        p = self.ecrire("p.md", ENTETE + chapitre(
+            etape("1", PREUVE_DE_FIN, IMPACT_ECRAN), etape("2", PREUVE_DE_FIN)) + journal(
+            entree("1", remplace={"Maquette": MAQUETTE}), entree("2")))
+        code, sortie, _ = jouer(p, "--apres")
+        self.assertEqual(code, 0, sortie)
+        self.assertIn("toutes verified", sortie)
+
+    def test_impact_rien_en_span_bleu_ne_demande_pas_de_maquette(self):
+        # Panne : un « Rien » retouché en bleu (<span color="blue">Rien…</span>) n'est pas lu
+        # comme « Rien » : l'étape passe pour un impact à l'écran et la porte exige une
+        # « Maquette » qu'elle n'a pas lieu d'avoir.
+        p = self.ecrire("p.md", ENTETE + chapitre(
+            etape("1", PREUVE_DE_FIN, IMPACT_RIEN_BLEU)) + journal(entree("1")))
+        code, sortie, _ = jouer(p, "--apres")
+        self.assertEqual(code, 0, sortie)
+        self.assertIn("toutes verified", sortie)
+
+    # Panne : une étape sans puce « Effets » passe la porte d'après dans un journal qui en porte
+    # déjà une à une autre étape : l'effet de bord de cette étape n'est jamais noté. Le cas
+    # d'un journal sans aucune puce « Effets » passe (adoption progressive, plans clos et
+    # fixtures) ; le test « Effets : aucun » de l'étape 1 garde la valeur admise, car un refus
+    # de cette étape écrirait « Étape 1 : pas de puce Effets ».
+    def test_etape_sans_puce_effets_dans_un_journal_qui_en_porte_est_refusee(self):
+        p = self.ecrire("p.md", ENTETE + chapitre_ok("1", "2") + journal(
+            entree("1", remplace={"Effets": EFFETS_AUCUN}), entree("2")))
+        code, sortie, _ = jouer(p, "--apres")
+        self.assertEqual(code, 1, sortie)
+        self.assertIn("Étape 2 : pas de puce Effets", sortie)
+        self.assertNotIn("Étape 1", sortie)
+
+    # Panne : une puce « Effets » retouchée en bleu (« - <span color="blue">…</span> ») n'est pas
+    # vue : l'étape porte pourtant sa puce, et la porte la refuse à tort.
+    def test_puce_effets_en_span_bleu_est_vue(self):
+        p = self.ecrire("p.md", ENTETE + chapitre_ok("1", "2") + journal(
+            entree("1", remplace={"Effets": EFFETS_BLEU}),
+            entree("2", remplace={"Effets": EFFETS_AUCUN})))
+        code, sortie, _ = jouer(p, "--apres")
+        self.assertEqual(code, 0, sortie)
+        self.assertIn("toutes verified", sortie)
+
+    # Étape écartée (jamais jouée) : son entrée porte « Preuve : sans objet — étape écartée » et
+    # « Verdict : unverifiable — étape écartée ». Panne : la porte la refuse « Relecture « étape »
+    # sans ligne Revue » alors qu'il n'y a rien à relire. Elle passe avec le verdict non prouvé
+    # (code 3), et la ligne « non prouvée » reste la seule trace.
+    def test_etape_ecartee_relue_seule_passe_sans_ligne_revue(self):
+        p = self.ecrire("p.md", ENTETE + chapitre(
+            etape("1", PREUVE_DE_FIN, RELECTURE_ETAPE)) + journal(entree("1", remplace={
+                "Preuve": PREUVE_ECARTEE, "Verdict": VERDICT_ECARTEE})))
+        code, sortie, _ = jouer(p, "--apres")
+        self.assertEqual(code, 3, sortie)
+        self.assertIn("non prouvée : Étape 1 — étape écartée", sortie)
+        self.assertNotIn("Revue", sortie)
+
+    # Panne : une étape unverifiable qui n'est pas écartée (la raison ne dit pas « écartée ») est
+    # exemptée à tort de la ligne Revue : le « écartée » du texte est la seule clé de l'exemption.
+    def test_etape_non_ecartee_unverifiable_sans_ligne_revue_est_refusee(self):
+        p = self.ecrire("p.md", ENTETE + chapitre(
+            etape("1", PREUVE_DE_FIN, RELECTURE_ETAPE)) + journal(entree("1", remplace={
+                "Preuve": "- **Preuve** : sans objet — poste sans navigateur",
+                "Verdict": "- **Verdict** : unverifiable — poste sans navigateur"})))
+        code, sortie, _ = jouer(p, "--apres")
+        self.assertEqual(code, 1, sortie)
+        self.assertIn("Étape 1 : Relecture « étape » sans ligne Revue", sortie)
+
+    # Panne : une étape écartée qui suit la première étape à puce Effets est refusée « pas de
+    # puce Effets » : une étape jamais jouée n'a aucun effet à déclarer. Elle est exemptée.
+    def test_etape_ecartee_sans_puce_effets_passe(self):
+        p = self.ecrire("p.md", ENTETE + chapitre_ok("1", "2", "3") + journal(
+            entree("1", remplace={"Effets": EFFETS_AUCUN}),
+            entree("2", remplace={"Effets": EFFETS_AUCUN}),
+            entree("3", remplace={"Preuve": PREUVE_ECARTEE, "Verdict": VERDICT_ECARTEE})))
+        code, sortie, _ = jouer(p, "--apres")
+        self.assertEqual(code, 3, sortie)
+        self.assertNotIn("pas de puce Effets", sortie)
+
+    # Panne : la puce Effets était exigée à toutes les étapes d'un journal qui en porte une ; les
+    # étapes jouées avant son adoption ne peuvent pas la porter. Elle n'est exigée qu'à partir de
+    # la première étape (dans l'ordre du journal) qui la porte, et pour toutes les suivantes.
+    def test_effets_exigee_seulement_a_partir_de_la_premiere_etape_qui_la_porte(self):
+        p = self.ecrire("p.md", ENTETE + chapitre_ok("1", "2", "3") + journal(
+            entree("1"),
+            entree("2", remplace={"Effets": EFFETS_AUCUN}),
+            entree("3")))
+        code, sortie, _ = jouer(p, "--apres")
+        self.assertEqual(code, 1, sortie)
+        self.assertIn("Étape 3 : pas de puce Effets", sortie)
+        self.assertNotIn("Étape 1", sortie)
 
     def test_entree_sans_preuve_est_refusee(self):
         # Panne : une entrée sans « Preuve » (ni rejouée) passe.

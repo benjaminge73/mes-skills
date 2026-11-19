@@ -19,9 +19,11 @@ pour raconter l'avancement : l'avancement va dans `Journal d'exécution` (§4).
 
 Le défaut, sauf avis contraire de Benjamin :
 
-- Chaque étape se code **directement sur la branche du plan**. Pas de
-  sous-branche, pas de PR d'étape : une PR, c'est un run de CI, et c'est
-  précisément ce qu'on économise (§2).
+- Chaque étape `lot` se code **directement sur la branche du plan**. Une étape
+  `étape` (relue seule) se joue sur sa branche d'étape, dans son worktree, et se
+  rapatrie sur la branche du plan (`vagues.md`, « Une étape relue seule »). Pour une
+  étape `lot`, pas de sous-branche, pas de PR d'étape : une PR, c'est un run de CI,
+  et c'est précisément ce qu'on économise (§2).
 - **La preuve de l'étape est locale, et c'est le pilote qui la
   joue** — pas le rapport du sous-agent. Rejouer la commande de preuve du brief,
   et recopier sa sortie au journal (§4). **Cette preuve, ce sont les tests des
@@ -113,6 +115,8 @@ qui dit que le test ne mord pas, `git diff` non vide) et la combinaison avec
 une vague ou un regroupement vivent dans un fichier partagé :
 
 📄 `${CLAUDE_PLUGIN_ROOT}/skills/_partage/preuve-du-rouge.md`
+
+**Une étape testée peut se faire à deux exécutants, enchaînés ; le pilote le décide dans le brief.** Le premier n'écrit que le test et le joue rouge ; le pilote commite ce rouge, puis lance le second avec le SHA de ce commit et la liste des fichiers de test, en lecture seule. Le second exécutant écrit le code qui les fait passer et ne modifie jamais un de ces fichiers ; le pilote vérifie, avant tout commit, que `git diff <sha-rouge> -- <fichiers-de-test>` et `git status --porcelain -- <dossier des tests>` sont vides, puis commite le vert. Raison : celui qui écrit le test et le code peut le faire taire sans le voir ; le second n'a pas écrit le test, et le `git diff` rend toute retouche visible sans avoir à croire personne. Écarté : un agent « testeur » neuf, qui doublerait la définition d'`executant` pour le même geste. Détail du brief dans `preuve-du-rouge.md`, section « Deux exécutants ».
 
 ### La délégation est la règle, pas une faveur
 
@@ -298,6 +302,8 @@ et c'est ce qui donne ensuite l'envie de « faire soi-même ». Le brief porte d
      corrige pas ; d'un secret, il ne recopie jamais la valeur. Le pilote en
      fait des découvertes traitées (§4).
 
+Ce que le code dit déjà ne se recopie pas dans le brief : on donne le chemin et la ligne à lire, pas un extrait. Le texte du brief reste à ce que le code ne dit pas : l'intention, la contrainte, la preuve.
+
 ### Ce qui reste chez le pilote
 
 La liste est courte, et c'est voulu :
@@ -329,6 +335,7 @@ en disant quelles étapes ont été faites en direct et pourquoi.
   (`git diff --name-only`), pas sur celle du brief (§3). Un sous-agent qui
   annonce « les tests passent » a parfois lancé autre chose que ce qu'on croit,
   ou touché un fichier de plus que ce que la commande couvrait.
+- **Au retour de l'exécutant, le pilote joue `perimetre-etape.py --base <sha d'avant l'étape> --fichiers <liste du brief>` (dans `skills/_partage/scripts/`) : un fichier hors liste (code 1) se traite comme une découverte du journal, sans commit pour ce fichier ; le script lit les commits, pas l'arbre : regarder aussi `git status`.**
 - **Poser le `Verdict` de l'étape**, dans son entrée de journal (écrite
   ci-dessous), **après ce rejeu** : `- **Verdict** : verified` si la preuve du
   brief a été rejouée par le pilote et qu'elle est verte ; `- **Verdict** :
@@ -360,10 +367,21 @@ en disant quelles étapes ont été faites en direct et pourquoi.
   `Co-Authored-By: Claude <noreply@anthropic.com>` et aucun nom de modèle — sur
   chaque commit d'un regroupement ou d'une étape testée, pas seulement le
   dernier.
+- **Lire le diff de l'étape avant d'écrire « fait »** : le pilote lit
+  `git diff <base>..<tête>`, où `<tête>` est le SHA du commit de l'étape et
+  `<base>` son parent (`<tête>^`) ; pour un regroupement de commits, `<base>`
+  est le parent du premier et `<tête>` le dernier. Il compare ce diff au brief :
+  chaque fichier de `git diff --name-only` figure dans « Fichiers touchés » du
+  brief, et chaque changement sert l'objectif de l'étape. Un écart (fichier hors
+  liste, changement que le brief ne demandait pas) se traite dans l'étape, comme
+  une preuve rouge, avant de poser « fait » au journal. Au-delà de 200 lignes,
+  la lecture se délègue (`${CLAUDE_PLUGIN_ROOT}/skills/_partage/lecture-deleguee.md`) :
+  l'agent rend les écarts au brief, et le pilote vérifie ceux qu'il signale.
+  Un hook ne remplace pas ce regard : il ne voit ni le diff ni son contenu.
 - **Noter l'avancement à la fiche** : après chaque étape finie, si la session porte la
   fiche de ce plan (« Plusieurs plans : une fiche par session », `ouverture.md`),
   `python3 "${CLAUDE_PLUGIN_ROOT}/skills/_partage/scripts/plan-en-cours.py" etape --faite <n> --restantes <k>`,
-  `<n>` étapes faites, `<k>` restantes. Ce geste remet à zéro le compteur de relances de la
+  `<n>` étapes faites, `<k>` restantes. L'option `--numero <id>` (optionnelle) ajoute l'identifiant de l'étape finie (`3`, `12`, `D1`, `C1`) à la liste des étapes faites de la fiche ; sans elle, la liste ne change pas. Ce geste remet à zéro le compteur de relances de la
   garde de fin de tour. Sans lui, le compteur ne repart jamais de zéro : après trois
   retenues sur l'ensemble du plan, la garde se tait, en plein travail. Sans le script
   (session cloud), on saute.
@@ -390,14 +408,17 @@ en disant quelles étapes ont été faites en direct et pourquoi.
   visée, et porter dans l'entrée de journal la capture si on sait la poser,
   puis les écarts un par ligne, chacun *voulu* (quelle contrainte l'impose)
   ou *pas voulu* — ou « Aucun écart ». Un écart pas voulu se corrige dans
-  l'étape, comme une preuve rouge. Le détail, et le cas des sessions qui ne
+  l'étape, comme une preuve rouge. Le rendu de l'écran se note dans la puce
+  **Maquette** de l'entrée de journal de l'étape (pas celle de l'ouverture) :
+  `preuves-des-etapes.py --apres` l'exige pour toute étape dont l'`Impact
+  fonctionnel` n'est pas « Rien… ». Le détail, et le cas des sessions qui ne
   peuvent pas poser d'image :
 
   📄 `${CLAUDE_PLUGIN_ROOT}/skills/_partage/maquettes-html.md`
 - **Écrire l'entrée de journal de l'étape dans la page** (§4), sous son propre
   H3. Pour une vague, les entrées se posent **dans l'ordre des numéros
   d'étape**, jamais dans l'ordre d'arrivée des rapports de sous-agent
-  (`vagues.md`).
+  (`vagues.md`). La puce **Effets** de cette entrée reprend le champ « effet sur » de la pièce 5 du rapport (`aucun` admis) ; à partir de la première étape du journal qui la porte, `preuves-des-etapes.py --apres` l'exige à chaque étape suivante (une étape écartée en est exemptée).
 - **Afficher un récap de l'étape dans la session** : ce qui a été fait, les
   fichiers touchés, le commit et le verdict de la preuve, les écarts, l'étape
   suivante.

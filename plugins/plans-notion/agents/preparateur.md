@@ -5,6 +5,8 @@ description: >-
 model: sonnet
 effort: medium
 maxTurns: 80
+disallowedTools:
+  - Agent
 ---
 
 # Préparer un plan jusqu'à `pret`

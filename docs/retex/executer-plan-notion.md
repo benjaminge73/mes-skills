@@ -83,7 +83,7 @@ sans juge (code 3), le pilote relit chaque passage relevé.
 > décision du 2026-09-04, qui revient sur la PR de clôture automatique du
 > 2026-09-03.
 
-Règle conservée : l'exécution s'arrête à la branche, sans PR.
+Règle conservée : l'exécution s'arrête à la branche, sans PR. [état au 2026-11-06 : la règle a été revue depuis ; la PR s'ouvre désormais à la clôture, prête (`cloture.md`, passage « La PR s'ouvre à la clôture, prête »).]
 
 ## Branches de vague survivantes (`cloture.md`)
 
@@ -92,3 +92,16 @@ Règle conservée : l'exécution s'arrête à la branche, sans PR.
 
 Règle conservée : contrôle bloquant des branches `<branche-du-plan>-etape-*` avant
 de poser `a merger`.
+
+## Une étape relue seule a sa branche d'étape (`vagues.md`, `etapes.md`)
+
+> 2026-11-19 — Une étape `Relecture : étape` se joue dans son worktree, sur sa
+> branche d'étape, même seule dans sa vague : sa revue porte sur sa plage de
+> commits (`<base>..<tête>`), sans que le checkout partagé la voie avant le report.
+> Écarté : une PR par étape, un run de CI chacune.
+
+Règle conservée : une étape `étape` a son worktree et sa branche
+`<branche-du-plan>-etape-N` ; une étape `lot` reste sur la branche du plan. La règle
+vaut pour les plans dont l'entrée `Ouverture` est écrite après la mise à jour du
+plugin ; un plan déjà en cours à ce moment-là garde sa branche unique jusqu'à sa
+clôture.

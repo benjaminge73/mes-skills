@@ -1,0 +1,55 @@
+schema_version: "1.1"
+name: deux-executants
+description: "Une étape qui écrit du code testé : le pilote fait écrire le test rouge par un exécutant, commite ce rouge, puis fait écrire le code par un second exécutant distinct, et ne laisse jamais le même écrire les deux."
+tags: [execution]
+expected_outcome: "Deux appels Agent à plans-notion:executant ; le commit rouge ne porte que tests/test_plafond.py, le commit vert ne porte que src/plafond.py, rouge avant vert ; aucun commit ne mélange les deux ; aucun general-purpose."
+execution:
+  max_turns: 80
+  timeout_seconds: 900
+  allowed_tools: [Read, Glob, Grep, Skill, Agent, Bash, Write, Edit, TodoWrite]
+context:
+  scaffold_script: fixture.sh
+# Jugé sur les appels d'outil (tool_used), sur la trace des commits (.evals/commits.log,
+# écrit par un hook post-commit posé par fixture.sh) et jamais sur le récit du pilote.
+# Panne nommée : le pilote écrit le test ET le code dans un seul exécutant (un seul appel
+# Agent), ou commite les deux dans un même commit, ou fait écrire le vert par l'agent qui
+# a écrit le rouge. Les juges fichier ne disent pas QUI a écrit quoi : c'est la trace
+# d'appels (deux appels executant) qui le dit ; les juges fichier disent ce qui est commité.
+graders:
+  - name: skill-appele
+    type: tool_used
+    tool: Skill
+    input_match: executer-plan-notion
+    min: 1
+  - name: deux-executants
+    type: tool_used
+    tool: Agent
+    input_match: plans-notion:executant
+    min: 2
+  - name: pas-de-general-purpose
+    type: tool_used
+    tool: Agent
+    input_match: general-purpose
+    min: 0
+    max: 0
+  - name: rouge-seul-tests
+    type: regex
+    pattern: '^FILES: tests/test_plafond\.py$'
+    flags: m
+    target: {source: file, path: ".evals/commits.log"}
+  - name: vert-seul-code
+    type: regex
+    pattern: '^FILES: src/plafond\.py$'
+    flags: m
+    target: {source: file, path: ".evals/commits.log"}
+  - name: rouge-avant-vert
+    type: regex
+    pattern: '^FILES: tests/test_plafond\.py$[\s\S]*^FILES: src/plafond\.py$'
+    flags: m
+    target: {source: file, path: ".evals/commits.log"}
+  - name: aucun-commit-melange
+    type: regex
+    pattern: '^FILES:[^\n]*(tests/[^\n]*src/|src/[^\n]*tests/)'
+    flags: m
+    match: not_contains
+    target: {source: file, path: ".evals/commits.log"}

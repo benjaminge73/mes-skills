@@ -66,6 +66,20 @@ class RefuserNoVerify(unittest.TestCase):
     def test_no_verify_apres_une_chaine_est_refuse(self):
         self.refuse('git add -A && git commit --no-verify -m "x"')
 
+    def test_no_verify_sur_une_ligne_suivante_est_refuse(self):
+        # Panne attrapée : un saut de ligne ne sépare pas deux commandes pour shlex
+        # seul ; « git status⏎git commit --no-verify » passait avec le code 0.
+        self.refuse('git status\ngit commit --no-verify -m "x"')
+
+    def test_saut_de_ligne_dans_le_message_ne_coupe_pas_la_commande(self):
+        # Garde : un saut de ligne entre guillemets fait partie du message. Le
+        # découpage ne doit pas le prendre pour un séparateur (commande permise).
+        self.permis("git commit -m 'a\nb'")
+
+    def test_commit_sans_no_verify_sur_une_ligne_suivante_est_permis(self):
+        # Garde : le découpage par ligne ne doit pas refuser un commit ordinaire.
+        self.permis('git status\ngit commit -m "x"')
+
     def test_S_sans_keyid_ne_masque_pas_le_n_suivant(self):
         # -S a une valeur facultative, collée : le mot suivant n'est pas sa valeur.
         self.refuse('git commit -S -n -m "x"')
@@ -85,6 +99,11 @@ class RefuserNoVerify(unittest.TestCase):
     def test_no_verify_dans_le_texte_du_message_est_permis(self):
         self.permis('git commit -m "retire --no-verify du script"')
 
+    def test_no_verify_colle_a_une_redirection_est_refuse(self):
+        # Panne attrapée : depuis le correctif D3, « > » n'est plus ponctuation pour
+        # shlex ; « --no-verify>/dev/null » devient un seul mot, qui passe avec le code 0.
+        self.refuse("git commit -m x --no-verify>/dev/null")
+
     def test_n_d_une_autre_commande_git_est_permis(self):
         self.permis("git log -n 3")
 
@@ -94,6 +113,149 @@ class RefuserNoVerify(unittest.TestCase):
 
     def test_une_commande_non_decoupable_laisse_passer(self):
         r = jouer(self.SCRIPT, bash('git commit -m "guillemet jamais fermé'))
+        self.assertEqual(r.returncode, 0)
+
+    def test_un_json_illisible_laisse_passer_avec_un_mot_sur_stderr(self):
+        r = jouer(self.SCRIPT, "pas du json {")
+        self.assertEqual(r.returncode, 0)
+        self.assertNotEqual(r.stderr.strip(), "")
+
+
+class RefuserGitStash(unittest.TestCase):
+    """Hook PreToolUse (Bash) : pas de ``git stash``, sous aucune forme.
+
+    Un hook absent fait échouer ``setUp`` : sans cela, le code 2 que Python rend
+    pour un fichier introuvable aurait l'air d'un refus réussi. Le refus doit
+    aussi porter son motif (« WIP » : l'alternative), ce qui sépare le rouge
+    « le hook ne refuse pas » du rouge « le fichier manque ».
+    """
+    SCRIPT = "refuser_git_stash.py"
+
+    def setUp(self):
+        self.assertTrue((HOOKS / self.SCRIPT).is_file(), f"hook absent : {HOOKS / self.SCRIPT}")
+
+    def refuse(self, commande: str):
+        r = jouer(self.SCRIPT, bash(commande))
+        self.assertEqual(r.returncode, 2, f"{commande!r} aurait dû être refusée : {r.stderr}")
+        self.assertIn("stash", r.stderr)
+        self.assertIn("WIP", r.stderr)
+
+    def permis(self, commande: str):
+        r = jouer(self.SCRIPT, bash(commande))
+        self.assertEqual(r.returncode, 0, f"{commande!r} aurait dû passer : {r.stderr}")
+        self.assertEqual(r.stdout + r.stderr, "")
+
+    def test_un_git_stash_nu_est_refuse_avec_le_motif(self):
+        self.refuse("git stash")
+
+    def test_git_dash_C_stash_push_est_refuse(self):
+        self.refuse("git -C /x stash push")
+
+    def test_les_autres_sous_commandes_de_stash_sont_refusees(self):
+        # Panne attrapée en plus : le hook ne reconnaîtrait que « git stash push ».
+        for commande in ("git stash pop", "git stash apply", "git stash list"):
+            with self.subTest(commande=commande):
+                self.refuse(commande)
+
+    def test_stash_apres_une_chaine_est_refuse(self):
+        # Panne attrapée en plus : seul le premier segment de la commande serait lu.
+        self.refuse("git status && git stash push")
+
+    def test_stash_sur_une_ligne_suivante_est_refuse(self):
+        # Panne attrapée en plus : un saut de ligne ne sépare pas deux commandes
+        # pour shlex seul ; le découpage du hook doit le compter comme séparateur.
+        self.refuse("git status\ngit stash push")
+
+    def test_un_chemin_absolu_vers_git_stash_est_refuse(self):
+        # Panne attrapée : le hook comparait le premier mot brut à « git » ;
+        # « /usr/bin/git stash » passait avec le code 0.
+        self.refuse("/usr/bin/git stash")
+
+    def test_command_devant_git_stash_est_refuse(self):
+        # Panne attrapée : le mot de tête « command » masquait « git ».
+        self.refuse("command git stash")
+
+    def test_une_affectation_de_variable_devant_git_stash_est_refusee(self):
+        # Panne attrapée : « GIT_DIR=… » en tête faisait passer la commande.
+        self.refuse("GIT_DIR=/x git stash")
+
+    def test_then_devant_git_stash_est_refuse(self):
+        # Panne attrapée : « then git stash » dans un « if » passait.
+        self.refuse("if true; then git stash; fi")
+
+    def test_accolade_devant_git_stash_est_refusee(self):
+        # Panne attrapée : le groupe « { git stash; } » passait.
+        self.refuse("{ git stash; }")
+
+    def test_les_autres_prefixes_de_commande_devant_git_stash_sont_refuses(self):
+        # Panne attrapée en plus : chaque mot de tête connu du hook est un passage.
+        for commande in ("env git stash", "sudo git stash", "time git stash",
+                         "nohup git stash", "exec git stash", "xargs git stash",
+                         "do git stash", "else git stash", "! git stash"):
+            with self.subTest(commande=commande):
+                self.refuse(commande)
+
+    def test_git_stash_dans_un_heredoc_ecrit_dans_un_fichier_est_permis(self):
+        # Panne attrapée : le saut de ligne lisait le corps d'un heredoc comme des
+        # commandes ; « git stash list » du texte du fichier était refusé à tort.
+        self.permis("cat > f.sh <<'EOF'\ngit stash list\nEOF")
+
+    def test_git_stash_dans_le_message_d_un_commit_en_heredoc_est_permis(self):
+        # Panne attrapée : même cause, avec un message lu par « git commit -F - ».
+        self.permis("git commit -F - <<EOF\nmsg\ngit stash interdit\nEOF")
+
+    def test_heredoc_a_tirets_saute_son_corps_indente(self):
+        # Panne attrapée en plus : « <<-EOF » et son terminateur indenté de tabulations
+        # ne doivent pas faire lire le corps comme des commandes.
+        self.permis("cat <<-EOF\n\tgit stash\n\tEOF")
+
+    def test_git_stash_apres_le_terminateur_de_heredoc_est_refuse(self):
+        # Garde : le corps s'arrête à la ligne terminatrice ; la commande suivante est lue.
+        self.refuse("cat <<EOF\nx\nEOF\ngit stash push")
+
+    def test_git_stash_avant_un_heredoc_est_refuse(self):
+        # Garde : la commande qui précède le heredoc n'est pas avalée par lui.
+        self.refuse("git stash push && cat <<EOF\nx\nEOF")
+
+    def test_un_chevron_double_entre_guillemets_n_ouvre_pas_de_heredoc(self):
+        # Panne attrapée en plus : un « <<EOF » dans un message ouvrirait un heredoc
+        # fantôme, et avalerait le « git stash » qui suit.
+        self.refuse('echo "<<EOF"\ngit stash push')
+
+    def test_stash_colle_a_une_redirection_est_refuse(self):
+        # Panne attrapée : « > » n'est plus ponctuation pour shlex (punctuation_chars
+        # sans « <> ») ; « git stash>/dev/null » devient un mot inconnu et passe avec le code 0.
+        self.refuse("git stash>/dev/null")
+
+    def test_stash_suivi_d_une_redirection_d_erreur_reste_refuse(self):
+        # Garde : « 2>&1 » séparé par un blanc ne masque pas « git stash ».
+        self.refuse("git stash 2>&1")
+
+    def test_echo_stash_colle_a_une_redirection_est_permis(self):
+        # Garde : « stash » en argument d'echo, collé à une redirection, reste permis.
+        self.permis("echo stash>/dev/null")
+
+    def test_grep_d_un_texte_git_stash_est_permis(self):
+        # Garde : le nom de commande (premier mot), pas le texte, décide.
+        self.permis("grep 'git stash' f")
+
+    def test_git_log_n_3_est_permis(self):
+        self.permis("git log -n 3")
+
+    def test_git_stash_dans_le_texte_du_message_est_permis(self):
+        self.permis("git commit -m 'note: pas de git stash'")
+
+    def test_echo_git_stash_est_permis(self):
+        self.permis("echo git stash")
+
+    def test_un_outil_autre_que_bash_est_ignore(self):
+        # Panne attrapée en plus : le hook bloquerait un autre outil dont le texte
+        # contient « git stash » (lecture d'un fichier, par exemple).
+        r = jouer(self.SCRIPT, {"tool_name": "Read", "tool_input": {"command": "git stash"}})
+        self.assertEqual(r.returncode, 0)
+
+    def test_une_commande_non_decoupable_laisse_passer(self):
+        r = jouer(self.SCRIPT, bash("git stash 'guillemet jamais fermé"))
         self.assertEqual(r.returncode, 0)
 
     def test_un_json_illisible_laisse_passer_avec_un_mot_sur_stderr(self):

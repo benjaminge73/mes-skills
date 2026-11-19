@@ -76,6 +76,43 @@ dans cet ordre : **Quota ou coût** (avec la source et la date de lecture),
 **Pièges datés**, **Bonne pratique**, **Repli**. Une rubrique sans objet
 s'écrit « aucun connu au <date> », elle ne disparaît pas.
 
+## Choisir entre CLI et serveur MCP
+
+Un même service peut se joindre de deux façons : une **CLI**, commande lancée par
+`Bash` dont la sortie revient en texte, ou un **serveur MCP**, dont les outils sont
+branchés dans la session et dont les schémas occupent le contexte. Quand les deux
+existent, la règle est la **CLI**, pour deux mesures déjà faites dans ce fichier :
+
+- **Le contexte.** Un appel `claude -p` sans outil a chargé **186 651 jetons** de
+  connecteurs MCP du compte, contre **8 984** avec `--strict-mcp-config` (2026-10-16,
+  fiche « Claude Code (CLI `claude`) sur un serveur à plusieurs comptes »). Un serveur
+  MCP attaché à une session coûte ses schémas à chaque tour ; une CLI ne coûte rien
+  tant qu'on ne l'appelle pas.
+- **Le canal.** Les connecteurs claude.ai relayés par l'app de bureau tombent avec le
+  hook de l'app (2026-10-08 à 2026-10-10, fiche « Connecteurs MCP d'une session Claude
+  Code »). Le 2026-10-10, la commande `composio` du VPS a tenu les
+  écritures Notion pendant que le connecteur de l'app restait injoignable plus de vingt
+  minutes. Une CLI qui tourne sur la machine ne dépend ni de l'app ni de la session.
+
+Deux exceptions, où le serveur MCP passe avant la CLI :
+
+1. **Quand la mesure de justesse tranche pour le serveur.** Pour le graphe de code,
+   `codebase-memory` (serveur MCP) retrouve **11 éléments sur 11** en 41 appels ; la CLI
+   `graphify` n'en retrouve que **5 sur 11** (`affected`, `explain`) ou **7 sur 11**
+   (`query`), sur la même mesure (2026-11-11). Le critère est la justesse mesurée, pas le
+   canal : la CLI a perdu, on garde le serveur. Son coût reste à borner, par exemple aux
+   étapes à risque : une carte de voisinage sur un plan de 24 étapes a pris 57 appels
+   (2026-10-09, fiche « codebase-memory »).
+2. **Notion, quand la session a son connecteur.** Le connecteur MCP de la session passe
+   en premier, la commande `composio` n'est que le second palier de la chaîne de repli.
+   Raison : une session cloud n'a pas `composio` ; le connecteur de la session, lui, y
+   est, et passe donc en premier. Le repli prend le relais quand le connecteur tombe,
+   après trois essais sur une dizaine de minutes.
+
+Pour un autre service, la question se tranche par une mesure, comme pour un outil absent
+(« Règle pour un outil absent ») : la même tâche jouée par la CLI et par le serveur, la
+justesse comparée, le coût en jetons relevé. Sans mesure, la CLI reste le défaut.
+
 ## Fiche — Google Places
 
 **Quota ou coût** (relevé au 2026-09-29, d'après les incidents datés
@@ -383,8 +420,9 @@ lecture.
    Rien n'est parti, donc pas de doublon. Pendant ce temps, avancer sur ce qui
    ne dépend pas de l'app.
 2. **La commande `composio` du VPS**, en lecture et en écriture. Elle est
-   installée à `~/.local/bin/composio` (lien vers `~/.composio/composio`, version
-   0.4.0). Lecture : `echo '{"page_id":"<id>"}' | composio execute
+   installée à `~/.local/bin/composio` (lien vers le shim `mise`
+   `~/.local/share/mise/shims/composio`, version 0.4.5 relevée le 2026-11-19, déclarée
+   dans `config/mise.toml` de hermes-custom). Lecture : `echo '{"page_id":"<id>"}' | composio execute
    NOTION_GET_PAGE_MARKDOWN -d -` ; une grosse page revient dans un fichier
    (`storedInFile`, puis `outputFilePath`, champ `data.markdown`). Écriture de
    contenu : `composio execute NOTION_UPDATE_PAGE_MARKDOWN -d @args.json`, et
@@ -428,9 +466,10 @@ lecture.
    pilote lui-même, comme le veut la bonne pratique plus haut, et l'empreinte
    vérifiée par ce code avant toute écriture.
 
-Limite : `composio` est posé à la main sur le VPS, hors de la cascade
-d'installation de `installer-un-outil.md`, sans manifeste ; rien ne le met à
-jour. Une session cloud ne l'a pas : là-bas, on passe du palier 1 au palier 3.
+Limite : `composio` est installé par `mise` (cran 3 de la cascade de
+`installer-un-outil.md`), déclaré dans `config/mise.toml` de hermes-custom et suivi
+par le veilleur `upstream-watch`. Une session cloud ne l'a pas : là-bas, on passe du
+palier 1 au palier 3.
 
 ## Fiche — DeepSeek vision
 
@@ -484,20 +523,21 @@ commune pour comparer les postes.
 | `bruit` | 3 | 3 | 4,81 $ | 1,60 $ |
 | `etat-de-depart` | 4 | 4 | 7,13 $ | 2,38 $ |
 | `maquette` | 1 | 1 | 1,61 $ | 0,54 $ |
-| `decouvertes` | 11 | 4 | 4,98 $ | 1,66 $ |
-| `perimetre` | 5 | 2 | 2,56 $ | 0,85 $ |
+| `decouvertes` | 12 | 4 | 4,98 $ | 1,66 $ |
+| `perimetre` | 6 | 2 | 2,56 $ | 0,85 $ |
 | `delegation` | 1 | — | non mesuré | non mesuré |
 | `preuves` | 13 | — | non mesuré | non mesuré |
-| `revue-hors-plan` | 2 | — | non mesuré | non mesuré |
+| `revue-hors-plan` | 3 | — | non mesuré | non mesuré |
 | `escalade-bornee` | 1 | — | non mesuré | non mesuré |
-| **tout le banc** | 44 | 16 | 27,53 $ | ≈ 9,2 $ |
+| **tout le banc** | 47 | 16 | 27,53 $ | ≈ 9,2 $ |
 
 Les coûts datent du 2026-09-30 et ne sont extrapolés à aucune catégorie. Les
 catégories `existant` et `decouvertes` ont gagné des cas depuis : elles coûtent
 plus que leur ligne. `delegation`, `preuves`, `revue-hors-plan` et `escalade-bornee`
 ne figuraient pas dans la mesure, et leur coût n'a jamais été mesuré. `tout le banc`
 désigne le banc de `plans-notion` ; `voyages` en compte un de plus (`billet`), soit
-45 cas au total.
+48 cas au total. Le cas `deux-executants` (`perimetre`) est écrit sans être joué :
+son coût n'est pas mesuré, et la colonne « Cas mesurés » ne le compte pas.
 
 Mesure postérieure pour `decouvertes` : la PR #60 (son run du
 2026-10-16), à bras identiques puisqu'elle ne changeait aucun fichier du plugin.

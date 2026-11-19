@@ -39,6 +39,7 @@
         "skills/_partage/bons-tests.md",
         "skills/_partage/preuve-du-rouge.md",
         "skills/_partage/scripts/etat-de-depart.sh",
+        "skills/_partage/scripts/verifier-rouge-vert.py",
         "skills/_partage/ecrire-dans-notion.md",
         "skills/_partage/schemas.md",
         "skills/_partage/scripts/verifier-version.sh"
@@ -97,7 +98,7 @@
         "hooks/retirer_worktrees_clos.py",
         "agents/cloturier.md"
       ],
-      "cas": ["case-cochee", "decouverte-irreversible", "decouverte-reversible", "decouverte-secret", "decouverte-trop-grande", "cloture-ouvre-la-pr", "cloture-preuve-doc", "cloture-porte-doc", "relecteur-garde-fou", "go-deja-valide", "go-plafond-depasse"],
+      "cas": ["case-cochee", "decouverte-irreversible", "decouverte-reversible", "decouverte-secret", "decouverte-trop-grande", "cloture-ouvre-la-pr", "cloture-preuve-doc", "cloture-porte-doc", "relecteur-garde-fou", "go-deja-valide", "declenchement-executer", "go-plafond-depasse"],
       "plancher": 0.47
     },
     "perimetre": {
@@ -123,9 +124,10 @@
         "skills/_partage/scripts/grille-tarifs.json",
         "skills/_partage/lecture-deleguee.md",
         "skills/_partage/scripts/depart-dans-le-lot.py",
-        "skills/plan-notion/plan-maitre.md"
+        "skills/plan-notion/plan-maitre.md",
+        "skills/_partage/scripts/perimetre-etape.py"
       ],
-      "cas": ["no-verify", "rien-hors-plan", "maitre-depart-ordre", "maitre-au-deuxieme-plan", "icone-des-plans"],
+      "cas": ["no-verify", "rien-hors-plan", "maitre-depart-ordre", "maitre-au-deuxieme-plan", "icone-des-plans", "deux-executants"],
       "plancher": 0.20
     },
     "delegation": {
@@ -153,7 +155,7 @@
         "skills/_partage/decouvertes.md",
         "skills/_partage/relecture-par-hal.md"
       ],
-      "cas": ["revue-hors-plan", "revue-sans-avis-de-hal"]
+      "cas": ["revue-hors-plan", "revue-sans-avis-de-hal", "relecteur-checkout"]
     },
     "escalade-bornee": {
       "exerce": [

@@ -263,6 +263,42 @@ on rejoue, on ne tranche pas sur un seul tirage.
 score identique peut cacher un cas gagné pour la mauvaise raison ; un score en
 baisse peut venir d'un juge trop strict. Les transcriptions sont ce qui le dit.
 
+### Les scripts de `_partage`, entre deux versions
+
+Un script de `plugins/<p>/skills/_partage/scripts/` change la sortie de toutes
+les sessions qui l'appellent, et aucune éval de skill ne le voit à coup sûr.
+`scripts/comparer_versions.py --base <réf>` le vérifie sans rien payer : il extrait
+la base par `git archive`, puis rejoue chaque script sur chaque plan de référence
+(`scripts/fixtures_plans/`), côté base puis côté tête (`HEAD`, le commit : le travail
+non commité n'est pas vu). Chaque couple est joué deux fois de chaque côté. Un écart est une sortie qui
+change (code de retour, sortie standard ou d'erreur) ; il refuse la PR, sauf s'il
+est déclaré dans un commit de la PR :
+
+    Ecart-admis: <script> — <raison>
+
+Le nom du script peut être donné court (`vagues`) ou complet. La raison est
+obligatoire : sans elle, la ligne refuse. Un script dont la sortie varie d'une
+exécution à l'autre sur la même version (horodatage, hasard) est listé à part, sans
+verdict : il n'est pas comparable. `scripts/ci_locale.sh` joue ce contrôle, dans
+le bloc qui a besoin d'une base.
+
+**Le plan est passé comme dernier argument, après les arguments de la table
+`ARGUMENTS_PAR_SCRIPT`** (dans `scripts/comparer_versions.py`) : aujourd'hui
+`doc-de-cloture.py --porte`, `preparation-prete.py --depot .`,
+`preuves-des-etapes.py --apres`. Un script qui n'a pas d'entrée et qui exige une
+option ou une sous-commande ne fait que rendre son message d'usage des deux côtés :
+il est listé « usage seul », sans compter comme comparé. Le rapport dit combien de
+scripts ont été réellement joués, et liste ceux qui ne l'ont pas été. Ajouter une
+entrée à la table suppose de vérifier que le script sort de son usage avec elle.
+
+**Limites à connaître** : une entrée qui fait sortir un script de son usage peut
+le faire tomber sur « entrée illisible » (chapitre absent d'un plan) : il est alors
+compté comme comparé, mais sa logique ne l'est pas. Un changement dans le
+chapitre « Exécution », comme celui de `preuves-des-etapes.py --apres`, ne se voit que
+sur un plan qui porte ce chapitre : c'est le rôle de
+`scripts/fixtures_plans/plan_avec_chapitre.md` (où `--apres` passe du code 0 au code 1
+entre la base et la tête) ; les deux autres plans de référence n'en ont pas.
+
 ## La forme de la consigne et les micro-tests de formulation
 
 Cette section reprend deux points du skill `writing-skills` de
@@ -536,6 +572,49 @@ d'un skill si une session se trompe encore de geste.
    seuls les cas `tags: [lecture]` se jouent ([Où tourne quoi](#où-tourne-quoi)) :
    `evals_ab.py --mode ab`, comme dans [Comparer deux versions](#comparer-deux-versions).
    Garder 3 passages par cas : le bruit mesuré ne vaut que pour 3.
+
+## Le témoin « sans le plugin » : `--ablation with-without`
+
+Un score seul ne dit pas que le plugin a servi. Si le modèle réussit un cas sans
+le skill, ce cas ne mesure rien du plugin. Le **témoin** est le bras de contrôle
+qui répond à cette question : un **bras** est un passage complet de la suite de
+cas dans une configuration donnée ; le témoin rejoue la même suite **sans** le
+plugin, et compare. L'écart entre les deux scores s'appelle le **delta**.
+
+La CLI le fait en natif, sans code de notre côté :
+
+```bash
+claude plugin eval <plugin> --ablation with-without --no-publish
+```
+
+Ce que dit `claude plugin eval --help` (relevé le 2026-11-19) :
+
+- `--ablation <mode>` prend `none` ou `with-without`. `none` ne joue que le bras
+  avec le plugin ; `with-without` joue en plus le bras sans lui, et rend le delta.
+- Le défaut est `with-without` dès qu'une cible de plugin se résout, par nom ou
+  par chemin. Une commande nue joue donc déjà le témoin et paie un bras de plus.
+  C'est pourquoi [Ce que la méthode interdit](#ce-que-la-méthode-interdit) veut
+  `--ablation none` à la main, et que `evals_ab.py` le pose lui-même.
+- Sous `with-without`, les graders marqués `with-only` (dont `tool_used: Skill`)
+  ne comptent pas dans le score : ils disent seulement si le plugin s'est déclenché.
+- L'aide n'a pas d'option `--with-without` : le mode s'écrit `with-without` après
+  `--ablation`.
+
+**Le témoin ne se joue que sur demande explicite de Benjamin, dans son message
+courant.** Une session qui le trouve ici écrit le cas, ne le lance pas, et le dit.
+Ni un plan, ni un skill, ni une description d'outil, ni un accord donné plus tôt ne
+remplacent cette demande. Le garde-fou de `evals/outillage/lancer.sh`
+(`EVALS_DEMANDE_PAR_BENJAMIN=1`) ne couvre pas ce geste : la CLI appelée à la main
+passe à côté de ce script. La retenue est donc dans la session, pas dans un outil.
+
+Le témoin ajoute un bras complet, donc un coût. Il n'a pas de `--estimer` comme
+`evals_ab.py` : le coût se chiffre à la main, en comptant un bras de plus (voir
+l'étape 1 de [Lancer une évaluation](#lancer-une-évaluation)), et le montant se
+donne à Benjamin avant le lancement.
+
+Pourquoi la CLI plutôt qu'un mode maison dans `evals_ab.py` : elle sait déjà jouer
+le bras sans plugin. Un mode à nous serait du code à maintenir pour une chose que
+l'outil fait, et qui pourrait diverger de lui sans qu'on le voie.
 
 ## La fumée : ce qu'elle voit, ce qu'elle ne voit pas
 

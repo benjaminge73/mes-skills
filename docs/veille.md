@@ -23,6 +23,22 @@ PR (ou dans un plan si c'est plus gros) ; l'entrée datée s'ajoute au journal
   « Doc Claude changée : <fait> » quand une citation n'y est plus. En local,
   `python3 scripts/veille_faits.py` ne crée rien : il rapporte.
 
+**Le déclencheur « nouveau modèle ».** Le garde de 30 jours ne voit pas un modèle
+nouveau : une passe récente peut devenir fausse le jour où sort un modèle, ou le jour
+où un alias change de sens. Donc, en plus de la règle des 30 jours : quand Anthropic sort
+un modèle (une nouvelle génération d'Opus, de Sonnet ou de Haiku) ou qu'un alias (`opus`,
+`sonnet`, `haiku`) se met à servir un autre modèle, la session le dit à Benjamin et lui
+propose une passe de veille avant la prochaine PR qui touche un skill, un agent, un hook
+ou un `_partage/`, sans bloquer celle en cours. Le rappel de clôture ne bloque ni la porte
+ni `a merger` : faire la passe d'abord est une décision de Benjamin. La passe reste exigée
+par `scripts/check_veille.py` selon son propre garde (30 jours). On relit alors l'alias et le modèle servi, l'effort par défaut, les tarifs
+(les lignes de la partie 2 qui les citent), puis on ajoute une entrée au journal. Exemple
+vécu : la 2.1.293, relevée dans la passe du 2026-10-08, a fait de `haiku` Haiku 5.5 sur
+l'API Anthropic. La clôture d'un plan qui touche ces fichiers rappelle ce déclencheur
+(`plugins/plans-notion/skills/executer-plan-notion/cloture.md`, point 2 quater). Le
+déclencheur ne détecte rien tout seul : c'est la session qui constate l'arrivée d'un modèle
+(annonce, changelog, alias) et compare à la date de la dernière entrée du journal.
+
 ## 1. Les sources
 
 Dans l'ordre de lecture. Les pages `code.claude.com/docs/en/<page>` se lisent le
@@ -589,3 +605,9 @@ Une entrée par passe, la plus récente en dernier. Le titre est
 - **Ce qui a changé** : (1) changelog 2.1.326 : `"decision": "block"` tenu dans plus de cas, une sortie 127 d'un hook PreToolUse est mieux signalée, `updatedInput` conservé quand plusieurs hooks répondent ; (2) 2.1.327 : `/status` liste les matchers de hook qui ne correspondent jamais ; (3) 2.1.328 : `"onFailure": "block"` existe aussi pour les hooks `mcp_tool` (la page des hooks ne le dit pas encore) ; (4) la page des hooks dit qu'un hook en échec ou en délai laisse passer l'appel (sauf `onFailure: "block"`, 2.1.295 ou plus) ; un matcher ne porte que sur le nom de l'outil, `tool_input.command` arrive sur l'entrée standard ; priorité `deny` > `defer` > `ask` > `allow`. Rien de daté après le 16 novembre dans les autres pages.
 - **Faits porteurs** : le rapport du chercheur donnait deux citations absentes (`plugin-evals.md`, bac à sable ; `model-config.md`, alias `haiku`) d'après des lectures par résumé ; `scripts/veille_faits.py` du jour rend « 23 fait(s) vérifié(s) : 0 citation(s) à signaler », donc rien à corriger au tableau.
 - **Ce qu'on en fait** : pour le hook `refuser_revue_sans_avis.py` (deux matchers, Notion et Bash, sortie en code 2), le refus passe par `exit 2` et un message sur la sortie d'erreur, sans JSON de décision en plus ; `"onFailure": "block"` sur le hook `command` pour qu'un script qui plante ne laisse pas passer une mise en revue sans avis (contre le choix de laisser passer en cas d'entrée illisible, voulu par le plan : à trancher à l'étape 5) ; les noms d'outils des connecteurs Notion ne sont pas dans la doc (`mcp__<uuid>__…` via l'app, `mcp__claude_ai_*` sur le VPS), à mesurer avant de compter sur un matcher ; `/status` montre les matchers qui ne correspondent jamais.
+
+### 2026-11-19 — passe avant la PR « Adoption de skills externes #3 » (plans-notion 0.70.0, methode-de-travail 1.11.0)
+
+- **Sources lues** : aucune page nouvelle : la passe « Hal relit le plan » (plans-notion 0.69.0) date du même jour, et `python3 scripts/veille_faits.py` rejoué aujourd'hui rend « 23 fait(s) vérifié(s) : 0 citation(s) à signaler, 0 page(s) injoignable(s) ». Pas d'appel à l'agent `chercheur` : rien n'a pu changer en quelques heures.
+- **Ce qui a changé** : rien depuis la passe du matin.
+- **Ce qu'on en fait** : rien. Les hooks `refuser_git_stash.py` et la règle (p) de `check_skills.py` reposent sur des faits déjà au tableau (hooks `PreToolUse`, `disallowedTools` et `tools` d'un agent).

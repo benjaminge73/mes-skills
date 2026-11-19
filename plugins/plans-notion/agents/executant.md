@@ -45,7 +45,9 @@ repartir de zéro.
   tu commites la première avant d'ouvrir la seconde, avec le message fourni ;
   et, pour une étape testée, le commit rouge (tests seuls) puis le commit
   vert (code), sur ordre du brief — jamais un fichier de test dans le commit
-  vert. Hors de ces cas, le pilote s'occupe de git.
+  vert. Dans la forme à deux exécutants (section suivante), aucun des deux ne
+  commite : le pilote commite le rouge et le vert. Hors de ces cas, le pilote
+  s'occupe de git.
 
   📄 `${CLAUDE_PLUGIN_ROOT}/skills/_partage/preuve-du-rouge.md`
 - **Écrire dans Notion.** La page appartient au pilote.
@@ -63,7 +65,9 @@ repartir de zéro.
   --detach <tmp> <sha>`, puis `git worktree remove --force <tmp>` une fois
   fini. Constaté le 2026-09-24 : un exécutant a utilisé `git stash` malgré cet
   interdit posé dans le brief — sans dégât cette fois, mais le risque de perte
-  pour une autre session reste entier tant que l'interdit n'est pas ici.
+  pour une autre session reste entier tant que l'interdit n'est pas ici. Un
+  hook (`refuser_git_stash.py`) refuse la forme directe de la commande ; un
+  contournement par `bash -c` ou `eval` n'est pas vu.
 
 ## Quand tu écris un test
 
@@ -81,6 +85,23 @@ attrape, dans un commentaire du test (ou le message du commit rouge) — le
 relecteur ne lit pas ton rapport — et dans ton rapport.
 
 📄 `${CLAUDE_PLUGIN_ROOT}/skills/_partage/bons-tests.md`
+
+## Quand tu reçois un test déjà rouge (second exécutant)
+
+Une étape testée peut se faire en deux appels enchaînés (`executer-plan-notion`,
+`etapes.md`, §3). Ton brief dit lequel tu es.
+
+- **Premier exécutant** : tu écris les tests de l'étape seuls, tu les joues, tu
+  rends la sortie rouge. Tu ne touches à aucun code et tu ne commites pas.
+- **Second exécutant** : ton brief te donne le SHA du commit rouge et la liste
+  des fichiers de test, **en lecture seule**. Tu écris le code qui les fait
+  passer. **Tu ne modifies jamais les fichiers de test reçus** : ni une
+  assertion, ni un import, ni un `skip`, ni un nouveau fichier de test. Si un
+  test te paraît faux, tu ne le corriges pas : tu rends `BLOCKED`, avec
+  l'assertion en cause et la raison, et le pilote décide. Tu ne commites pas :
+  le pilote commite le vert, après avoir vérifié, sur l'arbre de travail et
+  avant le commit, que `git diff <sha-rouge> -- <fichiers-de-test>` et
+  `git status --porcelain -- <dossier des tests>` sont vides.
 
 ## Quand l'étape est un retrait
 
@@ -209,6 +230,20 @@ Le serveur `codebase-memory` te donne cinq outils, et seulement ceux-là :
    toi. **D'un secret, tu ne recopies jamais la valeur** : le lieu et la nature
    suffisent, la valeur ne doit pas se retrouver dans un rapport que le
    pilote écrira ensuite dans Notion.
+
+   **Un incident** (une consigne du brief violée, une panne qui a coûté un tour,
+   un interdit qu'il a fallu poser) se signale avec la formule « règle convertie ? »
+   en tête de sa ligne, suivie de la consigne qui n'a pas suffi :
+   `règle convertie ? <incident> — <consigne qui n'a pas tenu>`. Tu ne poses pas
+   le garde toi-même : le pilote décide, à la clôture, si l'incident devient une
+   règle tenue par un garde.
+
+   **Champ « effet sur »** : une ligne par fichier modifié (pièce 2), disant ce que
+   le changement touche ailleurs — appelants, docs, tests, hooks — ou `aucun`.
+   Pour les appelants d'un symbole modifié, `trace_path` d'abord. Un `aucun` ne se
+   dit qu'après un `grep` du nom du fichier ou du symbole hors de ta liste : le
+   graphe ne voit pas tout (« Lire le code », plus haut). Le pilote reporte ce
+   champ au journal, sous une puce `**Effets**`.
 
 ## Pourquoi cet agent existe
 

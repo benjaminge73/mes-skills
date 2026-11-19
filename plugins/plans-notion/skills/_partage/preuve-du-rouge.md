@@ -52,7 +52,54 @@ L'exécutant commite **d'abord** les tests seuls, puis le code — deux commits,
 jamais un seul qui mélange les deux. C'est la seconde exception à la règle
 « ni `commit` » du brief standard (`executant.md`, « Ce que tu ne fais
 jamais »), au même titre que le regroupement de deux étapes (`vagues.md`) :
-sur ordre explicite du brief, et seulement dans ce cadre.
+sur ordre explicite du brief, et seulement dans ce cadre. Dans la forme à
+deux exécutants (section « Deux exécutants », plus bas), ce n'est pas un
+exécutant qui commite : c'est le pilote, le rouge comme le vert.
+
+## Deux exécutants : le second ne touche pas au test
+
+Une étape testée peut se faire en deux appels d'`executant` enchaînés
+(`executer-plan-notion`, `etapes.md`, §3). C'est le pilote qui choisit cette
+forme, dans le brief ; le sous-agent ne la décide pas.
+
+- **Le premier exécutant** n'écrit que les tests de l'étape, les joue, et rend
+  sa sortie rouge. Il ne touche à aucun code et ne commite rien.
+- **Le pilote commite le rouge** (tests seuls, `test(…): étape N — rouge`),
+  puis rejoue la preuve sur ce commit, comme décrit plus haut.
+- **Le second exécutant** reçoit dans son brief le SHA de ce commit rouge et la
+  liste des fichiers de test, **en lecture seule**. Il écrit le code qui les
+  fait passer, et ne modifie aucun de ces fichiers : ni assertion, ni import,
+  ni `skip`, ni nouveau fichier de test. Il ne commite pas non plus.
+- **Le pilote contrôle, puis commite le vert.** Les deux contrôles se jouent
+  **avant** le commit, sur l'arbre de travail, et doivent être vides :
+  `git diff <sha-rouge> -- <fichiers-de-test>` (sans `..HEAD` : à ce moment
+  HEAD est encore le commit rouge, et une plage entre deux commits ignore
+  l'arbre de travail) et `git status --porcelain -- <dossier des tests>` (aucun
+  fichier de test nouveau ou modifié, fichiers non suivis compris). Un résultat
+  non vide, c'est l'étape qui repart, comme dans la section « Trois issues ».
+
+Si le second exécutant croit le test faux, il ne le corrige pas : il rend
+`BLOCKED`, avec l'assertion en cause et la raison. Le pilote tranche : un
+nouveau commit rouge, qui rejoue tout le geste depuis le début, ou une étape
+bloquée. Celui qui n'a pas écrit le test ne le réécrit pas.
+
+## Le contrôle du vert, par script
+
+Le `git diff` ci-dessus se joue aussi en une commande, sur les deux SHA :
+
+```bash
+python3 "${CLAUDE_PLUGIN_ROOT}/skills/_partage/scripts/verifier-rouge-vert.py" <sha-rouge> <sha-vert> [--tests <chemin> ...]
+```
+
+- **Code 0** : entre le rouge et le vert, aucun fichier de test ni configuration du lanceur de tests n'a bougé (le vert ne touche que le code).
+- **Code 1** : un fichier de test a été ajouté, modifié ou supprimé, ou la configuration du lanceur de tests a été retouchée. La liste dit pourquoi : test désactivé (`skip`, `xfail`, `skipTest`), assertion retirée ou remplacée par `assert True` / `pass`, fichier supprimé, configuration du lanceur retouchée. L'étape repart.
+- **Code 2** : panne (SHA inconnu, dossier qui n'est pas un dépôt git). À corriger avant de conclure quoi que ce soit.
+
+Est un fichier de test, dans cet ordre : tout fichier du commit rouge (le rouge ne porte que des tests, le script n'a pas à deviner) ; ceux que désigne `--tests` (relatifs à la racine du dépôt, `./tests` et `tests` sont équivalents) ; sans lui, ceux qui sont dans `tests/`, `test/` ou `__tests__/`, ou dont le nom suit `test_*`, `*_test.*`, `*.test.*`, `*.spec.*`. Est une configuration du lanceur de tests, à n'importe quel niveau de l'arbre : `conftest.py`, `pytest.ini`, `jest.config.*`, `vitest.config.*`. Un vert qui retouche l'un de ces fichiers fait sauter les tests sans toucher à aucun test : code 1. `pyproject.toml`, `tox.ini` et `setup.cfg` servent aussi à autre chose (dépendances, environnements) : ils ne font code 1 que si le changement tombe dans une section de test (`[tool.pytest…]`, `[pytest]`, `[tool:pytest]`, `[testenv…]`, ou une ligne qui porte `addopts`, `testpaths`, `norecursedirs`, `markers`). Une dépendance ajoutée à `pyproject.toml` passe (code 0). Un `package.json` ne compte pas, sa clé `scripts.test` ne se lit pas dans un `git diff`.
+
+`--tests` remplace la détection par nom, il ne s'y ajoute pas : un fichier de test hors de ces dossiers, absent du rouge, passe inaperçu si `--tests` ne le nomme pas.
+
+Limite : le script ne lit que les deux commits et les fichiers qu'ils changent. Il ne voit pas un skip posé hors de ces fichiers, p.ex. une variable d'environnement. Le script se joue donc sur le commit vert une fois créé, en local, avant le push. Sur un code 1, on défait ce commit local (`git reset --soft HEAD~1`), on corrige, et on rejoue. Il ne remplace pas le rejeu du rouge ci-dessous : il prouve seulement que le vert n'a pas touché les tests ni leur lanceur.
 
 ## Le geste du pilote : rejouer les tests sur le commit rouge
 
@@ -116,7 +163,7 @@ couvre pas le cas visé. Retour au sous-agent avec la sortie verte et la
 demande de corriger le test, pas le code ; un nouveau commit rouge remplace
 l'ancien.
 
-**`git diff <sha-rouge>..HEAD -- <fichiers-de-test>` n'est pas vide.** Le
+**`git diff <sha-rouge> -- <fichiers-de-test>` ou `git status --porcelain -- <dossier des tests>` n'est pas vide.** Le
 code a retouché un fichier que le rouge avait déjà jugé — exactement ce que
 la preuve du rouge existe pour empêcher. L'étape repart : le commit vert ne
 doit toucher aucun fichier de test. Si le test était réellement faux — une

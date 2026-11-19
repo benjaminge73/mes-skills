@@ -143,6 +143,9 @@ Les sections 5 et 6 regardent les appels un à un :
   session, sous-agents compris. Les notifications et les messages système ne
   coupent pas un tour. Classement par dollars.
 
+Une mesure chiffrée en découle, relevée le 2026-11-19 : la part de la relecture, soit 28,1 % du total chiffré (432,1234 dollars sur 1 537,8134, sous-agent `plans-notion:relecteur`, en Opus, fenêtre de 30 jours, `rapport-tokens.py --since 30d`, grille du 2026-10-12).
+Le total couvre toutes les sessions de la fenêtre, plans compris, et non les seuls plans : ce chiffre dit la place du relecteur dans les dépenses du poste, pas dans le coût d'un plan. Les appels non chiffrés (1 096, 438 578 966 tokens) sont hors du dénominateur.
+
 Limites :
 
 - Le rapport ne remplace pas `cout-plan.py`. Il ne sait pas de quel plan vient un
