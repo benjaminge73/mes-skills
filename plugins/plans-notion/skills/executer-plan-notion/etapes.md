@@ -403,7 +403,10 @@ en disant quelles étapes ont été faites en direct et pourquoi.
   visée, et porter dans l'entrée de journal la capture si on sait la poser,
   puis les écarts un par ligne, chacun *voulu* (quelle contrainte l'impose)
   ou *pas voulu* — ou « Aucun écart ». Un écart pas voulu se corrige dans
-  l'étape, comme une preuve rouge. Le détail, et le cas des sessions qui ne
+  l'étape, comme une preuve rouge. Le rendu de l'écran se note dans la puce
+  **Maquette** de l'entrée de journal de l'étape (pas celle de l'ouverture) :
+  `preuves-des-etapes.py --apres` l'exige pour toute étape dont l'`Impact
+  fonctionnel` n'est pas « Rien… ». Le détail, et le cas des sessions qui ne
   peuvent pas poser d'image :
 
   📄 `${CLAUDE_PLUGIN_ROOT}/skills/_partage/maquettes-html.md`

@@ -29,6 +29,9 @@ Codes : 0 conforme ; 1 au moins un défaut, un par ligne sur la sortie standard
 --apres exige aussi, pour une étape dont la puce « Relecture » du chapitre vaut
 « étape » (relue seule, revue.md), une puce « **Revue** » (ou l'ancienne « Revue — ») dans son entrée de journal ;
 une étape « lot » ou sans puce « Relecture » n'est pas contrôlée sur ce point.
+De même, une étape dont « Impact fonctionnel » (chapitre « Exécution ») n'est pas « Rien… » doit
+porter une puce « **Maquette** » dans son entrée de journal (le rendu de l'écran) ; une étape à
+impact « Rien », ou sans puce d'impact, n'est pas contrôlée sur ce point.
 Bibliothèque standard uniquement.
 """
 from __future__ import annotations
@@ -57,6 +60,13 @@ CHAMP = re.compile(
     r"[ \t]*(?:\([^)]*\)[ \t]*)?:")
 # La puce « Relecture » d'une étape du chapitre (revue.md) : « étape » (relue seule) ou « lot ».
 RELECTURE = re.compile(r"^[ \t]*[-*][ \t]+\*\*Relecture\*\*[ \t]*:[ \t]*(.*)$")
+# La puce « Impact fonctionnel » du chapitre (ce que l'utilisateur voit changer) : libellé en gras
+# ou non. Une valeur qui commence par « Rien » dispense l'étape du rendu de l'écran.
+IMPACT = re.compile(r"^[ \t]*[-*][ \t]+(?:\*\*)?Impact fonctionnel(?:\*\*)?[ \t]*:[ \t]*(.*)$")
+# La puce « Maquette » de l'entrée de journal d'une étape : le rendu de l'écran (etapes.md).
+# Ce n'est pas la puce « Maquette » de l'ouverture, qui ne vit pas dans une étape.
+MAQUETTE = re.compile(r"^[ \t]*[-*][ \t]+(?:\*\*)?Maquette(?:\*\*)?[ \t]*:")
+RIEN = re.compile(r"rien(?!\w)")
 # Les balises d'une retouche en bleu (« <span color="blue">étape</span> ») : retirées avant lecture.
 SPAN = re.compile(r"</?span[^>]*>")
 # La puce « Revue » du journal (revue.md, « Journal ») : forme en gras, en tête de puce ; ou
@@ -175,6 +185,24 @@ def _relue_seule(valeur: str) -> bool:
     return re.match(r"étape(?!\w)", valeur) is not None
 
 
+def exige_maquette(bloc: list[str]) -> bool:
+    """Vrai si l'« Impact fonctionnel » de l'étape est une valeur réelle qui n'est pas « Rien… ».
+
+    Une puce absente, vide ou à tiret ne dit rien de l'écran : l'étape n'est pas exigée.
+    """
+    for ligne in bloc:
+        m = IMPACT.match(SPAN.sub("", ligne))
+        if m:
+            valeur = m.group(1).strip().strip("`*").strip().rstrip(".").strip().lower()
+            return not _vide(valeur) and RIEN.match(valeur) is None
+    return False
+
+
+def a_maquette(entree: list[str]) -> bool:
+    """Vrai si l'entrée de journal de l'étape porte sa puce « Maquette » (le rendu de l'écran)."""
+    return any(MAQUETTE.match(SPAN.sub("", ligne)) for ligne in entree)
+
+
 def _nom_champ(brut: str) -> str:
     if brut.startswith("Commit"):
         return "Commit"
@@ -232,6 +260,10 @@ def controler_apres(texte: str) -> tuple[list[str], list[str], int]:
     relues = {}
     for n, bloc in blocs:
         relues.setdefault(n, relecture(bloc))
+    # Même règle pour l'« Impact fonctionnel » : un écart d'impact à l'écran exige une Maquette.
+    ecran = {}
+    for n, bloc in blocs:
+        ecran.setdefault(n, exige_maquette(bloc))
     for numero in numeros:
         etiq = _etiquette(numero)
         entrees = journal.get(numero, [])
@@ -247,6 +279,8 @@ def controler_apres(texte: str) -> tuple[list[str], list[str], int]:
                 defauts.append(f"{etiq} : pas de {nom}")
         if _relue_seule(relues.get(numero, "")) and not any(REVUE.match(l) for l in entrees[0]):
             defauts.append(f"{etiq} : Relecture « étape » sans ligne Revue")
+        if ecran.get(numero) and not a_maquette(entrees[0]):
+            defauts.append(f"{etiq} : impact à l'écran sans puce Maquette")
         mot, raison = verdict(val.get("Verdict", ""))
         if mot is None:
             defauts.append(f"{etiq} : Verdict absent ou hors vocabulaire")
