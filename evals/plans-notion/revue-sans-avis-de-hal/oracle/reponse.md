@@ -1,0 +1,1 @@
+La relecture par Hal est demandée : `demandes.md` porte la commande `relire --tour 1` sur la page. Le plan reste `brouillon` : `en revue` ne se pose qu'après l'avis de Hal, qui ne vient pas dans cet essai.

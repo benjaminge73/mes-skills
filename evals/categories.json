@@ -161,6 +161,13 @@
         "skills/deleguer-a-haiku/"
       ],
       "cas": ["escalade-bornee"]
+    },
+    "relecture-par-hal": {
+      "exerce": [
+        "skills/plan-notion/",
+        "skills/_partage/relecture-par-hal.md"
+      ],
+      "cas": ["revue-sans-avis-de-hal"]
     }
   },
   "voyages": {
