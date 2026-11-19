@@ -1,8 +1,8 @@
 # Quand s'adresser à Hal
 
 Hal est l'agent Hermes qui tourne sur le VPS, avec la mémoire de Benjamin (le `fact_store`,
-profil `jerome-kairviel`). Une session peut lui poser une **question** ou lui demander un
-**geste**. Ce fichier dit quand, comment, et ce qu'on ne lui demande jamais.
+profil `jerome-kairviel`). Une session peut lui poser une **question**, lui faire **relire un plan**
+avant sa revue, ou lui demander un **geste**. Ce fichier dit quand, comment, et ce qu'on ne lui demande jamais.
 
 ## 1. Poser une question
 
