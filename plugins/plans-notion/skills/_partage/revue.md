@@ -33,7 +33,9 @@ boucler jusqu'à un verdict propre.
   `Revue` complète (voir plus bas) se pose sous la **dernière** étape du lot.
   Un correctif se commite sur la branche du plan : `fix(…): lot N à M — revue`.
 - **Colonne absente** (plan écrit avant elle) : `étape` partout — c'est le
-  régime d'avant, le plus prudent.
+  régime d'avant, le plus prudent, et c'est celui que le pilote applique. Le script `--apres`,
+  lui, ne lit aucune puce `Relecture` dans ce cas et ne contrôle pas la ligne `Revue` de ces
+  étapes : la relecture seule n'y est tenue que par le pilote.
 
 **Une étape de vague** (`vagues.md`) : si elle est `étape`, la revue a lieu
 **dans le worktree de l'étape, sur sa branche d'étape** — avant le report par
@@ -142,7 +144,8 @@ c'est faux » (`preuve-du-rouge.md`).
 ## Journal
 
 Sous l'entrée de l'étape (§4 du skill), une puce `- **Revue** : …` (clé en gras, comme
-les autres champs du journal) :
+les autres champs du journal). Le script accepte aussi l'ancienne forme, `Revue — N tour(s) : …`
+(sans gras ni tiret, celle des plans écrits avant cette forme) ; un plan neuf écrit la forme en gras :
 
 ```
 - **Revue** : N tour(s)
@@ -154,9 +157,10 @@ les autres champs du journal) :
 Une ligne par remarque, quel que soit le tour où elle est apparue. Une remarque
 `Découverte hors plan` s'y écrit « traitée en découverte », comme une remarque
 `Sécurité (hors diff)` : elle ne se corrige pas dans l'étape. Cette puce est
-**exigée** pour une étape dont `Relecture` vaut `étape` : `preuves-des-etapes.py --apres`
-refuse l'étape qui ne la porte pas (code 1, son numéro nommé) ; une étape `lot` n'est pas
-contrôlée sur ce point.
+**exigée** pour une étape dont la puce `Relecture` du chapitre vaut `étape` :
+`preuves-des-etapes.py --apres` refuse l'étape qui ne la porte pas (code 1, son numéro
+nommé). Une étape sans puce `Relecture` au chapitre n'est pas contrôlée sur ce point, pas
+plus qu'une étape `lot` : le script ne voit pas son régime.
 
 ## Coût assumé
 

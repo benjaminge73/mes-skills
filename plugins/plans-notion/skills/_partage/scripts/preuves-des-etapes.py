@@ -27,7 +27,7 @@ Codes : 0 conforme ; 1 au moins un défaut, un par ligne sur la sortie standard
 ``unverifiable``, une ligne « non prouvée : Étape N — <raison> » par étape ;
 2 entrée illisible (page, chapitre ou journal absent, aucune étape trouvée).
 --apres exige aussi, pour une étape dont la puce « Relecture » du chapitre vaut
-« étape » (relue seule, revue.md), une puce « **Revue** » dans son entrée de journal ;
+« étape » (relue seule, revue.md), une puce « **Revue** » (ou l'ancienne « Revue — ») dans son entrée de journal ;
 une étape « lot » ou sans puce « Relecture » n'est pas contrôlée sur ce point.
 Bibliothèque standard uniquement.
 """
@@ -57,8 +57,11 @@ CHAMP = re.compile(
     r"[ \t]*(?:\([^)]*\)[ \t]*)?:")
 # La puce « Relecture » d'une étape du chapitre (revue.md) : « étape » (relue seule) ou « lot ».
 RELECTURE = re.compile(r"^[ \t]*[-*][ \t]+\*\*Relecture\*\*[ \t]*:[ \t]*(.*)$")
-# La puce « Revue » du journal (revue.md, « Journal ») : clé en gras, en tête de puce.
-REVUE = re.compile(r"^[ \t]*[-*][ \t]+\*\*Revue\*\*")
+# Les balises d'une retouche en bleu (« <span color="blue">étape</span> ») : retirées avant lecture.
+SPAN = re.compile(r"</?span[^>]*>")
+# La puce « Revue » du journal (revue.md, « Journal ») : forme en gras, en tête de puce ; ou
+# l'ancienne forme « Revue — N tour(s) », sans gras, avec ou sans tiret (plans écrits avant).
+REVUE = re.compile(r"^[ \t]*(?:[-*][ \t]+\*\*Revue\*\*|(?:[-*][ \t]+)?Revue[ \t]*—)")
 VALEURS_VIDES = {"", "—", "-", "aucune", "à définir", "à voir"}
 # Commit et Découvertes : « aucun » ou « aucune » sont des valeurs légitimes (étape sans
 # fichier, rien à signaler) ; seul le vide ou le tiret seul est une coquille.
@@ -162,7 +165,8 @@ def relecture(bloc: list[str]) -> str:
     for ligne in bloc:
         m = RELECTURE.match(ligne)
         if m:
-            return m.group(1).strip().strip("`*").strip().rstrip(".").strip().lower()
+            valeur = SPAN.sub("", m.group(1))
+            return valeur.strip().strip("`*").strip().rstrip(".").strip().lower()
     return ""
 
 
