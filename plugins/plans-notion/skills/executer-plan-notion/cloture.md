@@ -266,6 +266,16 @@ Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard »
        (`RIEN À SIGNALER` ou `REMARQUES (n)`) et chaque écart se recopient à
        l'`État final`.
 
+  2 quater. **Rappel du déclencheur « nouveau modèle ».** Ce point ne s'applique que si ce
+     plan touche un skill, un agent, un hook ou un `_partage/` du dépôt `mes-skills`. La
+     session compare la date de la dernière entrée du journal de `docs/veille.md` aux modèles
+     sortis, et aux alias qui servent un autre modèle, depuis cette date (le déclencheur
+     est écrit au paragraphe « Le déclencheur » de `docs/veille.md`). Si un modèle est arrivé
+     depuis, le compte rendu le dit à Benjamin et propose une passe de veille avant cette PR.
+     Le constat ne bloque ni la porte (point 3) ni `a merger` : faire la passe d'abord est une
+     décision de Benjamin. Le garde de 30 jours (`check_veille.py`) ne voit pas ce cas : ce
+     rappel est le seul à le couvrir.
+
   3. **La porte des preuves, avant le push.** Le contrôle des journaux se joue
      par script, sur le miroir local de la page, avant tout push et toute PR :
      ```bash
