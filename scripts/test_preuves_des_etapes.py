@@ -27,6 +27,13 @@ RELECTURE_LOT = "- **Relecture** : lot"
 RELECTURE_ETAPE_BLEUE = '- **Relecture** : <span color="blue">étape</span>'
 # L'ancienne forme de la puce « Revue » du journal : sans gras, sans tiret (évals/…/journal.md).
 REVUE_ANCIENNE = "Revue — 1 tour : [Découverte hors plan] src/autre.py:6 — traitée en découverte (étape D1)."
+# La puce « Impact fonctionnel » du chapitre « Exécution » : ce que l'utilisateur voit changer.
+IMPACT_ECRAN = "- **Impact fonctionnel** : le menu change de place."
+IMPACT_RIEN = "- **Impact fonctionnel** : Rien à l'écran."
+# Le même « Rien », retouché en bleu : la valeur est enveloppée d'un <span>, à retirer avant lecture.
+IMPACT_RIEN_BLEU = '- **Impact fonctionnel** : <span color="blue">Rien à l\'écran.</span>'
+# La puce « Maquette » de l'entrée de journal d'une étape : le rendu de l'écran (etapes.md).
+MAQUETTE = "- **Maquette** : rendu de l'écran, aucun écart."
 
 # Les quatre champs d'une entrée de journal conforme, dans l'ordre de la page.
 CHAMPS_OK = {
@@ -256,6 +263,46 @@ class PorteApres(_Dossier):
         code, sortie, _ = jouer(p, "--apres")
         self.assertEqual(code, 0, sortie)
         self.assertIn("apres : 1 étape(s), toutes verified", sortie)
+
+    def test_etape_d_ecran_sans_maquette_au_journal_est_refusee(self):
+        # Panne : une étape dont l'« Impact fonctionnel » n'est pas « Rien » passe la porte
+        # d'après sans la puce « Maquette » au journal : le rendu de l'écran n'est jamais noté.
+        p = self.ecrire("p.md", ENTETE + chapitre(
+            etape("1", PREUVE_DE_FIN, IMPACT_ECRAN), etape("2", PREUVE_DE_FIN)) + journal(
+            entree("1"), entree("2")))
+        code, sortie, _ = jouer(p, "--apres")
+        self.assertEqual(code, 1, sortie)
+        self.assertIn("Étape 1 : impact à l'écran sans puce Maquette", sortie)
+        self.assertNotIn("Étape 2", sortie)
+
+    def test_etape_a_impact_rien_sans_maquette_passe(self):
+        # Panne : la porte exige une « Maquette » de toute étape, même à impact « Rien » : un
+        # plan sans écran touché serait refusé à tort.
+        p = self.ecrire("p.md", ENTETE + chapitre(
+            etape("1", PREUVE_DE_FIN, IMPACT_RIEN), etape("2", PREUVE_DE_FIN, IMPACT_RIEN)) + journal(
+            entree("1"), entree("2")))
+        code, sortie, _ = jouer(p, "--apres")
+        self.assertEqual(code, 0, sortie)
+        self.assertIn("toutes verified", sortie)
+
+    def test_etape_d_ecran_avec_maquette_au_journal_passe(self):
+        # Panne : une étape à impact à l'écran qui porte sa « Maquette » au journal est refusée.
+        p = self.ecrire("p.md", ENTETE + chapitre(
+            etape("1", PREUVE_DE_FIN, IMPACT_ECRAN), etape("2", PREUVE_DE_FIN)) + journal(
+            entree("1", remplace={"Maquette": MAQUETTE}), entree("2")))
+        code, sortie, _ = jouer(p, "--apres")
+        self.assertEqual(code, 0, sortie)
+        self.assertIn("toutes verified", sortie)
+
+    def test_impact_rien_en_span_bleu_ne_demande_pas_de_maquette(self):
+        # Panne : un « Rien » retouché en bleu (<span color="blue">Rien…</span>) n'est pas lu
+        # comme « Rien » : l'étape passe pour un impact à l'écran et la porte exige une
+        # « Maquette » qu'elle n'a pas lieu d'avoir.
+        p = self.ecrire("p.md", ENTETE + chapitre(
+            etape("1", PREUVE_DE_FIN, IMPACT_RIEN_BLEU)) + journal(entree("1")))
+        code, sortie, _ = jouer(p, "--apres")
+        self.assertEqual(code, 0, sortie)
+        self.assertIn("toutes verified", sortie)
 
     def test_entree_sans_preuve_est_refusee(self):
         # Panne : une entrée sans « Preuve » (ni rejouée) passe.
