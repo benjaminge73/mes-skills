@@ -22,6 +22,11 @@ ENTETE = "# Plan de test\n\n## Cartes\n\n- une carte\n\n"
 PREUVE_DE_FIN = "- **Preuve de fin** : `pytest -q` → tout vert"
 RELECTURE_ETAPE = "- **Relecture** : étape"
 RELECTURE_LOT = "- **Relecture** : lot"
+# La puce « Relecture » retouchée en bleu (règle « Le bleu des retouches ») : la valeur est
+# enveloppée d'un <span>, que le script doit retirer avant de lire « étape ».
+RELECTURE_ETAPE_BLEUE = '- **Relecture** : <span color="blue">étape</span>'
+# L'ancienne forme de la puce « Revue » du journal : sans gras, sans tiret (évals/…/journal.md).
+REVUE_ANCIENNE = "Revue — 1 tour : [Découverte hors plan] src/autre.py:6 — traitée en découverte (étape D1)."
 
 # Les quatre champs d'une entrée de journal conforme, dans l'ordre de la page.
 CHAMPS_OK = {
@@ -230,6 +235,27 @@ class PorteApres(_Dossier):
         code, sortie, _ = jouer(p, "--apres")
         self.assertEqual(code, 0, sortie)
         self.assertIn("toutes verified", sortie)
+
+    def test_relecture_etape_en_span_bleu_sans_ligne_revue_est_refusee(self):
+        # Panne : une puce « Relecture » en bleu (<span color="blue">étape</span>) n'est pas
+        # lue comme « étape ». L'étape relue seule passe alors la porte d'après sans sa ligne
+        # « Revue » (rc 0 au lieu de 1) : la relecture n'est jamais tracée.
+        p = self.ecrire("p.md", ENTETE + chapitre(
+            etape("1", PREUVE_DE_FIN, RELECTURE_ETAPE_BLEUE)) + journal(entree("1")))
+        code, sortie, _ = jouer(p, "--apres")
+        self.assertEqual(code, 1, sortie)
+        self.assertIn("Étape 1 : Relecture « étape » sans ligne Revue", sortie)
+
+    def test_ancienne_forme_revue_sans_gras_est_acceptee(self):
+        # Panne : l'ancienne puce « Revue — N tour(s) » (sans gras ni tiret, écrite par les plans
+        # d'avant la forme en gras) est refusée (rc 1 « sans ligne Revue ») : un plan en cours
+        # ne peut pas passer la porte d'après.
+        p = self.ecrire("p.md", ENTETE + chapitre(
+            etape("1", PREUVE_DE_FIN, RELECTURE_ETAPE)) + journal(
+            entree("1", remplace={"Revue": REVUE_ANCIENNE})))
+        code, sortie, _ = jouer(p, "--apres")
+        self.assertEqual(code, 0, sortie)
+        self.assertIn("apres : 1 étape(s), toutes verified", sortie)
 
     def test_entree_sans_preuve_est_refusee(self):
         # Panne : une entrée sans « Preuve » (ni rejouée) passe.
