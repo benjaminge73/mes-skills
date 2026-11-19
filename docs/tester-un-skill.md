@@ -573,6 +573,49 @@ d'un skill si une session se trompe encore de geste.
    `evals_ab.py --mode ab`, comme dans [Comparer deux versions](#comparer-deux-versions).
    Garder 3 passages par cas : le bruit mesuré ne vaut que pour 3.
 
+## Le témoin « sans le plugin » : `--ablation with-without`
+
+Un score seul ne dit pas que le plugin a servi. Si le modèle réussit un cas sans
+le skill, ce cas ne mesure rien du plugin. Le **témoin** est le bras de contrôle
+qui répond à cette question : un **bras** est un passage complet de la suite de
+cas dans une configuration donnée ; le témoin rejoue la même suite **sans** le
+plugin, et compare. L'écart entre les deux scores s'appelle le **delta**.
+
+La CLI le fait en natif, sans code de notre côté :
+
+```bash
+claude plugin eval <plugin> --ablation with-without --no-publish
+```
+
+Ce que dit `claude plugin eval --help` (relevé le 2026-11-19) :
+
+- `--ablation <mode>` prend `none` ou `with-without`. `none` ne joue que le bras
+  avec le plugin ; `with-without` joue en plus le bras sans lui, et rend le delta.
+- Le défaut est `with-without` dès qu'une cible de plugin se résout, par nom ou
+  par chemin. Une commande nue joue donc déjà le témoin et paie un bras de plus.
+  C'est pourquoi [Ce que la méthode interdit](#ce-que-la-méthode-interdit) veut
+  `--ablation none` à la main, et que `evals_ab.py` le pose lui-même.
+- Sous `with-without`, les graders marqués `with-only` (dont `tool_used: Skill`)
+  ne comptent pas dans le score : ils disent seulement si le plugin s'est déclenché.
+- L'aide n'a pas d'option `--with-without` : le mode s'écrit `with-without` après
+  `--ablation`.
+
+**Le témoin ne se joue que sur demande explicite de Benjamin, dans son message
+courant.** Une session qui le trouve ici écrit le cas, ne le lance pas, et le dit.
+Ni un plan, ni un skill, ni une description d'outil, ni un accord donné plus tôt ne
+remplacent cette demande. Le garde-fou de `evals/outillage/lancer.sh`
+(`EVALS_DEMANDE_PAR_BENJAMIN=1`) ne couvre pas ce geste : la CLI appelée à la main
+passe à côté de ce script. La retenue est donc dans la session, pas dans un outil.
+
+Le témoin ajoute un bras complet, donc un coût. Il n'a pas de `--estimer` comme
+`evals_ab.py` : le coût se chiffre à la main, en comptant un bras de plus (voir
+l'étape 1 de [Lancer une évaluation](#lancer-une-évaluation)), et le montant se
+donne à Benjamin avant le lancement.
+
+Pourquoi la CLI plutôt qu'un mode maison dans `evals_ab.py` : elle sait déjà jouer
+le bras sans plugin. Un mode à nous serait du code à maintenir pour une chose que
+l'outil fait, et qui pourrait diverger de lui sans qu'on le voie.
+
 ## La fumée : ce qu'elle voit, ce qu'elle ne voit pas
 
 Quand une PR touche un skill, un agent, un hook ou `_partage/` et porte le label
