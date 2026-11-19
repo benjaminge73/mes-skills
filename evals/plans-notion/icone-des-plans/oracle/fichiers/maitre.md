@@ -1,4 +1,4 @@
-Icône : 🪽
+Icône : 🦉
 
 # [Plan maître] hermes-custom - Sauvegarde et cron
 
