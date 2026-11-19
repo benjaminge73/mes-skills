@@ -763,6 +763,28 @@ class RefuserRevueSansAvis(unittest.TestCase):
         r = self.jouer(self.mise_a_jour("en revue"))
         self.assertEqual(r.returncode, 0, r.stderr)
 
+    def test_deux_echecs_au_tour_1_valent_un_avis_rendu(self):
+        # relire fait un appel par exécution : le repli « la session relance une fois »
+        # peut noter deux échecs tous deux au tour 1. Ils valent un avis rendu.
+        self.poser_registre(self.tour(1, issue="delai", verdict=None),
+                            self.tour(1, issue="code", verdict=None))
+        self.permis(self.mise_a_jour("en revue"))
+
+    def test_deux_echecs_au_tour_2_apres_un_tour_1_reserve_valent_un_avis_rendu(self):
+        self.poser_registre(self.tour(1, verdict="RESERVES", reserves=2),
+                            self.tour(2, issue="delai", verdict=None),
+                            self.tour(2, issue="code", verdict=None))
+        self.permis(self.mise_a_jour("en revue"))
+
+    def test_un_seul_echec_note_ne_permet_pas_la_mise_en_revue(self):
+        with self.subTest("au tour 1"):
+            self.poser_registre(self.tour(1, issue="delai", verdict=None))
+            self.refuse(self.mise_a_jour("en revue"))
+        with self.subTest("au tour 2, après un tour 1 réservé"):
+            self.poser_registre(self.tour(1, verdict="RESERVES", reserves=2),
+                                self.tour(2, issue="code", verdict=None))
+            self.refuse(self.mise_a_jour("en revue"))
+
     def test_une_page_de_plan_maitre_sans_registre_est_refusee_comme_les_autres(self):
         # Le hook ne voit que page_id : un plan maître n'a aucune exemption.
         self.refuse(self.mise_a_jour("en revue", page=self.PAGE_MAITRE))
@@ -790,6 +812,25 @@ class RefuserRevueSansAvis(unittest.TestCase):
             fichier.write_text(json.dumps(charge, ensure_ascii=False), encoding="utf-8")
             self.refuse(bash(f"composio execute NOTION_UPDATE_PAGE -d @{fichier}"))
 
+    def test_composio_appele_par_chemin_absolu_pose_la_meme_garde(self):
+        charge = {"page_id": self.PAGE, "properties": {"Statut": "en revue"}}
+        fichier = self.racine / "charge.json"
+        fichier.write_text(json.dumps(charge, ensure_ascii=False), encoding="utf-8")
+        with self.subTest("chemin absolu, charge en ligne"):
+            self.refuse(bash(f"~/.local/bin/composio execute NOTION_UPDATE_PAGE "
+                             f"-d '{json.dumps(charge, ensure_ascii=False)}'"))
+        with self.subTest("chemin absolu, charge dans un fichier"):
+            self.refuse(bash(f"~/.local/bin/composio execute NOTION_UPDATE_PAGE -d @{fichier}"))
+
+    def test_charge_collee_a_son_option_est_lue_comme_une_charge_en_fichier(self):
+        charge = {"page_id": self.PAGE, "properties": {"Statut": "en revue"}}
+        fichier = self.racine / "charge.json"
+        fichier.write_text(json.dumps(charge, ensure_ascii=False), encoding="utf-8")
+        with self.subTest("--data=@fichier"):
+            self.refuse(bash(f"composio execute NOTION_UPDATE_PAGE --data=@{fichier}"))
+        with self.subTest("-d@fichier"):
+            self.refuse(bash(f"composio execute NOTION_UPDATE_PAGE -d@{fichier}"))
+
     def test_une_entree_illisible_laisse_passer_avec_un_mot_sur_stderr(self):
         for entree in ("pas du json {", ""):
             with self.subTest(entree=entree):
@@ -804,6 +845,35 @@ class RefuserRevueSansAvis(unittest.TestCase):
                   "update_content": {"content_updates": [
                       {"old_str": "Statut : brouillon", "new_str": "Statut : en revue"}]}}
         self.permis(self.composio("NOTION_UPDATE_PAGE_MARKDOWN", charge))
+
+    # L'id Notion est les 32 derniers caractères hexadécimaux de l'adresse : un titre qui
+    # finit par un caractère hexadécimal (« revue » finit par e) ne doit pas décaler l'id.
+    IDENT = "396b8cc8aa1d8009b32fdd28f3ed3b20"
+
+    def avis_pour_id(self, ident, *tours):
+        (self.registre / f"{ident}.json").write_text(json.dumps({"tours": list(tours)}), encoding="utf-8")
+
+    def test_adresse_dont_le_titre_finit_par_e_retrouve_son_avis(self):
+        self.avis_pour_id(self.IDENT, self.tour(1, verdict="OK"))
+        url = f"https://www.notion.so/Hal-relit-le-plan-avant-qu-il-passe-en-revue-{self.IDENT}"
+        self.permis(self.mise_a_jour("en revue", page=url))
+
+    def test_adresse_dont_le_titre_finit_par_decafe_retrouve_son_avis(self):
+        self.avis_pour_id(self.IDENT, self.tour(1, verdict="OK"))
+        url = f"https://www.notion.so/Essai-decafe-{self.IDENT}"
+        self.permis(self.mise_a_jour("en revue", page=url))
+
+    def test_adresse_avec_requete_et_ancre_ne_lit_pas_les_hexadecimaux_de_la_requete(self):
+        self.avis_pour_id(self.IDENT, self.tour(1, verdict="OK"))
+        url = f"https://www.notion.so/Essai-decafe-{self.IDENT}?v=0123456789abcdef0123456789abcdef#bloc"
+        self.permis(self.mise_a_jour("en revue", page=url))
+
+    def test_uuid_avec_tirets_et_id_nu_retrouvent_le_meme_avis(self):
+        self.avis_pour_id(self.IDENT, self.tour(1, verdict="OK"))
+        with self.subTest("UUID avec tirets"):
+            self.permis(self.mise_a_jour("en revue", page="396b8cc8-aa1d-8009-b32f-dd28f3ed3b20"))
+        with self.subTest("id nu"):
+            self.permis(self.mise_a_jour("en revue", page=self.IDENT))
 
 
 if __name__ == "__main__":

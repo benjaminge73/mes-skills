@@ -9,7 +9,7 @@ Deux chemins, un seul contrat :
 L'avis est au registre ``~/.hermes/state/relectures-hal/<id de page, 32 caractères>.json``
 (dossier surchargeable par ``HERMES_RELECTURES_DIR``), écrit par ``demander_a_hal.py relire``.
 Le registre laisse passer si le tour 1 rend ``OK``, si un tour 2 a été rendu (quel que
-soit son verdict), ou si les tours 1 et 2 sont en échec notés.
+soit son verdict), ou si deux échecs sont notés, quel que soit leur numéro de tour.
 
 Le hook ne s'active que si le script de Hal (``PLANS_NOTION_DEMANDER_A_HAL``, défaut
 ``~/.hermes/scripts/demander_a_hal.py``) existe et déclare ``RELECTURE_DISPONIBLE = True`` ;
@@ -73,14 +73,20 @@ def _charge_composio(segment: list[str]):
             if position + 1 >= len(segment):
                 return None
             valeur = segment[position + 1]
-            try:
-                if valeur == "-":
-                    return None  # charge lue sur l'entrée standard : hors de la commande
-                if valeur.startswith("@"):
-                    valeur = Path(os.path.expanduser(valeur[1:])).read_text(encoding="utf-8")
-                return json.loads(valeur)
-            except (OSError, ValueError):
-                return None
+        elif mot.startswith("--data="):
+            valeur = mot[len("--data="):]
+        elif mot.startswith("-d@"):
+            valeur = mot[len("-d"):]
+        else:
+            continue
+        try:
+            if valeur == "-":
+                return None  # charge lue sur l'entrée standard : hors de la commande
+            if valeur.startswith("@"):
+                valeur = Path(os.path.expanduser(valeur[1:])).read_text(encoding="utf-8")
+            return json.loads(valeur)
+        except (OSError, ValueError):
+            return None
     return None
 
 
@@ -94,7 +100,8 @@ def _cibles_composio(commande) -> list:
         return []
     cibles = []
     for i in range(len(mots) - 2):
-        if mots[i] == "composio" and mots[i + 1] == "execute" and mots[i + 2] == SLUG_COMPOSIO:
+        if (os.path.basename(mots[i]) == "composio" and mots[i + 1] == "execute"
+                and mots[i + 2] == SLUG_COMPOSIO):
             charge = _charge_composio(mots[i + 3:])
             if isinstance(charge, dict) and _pose_en_revue(charge.get("properties")):
                 cibles.append(charge.get("page_id"))
@@ -117,10 +124,17 @@ def _registre() -> Path:
 
 
 def _identifiant(page) -> str | None:
-    """Les 32 caractères hexadécimaux de l'id Notion, avec ou sans tirets, ou None."""
+    """Les 32 caractères hexadécimaux qui terminent l'adresse ou l'id Notion, ou None.
+
+    Lit le chemin seulement (avant ``?`` et ``#``), son dernier segment, tirets retirés :
+    l'id est à la fin de l'adresse, et un titre qui finit par un caractère hexadécimal
+    (« revue ») ne doit pas décaler l'id.
+    """
     if not isinstance(page, str):
         return None
-    trouve = re.search(r"[0-9a-f]{32}", page.lower().replace("-", ""))
+    chemin = re.split(r"[?#]", page, maxsplit=1)[0].rstrip("/")
+    dernier = chemin.rsplit("/", 1)[-1]
+    trouve = re.search(r"[0-9a-f]{32}\Z", dernier.lower().replace("-", ""))
     return trouve.group(0) if trouve else None
 
 
@@ -139,14 +153,14 @@ def _motif_sans_avis(registre: Path, page) -> str | None:
     try:
         tours = donnees["tours"]
         rendus = {t["tour"]: t for t in tours if t.get("issue") == "ok"}
-        echecs = {t["tour"] for t in tours if t.get("issue") != "ok"}
+        echecs = [t for t in tours if t.get("issue") != "ok"]
     except (KeyError, TypeError, AttributeError):
         return f"registre illisible ({fichier})"
     if 1 in rendus and rendus[1].get("verdict") == "OK":
         return None
     if 2 in rendus:
         return None
-    if {1, 2} <= echecs:
+    if len(echecs) >= 2:
         return None
     return f"l'avis de Hal ne permet pas encore la mise en revue (registre : {fichier})"
 
