@@ -53,3 +53,6 @@ Hal doit pouvoir **trouver** la session et **lui répondre** dès `valide`, pas 
 - Hal répond ce que `demander-a-hal.md` §4 lui permet : un geste réversible, une réponse que la
   mémoire de Benjamin tranche. Une décision que Benjamin n'a pas prise reste à Benjamin : Hal
   la lui remonte, il ne la devine pas.
+- Une étape **déjà validée** dans le plan (case cochée, plafond écrit) et confiée à Hal ne se met pas
+  en attente d'un « go » : elle se transmet avec `--valide` et `--plafond` (`demander-a-hal.md` § 2 bis),
+  et Hal vérifie la validation dans la page. Un dépassement reste à Benjamin.
