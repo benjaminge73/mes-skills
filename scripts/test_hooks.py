@@ -678,5 +678,133 @@ class RetirerWorktreesClos(unittest.TestCase):
         self.assertRienRetire(self.jouer())
 
 
+class RefuserRevueSansAvis(unittest.TestCase):
+    """Hook PreToolUse : pas de passage à « en revue » sans avis de Hal au registre.
+
+    Lancé en sous-processus, avec le registre (``HERMES_RELECTURES_DIR``) et le
+    script de Hal (``PLANS_NOTION_DEMANDER_A_HAL``) dans un dossier temporaire.
+    Un hook absent fait échouer ``setUp`` : sans cela, le code 2 que Python rend
+    pour un fichier introuvable aurait l'air d'un refus réussi.
+    """
+    SCRIPT = "refuser_revue_sans_avis.py"
+    PAGE = "3a1f5c2e-8b7d-4e6a-9f10-2c3d4e5f6a7b"
+    PAGE_MAITRE = "7c9e0d1f-2a3b-4c5d-8e6f-1a2b3c4d5e6f"
+
+    def setUp(self):
+        self.assertTrue((HOOKS / self.SCRIPT).is_file(), f"hook absent : {HOOKS / self.SCRIPT}")
+        temporaire = tempfile.TemporaryDirectory()
+        self.addCleanup(temporaire.cleanup)
+        self.racine = Path(temporaire.name)
+        self.registre = self.racine / "relectures"
+        self.registre.mkdir()
+        self.hal = self.racine / "demander_a_hal.py"
+        self.hal.write_text("RELECTURE_DISPONIBLE = True\n", encoding="utf-8")
+        self.env = {**os.environ,
+                    "PLANS_NOTION_DEMANDER_A_HAL": str(self.hal),
+                    "HERMES_RELECTURES_DIR": str(self.registre)}
+
+    def jouer(self, entree) -> subprocess.CompletedProcess:
+        brut = entree if isinstance(entree, str) else json.dumps(entree)
+        return subprocess.run([sys.executable, str(HOOKS / self.SCRIPT)], input=brut,
+                              capture_output=True, text=True, timeout=30, env=self.env)
+
+    def refuse(self, entree):
+        r = self.jouer(entree)
+        self.assertEqual(r.returncode, 2, f"aurait dû être refusée : {r.stderr}")
+        self.assertIn("relire", r.stderr)
+
+    def permis(self, entree):
+        r = self.jouer(entree)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(r.stdout + r.stderr, "")
+
+    def poser_registre(self, *tours, page=PAGE):
+        fichier = self.registre / f"{page.replace('-', '')}.json"
+        fichier.write_text(json.dumps({"page": f"https://www.notion.so/{page.replace('-', '')}",
+                                       "tours": list(tours)}), encoding="utf-8")
+
+    @staticmethod
+    def tour(numero, issue="ok", verdict="OK", reserves=0):
+        return {"tour": numero, "date": "2026-11-19T09:00:00+00:00", "issue": issue,
+                "verdict": verdict, "reserves": reserves, "duree_s": 120,
+                "commandes": [], "ecritures": []}
+
+    def mise_a_jour(self, statut, page=PAGE):
+        return {"tool_name": OUTIL_UPDATE,
+                "tool_input": {"page_id": page, "command": "update_properties",
+                               "properties": {"Statut": statut}}}
+
+    def creation(self, statut):
+        return {"tool_name": OUTIL_CREATE,
+                "tool_input": {"pages": [{"properties": {"Titre": "t", "Statut": statut}}]}}
+
+    def composio(self, slug, charge):
+        return bash(f"composio execute {slug} -d '{json.dumps(charge, ensure_ascii=False)}'")
+
+    def test_une_mise_en_revue_sans_registre_est_refusee_et_cite_relire(self):
+        self.refuse(self.mise_a_jour("en revue"))
+
+    def test_un_tour_1_ok_au_registre_permet_la_mise_en_revue(self):
+        self.poser_registre(self.tour(1, verdict="OK"))
+        self.permis(self.mise_a_jour("en revue"))
+
+    def test_un_tour_1_avec_reserves_seul_refuse_la_mise_en_revue(self):
+        self.poser_registre(self.tour(1, verdict="RESERVES", reserves=2))
+        self.refuse(self.mise_a_jour("en revue"))
+
+    def test_un_tour_2_rendu_permet_la_mise_en_revue(self):
+        self.poser_registre(self.tour(1, verdict="RESERVES", reserves=2),
+                            self.tour(2, verdict="RESERVES", reserves=1))
+        self.permis(self.mise_a_jour("en revue"))
+
+    def test_deux_tours_en_echec_ne_bloquent_pas_la_session(self):
+        self.poser_registre(self.tour(1, issue="delai", verdict=None),
+                            self.tour(2, issue="code", verdict=None))
+        r = self.jouer(self.mise_a_jour("en revue"))
+        self.assertEqual(r.returncode, 0, r.stderr)
+
+    def test_une_page_de_plan_maitre_sans_registre_est_refusee_comme_les_autres(self):
+        # Le hook ne voit que page_id : un plan maître n'a aucune exemption.
+        self.refuse(self.mise_a_jour("en revue", page=self.PAGE_MAITRE))
+
+    def test_sans_script_de_hal_ou_sans_son_marqueur_le_hook_reste_inactif(self):
+        with self.subTest("script absent"):
+            self.hal.unlink()
+            self.assertEqual(self.jouer(self.mise_a_jour("en revue")).returncode, 0)
+        with self.subTest("script sans RELECTURE_DISPONIBLE"):
+            self.hal.write_text("print('autre chose')\n", encoding="utf-8")
+            self.assertEqual(self.jouer(self.mise_a_jour("en revue")).returncode, 0)
+
+    def test_un_passage_a_brouillon_n_est_pas_bloque(self):
+        self.permis(self.mise_a_jour("brouillon"))
+
+    def test_une_creation_de_page_en_revue_sans_avis_est_refusee(self):
+        self.refuse(self.creation("en revue"))
+
+    def test_composio_qui_pose_en_revue_sans_avis_est_refuse_en_ligne_et_depuis_un_fichier(self):
+        charge = {"page_id": self.PAGE, "properties": {"Statut": "en revue"}}
+        with self.subTest("charge en ligne"):
+            self.refuse(self.composio("NOTION_UPDATE_PAGE", charge))
+        with self.subTest("charge dans un fichier"):
+            fichier = self.racine / "charge.json"
+            fichier.write_text(json.dumps(charge, ensure_ascii=False), encoding="utf-8")
+            self.refuse(bash(f"composio execute NOTION_UPDATE_PAGE -d @{fichier}"))
+
+    def test_une_entree_illisible_laisse_passer_avec_un_mot_sur_stderr(self):
+        for entree in ("pas du json {", ""):
+            with self.subTest(entree=entree):
+                r = self.jouer(entree)
+                self.assertEqual(r.returncode, 0, r.stderr)
+                self.assertNotEqual(r.stderr.strip(), "")
+
+    def test_composio_markdown_qui_cite_en_revue_est_permis(self):
+        # NOTION_UPDATE_PAGE est le préfixe de NOTION_UPDATE_PAGE_MARKDOWN : seul le slug
+        # entier, avec une charge qui pose Statut, est refusé.
+        charge = {"page_id": self.PAGE, "type": "update_content",
+                  "update_content": {"content_updates": [
+                      {"old_str": "Statut : brouillon", "new_str": "Statut : en revue"}]}}
+        self.permis(self.composio("NOTION_UPDATE_PAGE_MARKDOWN", charge))
+
+
 if __name__ == "__main__":
     unittest.main()
