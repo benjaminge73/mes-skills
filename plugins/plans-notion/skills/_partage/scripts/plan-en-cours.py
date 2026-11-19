@@ -56,6 +56,13 @@ fiche est déjà en attente) ; ``reprendre`` le restaure, ``en cours`` à défau
 ``etape`` ne change pas l'état, mais remet ``relances`` à zéro. Une fiche ``clos``
 ne reçoit plus d'écriture hormis ``clore``.
 
+``etape --faite <n>`` ajoute le numéro ``n`` à ``etapes_liste`` : la liste des étapes
+faites, triée, sans doublon, ``0`` n'y entre pas. Les étapes se finissant dans l'ordre,
+``n`` désigne l'étape finie en dernier ; le script ne vérifie pas cet ordre. Les
+compteurs ``etapes_faites`` et ``etapes_restantes`` restent ceux que lit la garde de
+fin de tour. Une fiche écrite avant cette clé (sans ``etapes_liste``) reste lisible,
+et ``etape`` la complète.
+
 Écriture : chaque modification se fait sous ``flock`` sur le dossier (pas de mise
 à jour perdue), dans un fichier temporaire du même dossier, puis ``os.replace``
 (un lecteur voit l'ancienne fiche ou la nouvelle, jamais un JSON tronqué).
@@ -293,6 +300,7 @@ def cmd_ouvrir(args, ident: Identite, dossier: Path) -> str:
             "etat_avant_attente": None,
             "etapes_faites": None,
             "etapes_restantes": None,
+            "etapes_liste": [],
             "relances": 0,
             "sonnette": sonnette_demandee if ident.session_id else None,
             "maj": None,
@@ -351,6 +359,8 @@ def cmd_etape(args, ident: Identite, dossier: Path) -> str:
         _refuser_si_clos(fiche)
         fiche["etapes_faites"] = args.faite
         fiche["etapes_restantes"] = args.restantes
+        if args.faite >= 1:
+            fiche["etapes_liste"] = sorted(set(fiche.get("etapes_liste") or []) | {args.faite})
         # « Trois relances sans étape nouvelle » : une étape notée remet le compte à zéro.
         fiche["relances"] = 0
         return fiche
