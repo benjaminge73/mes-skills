@@ -52,8 +52,19 @@ plus simplement en variante `.md`.
    `template/`).
 
    Les dépôts de skills tiers ne se relisent pas à la main à chaque passe : le
-   cron Hermes `veille-skills` les suit chaque semaine, et ses propositions
-   arrivent dans la page Notion `[Plan] mes-skills - Adoption de skills externes`.
+   cron Hermes `veille-skills` (côté `hermes-custom`) les suit chaque lundi. Il relit
+   par `gh api` les dépôts de `config/veille-skills.json` (dont `anthropics/skills`,
+   source 3 ci-dessus) et les favoris étoilés de Benjamin ; ses propositions arrivent
+   dans la page Notion `[Plan] mes-skills - Adoption de skills externes` (suffixe `#N`
+   si la série en compte plusieurs). Depuis le plan « Veille par articles » (PR
+   `feat/veille-articles` de `hermes-custom`), il lit aussi les articles des flux de
+   neuf blogs : claude.dev, Addy Osmani, martinfowler.com, Jesse Vincent, Simon Willison,
+   Hamel Husain, et Armin Ronacher, Geoffrey Huntley et le blog
+   GitHub (rubrique IA), marqués `strict` dans la config (étiquette transmise à la session, sans effet propre), ainsi que les liens que Benjamin envoie à Hal. Il en tire des
+   bonnes pratiques, confrontées à ce que `mes-skills` fait déjà ; elles arrivent dans
+   un chapitre « Adopter une bonne pratique » de la même page. La passe manuelle garde
+   son rôle : vérifier les faits porteurs avant une PR de skill. Le journal des passes
+   garde ses billets « non lus, à reprendre ».
 4. **D'autres sources, quand elles sont pertinentes** — les issues amont (par
    exemple [anthropics/sandbox-runtime#74](https://github.com/anthropics/sandbox-runtime/issues/74),
    « bwrap fails on Ubuntu 24.04+ due to AppArmor userns restrictions », qui
