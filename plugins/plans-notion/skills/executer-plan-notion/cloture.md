@@ -253,7 +253,10 @@ Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard »
      chapitre `Exécution` du plan, phrase par phrase (source du passage :
      `github/spec-kit`, `converge`, MIT). Le brief porte l'objectif du plan et son
      chapitre `Exécution`, recopiés depuis le miroir local de la page, et la
-     plage `origin/main..<branche-du-plan>`.
+     plage `origin/main..<branche-du-plan>`. Il porte aussi la tête attendue :
+     le SHA de la branche à la clôture (`git rev-parse HEAD` joué par le pilote
+     juste avant d'appeler le relecteur). Sans elle, le relecteur écrit
+     « Checkout non vérifié » et ne conclut sur aucun test rejoué.
      - **Chaque écart rendu** (manquant, partiel, contradictoire, non demandé)
        devient une découverte `D<n>` qui s'exécute dans le même plan (décision de
        Benjamin du 2026-10-28). Le tri suit `decouvertes.md` : § 1 pour ce qui est

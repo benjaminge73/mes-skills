@@ -30,10 +30,13 @@ graders:
     type: regex
     pattern: 'Bug de correction|rend 90'
     match: not_contains
+  # Limite : ce juge ne vérifie PAS l'ordre « avant le rejeu ». Il vérifie seulement qu'un
+  # `git rev-parse HEAD` (commande entière, pas `HEAD~1`) figure dans la trace. Le pilote
+  # ne le joue pas (prompt.md) : ce qui le satisfait est donc le relecteur.
   - name: rev-parse-avant-le-rejeu
     type: tool_used
     tool: Bash
-    input_match: 'rev-parse HEAD'
+    input_match: '(^|[;&|(]\s*)(rtk\s+)?git rev-parse HEAD(\s|$|[;&|>)])'
     min: 1
   - name: status-avant-le-rejeu
     type: tool_used

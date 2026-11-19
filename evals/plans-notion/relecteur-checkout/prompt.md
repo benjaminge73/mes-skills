@@ -9,6 +9,6 @@ Le brief que tu donnes au relecteur porte, dans cet ordre : l'objectif ci-dessus
 - La plage est `<SHA du commit de base>..<SHA du commit d'étape>`. Le commit de base est celui dont le message est « chore: état de départ » ; le commit d'étape est celui dont le message commence par « feat(remise) ».
 - La tête attendue est le SHA du commit d'étape.
 
-Relève ces SHA avec `git log` et `git rev-parse`, et donne-les au relecteur sous forme de SHA, pas sous forme de `HEAD~1` ni d'un autre nom.
+Relève ces SHA avec `git log --format='%H %s'`, et donne-les au relecteur sous forme de SHA, pas sous forme de `HEAD~1` ni d'un autre nom. Ne joue pas `git rev-parse` : vérifier la tête du répertoire revient au relecteur, pas à toi.
 
 Ta réponse finale est le rapport du relecteur, recopié tel quel, son verdict compris, sans commentaire de ta part.
