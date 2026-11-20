@@ -9,6 +9,8 @@ sans sauter d'étape :
 
 1. **Classer la demande** : Spike, Bounded ou Architectural, selon `methode-de-travail:brainstorming`
    (« Three Paths »). Le classement règle la profondeur de l'enquête.
+1 bis. **Relever la fraîcheur de la copie locale** : `fraicheur-depot.py` (sans `--appliquer` si le
+   checkout peut être occupé), règle et cas délicats dans `${CLAUDE_PLUGIN_ROOT}/skills/_partage/fraicheur-du-depot.md`.
 2. **Dresser la carte de voisinage** par `codebase-memory`, sur `main`, **après avoir
    réindexé le dépôt** (`index_repository`, 2 à 15 s : un index périmé donne une carte fausse).
    Les outils sont différés : un `ToolSearch` d'abord ; le paramètre `project` se copie de `list_projects`.

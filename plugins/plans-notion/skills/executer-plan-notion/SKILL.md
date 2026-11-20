@@ -158,7 +158,7 @@ Puis, dans le même tour, avant la première étape :
 - **Questions restées orange** → vert, `(reco appliquée par défaut)`.
 - **Créer la branche du plan dans un worktree**
   (`~/repos/worktrees/<repo>/<branche-kebab>`, depuis `origin/main` à jour),
-  jamais dans le checkout principal, jamais de travail sur `main`.
+  jamais dans le checkout principal, jamais de travail sur `main`. `git fetch` d'abord (copie à jour de la principale distante : `_partage/fraicheur-du-depot.md`).
 - **Relever ce qui déclenche la CI** (un `push` lance-t-il un run ? des e2e ?
   que fait le label `review-required` ? un job merge-t-il seul ?) et
   **calculer les vagues** (`vagues.py`) ; les deux relevés s'écrivent dans
@@ -495,6 +495,6 @@ parallèle ; le pilote ne garde que le croisement) vivent dans un seul fichier :
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/maquettes-html.md`, `${CLAUDE_PLUGIN_ROOT}/skills/_partage/revue.md`,
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/bons-tests.md`, `${CLAUDE_PLUGIN_ROOT}/skills/_partage/poc.md`,
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/machine-partagee.md`, `${CLAUDE_PLUGIN_ROOT}/skills/_partage/cron-a-la-main.md`,
-  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/cout-des-plans.md`, `${CLAUDE_PLUGIN_ROOT}/skills/_partage/ranger-claude-md.md`,
+  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/cout-des-plans.md`, `${CLAUDE_PLUGIN_ROOT}/skills/_partage/ranger-claude-md.md`, `${CLAUDE_PLUGIN_ROOT}/skills/_partage/fraicheur-du-depot.md`,
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/changelog-et-doc.md`, `${CLAUDE_PLUGIN_ROOT}/skills/_partage/pilotable-par-hal.md`,
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/outils-et-quotas.md`, livrés par le plugin `plans-notion` — pas par le dépôt de travail, quel qu'il soit.

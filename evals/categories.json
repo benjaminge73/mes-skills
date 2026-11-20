@@ -70,6 +70,8 @@
         "skills/_partage/revue.md",
         "skills/_partage/plan-de-suite.md",
         "skills/_partage/remontee-sur-main.md",
+        "skills/_partage/fraicheur-du-depot.md",
+        "skills/_partage/scripts/fraicheur-depot.py",
         "skills/_partage/vagues.md",
         "skills/_partage/demander-a-hal.md",
         "skills/_partage/ecrire-dans-notion.md",
@@ -99,7 +101,7 @@
         "hooks/retirer_worktrees_clos.py",
         "agents/cloturier.md"
       ],
-      "cas": ["case-cochee", "decouverte-irreversible", "decouverte-reversible", "decouverte-secret", "decouverte-trop-grande", "cloture-ouvre-la-pr", "cloture-preuve-doc", "cloture-porte-doc", "relecteur-garde-fou", "go-deja-valide", "declenchement-executer", "go-plafond-depasse", "prerequis-avant-pret"],
+      "cas": ["case-cochee", "decouverte-irreversible", "decouverte-reversible", "decouverte-secret", "decouverte-trop-grande", "cloture-ouvre-la-pr", "fraicheur-avant-push", "cloture-preuve-doc", "cloture-porte-doc", "relecteur-garde-fou", "go-deja-valide", "declenchement-executer", "go-plafond-depasse", "prerequis-avant-pret"],
       "plancher": 0.47
     },
     "perimetre": {

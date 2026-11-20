@@ -41,7 +41,9 @@ qui est déjà su.** Six gisements, du moins cher au plus cher :
    Le cadrage avec Hal (après l'enquête, avant les questions) et la relecture de la page
    avant `en revue` : 📄 `${CLAUDE_PLUGIN_ROOT}/skills/_partage/relecture-par-hal.md`
 
-3. **Le code.** Deux gestes, dans cet ordre : d'abord la **carte de voisinage**,
+3. **Le code.** D'abord, **la copie locale est-elle à jour ?** (`fraicheur-depot.py`, sans
+   `--appliquer` sur un checkout qu'une autre session peut occuper : `_partage/fraicheur-du-depot.md`) ;
+   en retard, le plan le dit. Puis deux gestes, dans cet ordre : d'abord la **carte de voisinage**,
    dressée par le pilote lui-même (détail ci-dessous) ; puis invoquer l'agent
    **`enqueteur`** (outil `Agent`,
    `subagent_type: "plans-notion:enqueteur"` — le nom qualifié par le plugin,
