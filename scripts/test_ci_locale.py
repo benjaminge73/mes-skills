@@ -54,6 +54,14 @@ class ListeUnique(unittest.TestCase):
         self.assertIn("unittest discover -s scripts -p 'test_*.py'", texte)
         self.assertIn("plugin validate", texte)
 
+    def test_les_tests_jouent_sans_identite_git_comme_un_runner(self):
+        """Un test qui commit sans poser d'identité passe sur le poste et rougit en CI (PR 168)."""
+        texte = SCRIPT.read_text(encoding="utf-8")
+        self.assertIn("sans_identite_git python3 -m unittest discover -s scripts", texte)
+        self.assertIn("sans_identite_git \"$PYTHON_PLUGINS\" -m unittest discover", texte)
+        for reglage in ("GIT_CONFIG_GLOBAL=/dev/null", "GIT_CONFIG_NOSYSTEM=1", "user.useConfigOnly"):
+            self.assertIn(reglage, texte)
+
     def test_le_script_dit_que_le_job_evals_n_y_est_pas(self):
         texte = SCRIPT.read_text(encoding="utf-8")
         self.assertRegex(texte, r"(?i)evals.*(runner|payant)")
