@@ -1037,6 +1037,80 @@ class RefuserRevueSansAvis(unittest.TestCase):
         with self.subTest("id nu"):
             self.permis(self.mise_a_jour("en revue", page=self.IDENT))
 
+class RappelRevue(unittest.TestCase):
+    """``rappeler_revue.py`` : une page de plan écrite et laissée ``brouillon`` retient la fin de tour, une fois."""
+    SESSION = "6f1c1a52-8a0e-4c1e-9d63-0a1b2c3d4e5f"
+    PAGE = "0123456789abcdef0123456789abcdef"
+
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.env = {k: v for k, v in os.environ.items() if not k.startswith("CLAUDE")}
+        self.env["XDG_STATE_HOME"] = str(Path(tmp.name) / "etat")
+
+    def jouer(self, mode, entree):
+        brut = entree if isinstance(entree, str) else json.dumps(entree)
+        return subprocess.run([sys.executable, str(HOOKS / "rappeler_revue.py"), mode], input=brut,
+                              capture_output=True, text=True, timeout=30, env=self.env)
+
+    def noter(self, outil, entree):
+        r = self.jouer("noter", {"session_id": self.SESSION, "tool_name": outil, "tool_input": entree})
+        self.assertEqual((r.returncode, r.stdout), (0, ""), r.stderr)
+
+    def stop(self, **plus):
+        return self.jouer("rappeler", {"session_id": self.SESSION, "stop_hook_active": False, **plus})
+
+    def assertBloque(self, r):
+        self.assertEqual(r.returncode, 0, r.stderr)
+        d = json.loads(r.stdout)
+        self.assertEqual(d["decision"], "block")
+        self.assertIn("en revue", d["reason"])
+
+    def assertPasse(self, r):
+        self.assertEqual((r.returncode, r.stdout), (0, ""), r.stderr)
+
+    def test_creation_d_un_plan_retient_une_fois(self):
+        self.noter(OUTIL_CREATE, {"pages": [{"properties": {"Statut": "brouillon", "title": "[Plan] Vahiny - Test"}}]})
+        self.assertBloque(self.stop())
+        self.assertPasse(self.stop())  # une seule retenue
+
+    def test_stop_hook_actif_laisse_passer(self):
+        self.noter(OUTIL_CREATE, {"pages": [{"properties": {"title": "[Plan] X"}}]})
+        self.assertPasse(self.stop(stop_hook_active=True))
+
+    def test_statut_en_revue_solde_la_page(self):
+        self.noter(OUTIL_UPDATE, {"page_id": self.PAGE, "properties": {"Statut": "brouillon"}})
+        self.noter(OUTIL_UPDATE, {"page_id": self.PAGE, "properties": {"Statut": "en revue"}})
+        self.assertPasse(self.stop())
+
+    def test_page_creee_puis_posee_en_revue_est_soldee(self):
+        self.noter(OUTIL_CREATE, {"pages": [{"properties": {"title": "[Plan] X"}}]})
+        self.noter(OUTIL_UPDATE, {"page_id": self.PAGE, "properties": {"Statut": "en revue"}})
+        self.assertPasse(self.stop())
+
+    def test_contenu_avec_questions_ouvertes_est_releve(self):
+        self.noter(OUTIL_UPDATE, {"page_id": self.PAGE, "command": "replace_content",
+                                   "new_str": "## Questions ouvertes\n- Q1"})
+        self.assertBloque(self.stop())
+
+    def test_page_ordinaire_ne_retient_pas(self):
+        self.noter(OUTIL_UPDATE, {"page_id": self.PAGE, "properties": {"title": "Notes de réunion"}})
+        self.assertPasse(self.stop())
+
+    def test_composio_est_releve(self):
+        charge = json.dumps({"page_id": self.PAGE, "properties": {"Statut": "brouillon"}})
+        self.noter("Bash", {"command": f"composio execute NOTION_UPDATE_PAGE -d '{charge}'"})
+        self.assertBloque(self.stop())
+
+    def test_bash_ordinaire_ne_retient_pas(self):
+        self.noter("Bash", {"command": "ls -la"})
+        self.assertPasse(self.stop())
+
+    def test_sans_fiche_et_entree_illisible_laissent_passer(self):
+        self.assertPasse(self.stop())
+        self.assertPasse(self.jouer("rappeler", "pas du json {"))
+        self.assertPasse(self.jouer("noter", "pas du json {"))
+
 
 if __name__ == "__main__":
     unittest.main()

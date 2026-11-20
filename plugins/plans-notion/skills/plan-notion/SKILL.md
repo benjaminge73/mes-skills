@@ -20,6 +20,7 @@ détaille.
   sous-agent d'implémentation (« 2. Ne rien coder de livré… »).
 - **`Statut` sans accents** : `brouillon`, `en revue`, `valide`, `pret`,
   `en cours`, `a merger`, `execute` (fin de « 2. Ne rien coder… »).
+- **Toute passe qui écrit une page de plan finit par décider du `Statut`** : `_partage/fin-de-passe.md`.
 - **Relevé avant d'écrire, recompte après** : cases cochées et textes libres
   relevés avant toute écriture, recomptés après (§4, `_partage/ecrire-dans-notion.md`).
 - **Ce qui est découvert s'écrit dans le plan**, avec sa conséquence sur les
@@ -228,10 +229,9 @@ choisir. La doc vivante de `hermes-custom`, elle, va toujours au hub Hermes (`_p
 - Statuts : `brouillon` → `en revue` → `valide` → `pret` → `en cours` →
   `a merger` → `execute` (valeurs **sans accents**, cf. la règle en tête).
   - **`brouillon`** = rédaction partielle ; **`en revue`** = l'agent a **fini de rédiger**,
-    Benjamin relit : `_partage/ecrire-dans-notion.md`, « Rappel de vocabulaire ».
-    `en revue` se pose **après l'avis de Hal** (section `Avis de Hal`, après `Questions ouvertes`) : `_partage/relecture-par-hal.md`.
-  **`pret`** : préparation faite et prouvée, posé à l'ouverture
-  (`executer-plan-notion` §2), jamais ici.
+    Benjamin relit (`_partage/ecrire-dans-notion.md`), **après l'avis de Hal** (`relecture-par-hal.md`) ;
+    chaque passe finit par en décider : `_partage/fin-de-passe.md`.
+  **`pret`** : préparation prouvée, posé à l'ouverture (`executer-plan-notion` §2), jamais ici.
 - **`a merger` et `execute` ne disent pas la même chose**, et les confondre fait
   mentir la base :
   - **`a merger`** — le travail est fait, testé et poussé, et sa **PR est
@@ -488,7 +488,7 @@ plan de suite `#N+1` s'il reste des arbitrages. Reste au plan le **contenu** du 
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/schemas.md`,
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/cron-a-la-main.md`,
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/decouvertes.md`, `${CLAUDE_PLUGIN_ROOT}/skills/_partage/restes.md`,
-  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/relecture-par-hal.md`,
+  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/relecture-par-hal.md`, `${CLAUDE_PLUGIN_ROOT}/skills/_partage/fin-de-passe.md`,
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/changelog-et-doc.md`,
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/revue.md` et
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/bons-tests.md`, ses quatre fichiers de
