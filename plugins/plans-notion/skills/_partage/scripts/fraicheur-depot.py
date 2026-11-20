@@ -122,7 +122,10 @@ def main(argv=None):
     if r.returncode != 0:
         conflits = git(depot, "diff", "--name-only", "--diff-filter=U").stdout.split()
         git(depot, "rebase", "--abort")
-        print(etat + "\nArrêt : conflit de rebase sur " + ", ".join(conflits or ["(fichiers non lus)"]) +
+        if not conflits:  # échec autre qu'un conflit (identité git absente, hook…) : le dire tel quel
+            print(etat + "\nArrêt : le rebase a échoué sans conflit, branche revenue comme avant.\n" + r.stderr.strip())
+            return 3
+        print(etat + "\nArrêt : conflit de rebase sur " + ", ".join(conflits) +
               ". Rebase abandonné, la branche est revenue comme avant. À résoudre à la main ou à poser à Benjamin.")
         return 3
     msg = f"Remise à jour : « {branche} » rebasée sur {ref} ({en_retard} commit(s) repris)."

@@ -5,6 +5,7 @@ tourne en sous-processus (le contrat testé est son code retour et sa sortie).
 """
 from __future__ import annotations
 
+import os
 import subprocess
 import sys
 import tempfile
@@ -29,7 +30,9 @@ def commit(d, nom, texte="x\n"):
 
 
 def lancer(d, *args):
-    r = subprocess.run([sys.executable, str(SCRIPT), "--depot", str(d), *args], capture_output=True, text=True)
+    env = {**os.environ, "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@t",
+           "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@t"}  # un runner n'a pas d'identité git
+    r = subprocess.run([sys.executable, str(SCRIPT), "--depot", str(d), *args], capture_output=True, text=True, env=env)
     return r.returncode, r.stdout
 
 
