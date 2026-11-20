@@ -41,6 +41,7 @@ PUCES_OK = {
     "Pilote": "Sonnet 5.5, medium",
     "Branche": "`feat/le-theme`, worktree `~/repos/worktrees/depot/feat-le-theme`",
     "Orchestration": "sans objet — aucun plan maître",
+    "Prérequis": "`ANTHROPIC_API_KEY` présente (`test -n \"$ANTHROPIC_API_KEY\"` code 0), connecteur Notion répond, `gh` installé",
     "Preuve de l'étape 1": "`pytest a -q` rejouée à blanc : code 1 attendu (étape à faire)",
     "Preuve de l'étape 2": "`pytest b -q` rejouée à blanc : code 1 attendu (étape à faire)",
 }
@@ -100,6 +101,20 @@ class PorteDuPret(unittest.TestCase):
                 code, sortie, _ = jouer(page(journal=ouverture(**{cle: None})))
                 self.assertEqual(code, 1)
                 self.assertIn(f"puce **{cle}** absente", sortie)
+
+    def test_un_prerequis_manquant_bloque_le_pret(self):
+        # Panne du 2026-11-20 : une exécution s'est arrêtée à l'étape 12 faute de clé d'API,
+        # que la préparation n'avait jamais cherchée.
+        for valeur in ("`OPENAI_API_KEY` : manquante", "accès au dépôt privé indisponible",
+                       "token Vercel à fournir par Benjamin"):
+            with self.subTest(valeur=valeur):
+                code, sortie, _ = jouer(page(journal=ouverture(Prérequis=valeur)))
+                self.assertEqual(code, 1)
+                self.assertIn("**Prérequis** porte un prérequis non disponible", sortie)
+
+    def test_sans_prerequis_externe_est_recevable_avec_sa_raison(self):
+        code, sortie, _ = jouer(page(journal=ouverture(Prérequis="sans objet — aucune clé, aucun accès hors du dépôt")))
+        self.assertEqual(code, 0, sortie)
 
     def test_une_coquille_ne_compte_pas_comme_une_trace(self):
         for coquille in ("—", "à voir", "aucune", ""):

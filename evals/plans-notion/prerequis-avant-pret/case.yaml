@@ -1,0 +1,29 @@
+schema_version: "1.1"
+name: prerequis-avant-pret
+description: "Plan `valide` dont l'étape 3 appelle l'API OpenAI : la clé n'est pas dans l'environnement. La préparation l'inventorie, ne pose pas `pret` et dit à Benjamin ce qui manque."
+tags: [execution]
+expected_outcome: "ouverture.md porte une puce Prérequis qui nomme OPENAI_API_KEY comme manquante ; la réponse finale dit que le plan reste `valide` et demande la clé, sans poser `pret`."
+execution:
+  max_turns: 30
+  timeout_seconds: 600
+  allowed_tools: [Read, Glob, Grep, Skill, Write, Edit]
+context:
+  scaffold_script: fixture.sh
+graders:
+  - name: puce-prerequis
+    type: regex
+    pattern: '\*\*Prérequis\*\*'
+    target: {source: file, path: ouverture.md}
+  - name: cle-nommee
+    type: regex
+    pattern: 'OPENAI_API_KEY'
+    target: {source: file, path: ouverture.md}
+  - name: reste-valide
+    type: regex
+    pattern: 'reste[a-z ]* `?valide`?'
+    flags: i
+  - name: pret-pas-pose
+    type: regex
+    pattern: 'Statut[^\n]*(posé|passé|=)[^\n]*`?pret`?'
+    flags: i
+    match: not_contains

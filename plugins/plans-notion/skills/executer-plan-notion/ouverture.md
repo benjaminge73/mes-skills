@@ -11,6 +11,7 @@ Sommaire :
 - La porte des preuves, avant — chaque étape a sa preuve de fin
 - Puis, dans le même tour : maquette, questions orange, worktree, relevé de la
   CI, vagues, pilote
+- Les prérequis : tout ce qu'il faut hors du dépôt, vérifié avant `pret`
 - La porte du `pret` : l'entrée `Ouverture`, le script, puis `en cours`
 - La fiche du plan, la sonnette et le courrier de Hal (à `en cours`)
 - Une branche, la PR à la clôture
@@ -245,6 +246,33 @@ que la porte du `pret`, plus bas, n'est pas franchie) :
   les deux relevés commandent la suite de la même façon, et se lisent
   ensemble.
 
+### Les prérequis — tout ce qu'il faut hors du dépôt, vérifié avant `pret`
+
+Une exécution qui s'arrête à l'étape 12 faute d'une clé d'API (constaté le 2026-11-20) a
+coûté douze étapes pour rien : le manque se voyait dès la page. **Un plan ne passe pas `pret`
+tant que chaque chose dont l'exécution a besoin n'est pas vérifiée disponible.**
+
+1. **Inventorier** en lisant le chapitre `Exécution` en entier, puis `Contraintes techniques
+   vérifiées`, `Questions ouvertes` (les réponses tranchées) et les `Preuve de fin` : chaque étape
+   appelle quoi ? Clés d'API et jetons, secrets et variables d'environnement, accès (dépôt
+   privé, base, serveur, VPS, droits `gh`), connecteurs MCP (Notion, Composio…), outils et
+   versions (CLI, Python, navigateur), services joignables et hôtes autorisés, fichiers ou
+   données d'entrée, quota ou budget. Les étapes `D` prévisibles comptent aussi.
+2. **Vérifier chacun là où l'exécution le jouera**, par une commande qui ne montre jamais la
+   valeur d'un secret : `test -n "$NOM"` (code 0 ou non), `command -v <outil>`, `gh auth status`,
+   `curl -sI <hôte>` ou un appel à vide du connecteur, `ls <fichier>`. Un secret tenu par le
+   VPS ou par Hermes se vérifie là où il vit, pas dans l'environnement de la session cloud.
+3. **Écrire la puce `**Prérequis**`** de l'entrée `Ouverture` : un élément par prérequis, avec
+   l'étape qui l'exige et le résultat de la vérification (`disponible`, ou `manquant`). Aucune
+   valeur de secret, jamais. `sans objet — <raison>` est recevable pour un plan sans clé, accès
+   ni outil au-delà du dépôt (la raison est obligatoire).
+4. **Un prérequis manquant bloque `pret`.** Le plan reste `valide`, la session le dit à Benjamin
+   en nommant l'élément, l'étape qui l'exige et où le fournir, puis s'arrête (pilotable par
+   Hal, `_partage/pilotable-par-hal.md` : question en texte, recopiée dans la page). Elle ne
+   pose pas `pret` « en attendant », et ne code pas les étapes qui n'en ont pas besoin : la
+   préparation reprend quand l'élément est fourni, et seule sa puce se rejoue. Un secret ne
+   s'écrit pas dans la page ni dans le rapport.
+
 ### La porte du `pret` — la préparation se prouve avant `en cours`
 
 `valide` dit que Benjamin a accepté le plan ; il ne dit pas que la session a fait
@@ -258,7 +286,7 @@ ici. Une session ne saute pas à la première étape pour autant, et le « go »
 remplace pas la porte.
 
 **1. Écrire l'entrée `Ouverture`** du `Journal d'exécution` (H3 `Ouverture`),
-dans la page et dans le miroir local, une puce à clé en gras par geste. Les dix
+dans la page et dans le miroir local, une puce à clé en gras par geste. Les onze
 clés sont obligatoires, plus **une puce `Preuve de l'étape N` par étape** du
 chapitre `Exécution` (étapes `D` comprises). Une valeur « — », « aucune »,
 « à voir » ne compte pas, et `sans objet — <raison>` est recevable, la raison en
@@ -277,6 +305,7 @@ plus :
 - **Pilote** : Sonnet 5.5, medium
 - **Branche** : `feat/le-theme`, worktree `~/repos/worktrees/<repo>/feat-le-theme`
 - **Orchestration** : sans objet — aucun plan maître
+- **Prérequis** : `ANTHROPIC_API_KEY` (étape 3) disponible (`test -n` code 0) ; `gh auth status` code 0 ; connecteur Notion répond
 - **Preuve de l'étape 1** : `pytest a -q` rejouée à blanc : code 1 attendu (l'étape n'est pas faite), la commande tourne
 - **Preuve de l'étape 2** : `pytest b -q` rejouée à blanc : code 1 attendu, la commande tourne
 ```
@@ -312,6 +341,9 @@ Ce que chaque puce porte :
   partage avec d'autres plans, son créneau dans la file des actions lourdes. La
   page maître doit porter ces choses avant que ses plans passent `pret`
   (`plan-notion/plan-maitre.md`, « Le statut du plan maître et son lot »).
+- **Prérequis** : l'inventaire de « Les prérequis » ci-dessus, chaque élément avec l'étape qui
+  l'exige et son état vérifié ; `preparation-prete.py` refuse la puce qui nomme un élément
+  manquant, indisponible ou à fournir.
 - **Maquette**, **CI**, **Pilote**, **Branche** : le résultat des puces
   correspondantes ci-dessus.
 

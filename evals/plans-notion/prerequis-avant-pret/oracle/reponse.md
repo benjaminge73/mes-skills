@@ -1,0 +1,1 @@
+Je laisse le plan `valide`, sans poser `pret` : l'étape 3 exige `OPENAI_API_KEY`, absente de l'environnement. Peux-tu la fournir (ou me dire où elle se trouve) ? La préparation reprend dès qu'elle est disponible.
