@@ -179,3 +179,15 @@ Une ligne chacune, en début de ligne (une puce devant est tolérée). Une deman
 est dite illisible par le relevé. Le relevé `plans-veille` la lit au passage suivant (dix minutes
 au plus) et la traite comme ci-dessus. Cette section ne porte que des gestes : une question se
 pose depuis le VPS.
+
+## 6. Le joindre par Slack, depuis n'importe quelle session
+
+Quand Benjamin demande « communique ça à Hal », la session écrit à Hal sur Slack, dans le canal `#arbitrage`
+(`C0BPSR77QP9`), et le **mentionne par son identifiant** : `<@U0BCE143069>`. La mention par nom (`@Hal`)
+ne résout rien et le message part sans que Hal soit prévenu : c'est l'erreur à ne pas refaire.
+
+- Le message se **lit seul** : Hal n'a pas le contexte de la session. Il dit quoi faire, pourquoi, et où lire le détail.
+- Une réponse de Hal arrive dans le **fil** du message : la relire là (`slack_read_thread`) avant de relancer.
+- Un message envoyé par l'app Claude porte « Envoyé avec Claude ». Hermes l'ignorait comme un message de bot jusqu'au
+  2026-11-20 (liste des humains ajoutée côté Hermes, gateway redémarré à 15:29). Sans réponse de Hal, ne pas conclure à un mauvais
+  tag : relire le fil, puis renvoyer un message de test qui lui demande de répondre « reçu ».
