@@ -144,13 +144,20 @@ if [ "$faire_validation" = 1 ]; then
     return $rc
   }
   etape "Validation des plugins par la CLI" valider_plugins
-  etape "Tests des scripts de garde" python3 -m unittest discover -s scripts -p 'test_*.py'
+  # Un runner GitHub n'a ni identité git ni config globale : les tests jouent dans
+  # le même état, sinon un test qui commit passe ici (identité du poste) et rougit en CI.
+  sans_identite_git() {
+    env -u GIT_AUTHOR_NAME -u GIT_AUTHOR_EMAIL -u GIT_COMMITTER_NAME -u GIT_COMMITTER_EMAIL -u EMAIL \
+      GIT_CONFIG_GLOBAL=/dev/null GIT_CONFIG_NOSYSTEM=1 \
+      GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=user.useConfigOnly GIT_CONFIG_VALUE_0=true "$@"
+  }
+  etape "Tests des scripts de garde" sans_identite_git python3 -m unittest discover -s scripts -p 'test_*.py'
   tester_plugins() {
     local d rc=0
     for d in plugins/*/tests; do
       [ -d "$d" ] || continue
       echo "-- $d"
-      "$PYTHON_PLUGINS" -m unittest discover -s "$d" -p 'test_*.py' || rc=1
+      sans_identite_git "$PYTHON_PLUGINS" -m unittest discover -s "$d" -p 'test_*.py' || rc=1
     done
     return $rc
   }
