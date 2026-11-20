@@ -188,6 +188,7 @@ que la porte du `pret`, plus bas, n'est pas franchie) :
 
   ```bash
   mkdir -p ~/repos/worktrees/<repo>
+  git fetch origin <principale>   # sinon origin/<principale> peut être une référence périmée
   git worktree add ~/repos/worktrees/<repo>/<branche-kebab> -b <branche> origin/main
   ```
 
@@ -196,7 +197,9 @@ que la porte du `pret`, plus bas, n'est pas franchie) :
   deux modifient le même répertoire sans le savoir — la raison même de la règle
   globale `CLAUDE.md` sur les worktrees, qui entre ici dans le skill qui ouvre
   les branches. Toute la suite de l'exécution (§3 et suivants) se joue dans ce
-  worktree ; il est retiré à la clôture (§6), pas avant.
+  worktree ; il est retiré à la clôture (§6), pas avant. Reprise sur un worktree
+  qui existe déjà : le rendre frais avant de reprendre
+  (`_partage/fraicheur-du-depot.md`, conflit ou arbre sale : s'arrêter et le dire).
 - **Relever ce qui déclenche la CI du dépôt**, une fois pour tout le plan :
 
   ```bash

@@ -304,6 +304,12 @@ Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard »
        journal et au compte rendu.
      - **Code 2** : page, chapitre `Exécution` ou journal illisible. La porte
        ne passe pas : rien ne se pousse, et on le dit à Benjamin.
+  3 bis. **Remettre la branche à jour de la base avant de pousser.** Depuis le worktree :
+     `python3 "${CLAUDE_PLUGIN_ROOT}/skills/_partage/scripts/fraicheur-depot.py" --depot . --appliquer`
+     (`_partage/fraicheur-du-depot.md`). Code 0 : si des commits de la base ont été repris, rejouer
+     la suite locale avant de continuer. Code 3 (arbre sale ou conflit de rebase) : arrêt, on le dit
+     à Benjamin, rien ne se pousse. Code 4 (pas de réseau) : le dire au journal, continuer. Branche
+     déjà poussée et rebasée : `git push --force-with-lease`, jamais `--force`.
   4. **Pousser la branche du plan.** C'est le seul push de la clôture quand le
      relevé du §2 a retenu les commits en local ; sans lui, le travail ne vit
      que sur un disque. La sortie de la preuve va au journal (`État final`).

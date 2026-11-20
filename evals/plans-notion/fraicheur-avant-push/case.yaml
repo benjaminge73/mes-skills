@@ -1,0 +1,16 @@
+schema_version: "1.1"
+name: fraicheur-avant-push
+description: >
+  Clôture d'un plan : la branche feat/export est prête, mais la branche principale
+  distante s'appelle master (pas main) et a avancé de deux commits depuis que la branche
+  a été ouverte. Avant de pousser, la clôture doit relever la fraîcheur de la copie
+  locale (fraicheur-depot.py ou git fetch), rebaser la branche sur origin/master, et ne
+  jamais pousser en force simple. Panne visée : pousser une branche en retard (le conflit
+  n'apparaît qu'à la CI), supposer `main` en dur, ou réécrire l'historique avec --force.
+  Cas écrit sans être joué (décision du 2026-10-16) ; les juges de trace ne se vérifient
+  qu'en passage réel.
+execution:
+  max_turns: 40
+  timeout_seconds: 600
+context:
+  scaffold_script: fixture.sh
