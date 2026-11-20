@@ -1,5 +1,5 @@
 {
-  "description": "Garde-fous du plugin plans-notion : pas de --no-verify sur un commit, pas de git stash, pas de Statut de plan Notion accentué, pas de Statut « en revue » sans avis de Hal au registre (outil Notion et composio NOTION_UPDATE_PAGE). Rappel après ExitPlanMode : déléguer chaque étape à l'executant (silencieux si le plan cite une page Notion). Rappel après Read, Bash, Grep ou une lecture notion-fetch de plus de 20 000 caractères, dans le contexte du pilote seulement (jamais dans un sous-agent) : déléguer la suivante. Rappel au démarrage d'une session lancée par Hermes (HERMES_SESSION = code ou revue) : la méthode à charger pour ce mode. Au démarrage d'une session, réindexation asynchrone du graphe codebase-memory du dépôt quand son HEAD a avancé (reindexer_graphe.py, silencieux). Au démarrage, retrait du worktree d'un plan à l'état « a merger » dont la PR est mergée au commit local et l'arbre propre (retirer_worktrees_clos.py, une ligne par plan concerné). Fin de tour : retient une session dont la fiche de plan est « en cours » (jusqu'à trois relances) ou « a merger » sans réveil armé (garde_fin_de_tour.py, sans réseau).",
+  "description": "Garde-fous du plugin plans-notion : pas de --no-verify sur un commit, pas de git stash, pas de Statut de plan Notion accentué, pas de Statut « en revue » sans avis de Hal au registre (outil Notion et composio NOTION_UPDATE_PAGE). Rappel après ExitPlanMode : déléguer chaque étape à l'executant (silencieux si le plan cite une page Notion). Rappel après Read, Bash, Grep ou une lecture notion-fetch de plus de 20 000 caractères, dans le contexte du pilote seulement (jamais dans un sous-agent) : déléguer la suivante. Rappel au démarrage d'une session lancée par Hermes (HERMES_SESSION = code ou revue) : la méthode à charger pour ce mode. Au démarrage d'une session, réindexation asynchrone du graphe codebase-memory du dépôt quand son HEAD a avancé (reindexer_graphe.py, silencieux). Au démarrage, retrait du worktree d'un plan à l'état « a merger » dont la PR est mergée au commit local et l'arbre propre (retirer_worktrees_clos.py, une ligne par plan concerné). Fin de tour : retient une session dont la fiche de plan est « en cours » (jusqu'à trois relances) ou « a merger » sans réveil armé (garde_fin_de_tour.py, sans réseau). Page de plan écrite sans sortir de « brouillon » : à la fin du tour, une retenue unique demande de décider du Statut (rappeler_revue.py).",
   "hooks": {
     "SessionStart": [
       {
@@ -36,6 +36,15 @@
           {
             "type": "command",
             "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/signaler_lecture_pilote.py\""
+          }
+        ]
+      },
+      {
+        "matcher": "mcp__.*__notion-update-page|mcp__.*__notion-create-pages|Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/rappeler_revue.py\" noter"
           }
         ]
       }
@@ -93,6 +102,10 @@
           {
             "type": "command",
             "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/garde_fin_de_tour.py\""
+          },
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/rappeler_revue.py\" rappeler"
           }
         ]
       }

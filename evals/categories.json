@@ -11,6 +11,7 @@
         "skills/_partage/outils-et-quotas.md",
         "skills/_partage/ecrire-dans-notion.md",
         "skills/_partage/schemas.md",
+        "skills/_partage/fin-de-passe.md",
         "skills/_partage/scripts/verifier-version.sh"
       ],
       "cas": ["existant-jeu-de-donnees", "existant-jeu-de-questions", "poc-mecanique"],
