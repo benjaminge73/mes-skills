@@ -68,7 +68,9 @@ CLE_GRAS = re.compile(r"^[ \t]*[-*][ \t]+\*\*[^*]+\*\*")
 PUCE = re.compile(r"^(?P<indent>[ \t]*)[-*][ \t]+")
 LIEN = re.compile(r"\[([^\]]*)\]\((https?://[^)\s]+)\)")
 URL = re.compile(r"https?://[^\s)\"<>]+")
-ID_NOTION = re.compile(r"[0-9a-f]{32}")
+# Le lookahead : dans une URL à titre, tirets ôtés, un titre fini par un hexadécimal
+# (« …-revue-<id> ») ferait 33 hexadécimaux, et findall rendrait un identifiant décalé.
+ID_NOTION = re.compile(r"[0-9a-f]{32}(?![0-9a-f])")
 # Une puce dont la valeur ne prouve rien : rubrique vide, sans reste.
 VALEURS_VIDES = {"", "rien", "aucun", "aucune"}
 CHAMPS_LIGNE = ("Reste", "Pour", "État", "Plan d'origine", "url")

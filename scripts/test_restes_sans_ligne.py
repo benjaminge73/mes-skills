@@ -110,6 +110,21 @@ class RestesSansLigne(_Dossier):
                 code, sortie, _ = self.jouer(p, self.ecrire_lignes([ligne(RESTE)]))
                 self.assertEqual(code, 0, sortie)
 
+    def test_lien_avec_titre_finissant_par_un_hexadecimal_donne_le_bon_identifiant(self):
+        # Panne : dans une URL à titre (« …-passe-en-revue-<id> »), le « e » final du titre,
+        # tirets ôtés, forme 33 hexadécimaux d'affilée ; l'identifiant lu est décalé d'un
+        # caractère et le reste qui cite sa ligne est signalé manquant.
+        identifiant = "41db8cc8aa1d81799c3ddaf9ee778ce9"
+        url_titre = f"https://app.notion.com/p/Titre-passe-en-revue-{identifiant}"
+        p = self.ecrire("page.md", page(
+            "- **Reste à faire** :",
+            f"  - Hal relance la revue du titre, voir [la ligne]({url_titre}).",
+        ))
+        lignes = self.ecrire_lignes([ligne("Autre texte que celui du reste",
+                                           url=f"https://app.notion.com/p/{identifiant}")])
+        code, sortie, _ = self.jouer(p, lignes)
+        self.assertEqual(code, 0, sortie)
+
     def test_reste_deja_verse_sans_lien_est_satisfait_par_son_texte(self):
         # Panne : un reste déjà versé dans la base, écrit sans lien, est signalé manquant.
         p = self.ecrire("page.md", page(
