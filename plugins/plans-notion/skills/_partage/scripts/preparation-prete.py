@@ -21,14 +21,18 @@ Les miroirs sont la sortie de ``notion-fetch``. Le script contrôle :
   4. les vagues : la colonne « Vague » du tableau de chevauchement égale le calcul
      (``vagues.py --comparer``) ;
   5. le « Journal d'exécution » porte une entrée H3 « Ouverture » (la dernière, si
-     la préparation a été refaite) avec dix puces à clé en gras — **Relecture**,
+     la préparation a été refaite) avec onze puces à clé en gras — **Relecture**,
      **Questions**, **Preuves**, **Répétition**, **Maquette**, **CI**, **Vagues**,
-     **Pilote**, **Branche**, **Orchestration** — et, pour chaque étape du chapitre,
+     **Pilote**, **Branche**, **Orchestration**, **Prérequis** — et, pour chaque étape du chapitre,
      une puce **Preuve de l'étape N** (la commande de preuve rejouée à blanc et ce
      qu'elle a rendu), chacune non vide et sans coquille (« — », « - », « aucune »,
      « à définir », « à voir ») ; ``sans objet — <raison>`` est recevable, la raison
      est obligatoire ; la puce **Pilote** nomme Sonnet et ``medium``, ou porte la
      dérogation de Benjamin citée (``dérogation de Benjamin, <date> : « … »``) ;
+  5 bis. **Prérequis** : l'inventaire de ce que l'exécution exige hors du dépôt (clés
+     d'API, secrets, variables d'environnement, accès, connecteurs, outils, services),
+     chacun vérifié disponible sans jamais écrire la valeur d'un secret ; la puce ne
+     doit porter aucun prérequis marqué manquant, indisponible ou à fournir ;
   6. **Orchestration** : ``sans objet — <raison>`` (aucun plan maître), ou la page maître
      est fournie par ``--maitre`` et porte, non vides, les sections « Plans »,
      « Croisement », « Ordre de merge » et « File des actions lourdes ».
@@ -47,7 +51,7 @@ import sys
 from pathlib import Path
 
 CLES = ("Relecture", "Questions", "Preuves", "Répétition", "Maquette", "CI", "Vagues",
-        "Pilote", "Branche", "Orchestration")
+        "Pilote", "Branche", "Orchestration", "Prérequis")
 SECTIONS_MAITRE = (("plans", "Plans"), ("croisement", "Croisement"), ("ordre de merge", "Ordre de merge"),
                    ("file des actions lourdes", "File des actions lourdes"))
 # Les <span> ouvrants (titre retouché en bleu, ecrire-dans-notion.md) sont tolérés entre ### et le mot.
@@ -60,6 +64,10 @@ SANS_OBJET = re.compile(r"^sans objet\b[ \t]*(.*)$", re.IGNORECASE)
 PILOTE_SONNET = re.compile(r"\bsonnet\b", re.IGNORECASE)
 PILOTE_MEDIUM = re.compile(r"\bmedium\b", re.IGNORECASE)
 PILOTE_DEROGATION = re.compile(r"dérogation de Benjamin[^«]*«[^»]+»", re.IGNORECASE)
+# Un prérequis encore manquant (« ANTHROPIC_API_KEY : manquante ») ne laisse pas passer `pret`.
+PREREQUIS_MANQUANT = re.compile(
+    r"\b(manquante?s?|indisponibles?|absente?s?|non disponibles?|à fournir|à obtenir|à créer|à configurer)\b",
+    re.IGNORECASE)
 SCRIPTS = Path(__file__).parent
 
 
@@ -153,12 +161,24 @@ def defaut_pilote(valeur: str | None) -> str | None:
             "(ouverture.md, « Le réglage du pilote »)")
 
 
+def defaut_prerequis(valeur: str | None) -> str | None:
+    """Un prérequis noté manquant, indisponible ou à fournir : la préparation n'est pas finie."""
+    if valeur is None or _valeur_vide(valeur):
+        return None  # déjà signalé par defaut_valeur
+    m = PREREQUIS_MANQUANT.search(valeur)
+    if m:
+        return (f"Ouverture : **Prérequis** porte un prérequis non disponible (« {m.group(1)} ») : "
+                "le plan reste `valide` tant que Benjamin ne l'a pas fourni (ouverture.md, « Les prérequis »)")
+    return None
+
+
 def defauts_ouverture(entree: list[str], numeros: list[str]) -> list[str]:
     valeurs = valeurs_puces(entree)
     cles = list(CLES) + [f"Preuve de l'étape {n}" for n in numeros]
     defauts = [d for d in (defaut_valeur(c, valeurs.get(c)) for c in cles) if d]
     pilote = defaut_pilote(valeurs.get("Pilote"))
-    return defauts + [pilote] if pilote else defauts
+    prerequis = defaut_prerequis(valeurs.get("Prérequis"))
+    return defauts + [d for d in (pilote, prerequis) if d]
 
 
 def orchestration_sans_objet(entree: list[str]) -> bool:

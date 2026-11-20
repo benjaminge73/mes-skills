@@ -31,13 +31,14 @@ en a un. Il manque la page ou le dépôt : `NEEDS_CONTEXT`, sans rien écrire.
 Lire **en entier** `${CLAUDE_PLUGIN_ROOT}/skills/executer-plan-notion/ouverture.md`,
 puis le jouer pour ce plan, dans l'ordre qu'il donne : remettre le chapitre
 `Exécution` à jour, la porte des preuves, la maquette, les questions orange passées
-au vert, le relevé de la CI, les vagues, la branche dans son worktree, l'entrée
-`Ouverture`, puis `preparation-prete.py`. Le détail de chaque geste est dans ce
+au vert, le relevé de la CI, les vagues, la branche dans son worktree, l'inventaire des prérequis (clés, secrets, accès, connecteurs, outils : « Les prérequis » de
+`ouverture.md`), l'entrée `Ouverture`, puis `preparation-prete.py`. Le détail de chaque geste est dans ce
 fichier, pas ici : ne le réécris pas de mémoire.
 
 `Statut` = `pret` se pose **seulement** sur un code 0 de `preparation-prete.py`, en une
 écriture Notion qui renseigne aussi `Branche`, puis tu relis le miroir pour confirmer.
-Un code 1 se corrige et se rejoue ; jamais `pret` « en attendant ». Les valeurs de
+Un code 1 se corrige et se rejoue ; jamais `pret` « en attendant ». Un prérequis manquant
+que tu ne peux pas fournir : `BLOCKED`, avec son nom et l'étape qui l'exige. Les valeurs de
 `Statut` sont sans accents.
 
 ## Ce que tu ne fais jamais

@@ -1,0 +1,1 @@
+- **Prérequis** : `OPENAI_API_KEY` (étape 3) : manquante, absente de l'environnement ; `GITHUB_TOKEN` présent ; aucun autre accès hors du dépôt
