@@ -86,6 +86,7 @@ import json
 import os
 import re
 import shutil
+import stat
 import subprocess
 import sys
 import threading
@@ -113,8 +114,11 @@ PARALLELE_DEFAUT = 8
 DELAI_JUGE = 120  # secondes par appel de claude
 VARIABLE_CLAUDE = "QUALITE_DOC_CLAUDE"
 # Dossier de travail du juge : fixe et vide, créé au premier appel. Un cwd neuf à chaque appel
-# casserait le cache de prompt de claude (le cwd fait partie du contexte).
-DOSSIER_JUGE = "~/.cache/qualite-doc/juge"
+# casserait le cache de prompt de claude (le cwd fait partie du contexte). Hors de $HOME : claude
+# charge le CLAUDE.md et les règles de chaque répertoire parent du cwd ; sous /home/ubuntu, le parent
+# porte .claude/ et les règles personnelles entreraient dans le prompt de chaque vote. Aucun parent
+# de /var/tmp ne porte .claude/ ni CLAUDE.md.
+DOSSIER_JUGE = "/var/tmp/qualite-doc-juge"
 GRILLE = Path(__file__).resolve().parent.parent / "grille-doc.md"
 CODE_OK = 0
 CODE_USAGE = 2
@@ -415,9 +419,16 @@ def appeler_juge(exe: str, prompt: str) -> tuple[str, float]:
     """
     dossier = os.path.expanduser(DOSSIER_JUGE)
     try:
-        os.makedirs(dossier, exist_ok=True)
+        os.makedirs(dossier, mode=0o700, exist_ok=True)
+        etat = os.lstat(dossier)
     except OSError as e:
         raise ErreurJuge(f"juge indisponible : dossier de travail {dossier} inaccessible ({e.strerror})") from e
+    # lstat, pas stat : un lien symbolique posé à la place du dossier serait suivi vers un autre dossier.
+    if not stat.S_ISDIR(etat.st_mode):
+        raise ErreurJuge(f"juge indisponible : {dossier} n'est pas un dossier (lien ou fichier)")
+    if etat.st_uid != os.getuid():
+        raise ErreurJuge(f"juge indisponible : {dossier} appartient à l'uid {etat.st_uid}, "
+                         "pas à l'utilisateur courant")
     try:
         r = subprocess.run(
             [exe, "-p", "--model", MODELE, "--output-format", "json", "--tools", "",

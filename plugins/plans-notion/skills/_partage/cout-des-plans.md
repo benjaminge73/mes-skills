@@ -156,7 +156,9 @@ Limites :
   l'abonnement, et aucun pourcentage de quota n'est écrit.
 - Un `cwd` hors dépôt (scratchpad, `~/Dev`) donne son propre nom : ces sessions
   apparaissent comme autant de projets. Le juge de qualité de doc tourne dans un
-  dossier fixe, `~/.cache/qualite-doc/juge`, rangé sous « qualite-doc-juge » ; les
-  anciens dossiers temporaires `qualite-doc-juge-*` y sont rangés aussi.
+  dossier fixe, `/var/tmp/qualite-doc-juge` (hors de `$HOME`, pour que claude ne charge
+  aucune règle personnelle), rangé sous « qualite-doc-juge » ; l'ancien dossier
+  `~/.cache/qualite-doc/juge` et les anciens dossiers temporaires `qualite-doc-juge-*`
+  y sont rangés aussi.
 - Un modèle hors grille est listé « non chiffré », sort du total en dollars et
   reste compté en tokens : jamais à zéro.

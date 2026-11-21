@@ -312,7 +312,21 @@ def nom_du_depot(cwd: str) -> str | None:
         # Dossier temporaire d'un juge de qualité de doc (ancien schéma) : un seul projet, pas un par run.
         return "qualite-doc-juge"
     if len(segments) >= 2 and segments[-2:] == ["qualite-doc", "juge"]:
-        # Dossier fixe du juge (~/.cache/qualite-doc/juge) : même projet que l'ancien schéma.
+        # Ancien dossier fixe du juge (~/.cache/qualite-doc/juge) : même projet que le nouveau.
+        return "qualite-doc-juge"
+    # Dossier fixe actuel du juge (/var/tmp/qualite-doc-juge) : son dernier segment donne déjà
+    # « qualite-doc-juge » ; le nom de dossier de projet, lui, passe par nom_de_dossier_projet.
+    return nom
+
+
+# Nom de dossier de projet Claude Code (cwd encodé, « / » et « . » en « - ») des journaux du juge
+# de qualité de doc : nouveau dossier fixe, ancien dossier fixe (~/.cache) et temporaires /tmp.
+DOSSIER_PROJET_JUGE = re.compile(r"(?:-var-tmp|-tmp)-qualite-doc-juge(?:-.*)?|.*--cache-qualite-doc-juge")
+
+
+def nom_de_dossier_projet(nom: str) -> str:
+    """Le nom affiché pour un dossier de projet sans ``cwd`` lisible : celui des juges, rangé à part."""
+    if DOSSIER_PROJET_JUGE.fullmatch(nom):
         return "qualite-doc-juge"
     return nom
 
@@ -328,7 +342,7 @@ def projet_de_session(fichiers: list[Fichier]) -> str:
                 noms[nom] += 1
     if noms:
         return noms.most_common(1)[0][0]
-    return ordre[0].dossier.name
+    return nom_de_dossier_projet(ordre[0].dossier.name)
 
 
 def lire_meta(chemin: Path) -> dict:
