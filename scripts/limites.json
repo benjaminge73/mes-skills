@@ -54,7 +54,7 @@
     }
   },
   "budget_caracteres": {
-    "_commentaire": "Règle (q) de check_skills.py : un SKILL.md tient sous 25 000 caractères, un fichier de skills/_partage/ sous 30 000. Exceptions datées, une par fichier, avec son plafond en caractères : une exception couvre le fichier jusqu'à ce plafond, qui ne peut que baisser (cliquet). Depuis la base, la table ne fait que se vider : aucune exception ne s'y ajoute. L'étape 7b du plan conso-tokens vide cette table ; une exception dont le fichier passe sous le seuil est refusée (périmée).",
+    "_commentaire": "Règle (q) de check_skills.py : un SKILL.md tient sous 25 000 caractères, un fichier de skills/_partage/ sous 30 000. Exceptions datées, une par fichier, avec son plafond en caractères : une exception couvre le fichier jusqu'à ce plafond, qui ne peut que baisser (cliquet). Depuis la base, la table ne fait que se vider : aucune exception ne s'y ajoute. L'étape 7b du plan conso-tokens a vidé cette table ; une exception dont le fichier passe sous le seuil est refusée (périmée).",
     "exceptions": {}
   },
   "invariants_en_tete": [
