@@ -1332,6 +1332,16 @@ class BudgetDeTaille(Depot):
         self.assertIn("q", [a.regle for a in self.controler(
             _limites(self.racine, budget_caracteres=exc)).refus])
 
+    def test_sans_exceptions_le_budget_redevient_bloquant(self):
+        # --sans-exceptions doit juger la règle (q) comme les autres : le SKILL de 30 000 caractères
+        # que l'exception couvrait doit être refusé au seuil de 25 000, pas excusé.
+        self.skill_de(30_000)
+        res = self.controler(_limites(self.racine,
+                                      budget_caracteres=self.exception_sur(self.SKILL, 30_000)),
+                             sans_exceptions=True)
+        self.assertEqual([a.cible for a in res.refus if a.regle == "q"], [self.SKILL])
+        self.assertEqual([a for a, _ in res.excusees if a.regle == "q"], [])
+
 
 class CliquetDuBudget(unittest.TestCase):
     """Le cliquet tient les exceptions de la règle (q) : un plafond ne monte pas, une exception
@@ -1370,6 +1380,14 @@ class CliquetDuBudget(unittest.TestCase):
         ancien = self.base({self.CHEMIN: self.exception(30_000)})
         nouveau = self.base({self.CHEMIN: self.exception(29_000)})
         self.assertEqual(check_skills.verifier_cliquet(nouveau, ancien), [])
+
+    def test_la_cle_budget_retiree_alors_que_la_base_la_porte_est_refusee(self):
+        # Sans ce test, une PR retire la clé entière (base avec table, tête sans clé), puis une PR
+        # suivante la réintroduit avec une exception neuve : la base n'ayant plus la clé, la
+        # « table introduite par la PR » la laisse passer. Retirer la clé doit donc être refusé.
+        ancien = self.base({})
+        nouveau = {"veille_jours_max": 30}
+        self.assertEqual([a.regle for a in check_skills.verifier_cliquet(nouveau, ancien)], ["q"])
 
 
 class LireFrontmatter(unittest.TestCase):
