@@ -88,7 +88,6 @@ import re
 import shutil
 import subprocess
 import sys
-import tempfile
 import threading
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
@@ -113,6 +112,9 @@ VOTES_DEFAUT = 2
 PARALLELE_DEFAUT = 8
 DELAI_JUGE = 120  # secondes par appel de claude
 VARIABLE_CLAUDE = "QUALITE_DOC_CLAUDE"
+# Dossier de travail du juge : fixe et vide, créé au premier appel. Un cwd neuf à chaque appel
+# casserait le cache de prompt de claude (le cwd fait partie du contexte).
+DOSSIER_JUGE = "~/.cache/qualite-doc/juge"
 GRILLE = Path(__file__).resolve().parent.parent / "grille-doc.md"
 CODE_OK = 0
 CODE_USAGE = 2
@@ -389,7 +391,7 @@ def trouver_claude() -> str:
         trouve = shutil.which("claude")
         if trouve is None:
             raise ErreurJuge("juge indisponible : claude est absent du PATH")
-    # Relatif, il serait résolu depuis le dossier temporaire où claude est lancé.
+    # Relatif, il serait résolu depuis le dossier de travail du juge, où claude est lancé.
     return os.path.abspath(trouve)
 
 
@@ -406,24 +408,32 @@ def prompt_de_l_element(grille: str, element: dict) -> str:
 
 
 def appeler_juge(exe: str, prompt: str) -> tuple[str, float]:
-    """Un vote : rend (texte ``result``, coût en dollars). Lancé hors du dépôt, prompt sur stdin."""
-    with tempfile.TemporaryDirectory(prefix="qualite-doc-juge-") as dossier:
-        try:
-            r = subprocess.run(
-                [exe, "-p", "--model", MODELE, "--output-format", "json", "--tools", "",
-                 "--strict-mcp-config", "--setting-sources", "project", "--max-turns", "1"],
-                input=prompt.encode("utf-8"), capture_output=True, cwd=dossier, timeout=DELAI_JUGE)
-        except subprocess.TimeoutExpired as e:
-            raise ErreurJuge(f"juge indisponible : claude n'a pas répondu en {DELAI_JUGE} s") from e
-        except OSError as e:
-            raise ErreurJuge(f"juge indisponible : {exe} ne se lance pas ({e.strerror})") from e
-        if r.returncode != 0:
-            detail = r.stderr.decode("utf-8", "replace").strip()[:500]
-            raise ErreurJuge(f"juge indisponible : claude a rendu le code {r.returncode} ({detail})")
-        try:
-            sortie = json.loads(r.stdout.decode("utf-8", "replace"))
-        except json.JSONDecodeError as e:
-            raise ErreurJuge("juge indisponible : claude a rendu une sortie qui n'est pas du JSON") from e
+    """Un vote : rend (texte ``result``, coût en dollars). Lancé hors du dépôt, prompt sur stdin.
+
+    Le dossier de travail est le même à chaque appel : le cwd fait partie du contexte de claude,
+    donc un dossier neuf casserait le cache de prompt (chaque appel réécrirait tout en cache).
+    """
+    dossier = os.path.expanduser(DOSSIER_JUGE)
+    try:
+        os.makedirs(dossier, exist_ok=True)
+    except OSError as e:
+        raise ErreurJuge(f"juge indisponible : dossier de travail {dossier} inaccessible ({e.strerror})") from e
+    try:
+        r = subprocess.run(
+            [exe, "-p", "--model", MODELE, "--output-format", "json", "--tools", "",
+             "--strict-mcp-config", "--setting-sources", "project", "--max-turns", "1"],
+            input=prompt.encode("utf-8"), capture_output=True, cwd=dossier, timeout=DELAI_JUGE)
+    except subprocess.TimeoutExpired as e:
+        raise ErreurJuge(f"juge indisponible : claude n'a pas répondu en {DELAI_JUGE} s") from e
+    except OSError as e:
+        raise ErreurJuge(f"juge indisponible : {exe} ne se lance pas ({e.strerror})") from e
+    if r.returncode != 0:
+        detail = r.stderr.decode("utf-8", "replace").strip()[:500]
+        raise ErreurJuge(f"juge indisponible : claude a rendu le code {r.returncode} ({detail})")
+    try:
+        sortie = json.loads(r.stdout.decode("utf-8", "replace"))
+    except json.JSONDecodeError as e:
+        raise ErreurJuge("juge indisponible : claude a rendu une sortie qui n'est pas du JSON") from e
     if not isinstance(sortie, dict):
         raise ErreurJuge("juge indisponible : réponse de claude hors format (pas un objet JSON)")
     if sortie.get("is_error"):
