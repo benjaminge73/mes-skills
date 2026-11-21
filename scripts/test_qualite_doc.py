@@ -303,11 +303,17 @@ class Juger(unittest.TestCase):
     def tearDown(self):
         self._tmp.cleanup()
 
-    def juger(self, entree, exe: Path, *extra: str):
-        """Écrit ``entree`` (liste ou dict ``passages``) et lance ``juger`` ; rend (code, stdout, stderr)."""
+    def juger(self, entree, exe: Path, *extra: str, home: Path | None = None):
+        """Écrit ``entree`` (liste ou dict ``passages``) et lance ``juger`` ; rend (code, stdout, stderr).
+
+        ``home`` redirige ``HOME`` pour ce lancement : le dossier de travail du juge y vit, et un test
+        ne doit pas écrire dans le vrai ``~/.cache``.
+        """
         fichier = self.dossier / "entree.json"
         fichier.write_text(json.dumps(entree, ensure_ascii=False), encoding="utf-8")
         env = {**os.environ, "QUALITE_DOC_CLAUDE": str(exe)}
+        if home is not None:
+            env["HOME"] = str(home)
         # Le faux claude consomme des réponses dans l'ordre d'arrivée : un par un, sauf demande contraire.
         if "--parallele" not in extra:
             extra = (*extra, "--parallele", "1")
@@ -430,6 +436,19 @@ class Juger(unittest.TestCase):
         self.assertEqual(code, 0, erreur)
         cwd = Path(faux.cwds()[0]).resolve()
         self.assertNotIn(RACINE, [cwd, *cwd.parents])
+
+    # Attrape : un juge qui reçoit un dossier de travail neuf à chaque appel. Le cwd fait partie du
+    # contexte de claude : un cwd différent ne réutilise jamais le cache de prompt, donc chaque appel
+    # réécrit tout le contexte en cache au lieu de le relire. Attendu dérivé du coût, pas du code :
+    # deux appels successifs du même juge partagent le même dossier.
+    def test_deux_appels_successifs_du_juge_partagent_le_meme_dossier_de_travail(self):
+        faux = FauxClaude(self.dossier, [sortie_juge(verdict(True, 0.9)), sortie_juge(verdict(True, 0.9))])
+        code, sortie, erreur = self.juger([passage(1), passage(2)], faux.exe, "--votes", "1",
+                                          "--parallele", "1", home=self.dossier / "maison")
+        self.assertEqual(code, 0, erreur)
+        cwds = faux.cwds()
+        self.assertEqual(len(cwds), 2)
+        self.assertEqual(cwds[0], cwds[1])
 
     # Test en plus, hors liste du brief : Haiku suit souvent le format ```json. Sans ce test,
     # un extracteur qui ne lit que le texte nu rendrait douteux un verdict pourtant exact.
