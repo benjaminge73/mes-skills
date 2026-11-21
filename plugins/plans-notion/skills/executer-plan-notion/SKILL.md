@@ -175,17 +175,9 @@ Puis, dans le même tour, avant la première étape :
   `evals/outillage/lancer.sh`) ; `medium` n'y est pas mesuré (le banc joue `high`).
   La conception (`plan-notion`) reste en Opus.
 
-**La porte du `pret`.** Un plan `pret` a **toutes ses étapes prouvées et
-rejouées à blanc, ses vagues calculées, et, s'il a un plan maître, l'orchestration
-entre les plans écrite**. Chaque geste ci-dessus (relecture, questions au vert,
-preuves, maquette, répétition à blanc, branche et worktree, CI, vagues, pilote,
-orchestration) laisse sa trace dans une puce de l'entrée `Ouverture` du journal,
-plus une puce par étape (§4, modèle dans `ouverture.md`). Puis `python3
-"${CLAUDE_PLUGIN_ROOT}/skills/_partage/scripts/preparation-prete.py" <page.md>
---depot <dépôt> [--maitre <maitre.md>]` : code 0 → `Statut` = `pret`, `Branche` renseignée ; code 1 → un défaut par ligne,
-on le fait et on rejoue ; **pas de `pret`, donc pas de `en cours`, donc pas
-d'étape**. `Statut` = `en cours` se pose sur la page `pret`, avant la première
-étape.
+Un plan ne passe `pret` que si toutes ses étapes sont prouvées et rejouées à blanc, ses vagues calculées, et son orchestration écrite s'il a un plan maître ; `preparation-prete.py` tranche (code 0, sinon pas de `pret`, donc pas d'étape). Détail : `porte-du-pret.md`.
+
+📄 `${CLAUDE_PLUGIN_ROOT}/skills/executer-plan-notion/porte-du-pret.md` — **à lire avant de poser `pret`** : les gestes qui laissent chacun une puce dans l'entrée `Ouverture`, et la commande de contrôle.
 
 **Par défaut, un plan = une seule branche, sans PR d'étape** : les étapes sont
 des commits sur la branche du plan, et la PR du plan s'ouvre à la clôture,
@@ -253,18 +245,9 @@ Après **chaque** étape, écrire dans `Journal d'exécution` — et dans le mir
 du plan : c'est le briefing du sous-agent suivant, et ce qui permet de reprendre
 après un compactage. Règles qui ne bougent pas :
 
-- **dans l'ordre des numéros d'étape**, pas dans l'ordre d'arrivée des rapports ;
-- **une entrée = un titre H3**, repris mot pour mot du chapitre `Exécution` :
-  `Étape N — <titre court>` ; `Ouverture` au démarrage, `État final` à la
-  clôture (§6) ;
-- **une ligne `**Découvertes** :` obligatoire** dans chaque entrée d'étape —
-  `aucune`, ou la liste, chacune avec son libellé (`découverte — trouvable au
-  plan` / `découverte — pas trouvable`, jamais un autre) **et** son traitement
-  (étape `D<n>` ou question à Benjamin) ; dans le doute, `trouvable` ;
-- **un écart** entre prévu et fait s'écrit aux deux endroits : ligne `écart` au
-  journal et correction **datée** dans l'étape du chapitre `Exécution` ;
-- **un secret** découvert ne se corrige jamais seul et sa valeur ne s'écrit
-  nulle part.
+Elles tiennent en cinq points : ordre des numéros d'étape, un titre H3 par entrée, une ligne `**Découvertes**` obligatoire, un écart écrit aux deux endroits, un secret jamais corrigé seul. Détail : `journal-regles.md`.
+
+📄 `${CLAUDE_PLUGIN_ROOT}/skills/executer-plan-notion/journal-regles.md` — **à lire avant chaque entrée de journal** : le texte exact des cinq règles.
 
 📄 `${CLAUDE_PLUGIN_ROOT}/skills/executer-plan-notion/journal.md` — **à lire avant d'écrire la première entrée de journal** :
 le contenu exact d'une entrée, les trois libellés, les deux traitements
@@ -288,18 +271,9 @@ soi-même, `replace_all_matches` jamais employé sur un motif fait de caractère
 de balisage, et une insertion jamais ancrée au milieu d'un paragraphe formaté —
 toujours sur une frontière de bloc.
 
-Il porte aussi **« Le bleu des retouches »**, et cette règle-là s'applique ici pour
-une raison précise : **la remise à jour du chapitre `Exécution` en ouverture est une
-retouche du plan comme une autre** (§2). Elle décolore donc le bleu de la passe
-précédente avant d'écrire, et marque en bleu ce qu'elle change — sans quoi la page
-garderait un bleu périmé qui désignerait les mauvaises lignes. Le `Journal
-d'exécution`, lui, ne se colore pas : il s'écrit par ajout, chaque entrée y est neuve
-par construction.
+Deux règles de plus, avant la première écriture Notion de la session : le **bleu des retouches** (la remise à jour du chapitre `Exécution` décolore le bleu de la passe précédente) et la **ceinture** (fichier de règles introuvable : le dire en une ligne, ne rien écrire dans la page).
 
-**Le lire avant la première écriture Notion de la session**, pas de mémoire. Cette
-session-ci en fait beaucoup : la remise à jour du chapitre `Exécution` (§2), une
-entrée de journal par étape (§4), la clôture (§6). Une seule de ces écritures
-faite de travers coûte les décisions d'une passe entière.
+📄 `${CLAUDE_PLUGIN_ROOT}/skills/executer-plan-notion/ecrire-dans-la-page.md` — **à lire avant la première écriture Notion de la session** : le détail du bleu et de la ceinture.
 
 Le relevé du §1 est la liste de contrôle de tout ça : sans lui, pas de refonte de
 section. **Le recompte des cases cochées après une écriture se joue par script**,
@@ -309,62 +283,14 @@ sur le miroir local relu après l'écriture :
 0 : identique au relevé ; 1 : une ligne par écart ; 2 : fichier illisible ou
 section « Questions ouvertes » absente).
 
-**Ceinture — fichier introuvable.** Si la lecture échoue (plugin pas encore
-installé, version périmée, fichier supprimé localement) : **le dire en une
-ligne avec le chemin, et ne rien écrire dans la page**. Et comme la remise à
-jour du chapitre `Exécution` (§2) précède la première étape, **ça bloque aussi
-le code** — même raisonnement que pour le connecteur Notion manquant (en tête
-de fichier) : exécuter sans pouvoir tenir la page produit un travail dont il ne
-reste aucune trace hors du fil de discussion, et le fil disparaît au
-compactage. Deux issues, dans cet ordre : **mettre à jour le plugin** —
-`claude plugin update plans-notion` (redémarrage requis pour l'appliquer), ou
-`claude plugin marketplace update` si la source a bougé — ou **demander à
-Benjamin**. Coder en se promettant d'écrire la page plus tard est le scénario que
-tout ce dispositif existe pour empêcher.
-
 ## 6. Clore
 
 Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard »
 (sauf `execute`, qui suit le merge : voir plus bas) :
 
-- `Statut` : **`a merger`** tant que le code n'est pas sur `main` — l'état de fin
-  de clôture, sur tous les dépôts (PR ouverte, en brouillon seulement si
-  Benjamin l'a demandé). **`execute`** se pose dès que le merge est
-  vérifié sur `main`, dans le tour où on le constate ; `execute` ne se pose que
-  sur du code **vérifié sur `main`**, et la symétrie est vraie aussi : jamais
-  `a merger` sur du travail déjà parti sur `main`. `execute` est le seul statut de fin.
-- `Branche` renseignée ; `PR` porte l'URL de la PR dès qu'elle existe, et reste
-  **vide** tant que la PR n'a pas été ouverte.
-- `Journal d'exécution` clos par une entrée `État final` (H3) : ce qui est
-  livré, le verdict de la suite complète, les écarts, le reste à faire (chaque
-  ligne avec son propriétaire, §7), plus : le décompte des découvertes **vérifié
-  mécaniquement** (`grep -c`, jamais de tête), le contrôle des libellés, le
-  registre des outils, **un verdict par étape (`verified` ou
-  `unverifiable`, jamais un troisième mot)**, une rétrospective en six
-  questions, les schémas relus
-  (`${CLAUDE_PLUGIN_ROOT}/skills/_partage/schemas.md`).
-- Le compte rendu est le **récap** (`changelog-et-doc.md`, § 3) : les quatre rubriques,
-  puis `PR` et `Statut`, puis « Côté technique » — étapes parties en sous-agent
-  `executant` (Haiku) et pourquoi pour les autres, PR ouverte (son URL, prête, ou
-  pourquoi retenue), palier qui a posé le Changelog.
-- **Preuve doc, avant le push** : `qualite-doc.py lecteurs` puis `juger` (`cloture.md`, point 2 bis) ; passages douteux ou marqués d'office traités, sinon la clôture ne s'ouvre pas.
-- **Porte des preuves, avant le push** : `preuves-des-etapes.py <page.md>
-  --apres` — code 0, on poursuit ; code 1, des défauts de journal, on corrige
-  la page et on rejoue ; code 3, une étape `unverifiable` est nommée, et sa
-  question part à Benjamin avant la PR (`cloture.md`, point 3).
-- **Livrer la PR prête, et la suivre jusqu'au merge** : la suite complète jouée
-  en local, e2e compris, c'est le verdict de fin de plan — la PR ne s'ouvre pas
-  sur une suite rouge ; puis le push de la branche, et la PR ouverte (`gh pr
-  create`, sans `--draft`), label décidé en regardant ce dépôt-là. Un trou e2e
-  non couvert par la CI du dépôt se pose à Benjamin **avant** cette ouverture.
-  Juste après, et **avant toute attente de CI**, le contrôle bloquant
-  (`git branch --list '<branche-du-plan>-etape-*'`, `git worktree list`). Dans le
-  même tour : `Statut` = `a merger`, `PR`, `État final` et le compte rendu. Alors
-  seulement, la CI : elle se suit en arrière-plan, **sans jamais merger
-  soi-même**. Merge constaté sur `main` → `execute`, puis retrait du worktree,
-  **pas la branche**. Rouge → correction dans le worktree encore présent. Retenue,
-  ou session qui s'arrête avant le merge → le worktree se retire, `a merger`
-  reste avec l'URL de la PR. Le détail des points et des trois issues : `cloture.md`.
+Les points de clôture, dans l'ordre : `Statut` (`a merger` tant que le code n'est pas sur `main`, `execute` une fois le merge vérifié), `Branche` et `PR`, `Journal d'exécution` clos par `État final`, récap, preuve doc, porte des preuves, PR prête suivie jusqu'au merge (la CI merge seule).
+
+📄 `${CLAUDE_PLUGIN_ROOT}/skills/executer-plan-notion/points-de-cloture.md` — **à lire à la clôture, avant le `Statut` de fin et avant le push** : le détail de chaque point, suite complète en local comprise.
 
 Quand Benjamin demande « ouvre la PR » ou « merge sur main » : si la PR du plan
 n'existe pas encore, elle s'ouvre comme à la clôture (une seule, de la branche
@@ -382,109 +308,22 @@ ligne `Evals`.
 
 ## 7. Le reste à faire, et le plan de suite
 
-Benjamin ne relit pas un plan terminé : **aucun reste à faire ne dort seul dans sa
-page.** La suite se montre dans la session avant de s'écrire. Avant `a merger`, chaque ligne se trie — une décision qu'on attend de lui se
-pose dans la session (`AskUserQuestion`) ; une étape au plus se fait en `D<n>` ;
-au-delà (plus d'une étape de travail), la session **propose** : **plan de suite** (le défaut : titre suffixé, `Reprise du plan #N-1`, `Branche`, liens), ou les faire maintenant en `D<n>`, ou les écarter ; ce qui attend un événement ou un geste de Benjamin, et une décision restée sans réponse, devient une ligne de la base « Restes » (`${CLAUDE_PLUGIN_ROOT}/skills/_partage/restes.md`), que le Récap cite :
+Rien ne reste sans destination : avant `a merger`, chaque ligne du reste se trie (question à Benjamin, étape `D<n>`, ou plan de suite au-delà d'une étape) ; ce qui attend un geste de Benjamin va dans la base « Restes ».
 
-📄 `${CLAUDE_PLUGIN_ROOT}/skills/_partage/plan-de-suite.md`
-
-**À lire à chaque clôture** (`cloture.md`, « Avant le point 1 »). Rien ne reste, ou
-une étape `D<n>` suffit : pas de plan de suite, une page vide encombre la base.
+📄 `${CLAUDE_PLUGIN_ROOT}/skills/executer-plan-notion/reste-a-faire.md` — **à lire à chaque clôture, avant `a merger`** : le tri détaillé et la règle du plan de suite.
 
 ## Plusieurs plans
 
-Tout ce qui précède décrit un plan. Quand une session en porte plusieurs,
-chacun garde son déroulé (§2 à §7) ; ce qui s'ajoute tient en cinq points.
-La fiche locale fait exception : une par session, pour le premier plan ouvert (`ouverture.md`).
+Un pilote unique conduit tous les plans ; chaque plan garde sa porte, sa branche, son worktree, son journal et sa clôture ; un pool glissant d'une douzaine de places est partagé ; le parallèle entre plans est le défaut, sauf ressource partagée ; un plan maître coiffe les plans d'une session. Une seule fiche locale, pour le premier plan.
 
-**Un pilote unique.** Le pilote conduit tous les plans, et aucun
-n'est confié à un « pilote » délégué. Raisons : le connecteur Notion n'est pas
-garanti chez les sous-agents (absent de l'app de bureau, chargeable depuis le VPS) ; les preuves se jouent soi-même, sans seconde main ;
-chaque niveau relirait la page, au coût en jetons ; les paliers et décisions
-restent au pilote.
-
-**Chaque plan garde sa porte, sa branche et son worktree.** La porte d'entrée
-se lit plan par plan : un plan ne démarre que s'il est `valide`, puis `pret`
-après sa préparation ; jamais `en cours` sans être passé par `pret`. La branche, le worktree du plan (§2), le journal (§4) et la
-clôture (§6) sont ceux de ce plan, jamais partagés avec un autre. Au contrôle
-bloquant de la clôture, `git worktree list` montre aussi les worktrees des
-autres plans encore en cours : ne regarder que ceux du plan qu'on clôt.
-
-**Un seul pool glissant.** Toutes les étapes de tous les plans partagent
-**une douzaine de places**. Une étape qui termine libère sa place pour la
-prochaine étape prête, de n'importe quel plan. Le plafond est celui du pool,
-pas celui de chaque plan :
-
-📄 `${CLAUDE_PLUGIN_ROOT}/skills/_partage/vagues.md`
-
-**Entre plans, le parallèle est le défaut.** Seule une ressource partagée à
-l'exécution fait attendre :
-
-- **le port des tests e2e** — deux plans ne le prennent pas en même temps ;
-- **la base locale** — même raison ;
-- **les actions lourdes** (suites, e2e, évals) — autant à la fois que la machine
-  a de places (deux sur le VPS, plus avec un profil machine) : le plan maître porte leur file, le pilote les prend dans l'ordre
-  (`${CLAUDE_PLUGIN_ROOT}/skills/_partage/machine-partagee.md`) ;
-- **le quota d'un outil**, lu au registre :
-
-  📄 `${CLAUDE_PLUGIN_ROOT}/skills/_partage/outils-et-quotas.md`
-
-Deux plans qui touchent **le même fichier** ne s'attendent pas : ils donnent un
-**ordre de merge**, signalé dans le plan maître et dans le compte rendu. Chaque
-plan vit sur sa propre branche, donc rien ne se marche dessus à l'exécution ;
-c'est au moment de remonter sur `main` que l'ordre compte.
-
-**Un plan maître** (au moins deux plans d'une même session). Sa page porte un
-`Statut` hérité des plans, calculé par `statut-maitre.py` — ce n'est pas un plan
-qu'on valide, et la porte d'entrée ne le lit jamais. Si `plan-notion`
-l'a déjà écrite, elle se met à jour ; sinon elle se crée au lancement. Sa forme
-et sa préparation (une lecture Haiku par page, un `enqueteur` par plan, en
-parallèle ; le pilote ne garde que le croisement) vivent dans un seul fichier :
-
-📄 `${CLAUDE_PLUGIN_ROOT}/skills/plan-notion/plan-maitre.md`
+📄 `${CLAUDE_PLUGIN_ROOT}/skills/executer-plan-notion/plusieurs-plans.md` — **à lire dès qu'une session porte au moins deux plans**, avant de lancer le second.
 
 ## 8. Ce que ce skill ne fait pas
 
-- Il ne **conçoit** pas le plan — c'est `plan-notion`. Il **tient à jour** le
-  chapitre `Exécution` : à l'entrée pour y répercuter les dernières réponses de
-  Benjamin (§2), et en cours de route pour les écarts datés (§4). Mettre à jour
-  n'est pas concevoir ; si l'approche est en cause, la main repasse à
-  `plan-notion`.
-- Il ne crée de sa propre initiative que deux sortes de page : le **plan de suite
-  `#N+1`** en clôture (§7), qui repart ensuite en `plan-notion` comme n'importe
-  quel brouillon, et, quand une session porte plusieurs plans, le **plan maître**
-  du lancement, s'il n'existe pas déjà (« Plusieurs plans »).
-- Il ne code pas si le statut n'est pas `valide`.
-- Il n'écrit pas lui-même le code des étapes déléguables : ça part en sous-agent
-  `plans-notion:executant`, **Haiku par définition** (son frontmatter,
-  sans numéro de version) — un par étape en séquence par défaut, mais
-  pas absolument : en parallèle par vagues, ou regroupées, quand `vagues.md`
-  le permet ou le prescrit (§3). Piloter, ce n'est pas coder.
-- Il ne relit pas lui-même le diff d'une étape à la place de l'agent
-  `plans-notion:relecteur` : un regard qui a piloté l'étape partage ses angles
-  morts avec celui qui l'a écrite. Il **fait relire** (§3, `revue.md`), et
-  vérifie chaque remarque avant d'agir dessus.
-- Il ne code jamais dans le checkout principal du dépôt : la branche du plan
-  vit dans un worktree dédié dès sa création (§2), retiré à la clôture (§6) —
-  jamais avant, et jamais à la place de la branche elle-même, que le hook
-  `SessionStart` nettoie après le merge.
-- Il n'ouvre **la** PR du plan qu'à la clôture (§6) — une seule, de la branche
-  vers `main`, **prête** (brouillon seulement sur demande de Benjamin), avec ou
-  sans `review-required` selon ce que ce dépôt-là en fait. Pas de PR d'étape.
-  Chaque PR est un run de CI, et le quota GitHub Actions est la contrainte qui a
-  fixé la règle « une branche par plan » (§2).
-- Il ne **merge jamais** lui-même, même sur demande : c'est la CI qui merge la
-  PR (§6). Il suit la CI, **vérifie** le merge sur pièce, puis pose `execute`.
-- Il ne pose jamais `execute` sur un travail qui n'est pas sur `main` — ni ne
-  laisse `a merger` sur un travail qui y est déjà (§6).
-- Il ne s'arrête pas entre deux étapes pour demander l'autorisation de continuer
-  (§3).
-- Il ne résout pas les fils de commentaires.
-- Ses fichiers de référence, à côté de ce `SKILL.md`, se lisent à l'endroit où
-  le déroulé les cite : `ouverture.md` (§2), `etapes.md` (§3), `journal.md`
-  (§4), `cloture.md` (§6) ; le plan maître se lit dans
-  `${CLAUDE_PLUGIN_ROOT}/skills/plan-notion/plan-maitre.md`.
+Les refus principaux : ne pas concevoir le plan (`plan-notion`), ne pas coder sans `valide`, ne jamais merger ni poser `execute` sans merge constaté, ne pas écrire soi-même le code des étapes déléguables, ne pas relire le diff à la place du relecteur, ne jamais coder dans le checkout principal, pas de PR d'étape, ne pas résoudre les fils. Détail : `hors-perimetre.md`.
+
+📄 `${CLAUDE_PLUGIN_ROOT}/skills/executer-plan-notion/hors-perimetre.md` — **à lire quand une demande touche la frontière du skill** (concevoir, merger, coder hors `valide`, relire soi-même).
+
 - Il ne dépend d'aucun `CLAUDE.md`, d'aucun hook, d'aucun fichier du dépôt de
   travail. Ses compagnons sont les fichiers partagés
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/ecrire-dans-notion.md`, `${CLAUDE_PLUGIN_ROOT}/skills/_partage/decouvertes.md`,
