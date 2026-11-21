@@ -1,6 +1,6 @@
 # Le registre des outils, de leurs quotas et de leurs pièges
 
-Fichier **d'entrée** du registre, lu par `plan-notion` (avant d'écrire une étape qui lance un lot d'appels sur un outil externe), par `executer-plan-notion` (avant de déléguer un lot) et par l'agent `chercheur` (quand un outil n'a pas de fiche). Il porte les règles générales et l'**index** des fiches.
+Fichier **d'entrée** du registre, lu par `plan-notion` (avant d'écrire une étape qui lance un lot d'appels sur un outil externe), par `executer-plan-notion` (avant de déléguer un lot) et par l'agent `chercheur` (quand un outil n'a pas de fiche). Il porte les règles générales et l'**index** des fiches. Comme `vagues.md` et `bons-tests.md`, il vit à un seul endroit pour que les skills gardent leur taille : la règle ne se duplique pas, elle se référence.
 
 Les fiches, une par outil, sont réparties par thème dans cinq fichiers `outils-*.md` du même dossier. Un fichier de thème ne se lit que quand un plan touche un de ses outils ; l'index plus bas dit où se trouve chaque fiche. Pourquoi par thème : un fichier par outil ferait trente fichiers à citer, et un seul fichier de 78 000 caractères se lisait en entier à chaque usage. Cinq thèmes voisins tiennent chacun sous le seuil de 30 000 caractères.
 
@@ -28,8 +28,9 @@ sur un chiffre faux prend toutes ses décisions d'échelle à l'envers.
 Quand un plan doit appeler un outil qui n'a **pas de fiche** ci-dessous :
 
 > Doc lue par l'agent `chercheur`, puis un seul appel d'essai, puis la fiche
-> créée dans le registre avant tout lot. Au-delà de 100 appels, ou dès qu'un
-> appel est payant, demander à Benjamin avant de lancer.
+> créée dans son fichier de thème, et sa ligne ajoutée à l'index, avant tout
+> lot. Au-delà de 100 appels, ou dès qu'un appel est payant, demander à
+> Benjamin avant de lancer.
 
 Trois précisions :
 
@@ -50,6 +51,13 @@ Trois précisions :
   plan qui a appris quelque chose sur un outil** — un quota mesuré, un piège
   rencontré, un repli qui a marché. Un plan qui n'a rien appris n'ouvre pas de
   PR pour ce fichier.
+- **Une fiche neuve s'écrit en deux endroits, dans la même PR** : la fiche
+  dans le fichier de thème qui couvre l'outil (`outils-claude-code.md`,
+  `outils-connecteurs-et-evals.md`, `outils-code-et-securite.md`,
+  `outils-infra-et-documents.md` ou `outils-donnees-publiques.md`), et sa ligne
+  dans l'index plus bas, qui dit où la fiche se trouve. Une fiche sans ligne
+  d'index est invisible : l'outil reste absent de l'index et suit « Règle pour
+  un outil absent », qui recrée la fiche en double.
 - **Chaque chiffre porte sa date de lecture.** Un quota change sans prévenir ;
   un chiffre sans date ne se distingue pas d'un chiffre périmé.
 
@@ -62,10 +70,18 @@ décrits **sans** dire à quel plan, quel client ou quel compte ils sont arrivé
 la date et le mécanisme suffisent à les retrouver dans le journal du plan
 concerné, qui, lui, n'est pas public.
 
-Contrôle avant d'ouvrir la PR : chercher dans ce fichier toute suite de neuf
-chiffres ou plus (un numéro de projet), tout nom de variable se terminant par
-« KEY » précédé d'un tiret bas, et toute adresse de messagerie. La preuve de
-l'étape qui a créé ce fichier rejoue cette recherche et attend une sortie vide.
+Contrôle avant d'ouvrir la PR : chercher dans les six fichiers `outils-*.md` du
+dossier (l'index et les cinq fichiers de thème) toute suite de neuf chiffres ou
+plus (un numéro de projet), tout nom de variable se terminant par « KEY »
+précédé d'un tiret bas, et toute adresse de messagerie. Commande, depuis la
+racine du dépôt :
+
+```
+grep -nE '[0-9]{9,}|_KE[Y]\b|[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}' plugins/plans-notion/skills/_partage/outils-*.md
+```
+
+La sortie attendue est vide. La preuve de l'étape qui a créé ces fichiers rejoue
+cette recherche et attend une sortie vide.
 
 ## Forme d'une fiche
 
@@ -113,7 +129,7 @@ justesse comparée, le coût en jetons relevé. Sans mesure, la CLI reste le dé
 
 ## Index des fiches
 
-Une ligne par outil : son nom, une phrase, puis le fichier qui porte sa fiche (section « Fiche — … »). Les fiches se lisent à la demande, dans le fichier qui les porte. Un outil absent de cet index suit « Règle pour un outil absent ».
+Une ligne par outil : son nom, une phrase, puis le fichier qui porte sa fiche (section « Fiche — … »). Les fiches se lisent à la demande, dans le fichier qui les porte. Un outil sans ligne dans cet index n'a pas de fiche utilisable : il suit « Règle pour un outil absent ». Une fiche présente dans un fichier de thème sans sa ligne ici est invisible ; il faut ajouter la ligne (« Règle de vie du registre »).
 
 ### `outils-claude-code.md` — Claude Code, abonnement et sessions
 

@@ -81,9 +81,13 @@ Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard »
     session sans humain, découvertes traitées par défaut, la dépense en tête. « aucune »
     s'écrit aussi. La règle est dans `decouvertes.md` (§ 3) ;
   - **le registre des outils** : toute découverte qui concerne un outil
-    (quota, coût, piège, repli) part en PR sur `mes-skills`, dans
-    `${CLAUDE_PLUGIN_ROOT}/skills/_partage/outils-et-quotas.md`, fiche datée et
-    sans nom privé — la règle de publication du fichier s'applique. Ce n'est
+    (quota, coût, piège, repli) part en PR sur `mes-skills` : la fiche datée et
+    sans nom privé s'écrit dans le fichier de thème qui porte l'outil (l'un des
+    cinq fichiers `outils-claude-code.md`, `outils-connecteurs-et-evals.md`,
+    `outils-code-et-securite.md`, `outils-infra-et-documents.md` ou
+    `outils-donnees-publiques.md`, tous dans le dossier `_partage/` de l'index),
+    et sa ligne d'index dans `${CLAUDE_PLUGIN_ROOT}/skills/_partage/outils-et-quotas.md` ;
+    la règle de publication des six fichiers `outils-*.md` s'applique. Ce n'est
     pas la PR du plan : elle vise un autre dépôt et publie dans un dépôt public,
     donc le compte rendu la **propose**, et Benjamin décide de la remontée ;
   - **un verdict par étape, `verified` ou `unverifiable`** — jamais un
