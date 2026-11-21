@@ -63,7 +63,7 @@ rien lire.
 
 Les connecteurs tombent parfois, et le plugin a déjà la conduite à tenir (fiche
 « Connecteurs MCP d'une session Claude Code » du registre
-`_partage/outils-et-quotas.md` : à lire là-bas, pas recopiée ici). Ta lecture a deux
+`_partage/outils-connecteurs-et-evals.md` : à lire là-bas, pas recopiée ici). Ta lecture a deux
 paliers, et tu ne passes au second que dans les cas prévus ci-dessous.
 
 **Palier 1, le connecteur MCP.** Il sert quand un outil `notion-fetch` est dans ta

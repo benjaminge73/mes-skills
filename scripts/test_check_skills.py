@@ -1083,7 +1083,7 @@ class RegleL_ComptesDuTableauDeCouts(Depot):
 
     def fiche(self, *lignes, entete=ENTETE_FICHE):
         # Un tableau d'une autre section, qui porte des comptes faux : la règle ne le lit pas.
-        _ecrire(self.racine / "plugins" / "p" / "skills" / "_partage" / "outils-et-quotas.md", (
+        _ecrire(self.racine / "plugins" / "p" / "skills" / "_partage" / "outils-connecteurs-et-evals.md", (
             "# Outils\n\n## Autre section\n\n"
             "| Catégorie | Cas au 2026-10-16 |\n|---|---|\n| `un` | 99 |\n\n"
             "## Fiche — claude plugin eval\n\nTexte de la fiche.\n\n"
@@ -1145,7 +1145,7 @@ class RegleL_ComptesDuTableauDeCouts(Depot):
         self.assertIn("Cas au", refus[0].message)
 
     def test_une_fiche_sans_section_ni_tableau_est_refusee(self):
-        _ecrire(self.racine / "plugins" / "p" / "skills" / "_partage" / "outils-et-quotas.md",
+        _ecrire(self.racine / "plugins" / "p" / "skills" / "_partage" / "outils-connecteurs-et-evals.md",
                 "# Outils\n\nRien de chiffré.\n")
         refus = self.refus_l()
         self.assertEqual(len(refus), 1)
@@ -1222,6 +1222,172 @@ class RegistreDuLotB9(unittest.TestCase):
         self.assertTrue(cellules[5].startswith("en place"))
         self.assertIn("exigé par le ruleset", " ".join(cellules))
         self.assertNotIn("pas encore", " ".join(cellules))
+
+
+PREFIXE_SKILL = "---\nname: s\ndescription: Un skill.\n---\n"
+
+
+def _texte_de_taille(taille: int) -> str:
+    """Un SKILL.md de exactement ``taille`` caractères (``len``, pas octets), frontmatter valide."""
+    return PREFIXE_SKILL + "x" * (taille - len(PREFIXE_SKILL) - 1) + "\n"
+
+
+class BudgetDeTaille(Depot):
+    """Règle (q) : un SKILL.md tient sous 25 000 caractères, un fichier de ``skills/_partage/``
+    sous 30 000. Une exception datée couvre un fichier, jusqu'à son plafond, et ne monte pas.
+
+    Pannes attrapées : le seuil SKILL et sa frontière, le seuil des ``_partage`` et sa frontière,
+    une exception qui laisse grossir le fichier au-delà de son plafond, un fichier hors exception
+    qui échappe au seuil à cause d'un voisin excepté, une exception qui survit au passage sous le
+    seuil, une exception sans ``levee_par``, et une exception sur un ``_partage`` ignorée.
+    """
+    SKILL = "plugins/p/skills/s/SKILL.md"
+    AUTRE_SKILL = "plugins/p/skills/t/SKILL.md"
+    PARTAGE = "plugins/p/skills/_partage/gros.md"
+    CITATION = "Ses compagnons sont les fichiers partagés : `_partage/gros.md`.\n"
+
+    def skill_de(self, taille: int, chemin: str = SKILL) -> None:
+        _manifeste(self.racine, "p")
+        _ecrire(self.racine / chemin, _texte_de_taille(taille))
+
+    def partage_de(self, taille: int) -> None:
+        _manifeste(self.racine, "p")
+        _skill(self.racine, "p", "s", corps=self.CITATION)
+        _ecrire(self.racine / self.PARTAGE, "x" * taille)
+
+    def exception_sur(self, chemin: str, caracteres: int, **plus) -> dict:
+        exc = {"caracteres": caracteres, "date": "2026-11-21",
+               "raison": "passif de taille", "levee_par": "étape 7b"}
+        exc.update(plus)
+        return {"exceptions": {chemin: exc}}
+
+    def refus_q(self, limites=None) -> list:
+        return [a for a in self.controler(limites).refus if a.regle == "q"]
+
+    def test_un_skill_de_25001_caracteres_est_refuse_et_nomme(self):
+        self.skill_de(25_001)
+        refus = self.refus_q()
+        self.assertEqual([a.cible for a in refus], [self.SKILL])
+        self.assertIn("25 000", refus[0].message)
+
+    def test_un_skill_de_25000_caracteres_passe(self):
+        # Vert avant le code : la frontière exacte ne doit pas refuser à tort.
+        self.skill_de(25_000)
+        self.assertEqual(self.refus_q(), [])
+
+    def test_un_fichier_partage_de_30001_caracteres_est_refuse_et_nomme(self):
+        self.partage_de(30_001)
+        refus = self.refus_q()
+        self.assertEqual([a.cible for a in refus], [self.PARTAGE])
+        self.assertIn("30 000", refus[0].message)
+
+    def test_un_fichier_partage_de_30000_caracteres_passe(self):
+        # Garde le seuil des _partage distinct de celui des SKILL.md : appliquer 25 000 aux
+        # _partage ferait échouer ce test (un fichier de 26 000 à 30 000 est légitime).
+        self.partage_de(30_000)
+        self.assertEqual(self.refus_q(), [])
+
+    def test_une_exception_couvre_un_skill_jusqu_a_son_plafond(self):
+        self.skill_de(30_000)
+        res = self.controler(_limites(self.racine,
+                                      budget_caracteres=self.exception_sur(self.SKILL, 30_000)))
+        self.assertEqual([a for a in res.refus if a.regle == "q"], [])
+        excusees = [(a, exc) for a, exc in res.excusees if a.regle == "q"]
+        self.assertEqual(len(excusees), 1)
+        self.assertEqual(excusees[0][1]["levee_par"], "étape 7b")
+
+    def test_une_exception_couvre_aussi_un_fichier_de_partage(self):
+        # Sans ce test, une exception posée sur un _partage (outils-et-quotas.md) serait ignorée.
+        self.partage_de(30_500)
+        res = self.controler(_limites(self.racine,
+                                      budget_caracteres=self.exception_sur(self.PARTAGE, 30_500)))
+        self.assertEqual([a for a in res.refus if a.regle == "q"], [])
+        self.assertEqual([a.cible for a, _ in res.excusees if a.regle == "q"], [self.PARTAGE])
+
+    def test_une_exception_ne_laisse_pas_grossir_le_fichier_au_dela_de_son_plafond(self):
+        self.skill_de(30_001)
+        refus = self.refus_q(_limites(self.racine,
+                                      budget_caracteres=self.exception_sur(self.SKILL, 30_000)))
+        self.assertEqual([a.cible for a in refus], [self.SKILL])
+
+    def test_un_fichier_hors_exception_est_juge_au_seuil_meme_si_un_voisin_est_excepte(self):
+        self.skill_de(30_000)
+        self.skill_de(25_001, chemin=self.AUTRE_SKILL)
+        refus = self.refus_q(_limites(self.racine,
+                                      budget_caracteres=self.exception_sur(self.SKILL, 30_000)))
+        self.assertEqual([a.cible for a in refus], [self.AUTRE_SKILL])
+
+    def test_une_exception_dont_le_fichier_repasse_sous_le_seuil_est_perimee(self):
+        _manifeste(self.racine, "p")
+        _skill(self.racine, "p", "s")
+        refus = self.refus_q(_limites(self.racine,
+                                      budget_caracteres=self.exception_sur(self.SKILL, 30_000)))
+        self.assertEqual(len(refus), 1)
+        self.assertIn("périmée", refus[0].message)
+
+    def test_une_exception_sans_levee_par_ne_couvre_rien(self):
+        self.skill_de(30_000)
+        exc = self.exception_sur(self.SKILL, 30_000)
+        del exc["exceptions"][self.SKILL]["levee_par"]
+        self.assertIn("q", [a.regle for a in self.controler(
+            _limites(self.racine, budget_caracteres=exc)).refus])
+
+    def test_sans_exceptions_le_budget_redevient_bloquant(self):
+        # --sans-exceptions doit juger la règle (q) comme les autres : le SKILL de 30 000 caractères
+        # que l'exception couvrait doit être refusé au seuil de 25 000, pas excusé.
+        self.skill_de(30_000)
+        res = self.controler(_limites(self.racine,
+                                      budget_caracteres=self.exception_sur(self.SKILL, 30_000)),
+                             sans_exceptions=True)
+        self.assertEqual([a.cible for a in res.refus if a.regle == "q"], [self.SKILL])
+        self.assertEqual([a for a, _ in res.excusees if a.regle == "q"], [])
+
+
+class CliquetDuBudget(unittest.TestCase):
+    """Le cliquet tient les exceptions de la règle (q) : un plafond ne monte pas, une exception
+    nouvelle ne s'ajoute pas une fois la table en base, et la table peut se vider (7b)."""
+    CHEMIN = "plugins/p/skills/s/SKILL.md"
+
+    def base(self, exceptions):
+        return {"budget_caracteres": {"exceptions": exceptions}, "veille_jours_max": 30}
+
+    def exception(self, caracteres):
+        return {"caracteres": caracteres, "date": "2026-11-21",
+                "raison": "passif", "levee_par": "étape 7b"}
+
+    def test_le_plafond_d_une_exception_ne_monte_pas(self):
+        ancien = self.base({self.CHEMIN: self.exception(30_000)})
+        nouveau = self.base({self.CHEMIN: self.exception(30_001)})
+        anomalies = check_skills.verifier_cliquet(nouveau, ancien)
+        self.assertEqual([a.regle for a in anomalies], ["q"])
+
+    def test_une_exception_ajoutee_alors_que_la_base_a_la_table_est_refusee(self):
+        ancien = self.base({})
+        nouveau = self.base({self.CHEMIN: self.exception(30_000)})
+        self.assertEqual([a.regle for a in check_skills.verifier_cliquet(nouveau, ancien)], ["q"])
+
+    def test_la_table_introduite_par_la_pr_est_acceptee(self):
+        # Intérim : la base d'avant cette règle n'a pas la table, sa première version passe.
+        nouveau = self.base({self.CHEMIN: self.exception(30_000)})
+        self.assertEqual(check_skills.verifier_cliquet(nouveau, {"veille_jours_max": 30}), [])
+
+    def test_une_exception_retiree_est_acceptee(self):
+        # La sortie de 7b : retirer une exception est le but, il ne doit jamais être refusé.
+        ancien = self.base({self.CHEMIN: self.exception(30_000)})
+        self.assertEqual(check_skills.verifier_cliquet(self.base({}), ancien), [])
+
+    def test_un_plafond_d_exception_qui_baisse_est_accepte(self):
+        ancien = self.base({self.CHEMIN: self.exception(30_000)})
+        nouveau = self.base({self.CHEMIN: self.exception(29_000)})
+        self.assertEqual(check_skills.verifier_cliquet(nouveau, ancien), [])
+
+    def test_la_cle_budget_retiree_alors_que_la_base_la_porte_est_refusee(self):
+        # Sans ce test, une PR retire la clé entière (base avec table, tête sans clé), puis une PR
+        # suivante la réintroduit avec une exception neuve : la base n'ayant plus la clé, la
+        # « table introduite par la PR » la laisse passer. Retirer la clé doit donc être refusé.
+        ancien = self.base({})
+        nouveau = {"veille_jours_max": 30}
+        self.assertEqual([a.regle for a in check_skills.verifier_cliquet(nouveau, ancien)], ["q"])
 
 
 class LireFrontmatter(unittest.TestCase):

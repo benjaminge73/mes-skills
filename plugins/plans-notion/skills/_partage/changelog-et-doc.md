@@ -193,7 +193,7 @@ Pour toute écriture de la clôture dans Notion (hub, et page du plan), une seul
    Le compte rendu signale chaque fichier posé comme à poser par Hermes. Hermes les pose par `composio` avec ce fichier, sans les recopier. L'agent qui écrit ne lance pas Hermes lui-même.
    Au palier 3, la clôture ne crée ni page mère, ni famille, ni fiche : les fiches prêtes restent dans le compte rendu, et leur création attend le retour du connecteur ou de `composio`. Les deux fichiers ci-dessus ne changent pas.
 
-Le compte rendu dit **quel palier** a posé l'entrée. Le détail des commandes de lecture et d'écriture, et la façon dont Hermes reçoit la transmission, sont dans la fiche « Connecteurs MCP d'une session Claude Code » de `${CLAUDE_PLUGIN_ROOT}/skills/_partage/outils-et-quotas.md`. Ne pas recopier ce détail ici.
+Le compte rendu dit **quel palier** a posé l'entrée. Le détail des commandes de lecture et d'écriture, et la façon dont Hermes reçoit la transmission, sont dans la fiche « Connecteurs MCP d'une session Claude Code » de `${CLAUDE_PLUGIN_ROOT}/skills/_partage/outils-connecteurs-et-evals.md`. Ne pas recopier ce détail ici.
 
 ## 7. Le condensé du plan maître
 

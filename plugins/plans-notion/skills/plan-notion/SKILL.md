@@ -208,19 +208,7 @@ choisir. La doc vivante de `hermes-custom`, elle, va toujours au hub Hermes (`_p
   en échec ou un arbitrage en attente, `executer-plan-notion` ouvre un **plan de
   suite** — page neuve, même titre suffixé `#2` puis `#3`, qui reprend ce qui
   reste. Le `#1` n'est plus modifié, ses fils gardent leur sens là où ils sont.
-- **`Branche` dit où le travail vit, et elle se renseigne au plus tôt.** Le plus
-  souvent c'est `executer-plan-notion` qui crée la branche et remplit la propriété
-  en ouvrant l'exécution. Mais **si une branche de travail existe déjà** quand le
-  plan s'écrit — Benjamin y est, ou un plan précédent l'a laissée vivante — **la
-  renseigner ici, dès la première version**. Une page qui laisse `Branche` vide
-  alors qu'une branche existe fait ouvrir une seconde branche pour le même sujet,
-  et les deux moitiés du travail cessent de se voir.
-- **Un plan de suite `#N+1` hérite de la `Branche` du précédent**, et c'est ce qui
-  garantit qu'on continue au même endroit au lieu de repartir à côté. Trois cas, et
-  il faut **trancher plutôt que laisser vide** :
-  - la branche du `#N` **vit encore** → la recopier telle quelle ;
-  - elle est **partie sur `main`** → le `#N+1` ouvre la sienne, et on l'écrit ;
-  - elle a été **abandonnée** → nommer celle qui la remplace, et dire pourquoi.
+- **`Branche` se renseigne dès la première version**, et un plan de suite `#N+1` hérite de la branche du précédent : trois cas, à trancher plutôt que laisser vide. Détail des cas et de la règle : 📄 `${CLAUDE_PLUGIN_ROOT}/skills/plan-notion/branche-et-suites.md`, à lire à la création d'une page de plan ou d'un plan de suite `#N+1`.
 - **Vérifier, pas supposer.** À chaque passe, comparer la branche annoncée par la
   page à celle qui est réellement sortie dans le dépôt. Un écart se **signale à
   Benjamin** au lieu de se corriger en silence : c'est le signe qu'une autre session
@@ -290,35 +278,9 @@ d'écrire ou de remettre à jour** le chapitre concerné, pas de mémoire :
 
 ## 4. Ce qu'une passe ne doit jamais effacer
 
-Entre deux passes, la page a vécu : Benjamin a coché des cases, écrit après
-`Autre / complément →`, ajouté des remarques à même le corps. **Tout cela est de
-la donnée, pas du brouillon** — c'est la seule trace de ses décisions, et le fil
-de discussion ne la contient pas. Une passe qui réécrit une section par-dessus
-l'efface sans prévenir, parce que recréer un bloc `to-do` le rend vierge.
+Entre deux passes, Benjamin coche, écrit et remarque dans la page : tout cela est de la donnée, jamais du brouillon à écraser. Le protocole d'écriture sans rien casser (relevé avant, recompte après, bleu des retouches, pièges de l'API) vit dans un fichier lu avant la première écriture de la session :
 
-**Comment écrire sans rien casser vit dans un fichier partagé avec
-`executer-plan-notion` :**
-
-📄 `${CLAUDE_PLUGIN_ROOT}/skills/_partage/ecrire-dans-notion.md`
-
-Le protocole en cinq temps — relever avant d'écrire, éditer de façon ciblée,
-remettre les `- [x]` en cas de refonte, ne jamais reformuler Benjamin, vérifier
-après coup — et les cinq pièges de l'API : `update_content` qui ne décoche pas,
-l'écriture qui échoue en silence, le commentaire qu'on ne résout jamais
-soi-même, `replace_all_matches` sur un motif de balisage, et l'insertion
-ancrée au milieu d'un paragraphe formaté.
-
-Il porte aussi **« Le bleu des retouches »** : ce qui a bougé à la dernière passe
-s'écrit en bleu, et le bleu de la passe d'avant redevient neutre — dans cet ordre,
-sous peine d'effacer ce qu'on vient de marquer. C'est le repère qui permet de rouvrir
-la page et de voir en un coup d'œil ce qui est nouveau, au lieu de la relire en
-entier. Deux garde-fous à connaître avant d'y toucher : le bleu ne repeint jamais un
-encadré de question — sa couleur dit déjà son état (§3) — et il ne se pose jamais sur
-le texte de Benjamin.
-
-**À lire avant la première écriture de la session**, pas de mémoire. Chacune de
-ces règles a coûté un dégât réel ; les deux skills les partagent pour qu'une
-correction ne se fasse qu'une fois.
+📄 `${CLAUDE_PLUGIN_ROOT}/skills/plan-notion/ne-rien-effacer.md` : à lire avant la première écriture dans une page de plan (passe, refonte ou relecture), pas de mémoire.
 
 **Ceinture — fichier introuvable.** Si la lecture échoue (plugin pas encore
 installé, version périmée, fichier supprimé localement) : **le dire en une
@@ -369,107 +331,15 @@ sur la page fraîche avant une refonte : c'est entre deux sessions que Benjamin 
 
 ## 7. Maquettes HTML
 
-Dès que le chapitre `Maquette` en exige une (§3) — une étape au moins change
-ce qui s'affiche —, **chercher d'abord le design system du dépôt** — un fichier de tokens, un dossier de composants, une section dédiée
-du `CLAUDE.md` (exemple concret, `vahiny` : `src/styles/tokens.css`,
-`src/ds/`) — avant même d'esquisser la maquette :
+Dès qu'un chapitre `Maquette` en exige une, la maquette cherche d'abord le design system du dépôt, puis se pose dans la page en bloc HTML, sans Vercel. Le détail (design system, geste en deux appels, poids, repli) vit dans un fichier lu avant de poser une maquette :
 
-- **s'il existe**, la maquette s'en sert — ses composants, ses tokens — et
-  dit d'où viennent ses valeurs, comme une contrainte vérifiée, pas une
-  affirmation ;
-- **s'il n'existe pas**, une question ouverte le dit dans le plan, et la
-  maquette assume d'être une proposition, pas un écran garanti.
-
-Produire ensuite la maquette et la **poser dans la page, en bloc HTML** — un
-fichier `.html` joint par `create-attachment` et affiché par `<embed>`, sans
-Vercel. Le geste en deux appels, le remplacement d'une passe à l'autre, le
-poids, la mise en page, ce que le bac à sable permet et le repli Vercel
-vivent dans un fichier partagé :
-
-📄 `${CLAUDE_PLUGIN_ROOT}/skills/_partage/maquettes-html.md`
-
-**À lire avant de poser une maquette**, pas de mémoire : un envoi jamais
-attaché à la page expire sans prévenir, et un bloc de code affiche la source
-au lieu de l'écran.
+📄 `${CLAUDE_PLUGIN_ROOT}/skills/plan-notion/maquettes.md` : à lire avant de poser ou de remplacer une maquette, pas de mémoire.
 
 ## 8. Passer la main à l'exécution
 
-Concevoir et réaliser sont deux postures opposées — l'une n'écrit rien, l'autre
-n'écrit que du code — et elles vivent dans deux skills séparés. Ce fichier
-s'arrête au moment où le plan devient exécutable.
+Quand Benjamin valide le plan, le chapitre `Exécution` est répercuté d'abord, puis le plan passe au filtre de l'enquête (quinze vérifications), puis `Statut` passe à `valide` et `executer-plan-notion` prend la suite. Ce skill ne code jamais, même après `valide`. La procédure, le filtre et ce que `executer-plan-notion` prend en charge vivent dans un fichier lu à ce moment-là :
 
-Quand Benjamin valide le plan :
-
-1. **D'abord répercuter ses dernières réponses dans le chapitre `Exécution`** —
-   cases cochées, textes libres après `Autre / complément →`, commentaires de la
-   passe — corrections datées (§3). Un plan passe à `valide` avec un chapitre
-   `Exécution` juste, ou il n'y passe pas : c'est ce chapitre-là, et pas les
-   réponses éparpillées dans la page, qui part dans les briefs des sous-agents
-   d'exécution.
-2. **Passer le plan au filtre de l'enquête.** Quinze vérifications, et elles se
-   font page ouverte, pas de mémoire :
-   1. plus aucune question ouverte dont la réponse était vérifiable et n'a pas
-      été vérifiée ;
-   2. plus aucune option qui reporte une mesure faisable aujourd'hui ;
-   3. chaque chemin de « Fichiers touchés » qui existe vraiment, ou qui est
-      annoncé comme une création ;
-   4. le chapitre `Maquette` tient : aucune étape dont l'`Impact fonctionnel`
-      dit autre chose que « Rien » sans maquette qui la montre **dans la
-      version courante des étapes**, légende avec son `file_upload_id` — ou
-      une dispense dont la raison est l'une des deux recevables (§3) ;
-   5. une relecture de **cohérence interne** : les renvois entre sections
-      pointent juste, l'ordre des étapes est le bon, et aucune prémisse ne
-      contredit une réponse tranchée plus loin dans la page ;
-   6. chaque « Preuve de fin » a été **jouée**, ou est **réfutable**, avant de
-      passer `valide` — une preuve qu'on ne peut ni jouer ni contredire ne
-      prouve rien à l'exécution ;
-   7. aucun chiffre n'est repris d'un plan `#N-1` **sans remesure** ;
-   8. toute question chiffrée porte, à côté de sa réponse, la commande jouée
-      et son résultat — sinon rien ne permet de la remesurer au point 7
-      ci-dessus ;
-   9. la répétition à blanc a été **jouée et reportée** dans `Contraintes
-      techniques vérifiées`, sous « État de départ » (« La répétition à blanc et
-      le POC de décision ») ;
-   10. une ligne « Existant cherché : … / trouvé : … / fait maison parce que … »
-      **par artefact** non propre au projet que les étapes fabriquent, présente
-      dans `Contraintes techniques vérifiées` (gisement 6, « L'extérieur »).
-   11. une **carte de voisinage** présente dans `Contraintes techniques
-       vérifiées` (geste du pilote, `enquete.md`), ou une dispense écrite
-       `Pas de carte — <raison>` dont la raison est l'une des trois recevables :
-       dépôt de contenu sans code touché, serveur MCP absent, dépôt non indexé.
-   12. le miroir de la page (fetch) rend 0 à
-       `python3 "${CLAUDE_PLUGIN_ROOT}/skills/_partage/scripts/verifier-preuves.py" <miroir> --depot <dépôt> --transcripts` :
-       chaque écart se corrige, ou se justifie par une dispense motivée, avant
-       `valide` ; le format de la preuve est dans `${CLAUDE_PLUGIN_ROOT}/skills/_partage/poc.md`.
-   13. chaque cron créé ou modifié (job Hermes, unité systemd, workflow `schedule:`, autre planificateur), hook ou workflow sur événement, a son
-       étape `C<n>`, ou la page dit « Aucun cron touché » : `${CLAUDE_PLUGIN_ROOT}/skills/_partage/cron-a-la-main.md`.
-   14. chaque étape qui touche un fichier cité par la doc du dépôt porte sa ligne
-       « Docs relues » (`chapitres-questions-execution.md`, « Fichiers touchés » compris).
-   15. chaque ligne `ouvert` des dépôts du plan est citée dans `Restes repris` : reprise si elle
-       est du sujet, « laissée ouverte » avec sa raison sinon. Contrôle bloquant (Q8) :
-       `python3 "${CLAUDE_PLUGIN_ROOT}/skills/_partage/scripts/restes-repris.py" <miroir> --lignes <export>`
-       rend 0 (`_partage/restes.md`, règle 7).
-
-   Ce filtre vient de l'enquête sur les plans passés ; il coûte quelques minutes ici et évite
-   la découverte en pleine exécution, qui coûte une étape. Mesures : `docs/retex/plan-notion.md`.
-3. Passer `Statut` à `valide`.
-4. Le dire en une ligne, et **invoquer `executer-plan-notion`** si l'implémentation
-   enchaîne dans la foulée. Un skill n'en charge pas un autre tout seul : sans
-   invocation explicite, ses règles ne s'appliquent pas.
-5. Ne pas commencer à coder ici « en attendant ». La règle 2 tient jusqu'au bout.
-
-Le plus souvent, ce n'est pas moi qui valide : **Benjamin répond dans la page,
-passe `Statut` à `valide` lui-même et invoque `executer-plan-notion` directement**,
-sans repasser par ici, et ce skill n'a jamais vu ses réponses. C'est pourquoi
-`executer-plan-notion` refait cette mise à jour à son entrée (§2 de ce skill-là) : les deux
-passages font le même travail, exprès. On ne sait pas d'avance lequel sera sauté, et un
-chapitre `Exécution` en retard d'un tour produit un travail qui répond à la version d'avant.
-
-Ce que `executer-plan-notion` prend en charge, donc inutile de le détailler ici : la découpe
-en sous-agents, le `Journal d'exécution`, la branche du plan (sa PR unique s'ouvre à la clôture),
-le déroulé en autonomie, le statut de fin (`a merger`, puis `execute` une fois sur `main`), et le
-plan de suite `#N+1` s'il reste des arbitrages. Reste au plan le **contenu** du chapitre
-`Exécution` : le quoi, pas le comment de la séance de code.
+📄 `${CLAUDE_PLUGIN_ROOT}/skills/plan-notion/passer-la-main.md` : à lire quand Benjamin valide le plan ou demande `valide`, pas de mémoire.
 
 ## 9. Ce que ce skill ne fait pas
 
@@ -484,7 +354,7 @@ plan de suite `#N+1` s'il reste des arbitrages. Reste au plan le **contenu** du 
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/ecrire-dans-notion.md`,
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/maquettes-html.md`,
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/poc.md`,
-  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/outils-et-quotas.md`,
+  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/outils-et-quotas.md`, `${CLAUDE_PLUGIN_ROOT}/skills/_partage/outils-claude-code.md`, `${CLAUDE_PLUGIN_ROOT}/skills/_partage/outils-connecteurs-et-evals.md`, `${CLAUDE_PLUGIN_ROOT}/skills/_partage/outils-code-et-securite.md`, `${CLAUDE_PLUGIN_ROOT}/skills/_partage/outils-infra-et-documents.md`, `${CLAUDE_PLUGIN_ROOT}/skills/_partage/outils-donnees-publiques.md`,
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/schemas.md`,
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/cron-a-la-main.md`,
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/decouvertes.md`, `${CLAUDE_PLUGIN_ROOT}/skills/_partage/restes.md`,

@@ -62,7 +62,8 @@ Les règles, et le fait de doc qui fonde chacune (voir ``docs/veille.md``) :
     sans l'autre, un arrêt par la limite est lu comme un échec au lieu d'une sortie
     partielle reprenable (plan du 2026-10-16, escalade bornée).
 (l) Pour chaque plugin qui a un banc ``evals/<plugin>/`` et une fiche
-    ``skills/_partage/outils-et-quotas.md`` : le tableau de la section « Fiche —
+    ``skills/_partage/outils-connecteurs-et-evals.md`` (fiche « claude plugin eval »,
+    découpée du registre ``outils-et-quotas.md``) : le tableau de la section « Fiche —
     claude plugin eval » compte les cas de chaque catégorie de
     ``evals/categories.json`` (colonne « Cas au … », une ligne par catégorie, et
     une ligne « tout le banc » égale au nombre de cas distincts du plugin). Écrit
@@ -90,6 +91,14 @@ Les règles, et le fait de doc qui fonde chacune (voir ``docs/veille.md``) :
     ou ``disallowedTools`` (liste de retrait). Un agent qui n'en a aucune reçoit tous
     les outils de la session, MCP compris, et son frontmatter ne dit pas ce qu'il peut
     faire. Le ``preparateur`` a tourné ainsi depuis sa création, sans que personne le voie.
+(q) Budget de taille en caractères : un ``SKILL.md`` tient sous 25 000 caractères,
+    un fichier de ``skills/_partage/`` sous 30 000 (``len(texte)``, pas les octets).
+    Chaque session de plan charge ces fichiers : leur croissance se paie à chaque
+    session. Une exception datée (``budget_caracteres.exceptions`` de
+    ``scripts/limites.json``, une par fichier, avec son plafond en caractères)
+    couvre le fichier jusqu'à ce plafond ; le cliquet l'empêche de monter, et la
+    table ne peut que se vider. Une exception dont le fichier passe sous le seuil,
+    ou n'est plus soumis, est périmée et refusée.
 
 Exceptions datées
 -----------------
@@ -133,6 +142,9 @@ JETONS_INVARIANTS = 5000
 OCTETS_PAR_JETON = 4
 CHAMPS_IGNORES_POUR_UN_AGENT_DE_PLUGIN = ("hooks", "mcpServers", "permissionMode")
 CHAMPS_D_UNE_EXCEPTION = ("regle", "cible", "date", "raison", "levee_par")
+PLAFOND_CARACTERES_SKILL = 25_000
+PLAFOND_CARACTERES_PARTAGE = 30_000
+CHAMPS_D_UNE_EXCEPTION_BUDGET = ("date", "raison", "levee_par")
 
 
 class BaseIndisponible(RuntimeError):
@@ -709,7 +721,7 @@ def _tableau_de_la_fiche(texte: str) -> list[list[str]] | None:
 def _regle_l(racine: Path, plugin: Path) -> list[Anomalie]:
     if not (racine / "evals" / plugin.name).is_dir():
         return []
-    fiche = plugin / "skills" / "_partage" / "outils-et-quotas.md"
+    fiche = plugin / "skills" / "_partage" / "outils-connecteurs-et-evals.md"
     if not fiche.is_file():
         return []
     categories, _ = _categories_du_plugin(racine, plugin)
@@ -787,6 +799,86 @@ def _regle_l(racine: Path, plugin: Path) -> list[Anomalie]:
     return anomalies
 
 
+def _plugins(racine: Path) -> list[Path]:
+    """Les dossiers de ``plugins/`` qu'on contrôle (un nom en ``.`` n'en est pas)."""
+    plugins_dir = racine / "plugins"
+    if not plugins_dir.is_dir():
+        return []
+    return [p for p in sorted(plugins_dir.iterdir()) if p.is_dir() and not p.name.startswith(".")]
+
+
+def _soumis_au_budget(racine: Path) -> list[tuple[Path, int]]:
+    """Chaque ``SKILL.md`` (seuil des skills) et chaque fichier de ``skills/_partage/`` (seuil partagé)."""
+    soumis: list[tuple[Path, int]] = []
+    for plugin in _plugins(racine):
+        soumis += [(s, PLAFOND_CARACTERES_SKILL) for s in sorted(plugin.glob("skills/*/SKILL.md"))]
+        partage = plugin / "skills" / "_partage"
+        if partage.is_dir():
+            soumis += [(f, PLAFOND_CARACTERES_PARTAGE)
+                       for f in sorted(partage.iterdir()) if f.is_file()]
+    return soumis
+
+
+def _regle_q(racine: Path, limites: dict,
+             sans_exceptions: bool = False) -> tuple[list[Anomalie], list[tuple[Anomalie, dict]]]:
+    """Budget de caractères (règle q) : rend ``(refus, excusées)``.
+
+    Une exception (``budget_caracteres.exceptions``, une par fichier) couvre le fichier
+    jusqu'à son plafond ``caracteres``. Elle doit dire ``date``, ``raison`` et ``levee_par`` ;
+    une exception incomplète ne couvre rien. Elle est périmée si le fichier tient sous son
+    seuil ou n'est plus soumis : la retirer est le geste de l'étape qui la lève.
+    ``sans_exceptions`` ignore la table : chaque fichier est jugé au seuil (``--sans-exceptions``).
+    """
+    exceptions: dict = ({} if sans_exceptions
+                        else limites.get("budget_caracteres", {}).get("exceptions", {}))
+    refus: list[Anomalie] = []
+    excusees: list[tuple[Anomalie, dict]] = []
+    vues: set[str] = set()
+
+    for chemin, seuil in _soumis_au_budget(racine):
+        cible = _rel(racine, chemin)
+        vues.add(cible)
+        longueur = len(chemin.read_text(encoding="utf-8"))
+        exc = exceptions.get(cible)
+        if exc is not None:
+            manquants = [c for c in CHAMPS_D_UNE_EXCEPTION_BUDGET if not exc.get(c)]
+            if manquants or not isinstance(exc.get("caracteres"), int):
+                refus.append(Anomalie("q", cible, (
+                    "exception incomplète dans scripts/limites.json (`budget_caracteres`) : il manque "
+                    + ", ".join(manquants or ["caracteres (un entier)"]) + ". Une exception dit sa "
+                    "date, sa raison et l'étape qui la lève.")))
+                exc = None
+        if longueur <= seuil:
+            if exc is not None:
+                refus.append(Anomalie("q", cible, (
+                    "exception datée périmée : le fichier tient sous son seuil "
+                    f"({_milliers(longueur)} caractères). La retirer de scripts/limites.json "
+                    "(`budget_caracteres`).")))
+            continue
+        if exc is None:
+            refus.append(Anomalie("q", cible, (
+                f"{_milliers(longueur)} caractères, au-dessus du plafond de {_milliers(seuil)} : "
+                "découper le fichier (le détail va dans un autre fichier de `_partage/`). Une "
+                "exception datée dans scripts/limites.json (`budget_caracteres`) ne sert que de "
+                "passif connu, et son plafond ne peut que baisser.")))
+        elif longueur > exc["caracteres"]:
+            refus.append(Anomalie("q", cible, (
+                f"{_milliers(longueur)} caractères, au-dessus du plafond d'exception de "
+                f"{_milliers(exc['caracteres'])} posé dans scripts/limites.json : une exception "
+                "ne laisse pas grossir le fichier. Le découper.")))
+        else:
+            excusees.append((Anomalie("q", cible, (
+                f"{_milliers(longueur)} caractères, au-dessus de {_milliers(seuil)} : couvert par "
+                f"l'exception datée jusqu'à {_milliers(exc['caracteres'])}.")), exc))
+
+    for cible in sorted(set(exceptions) - vues):
+        refus.append(Anomalie("q", cible, (
+            "exception datée périmée : ce fichier n'est plus soumis à la règle (absent, ou "
+            "hors skills/ et skills/_partage/). La retirer de scripts/limites.json "
+            "(`budget_caracteres`).")))
+    return refus, excusees
+
+
 # --------------------------------------------------------------------------
 # Contrôle d'ensemble, exceptions, cliquet, registre
 # --------------------------------------------------------------------------
@@ -796,9 +888,7 @@ def controler(racine: Path, limites: dict, sans_exceptions: bool = False) -> Res
     anomalies: list[Anomalie] = []
     marques = set(limites.get("invariants_en_tete", []))
 
-    plugins_dir = racine / "plugins"
-    plugins = [p for p in sorted(plugins_dir.iterdir())
-               if p.is_dir() and not p.name.startswith(".")] if plugins_dir.is_dir() else []
+    plugins = _plugins(racine)
     resultat.plugins = len(plugins)
 
     for plugin in plugins:
@@ -852,6 +942,9 @@ def controler(racine: Path, limites: dict, sans_exceptions: bool = False) -> Res
             resultat.refus.append(Anomalie("exception", cible, (
                 f"exception ({exc['regle']}) périmée : plus aucun défaut ne lui correspond. "
                 "La retirer de scripts/limites.json.")))
+    budget_refus, budget_excusees = _regle_q(racine, limites, sans_exceptions)
+    resultat.refus += budget_refus
+    resultat.excusees += budget_excusees
     return resultat
 
 
@@ -885,6 +978,32 @@ def verifier_cliquet(limites: dict, limites_base: dict | None) -> list[Anomalie]
                     f"plafond de {unite} relevé de {ancien.get(unite)} à {nouveau.get(unite)} "
                     "dans limites.json : un plafond ne peut que baisser. Réduire le fichier "
                     "au lieu de relever le plafond.")))
+    # Table de la règle (q) : absente de la base, elle entre avec cette PR (intérim, comme
+    # limites.json absent). Présente en base, elle ne fait que se vider : une exception
+    # nouvelle, ou un plafond qui monte, est refusé ; un retrait est le but, il passe.
+    budget_base = limites_base.get("budget_caracteres")
+    if budget_base is not None:
+        # Retirer la clé entière relèverait la table à l'infini : sans cette garde, une PR la
+        # retire, la suivante la réintroduit avec une exception neuve (la base n'a plus la clé,
+        # donc l'intérim la laisse passer). Vider `exceptions` à `{}` reste le geste permis.
+        if "budget_caracteres" not in limites:
+            anomalies.append(Anomalie("q", "scripts/limites.json", (
+                "la clé `budget_caracteres` a disparu de scripts/limites.json alors que la base "
+                "la porte : retirer la table revient à l'effacer sans la vider. La remettre, avec "
+                "`exceptions` à `{}` si elle est vide.")))
+        anciennes = budget_base.get("exceptions", {})
+        nouvelles = limites.get("budget_caracteres", {}).get("exceptions", {})
+        for fichier, nouvelle in nouvelles.items():
+            if fichier not in anciennes:
+                anomalies.append(Anomalie("q", fichier, (
+                    "exception nouvelle dans scripts/limites.json (`budget_caracteres`) : depuis "
+                    "la base, cette table ne fait que se vider. Découper le fichier au lieu de "
+                    "l'exempter.")))
+            elif nouvelle.get("caracteres", math.inf) > anciennes[fichier].get("caracteres", math.inf):
+                anomalies.append(Anomalie("q", fichier, (
+                    f"plafond d'exception relevé de {anciennes[fichier].get('caracteres')} à "
+                    f"{nouvelle.get('caracteres')} caractères dans limites.json : un plafond ne peut "
+                    "que baisser. Découper le fichier au lieu de relever le plafond.")))
     ancien = limites_base.get("veille_jours_max")
     nouveau = limites.get("veille_jours_max")
     if ancien is not None and (nouveau is None or nouveau > ancien):

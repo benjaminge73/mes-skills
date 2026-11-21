@@ -81,9 +81,13 @@ Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard »
     session sans humain, découvertes traitées par défaut, la dépense en tête. « aucune »
     s'écrit aussi. La règle est dans `decouvertes.md` (§ 3) ;
   - **le registre des outils** : toute découverte qui concerne un outil
-    (quota, coût, piège, repli) part en PR sur `mes-skills`, dans
-    `${CLAUDE_PLUGIN_ROOT}/skills/_partage/outils-et-quotas.md`, fiche datée et
-    sans nom privé — la règle de publication du fichier s'applique. Ce n'est
+    (quota, coût, piège, repli) part en PR sur `mes-skills` : la fiche datée et
+    sans nom privé s'écrit dans le fichier de thème qui porte l'outil (l'un des
+    cinq fichiers `outils-claude-code.md`, `outils-connecteurs-et-evals.md`,
+    `outils-code-et-securite.md`, `outils-infra-et-documents.md` ou
+    `outils-donnees-publiques.md`, tous dans le dossier `_partage/` de l'index),
+    et sa ligne d'index dans `${CLAUDE_PLUGIN_ROOT}/skills/_partage/outils-et-quotas.md` ;
+    la règle de publication des six fichiers `outils-*.md` s'applique. Ce n'est
     pas la PR du plan : elle vise un autre dépôt et publie dans un dépôt public,
     donc le compte rendu la **propose**, et Benjamin décide de la remontée ;
   - **un verdict par étape, `verified` ou `unverifiable`** — jamais un
@@ -478,7 +482,7 @@ Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard »
      - **Cascade.** (a), (c), (d) et (e) suivent la cascade de repli de `changelog-et-doc.md`
        § 6 : connecteur Notion, puis la commande `composio`, puis le fichier confié à
        Hermes. Les commandes sont dans la fiche « Connecteurs MCP d'une session Claude
-       Code » de `${CLAUDE_PLUGIN_ROOT}/skills/_partage/outils-et-quotas.md` : elles ne
+       Code » de `${CLAUDE_PLUGIN_ROOT}/skills/_partage/outils-connecteurs-et-evals.md` : elles ne
        se recopient pas ici. Le compte rendu dit quel palier a posé l'entrée.
        Au palier 3, deux fichiers distincts sous `~/brouillons/<projet>/changelog/`, pour
        un même plan et une même date, chacun avec son propre titre :
@@ -667,7 +671,7 @@ pose de sa propre initiative). Le label `evals` ne se pose que sur demande de Be
 pour des catégories ou `tout`, jamais pour `aucun`. Sans ce label, une ligne `Evals:`
 absente ou `aucun — <raison>` ne rend pas la CI rouge ; un `aucun` sans raison, ou
 combiné à une catégorie, la rend rouge (`evals-portee`). Coûts :
-`${CLAUDE_PLUGIN_ROOT}/skills/_partage/outils-et-quotas.md`.
+`${CLAUDE_PLUGIN_ROOT}/skills/_partage/outils-connecteurs-et-evals.md`.
 
 La séquence complète — ouvrir, attendre la CI, vérifier que le merge a bien eu
 lieu, poser `Statut` = `execute`, journaliser — et le piège qui la fait échouer

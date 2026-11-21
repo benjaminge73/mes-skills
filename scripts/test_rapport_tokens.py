@@ -594,6 +594,55 @@ class RapportTokens(unittest.TestCase):
         self.assertFalse(any("qualite-doc-juge-" in l for l in s1), "un dossier temporaire apparaît en projet")
         self.assertAlmostEqual(montant(ligne_de(s1, "qualite-doc-juge")), 2.0, places=4)
 
+    def test_le_dossier_fixe_du_juge_de_doc_est_un_seul_projet(self):
+        # Attrape : le juge tournait dans ~/.cache/qualite-doc/juge (ancien dossier fixe) ; son
+        # dernier segment « juge » sortirait en projet « juge » au lieu de « qualite-doc-juge ».
+        # Attendu : une seule ligne « qualite-doc-juge » qui totalise les deux sessions (2 $),
+        # et aucune ligne « juge ». Ce chemin reste reconnu après le passage à /var/tmp.
+        cwd = "/home/ubuntu/.cache/qualite-doc/juge"
+        for sid, suffixe in ((SID_A, "ef56"), (SID_B, "gh78")):
+            ecrire(self.depot / f"{sid}.jsonl", [
+                {**humain("Juge"), "cwd": cwd},
+                {**appel(f"req_k{suffixe}", entree=1_000_000), "cwd": cwd}])
+        r = self.lancer()
+        self.assertEqual(r.returncode, 0, r.stderr)
+        s1 = section(r.stdout, 1)
+        self.assertFalse(any(l.split("|")[0].strip() == "juge" for l in s1),
+                         "le dossier fixe du juge apparaît en projet « juge »")
+        self.assertAlmostEqual(montant(ligne_de(s1, "qualite-doc-juge")), 2.0, places=4)
+
+    def test_le_dossier_fixe_du_juge_dans_var_tmp_est_un_seul_projet(self):
+        # Attrape : le juge tourne dans /var/tmp/qualite-doc-juge (dossier fixe hors de $HOME) ;
+        # le cwd de ses journaux doit ranger ce chemin sous « qualite-doc-juge ».
+        # Attendu : une seule ligne « qualite-doc-juge » qui totalise les deux sessions (2 $).
+        # Test en plus, vert avant le correctif : la règle du dernier segment le donne déjà ; il
+        # garde ce chemin contre une future règle qui oublierait le nouveau dossier.
+        cwd = "/var/tmp/qualite-doc-juge"
+        for sid, suffixe in ((SID_A, "vt12"), (SID_B, "vt34")):
+            ecrire(self.depot / f"{sid}.jsonl", [
+                {**humain("Juge"), "cwd": cwd},
+                {**appel(f"req_v{suffixe}", entree=1_000_000), "cwd": cwd}])
+        r = self.lancer()
+        self.assertEqual(r.returncode, 0, r.stderr)
+        s1 = section(r.stdout, 1)
+        self.assertFalse(any("var-tmp" in l for l in s1), "le chemin /var/tmp apparaît en projet")
+        self.assertAlmostEqual(montant(ligne_de(s1, "qualite-doc-juge")), 2.0, places=4)
+
+    def test_le_dossier_projet_var_tmp_du_juge_sans_cwd_est_un_seul_projet(self):
+        # Attrape : un journal du juge sans ligne « cwd » : rapport-tokens retombe sur le nom du
+        # dossier de projet, « -var-tmp-qualite-doc-juge », et l'affiche tel quel.
+        # Attendu : la même étiquette « qualite-doc-juge » (1 $ pour un appel de 1 M de jetons).
+        dossier = self.projets / "-var-tmp-qualite-doc-juge"
+        ecrire(dossier / f"{SID_A}.jsonl", [
+            humain("Juge"),
+            appel("req_sans_cwd", entree=1_000_000)])
+        r = self.lancer()
+        self.assertEqual(r.returncode, 0, r.stderr)
+        s1 = section(r.stdout, 1)
+        self.assertFalse(any("-var-tmp-" in l for l in s1),
+                         "le nom du dossier de projet /var/tmp apparaît en projet")
+        self.assertAlmostEqual(montant(ligne_de(s1, "qualite-doc-juge")), 1.0, places=4)
+
     def test_un_premier_cwd_racine_passe_au_cwd_suivant_et_non_au_dossier_ssh(self):
         # Attrape : une session dont le premier cwd est « / » (aucun nom de dépôt)
         # qui retombe sur le dossier ssh-<uuid> sans regarder les cwd suivants.

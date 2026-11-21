@@ -46,7 +46,7 @@ préparation est le travail du pilote, elle se joue donc déjà à ce réglage.
     qui fixe le réglage elle-même :
     `claude --model claude-sonnet-5-5 --effort medium "<brief>"` (l'identifiant complet,
     pas l'alias `sonnet` : un alias lancé hors des réglages de l'utilisateur a servi une
-    autre version, `_partage/outils-et-quotas.md`, 2026-10-15). S'il préfère détacher la
+    autre version, `_partage/outils-claude-code.md`, 2026-10-15). S'il préfère détacher la
     session : `claude --bg --name <plan> --model claude-sonnet-5-5 --effort medium
     "<brief>"`, qui s'ouvre et se suit par `claude agents`, `claude attach <nom>` et
     `claude logs <nom>`.

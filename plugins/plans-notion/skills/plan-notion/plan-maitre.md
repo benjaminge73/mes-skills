@@ -238,7 +238,7 @@ du VPS, en lecture seule. Quand les deux échouent, il rend `BLOCKED` avec
 l'erreur mot pour mot, et y nomme le palier suivant si `composio` a été joué.
 La chaîne complète, ses délais
 et ses règles de doublon sont dans la fiche « Connecteurs MCP d'une session
-Claude Code » de `_partage/outils-et-quotas.md` : on la lit là, elle n'est pas
+Claude Code » de `_partage/outils-connecteurs-et-evals.md` : on la lit là, elle n'est pas
 recopiée ici. L'outil Composio de la session n'est pas un palier : il passe par
 le même relais que Notion et tombe avec lui.
 

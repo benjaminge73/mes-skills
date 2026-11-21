@@ -194,7 +194,7 @@ le service servira **après** le changement ; sa sortie s'écrit dans `Contraint
 techniques vérifiées`, et l'étape ne s'écrit qu'après. Pourquoi : une étape a été
 écrite sur une précédence supposée (« à nom égal, le dossier le plus prioritaire
 gagne ») et défaite ensuite, alors qu'une lecture du catalogue réel la réfutait en une
-commande. Le cas Hermes est fiché dans `${CLAUDE_PLUGIN_ROOT}/skills/_partage/outils-et-quotas.md`.
+commande. Le cas Hermes est fiché dans `${CLAUDE_PLUGIN_ROOT}/skills/_partage/outils-infra-et-documents.md`.
 
 **Une vérification nomme la décision qu'elle peut changer, ou le risque qu'elle
 couvre — sinon elle ne se fait pas.** Une recherche, une mesure ou un POC dont le

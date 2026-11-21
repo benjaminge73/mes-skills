@@ -10,6 +10,7 @@ dépendance : ``unittest`` est dans la bibliothèque standard.
 """
 from __future__ import annotations
 
+import importlib.util
 import json
 import os
 import subprocess
@@ -18,11 +19,23 @@ import tempfile
 import time
 import unittest
 from pathlib import Path
+from unittest import mock
 
 RACINE = Path(__file__).resolve().parent.parent
 SCRIPT = RACINE / "plugins" / "plans-notion" / "skills" / "_partage" / "scripts" / "qualite-doc.py"
 GRILLE = RACINE / "plugins" / "plans-notion" / "skills" / "_partage" / "grille-doc.md"
 MODELE = "claude-haiku-5-5"
+
+
+def charger_qualite_doc():
+    """Le module ``qualite-doc.py``, importé (son nom porte un tiret) : pour lire ``DOSSIER_JUGE``
+    et appeler ``appeler_juge`` sans passer par un sous-processus."""
+    spec = importlib.util.spec_from_file_location("qualite_doc", SCRIPT)
+    module = importlib.util.module_from_spec(spec)
+    # dataclasses cherche le module dans sys.modules pendant l'exécution : il doit y être d'abord.
+    sys.modules["qualite_doc"] = module
+    spec.loader.exec_module(module)
+    return module
 
 
 def git(racine: Path, *args: str) -> str:
@@ -431,6 +444,19 @@ class Juger(unittest.TestCase):
         cwd = Path(faux.cwds()[0]).resolve()
         self.assertNotIn(RACINE, [cwd, *cwd.parents])
 
+    # Attrape : un juge qui reçoit un dossier de travail neuf à chaque appel. Le cwd fait partie du
+    # contexte de claude : un cwd différent ne réutilise jamais le cache de prompt, donc chaque appel
+    # réécrit tout le contexte en cache au lieu de le relire. Attendu dérivé du coût, pas du code :
+    # deux appels successifs du même juge partagent le même dossier.
+    def test_deux_appels_successifs_du_juge_partagent_le_meme_dossier_de_travail(self):
+        faux = FauxClaude(self.dossier, [sortie_juge(verdict(True, 0.9)), sortie_juge(verdict(True, 0.9))])
+        code, sortie, erreur = self.juger([passage(1), passage(2)], faux.exe, "--votes", "1",
+                                          "--parallele", "1")
+        self.assertEqual(code, 0, erreur)
+        cwds = faux.cwds()
+        self.assertEqual(len(cwds), 2)
+        self.assertEqual(cwds[0], cwds[1])
+
     # Test en plus, hors liste du brief : Haiku suit souvent le format ```json. Sans ce test,
     # un extracteur qui ne lit que le texte nu rendrait douteux un verdict pourtant exact.
     def test_le_json_entoure_de_cloture_markdown_est_lu(self):
@@ -499,6 +525,42 @@ class Juger(unittest.TestCase):
         # Avec --grille, un douteux se range par id seul : ni fichier ni ligne.
         for douteux in rapport["douteux"]:
             self.assertEqual(set(douteux), {"id", "score", "raison", "illisible"})
+
+
+class DossierDuJuge(unittest.TestCase):
+    # Attrape : un dossier de travail du juge sous $HOME. Claude Code charge le CLAUDE.md et les
+    # règles de chaque répertoire parent du cwd ; sous /home/ubuntu, le parent porte .claude/, et
+    # les règles personnelles entrent dans le prompt de chaque vote (contexte et cache gonflés).
+    # Attendu : le dossier est hors de $HOME, et aucun de ses parents ne porte .claude/ ni CLAUDE.md.
+    def test_le_dossier_du_juge_est_hors_du_repertoire_personnel(self):
+        dossier = Path(charger_qualite_doc().DOSSIER_JUGE).expanduser()
+        maison = Path.home()
+        self.assertFalse(dossier == maison or maison in dossier.parents,
+                         f"le dossier du juge {dossier} est sous le répertoire personnel")
+        for parent in (dossier, *dossier.parents):
+            self.assertFalse((parent / ".claude").exists(),
+                             f"{parent} porte .claude/ : ses règles entrent dans le contexte du juge")
+            self.assertFalse((parent / "CLAUDE.md").exists(),
+                             f"{parent} porte un CLAUDE.md : il entre dans le contexte du juge")
+
+    # Attrape : un juge qui écrit dans un dossier de /var/tmp (partagé) créé d'avance par un autre
+    # utilisateur. Attendu : refus nommé avant tout lancement de claude (aucune trace de son passage).
+    def test_un_dossier_du_juge_qui_n_appartient_pas_a_l_utilisateur_est_refuse(self):
+        mod = charger_qualite_doc()
+        with tempfile.TemporaryDirectory() as tmp:
+            racine = Path(tmp)
+            dossier = racine / "juge"
+            dossier.mkdir(mode=0o700)
+            marque = racine / "claude-a-tourne"
+            faux = racine / "claude"
+            faux.write_text(f"#!/bin/sh\ntouch {marque}\n", encoding="utf-8")
+            faux.chmod(0o755)
+            mod.DOSSIER_JUGE = str(dossier)
+            with mock.patch("os.getuid", return_value=os.getuid() + 1):
+                with self.assertRaises(mod.ErreurJuge):
+                    mod.appeler_juge(str(faux), "un prompt")
+            self.assertFalse(marque.exists(),
+                             "claude a été lancé dans un dossier qui n'appartient pas à l'utilisateur")
 
 
 if __name__ == "__main__":
