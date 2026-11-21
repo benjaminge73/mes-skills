@@ -309,7 +309,10 @@ def nom_du_depot(cwd: str) -> str | None:
             return segments[i + 1]
     nom = segments[-1] if segments else None
     if nom and nom.startswith("qualite-doc-juge-"):
-        # Dossier temporaire d'un juge de qualité de doc : un seul projet, pas un par run.
+        # Dossier temporaire d'un juge de qualité de doc (ancien schéma) : un seul projet, pas un par run.
+        return "qualite-doc-juge"
+    if len(segments) >= 2 and segments[-2:] == ["qualite-doc", "juge"]:
+        # Dossier fixe du juge (~/.cache/qualite-doc/juge) : même projet que l'ancien schéma.
         return "qualite-doc-juge"
     return nom
 
