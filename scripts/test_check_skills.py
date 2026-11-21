@@ -1083,7 +1083,7 @@ class RegleL_ComptesDuTableauDeCouts(Depot):
 
     def fiche(self, *lignes, entete=ENTETE_FICHE):
         # Un tableau d'une autre section, qui porte des comptes faux : la règle ne le lit pas.
-        _ecrire(self.racine / "plugins" / "p" / "skills" / "_partage" / "outils-et-quotas.md", (
+        _ecrire(self.racine / "plugins" / "p" / "skills" / "_partage" / "outils-connecteurs-et-evals.md", (
             "# Outils\n\n## Autre section\n\n"
             "| Catégorie | Cas au 2026-10-16 |\n|---|---|\n| `un` | 99 |\n\n"
             "## Fiche — claude plugin eval\n\nTexte de la fiche.\n\n"
@@ -1145,7 +1145,7 @@ class RegleL_ComptesDuTableauDeCouts(Depot):
         self.assertIn("Cas au", refus[0].message)
 
     def test_une_fiche_sans_section_ni_tableau_est_refusee(self):
-        _ecrire(self.racine / "plugins" / "p" / "skills" / "_partage" / "outils-et-quotas.md",
+        _ecrire(self.racine / "plugins" / "p" / "skills" / "_partage" / "outils-connecteurs-et-evals.md",
                 "# Outils\n\nRien de chiffré.\n")
         refus = self.refus_l()
         self.assertEqual(len(refus), 1)

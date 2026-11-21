@@ -67,12 +67,6 @@
         "date": "2026-11-21",
         "raison": "passif : taille du jour (mesure du 2026-11-21), à ramener sous le seuil de SKILL.md par le découpage",
         "levee_par": "étape 7b"
-      },
-      "plugins/plans-notion/skills/_partage/outils-et-quotas.md": {
-        "caracteres": 78459,
-        "date": "2026-11-21",
-        "raison": "passif : taille du jour (mesure du 2026-11-21), à ramener sous le seuil des fichiers _partage par le découpage",
-        "levee_par": "étape 7b"
       }
     }
   },

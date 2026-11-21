@@ -71,7 +71,7 @@ que tu ne peux pas fournir : `BLOCKED`, avec son nom et l'étape qui l'exige. Le
 
 Une lecture ou une écriture Notion de la préparation peut tomber. La conduite à
 tenir, avec les pannes datées, est dans la fiche « Connecteurs MCP d'une session
-Claude Code (Notion, Composio) » de `${CLAUDE_PLUGIN_ROOT}/skills/_partage/outils-et-quotas.md` :
+Claude Code (Notion, Composio) » de `${CLAUDE_PLUGIN_ROOT}/skills/_partage/outils-connecteurs-et-evals.md` :
 lis-la quand un appel échoue, ne cherche pas ailleurs. Tu n'as que deux paliers, le
 connecteur de la session puis la commande `composio` du VPS. Le palier Hermes reste
 au pilote : tu ne lances jamais `hermes chat`, ni un sous-agent.

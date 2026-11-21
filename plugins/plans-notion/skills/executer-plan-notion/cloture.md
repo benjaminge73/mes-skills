@@ -478,7 +478,7 @@ Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard »
      - **Cascade.** (a), (c), (d) et (e) suivent la cascade de repli de `changelog-et-doc.md`
        § 6 : connecteur Notion, puis la commande `composio`, puis le fichier confié à
        Hermes. Les commandes sont dans la fiche « Connecteurs MCP d'une session Claude
-       Code » de `${CLAUDE_PLUGIN_ROOT}/skills/_partage/outils-et-quotas.md` : elles ne
+       Code » de `${CLAUDE_PLUGIN_ROOT}/skills/_partage/outils-connecteurs-et-evals.md` : elles ne
        se recopient pas ici. Le compte rendu dit quel palier a posé l'entrée.
        Au palier 3, deux fichiers distincts sous `~/brouillons/<projet>/changelog/`, pour
        un même plan et une même date, chacun avec son propre titre :
@@ -667,7 +667,7 @@ pose de sa propre initiative). Le label `evals` ne se pose que sur demande de Be
 pour des catégories ou `tout`, jamais pour `aucun`. Sans ce label, une ligne `Evals:`
 absente ou `aucun — <raison>` ne rend pas la CI rouge ; un `aucun` sans raison, ou
 combiné à une catégorie, la rend rouge (`evals-portee`). Coûts :
-`${CLAUDE_PLUGIN_ROOT}/skills/_partage/outils-et-quotas.md`.
+`${CLAUDE_PLUGIN_ROOT}/skills/_partage/outils-connecteurs-et-evals.md`.
 
 La séquence complète — ouvrir, attendre la CI, vérifier que le merge a bien eu
 lieu, poser `Statut` = `execute`, journaliser — et le piège qui la fait échouer

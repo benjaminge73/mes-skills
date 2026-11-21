@@ -484,7 +484,7 @@ plan de suite `#N+1` s'il reste des arbitrages. Reste au plan le **contenu** du 
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/ecrire-dans-notion.md`,
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/maquettes-html.md`,
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/poc.md`,
-  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/outils-et-quotas.md`,
+  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/outils-et-quotas.md`, `${CLAUDE_PLUGIN_ROOT}/skills/_partage/outils-claude-code.md`, `${CLAUDE_PLUGIN_ROOT}/skills/_partage/outils-connecteurs-et-evals.md`, `${CLAUDE_PLUGIN_ROOT}/skills/_partage/outils-code-et-securite.md`, `${CLAUDE_PLUGIN_ROOT}/skills/_partage/outils-infra-et-documents.md`, `${CLAUDE_PLUGIN_ROOT}/skills/_partage/outils-donnees-publiques.md`,
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/schemas.md`,
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/cron-a-la-main.md`,
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/decouvertes.md`, `${CLAUDE_PLUGIN_ROOT}/skills/_partage/restes.md`,

@@ -201,7 +201,7 @@ annoncé dans la ligne avant de poser le label. « Tout » est demander le label
 pour tout le banc ; « aucun » ne le demande pas. La CI refuse une sélection qui ne
 couvre pas un skill touché, et joue tout le banc pour `_partage/`, les hooks ou le banc
 lui-même. Coûts : fiche `claude plugin eval` de
-`${CLAUDE_PLUGIN_ROOT}/skills/_partage/outils-et-quotas.md`.
+`${CLAUDE_PLUGIN_ROOT}/skills/_partage/outils-connecteurs-et-evals.md`.
 
 **Une étape = un titre H3** : `Étape 1 — Titre court de l'étape`. Comme pour les
 questions, c'est le H3 qui met l'étape dans la table des matières et permet d'y

@@ -497,4 +497,4 @@ parallèle ; le pilote ne garde que le croisement) vivent dans un seul fichier :
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/machine-partagee.md`, `${CLAUDE_PLUGIN_ROOT}/skills/_partage/cron-a-la-main.md`,
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/cout-des-plans.md`, `${CLAUDE_PLUGIN_ROOT}/skills/_partage/ranger-claude-md.md`, `${CLAUDE_PLUGIN_ROOT}/skills/_partage/fraicheur-du-depot.md`,
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/changelog-et-doc.md`, `${CLAUDE_PLUGIN_ROOT}/skills/_partage/pilotable-par-hal.md`,
-  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/outils-et-quotas.md`, livrés par le plugin `plans-notion` — pas par le dépôt de travail, quel qu'il soit.
+  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/outils-et-quotas.md`, `${CLAUDE_PLUGIN_ROOT}/skills/_partage/outils-claude-code.md`, `${CLAUDE_PLUGIN_ROOT}/skills/_partage/outils-connecteurs-et-evals.md`, `${CLAUDE_PLUGIN_ROOT}/skills/_partage/outils-code-et-securite.md`, `${CLAUDE_PLUGIN_ROOT}/skills/_partage/outils-infra-et-documents.md`, `${CLAUDE_PLUGIN_ROOT}/skills/_partage/outils-donnees-publiques.md`, livrés par le plugin `plans-notion` — pas par le dépôt de travail, quel qu'il soit.

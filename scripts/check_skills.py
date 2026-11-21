@@ -62,7 +62,8 @@ Les règles, et le fait de doc qui fonde chacune (voir ``docs/veille.md``) :
     sans l'autre, un arrêt par la limite est lu comme un échec au lieu d'une sortie
     partielle reprenable (plan du 2026-10-16, escalade bornée).
 (l) Pour chaque plugin qui a un banc ``evals/<plugin>/`` et une fiche
-    ``skills/_partage/outils-et-quotas.md`` : le tableau de la section « Fiche —
+    ``skills/_partage/outils-connecteurs-et-evals.md`` (fiche « claude plugin eval »,
+    découpée du registre ``outils-et-quotas.md``) : le tableau de la section « Fiche —
     claude plugin eval » compte les cas de chaque catégorie de
     ``evals/categories.json`` (colonne « Cas au … », une ligne par catégorie, et
     une ligne « tout le banc » égale au nombre de cas distincts du plugin). Écrit
@@ -720,7 +721,7 @@ def _tableau_de_la_fiche(texte: str) -> list[list[str]] | None:
 def _regle_l(racine: Path, plugin: Path) -> list[Anomalie]:
     if not (racine / "evals" / plugin.name).is_dir():
         return []
-    fiche = plugin / "skills" / "_partage" / "outils-et-quotas.md"
+    fiche = plugin / "skills" / "_partage" / "outils-connecteurs-et-evals.md"
     if not fiche.is_file():
         return []
     categories, _ = _categories_du_plugin(racine, plugin)

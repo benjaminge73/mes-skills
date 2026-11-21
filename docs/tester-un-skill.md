@@ -392,7 +392,7 @@ demande de Benjamin, et seulement pour deux cas :
 Une reformulation, une doc, un renvoi corrigé ou un exemple ne méritent pas
 l'A/B. **Le coût est annoncé avant de poser le label** : environ 55 $ pour tout
 le banc, 3 à 14 $ par catégorie (base et tête), contre 0,54 à 2,38 $ par
-catégorie pour la fumée. Ces chiffres sont mesurés le 2026-09-30 sur un banc de 16 cas, non remesurés : le banc compte 26 cas au 2026-10-16 (voir la fiche « claude plugin eval » de `plugins/plans-notion/skills/_partage/outils-et-quotas.md`). L'A/B reste le seul juge d'un recul fin ; on ne le
+catégorie pour la fumée. Ces chiffres sont mesurés le 2026-09-30 sur un banc de 16 cas, non remesurés : le banc compte 26 cas au 2026-10-16 (voir la fiche « claude plugin eval » de `plugins/plans-notion/skills/_partage/outils-connecteurs-et-evals.md`). L'A/B reste le seul juge d'un recul fin ; on ne le
 supprime pas, on le garde pour ce qui le justifie.
 
 **Le label est lu par l'API, et le poser lance la CI.** `evals-portee` relit les
@@ -549,7 +549,7 @@ d'un skill si une session se trompe encore de geste.
    Le script l'établit d'après le coût par cas des derniers rapports. Une A/B
    joue deux bras (base et tête), un bras complet coûtait 27,53 $ sur Sonnet (mesure du 2026-09-30 sur 16 cas, non remesurée ; le banc compte 26 cas au 2026-10-16),
    et une catégorie 1,61 $ à 7,13 $ par bras (tableau de la fiche
-   `claude plugin eval` de `outils-et-quotas.md`, mesuré le 2026-09-30 sur 16 cas ; pour `decouvertes`, voir sa mesure du 2026-10-16 plus bas, 18,68 $ pour deux bras). **Annoncer ce coût à
+   `claude plugin eval` de `outils-connecteurs-et-evals.md`, mesuré le 2026-09-30 sur 16 cas ; pour `decouvertes`, voir sa mesure du 2026-10-16 plus bas, 18,68 $ pour deux bras). **Annoncer ce coût à
    Benjamin avant de lancer.** Le plafond se calcule dans le job :
    n cas × 2,2 $ par bras, au moins 10 $ (`EVALS_MAX_COUT_USD`, 45 $ en repli) ;
    avant le 2026-10-23 il était fixe à 45 $, et il valait 120 $ avant le 2026-10-01,
