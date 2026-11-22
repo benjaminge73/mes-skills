@@ -9,6 +9,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import shutil
 import subprocess
 from pathlib import Path
 
@@ -20,6 +21,25 @@ RELECTEUR = DEPOT / "plugins" / "plans-notion" / "agents" / "relecteur.md"
 # ou `git log --output=<fichier>` exécutent ou écrivent. Le diff et le journal de la plage sont préparés à l'avance
 # dans le worktree (`.banc/`, voir Worktree) ; aucun test n'est rejoué (un test exécute le code relu).
 LECTURE = ["Read", "Grep", "Glob"]
+# Bash ENFERMÉ (option `bash_enferme`) : le bac à sable natif de Claude Code (Seatbelt sur macOS) laisse le relecteur
+# rejouer tests, git et petits scripts, sans écrire hors du worktree et du temporaire, sans réseau, sans lire les secrets
+# du poste. Il ne couvre que Bash : les outils Read/Grep sont tenus par `permissions.deny`. Doc :
+# https://code.claude.com/docs/en/sandboxing.md (« The sandbox covers shell commands only »).
+SECRETS = ["~/.ssh", "~/.aws", "~/.gnupg", "~/.claude", "~/.config", "~/.netrc", "~/.env", "~/.local/share/banc-relecture/depots"]
+BAC_A_SABLE = {
+    "sandbox": {
+        "enabled": True,
+        "failIfUnavailable": True,          # refuser plutôt que tourner hors bac à sable
+        "allowUnsandboxedCommands": False,  # pas de nouvel essai hors bac à sable
+        "autoAllowBashIfSandboxed": True,   # en -p, Bash enfermé passe sans question
+        "network": {"allowedDomains": []},  # aucun domaine : réseau sortant coupé
+        "filesystem": {"denyRead": SECRETS},
+    },
+    "permissions": {"deny": [f"Read({s}/**)" for s in SECRETS] + ["Read(~/.netrc)", "Read(~/.env)", "Read(**/.env)", "Read(**/.env.*)"]},
+}
+NOTE_BASH = ("\n\nCONDITIONS DE CE REJEU : Bash tourne dans un bac à sable (écriture limitée au worktree et au temporaire, "
+             "pas de réseau). Tu peux lancer git, les tests et de petits scripts ; une commande refusée par le bac à sable "
+             "ne se contourne pas. Le diff de la plage est aussi dans `.banc/plage.diff`, son journal dans `.banc/journal.txt`.")
 NOTE_LECTURE = ("\n\nCONDITIONS DE CE REJEU : tu n'as que Read, Grep et Glob (pas de Bash, donc ni git ni tests). "
                 "Le diff complet de la plage est dans `.banc/plage.diff` et son journal (`git log --stat`) dans "
                 "`.banc/journal.txt`, à la racine du worktree ; les fichiers du worktree sont à l'état du dernier commit relu.")
@@ -36,7 +56,7 @@ def corps_relecteur() -> str:
 
 
 def claude(prompt: str, *, cwd: str | Path = "/tmp", modele: str = "claude-haiku-5-5", effort: str | None = None,
-           outils: str = "", tours: int = 3, agent: dict | None = None, delai: int = 1800) -> dict:
+           outils: str = "", tours: int = 3, agent: dict | None = None, delai: int = 1800, bash_enferme: bool = False) -> dict:
     """Un appel `claude -p` isolé des réglages et plugins du poste (`--setting-sources project`,
     `--strict-mcp-config`) ; rend le JSON de sortie, ou {"erreur": ...}.
 
@@ -47,6 +67,8 @@ def claude(prompt: str, *, cwd: str | Path = "/tmp", modele: str = "claude-haiku
     cmd = ["claude", "-p", "--setting-sources", "project", "--strict-mcp-config", "--output-format", "json",
            "--permission-mode", "default", "--allowedTools", ",".join(LECTURE),
            "--disallowedTools", "Edit,Write,NotebookEdit,WebFetch,WebSearch", "--max-turns", str(tours)]
+    if bash_enferme:
+        cmd += ["--settings", json.dumps(BAC_A_SABLE)]
     if agent:
         cmd += ["--agents", json.dumps({"relecteur-banc": agent}), "--agent", "relecteur-banc"]
     else:
@@ -83,7 +105,10 @@ class Worktree:
         self.chemin.parent.mkdir(parents=True, exist_ok=True)
         subprocess.run(["git", "--git-dir", str(self.git), "worktree", "add", "--detach", str(self.chemin), self.fin],
                        capture_output=True, check=True)
-        # Ce que le relecteur lisait avant par `git diff` et `git log`, préparé ici puisqu'il n'a plus Bash.
+        # Le `.claude/` du dépôt relu est du contenu non fiable : ses réglages s'ajouteraient aux nôtres (les listes
+        # fusionnent) et pourraient autoriser des commandes hors bac à sable. Il disparaît du worktree jetable.
+        shutil.rmtree(self.chemin / ".claude", ignore_errors=True)
+        # Ce que le relecteur lisait par `git diff` et `git log`, préparé ici (utile aussi quand il n'a pas Bash).
         prep = self.chemin / ".banc"
         prep.mkdir(exist_ok=True)
         g = ["git", "--git-dir", str(self.git)]

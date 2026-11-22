@@ -63,3 +63,48 @@ le comité 50 %.
 7. Coût de la chaîne : ≈ 0,19 dollar la relecture sur le Mac (≈ 0,4 avec les tests sur le VPS), contre 1,72 en Opus high.
 
 Coût total de la campagne : ≈ 60 dollars (dont ≈ 43 de rejeux sur le VPS et ≈ 17 sur le Mac).
+
+## 2026-11-22 (suite) — Checklist v2, Haiku high, Bash enfermé, jeu de validation
+
+Tous les bras en Haiku **high**. « Bac à sable » : Bash rendu au relecteur dans le bac à sable natif de Claude Code
+(`rejouer.py --bash-enferme`, réglages dans `banc.BAC_A_SABLE`) : écriture limitée au worktree et au temporaire, pas de
+réseau, secrets du poste illisibles par Bash comme par Read. « Sans Bash » : Read, Grep, Glob seulement. Rappel par
+catégorie : `par_categorie.py`. Le jeu de validation (43 cas, 82 remarques Opus, `construire_ref.py --exclure
+echantillon.json`) n'a servi à écrire aucune checklist : il dit si `checklist-v2.txt` a sur-appris l'échantillon.
+
+### Échantillon (24 cas ; référence : 16 bugs, 10 écarts au plan, 3 tests vides)
+
+| Bras | Bugs | Écarts au plan | Tests vides | Remarques en plus réelles / bruit |
+|---|---|---|---|---|
+| v1 × 3, sans Bash | 50 % | 35 % | 0 % | 35 / 9 |
+| v1 × 3, bac à sable | 53 % | 35 % | 0 % | 64 / 8 |
+| v2 × 3, sans Bash | 50 % | 40 % | 67 % | 52 / 21 |
+| v2 × 1, bac à sable | 47 % | 65 % | 33 % | 41 / 8 |
+| v2 × 3, bac à sable | 72 % | 45 % | 33 % | 77 / 21 |
+| **v2 × 3, bac à sable + `chaine.py` + second avis Jev** | **78 %** | **55 %** | 33 % | **82 / 10** |
+| Passe dédiée plan et tests (`passe-plan-tests.txt`), seule | 28 % | 30 % | 17 % | 48 / 9 |
+
+### Validation (43 cas ; référence : 50 bugs, 8 écarts au plan, 18 tests vides)
+
+| Bras | Bugs | Écarts au plan | Tests vides | Remarques en plus réelles / bruit |
+|---|---|---|---|---|
+| v1 × 2, sans Bash | 58 % | 75 % | 14 % | 89 / 16 |
+| v2 × 2, sans Bash | 55 % | 62 % | 42 % | 113 / 21 |
+| v2 × 1, bac à sable | 57 % | 69 % | 19 % | 83 / 8 |
+| v2 × 2, bac à sable | 53 % | 75 % | 31 % | 118 / 17 |
+
+### Ce qu'on en retient
+
+1. **La checklist v2 tient sur la validation pour les tests vides** (42 % contre 14 % en v1, sur 18 tests) ; sur les bugs,
+   v1 et v2 font jeu égal (53 à 58 %). Le gain d'écarts au plan vu sur l'échantillon ne se confirme pas, mais 8 écarts
+   seulement : un écart vaut 12 points.
+2. **Le bac à sable ne gagne pas de bug sur la validation** (53-57 % contre 55 % sans Bash) ; le 72 % de l'échantillon
+   tient en partie à la variance (un bug y vaut 6 points). Il garde l'intérêt d'un bruit plus bas à un tirage (8 contre 11).
+3. **La vérification de `chaine.py` filtre peu sur ces rapports** : 8 remarques réfutées sur 118, dont 6 repêchées par
+   Jev (format `choice` décrit, `jev-1.14.0`). Le bruit baisse de 21 à 10 et aucun bug n'est perdu.
+4. Coût : ≈ 0,08 dollar par relecture Haiku high en bac à sable ; la chaîne complète (3 relectures + extraction +
+   vérification + Jev) ≈ 0,27 dollar la relecture, contre 1,72 en Opus high.
+5. Pannes : 15 relectures sur ≈ 900 ont échoué (`FileNotFoundError`, `Exec format error`) pendant une mise à jour du
+   binaire `claude` ; supprimées et rejouées, `rejouer.py` saute les cas déjà faits.
+
+Coût de cette suite : ≈ 35 dollars de rejeux en high (hors bras medium et juges).

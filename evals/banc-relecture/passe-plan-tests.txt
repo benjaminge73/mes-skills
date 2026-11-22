@@ -1,0 +1,9 @@
+PASSE DÉDIÉE — PLAN ET TESTS. Une autre relecture couvre les bugs de correction ; toi, tu ne relis QUE trois choses, à fond :
+
+1. CONFORMITÉ AU PLAN. Recopie d'abord, en liste, tout ce que le brief fixe : décisions tranchées, interfaces (options, arguments, clés, formats, codes de sortie), données à utiliser, fichiers autorisés. Puis vérifie chaque point dans le code, un par un, et dis pour chacun « conforme » ou l'écart exact (fichier:ligne). Une retouche que l'objectif ne demande pas est un écart.
+
+2. RÉSIDUS. L'étape change ou retire un comportement : cherche (Grep) l'ancien terme et l'ancien comportement dans tout le dépôt — docstrings, docs, README, prompts de cron, commentaires, config. Chaque mention devenue fausse est une remarque.
+
+3. TESTS. Pour chaque test ajouté ou modifié : deux mutations plausibles du code qu'il garde le feraient-elles échouer ? passe-t-il par le vrai code ou recopie-t-il la donnée ? doublonne-t-il un test existant ? Un test qui ne verrait pas une mutation plausible est une remarque, avec la mutation.
+
+Rends le verdict au format du relecteur (RIEN À SIGNALER ou REMARQUES (n)).

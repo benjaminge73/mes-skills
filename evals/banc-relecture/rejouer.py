@@ -25,6 +25,7 @@ ap.add_argument("--ajout", help="texte ajouté au brief (ex. checklist.txt, à c
 ap.add_argument("--angle", help="clé de angles.json ajoutée au brief (comité)")
 ap.add_argument("--notes", help="JSON {id: texte} ajouté au brief cas par cas (2e passe), dans $BANC_DONNEES")
 ap.add_argument("--par", type=int, default=6, help="relectures en parallèle (le Mac n'a pas de limite de places)")
+ap.add_argument("--bash-enferme", action="store_true", help="donne Bash au relecteur, dans le bac à sable (banc.BAC_A_SABLE)")
 a = ap.parse_args()
 
 ajout = (banc.ICI / a.ajout).read_text() if a.ajout else ""
@@ -32,7 +33,8 @@ if a.angle:
     ajout += "\n\n" + json.loads((banc.ICI / "angles.json").read_text())[a.angle]
 notes = banc.charger(a.notes) if a.notes else {}
 agent = {"description": "relecteur rejoué (banc)", "prompt": banc.corps_relecteur(), "model": a.modele,
-         "tools": banc.LECTURE}
+         "tools": banc.LECTURE + (["Bash"] if a.bash_enferme else [])}
+note = banc.NOTE_BASH if a.bash_enferme else banc.NOTE_LECTURE
 if a.effort != "-":
     agent["effort"] = a.effort
 sortie = banc.DONNEES / "sorties" / a.bras
@@ -48,10 +50,10 @@ def un(cas: dict):
         if depense[0] >= a.plafond:
             return k, "plafond"
     with banc.Worktree(cas, f"{a.bras}-{k}") as wt:
-        prompt = cas["prompt"].replace(cas["rep"], str(wt)) + banc.NOTE_LECTURE + (("\n\n" + ajout) if ajout else "")
+        prompt = cas["prompt"].replace(cas["rep"], str(wt)) + note + (("\n\n" + ajout) if ajout else "")
         if notes.get(k):
             prompt += "\n\n" + notes[k]
-        d = banc.claude(prompt, cwd=wt, agent=agent, tours=60)
+        d = banc.claude(prompt, cwd=wt, agent=agent, tours=60, bash_enferme=a.bash_enferme)
     d["id"] = cas["id"]
     f.write_text(json.dumps(d, ensure_ascii=False))
     with verrou:

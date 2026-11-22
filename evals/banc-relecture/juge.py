@@ -25,8 +25,9 @@ POIDS = {"oui": 1, "partiel": 0.5, "non": 0}
 ap = argparse.ArgumentParser()
 ap.add_argument("sortie"); ap.add_argument("bras", nargs="+")
 ap.add_argument("--cas"); ap.add_argument("--par", type=int, default=8); ap.add_argument("--modele", default="claude-sonnet-5-5")
+ap.add_argument("--ref", default="ref-opus.json", help="référence, dans $BANC_DONNEES (ex. ref-validation.json)")
 a = ap.parse_args()
-ref = banc.charger("ref-opus.json")
+ref = banc.charger(a.ref)
 ids = a.cas.split(",") if a.cas else sorted(ref, key=int)
 
 

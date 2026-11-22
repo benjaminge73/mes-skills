@@ -40,6 +40,8 @@ détaillés », sous le projet Mes Skills.
 | `jev.py` | Jev (TypeSafe System One) : aiguillage des angles, second avis sur une remarque |
 | `banc.py` | socle : emplacement des données, appel `claude -p` isolé, worktree jetable |
 | `checklist.txt`, `angles.json` | les consignes ajoutées au brief (checklist en 8 catégories, 4 angles du comité) |
+| `checklist-v2.txt`, `passe-plan-tests.txt` | checklist v2 (conformité au plan, retraits incomplets et tests par mutations en tête), passe dédiée plan et tests |
+| `construire_ref.py`, `par_categorie.py` | référence Opus d'un jeu de validation hors échantillon ; rappel par catégorie de défaut |
 
 Chaque appel passe par `claude -p --setting-sources project --strict-mcp-config` : les réglages, hooks et plugins du
 poste ne se mêlent pas à la relecture. `--bare` est écarté : il coupe aussi l'authentification par abonnement.
@@ -53,7 +55,14 @@ python3 juge.py j-checklist.json haiku-checklist                                
 python3 juge.py j-union.json haiku-checklist haiku-checklist-2 haiku-checklist-3      # l'union de trois tirages
 python3 chaine.py chaine haiku-checklist haiku-checklist-2 haiku-checklist-3          # extraction + vérification
 python3 juge.py j-chaine.json chaine
+python3 rejouer.py sb-ck2 claude-haiku-5-5 high 3 --ajout checklist-v2.txt --bash-enferme  # Bash dans le bac à sable
+python3 juge.py v-sb.json sb-ck2 --ref ref-validation.json                            # sur le jeu de validation
+python3 par_categorie.py v-sb.json --ref ref-validation.json
 ```
+
+La checklist s'améliore en continu : un défaut qu'Opus voit et que la chaîne manque devient une ligne de
+`checklist-v2.txt` (sa catégorie, un exemple générique, jamais un extrait d'un autre dépôt), puis la nouvelle version
+se mesure sur le jeu de validation, qui n'a pas servi à l'écrire.
 
 Jev demande sa clé : `chaine.py … --jev <fichier .env>:<VARIABLE>`. Elle est lue dans le fichier donné, par le seul
 processus, et jamais affichée.
@@ -80,5 +89,9 @@ demi-remarque sur 11. Ses chiffres servent à **comparer des bras entre eux**, p
   2026-11-22 ont été prises avant ce durcissement, en `bypassPermissions` : certains relecteurs avaient alors créé des
   dossiers à côté de leur worktree, ou tenté un `pip install` (échec). Une campagne future se compare à elles sous
   cette réserve.
+- `--bash-enferme` rend Bash, dans le bac à sable natif de Claude Code (`banc.BAC_A_SABLE`) : écriture limitée au
+  worktree et au temporaire, réseau coupé, secrets du poste refusés à Bash et à Read, `.claude/` du dépôt relu retiré du
+  worktree (ses réglages s'ajouteraient aux nôtres). Le bac à sable refuse de démarrer plutôt que de tourner sans
+  (`failIfUnavailable`).
 - Les remarques en plus d'un bras (≈ 3,6 par relecture pour la chaîne retenue) ont un coût en aval, pour qui les traite,
   que ce banc ne mesure pas.
