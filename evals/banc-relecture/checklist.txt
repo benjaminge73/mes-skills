@@ -1,0 +1,9 @@
+CHECKLIST DE RELECTURE — passe chaque catégorie, une par une, et note pour chacune « rien » ou une remarque argumentée (fichier:ligne + scénario qui casse) :
+1. Limites et logique : bornes, off-by-one, conditions inversées, ordre des opérations, cas vide ou unique.
+2. Valeurs nulles et erreurs : exception non attrapée, erreur avalée en silence, code de sortie faux, message trompeur.
+3. Concurrence et état : courses, fichiers partagés, réentrance, état persistant mal remis à zéro.
+4. Entrées et sécurité : validation, injection (shell, chemin, prompt), secrets, réseau, taille et mémoire.
+5. Contrats et appelants : signature ou format changé, appelants et renvois oubliés, docs devenues fausses.
+6. Données et migration : format sur disque, compatibilité ascendante, rotation, encodage.
+7. Performance : boucle coûteuse, lecture répétée, croissance non bornée.
+8. Conformité au plan et tests : écart à l'objectif ou aux décisions du brief, test qui ne teste rien, preuve de fin non tenue.
