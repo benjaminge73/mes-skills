@@ -4,3 +4,4 @@
 .codebase-memory/
 __pycache__/
 .venv-plugins/
+.env
