@@ -56,9 +56,7 @@ def cas(c: dict):
             verdict = "CONFIRMED" if re.search(r"VERDICT:\s*CONFIRMED", t) else "REFUTED" if re.search(r"VERDICT:\s*REFUTED", t) else "?"
             if verdict == "REFUTED" and cle:
                 e = diffs.get(k, {})
-                p = jev.noul(cle, "OBJECTIF :\n" + e.get("objectif", "")[:1200] + "\n\nDIFF :\n" + e.get("diff", "")[:9000]
-                             + "\n\nREMARQUE DE RELECTURE :\n" + r,
-                             "Le changement ci-dessus contient-il réellement le défaut décrit par la remarque de relecture ?")
+                p = jev.plausibilite(cle, e.get("objectif", ""), e.get("diff", ""), r)
                 if p is not None and p >= a.seuil_jev:
                     verdict = "REPECHEE"
             return r, verdict, v.get("total_cost_usd") or 0

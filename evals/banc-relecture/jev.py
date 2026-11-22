@@ -43,6 +43,20 @@ def noul(cle_: str, etat: str, question: str) -> float | None:
     return (r or {}).get("q", {}).get("noul")
 
 
+PLAUSIBILITE = {"défaut réel": "La remarque décrit un défaut que le diff introduit vraiment, à l'endroit cité.",
+                "bruit": "La remarque est vague, hors sujet, contredite par le code ou l'objectif, ou ne relève que du style."}
+
+
+def plausibilite(cle_: str, objectif: str, diff: str, remarque: str) -> float | None:
+    """Probabilité « défaut réel » d'une remarque de relecture. Format retenu le 2026-11-22 sur 145 remarques étiquetées
+    (AUC 0,81) : `state` en chaîne avec le diff complet, `choice` à options DÉCRITES. Moins bons : `noul` (0,74), `state`
+    en objet à champs nommés (0,74), `score` (0,69), diff réduit aux fichiers cités (0,57). Version figée, pas l'alias."""
+    etat = "OBJECTIF :\n" + objectif[:1200] + "\n\nDIFF :\n" + diff[:9000] + "\n\nREMARQUE DE RELECTURE :\n" + remarque
+    r = demander(cle_, etat, {"q": {"type": "choice", "instructions": "Que vaut cette remarque de relecture pour ce changement ?",
+                                    "criteria": PLAUSIBILITE}}, modele="jev-1.14.0")
+    return ((r or {}).get("q", {}).get("probabilities") or {}).get("défaut réel")
+
+
 ANGLES = {
     "secu": "Ce changement touche-t-il un point de sécurité qui mérite une relecture dédiée : entrée externe, commande shell, chemin, réseau, secret, droits, taille ou mémoire ?",
     "archi": "Ce changement risque-t-il un écart à son objectif, un contrat ou une interface cassée, des appelants ou des docs devenus faux ?",
