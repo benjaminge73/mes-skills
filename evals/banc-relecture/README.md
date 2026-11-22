@@ -72,8 +72,11 @@ demi-remarque sur 11. Ses chiffres servent à **comparer des bras entre eux**, p
 - 24 cas, dont 4 de calibrage : un écart de quelques points n'est pas significatif.
 - Sur le Mac, les relecteurs ne rejouent pas les tests (pas de venv des dépôts) : un Haiku y coûte ≈ 1,3 dollar les
   24 cas, contre 2,71 sur le VPS.
-- Les relecteurs rejoués tournent en `bypassPermissions` dans un worktree jetable, sans Edit ni Write. Certains ont créé
-  des dossiers à côté de leur worktree, ou tenté un `pip install` : à surveiller, et `BANC_DONNEES/worktrees/` à vider
-  après un bras.
+- **Les relecteurs rejoués lisent du contenu non fiable** (code et briefs d'autres dépôts). Ils tournent donc sans
+  `bypassPermissions`, avec une liste blanche en lecture seule (`LECTURE` dans `banc.py` : Read, Grep, Glob, `git
+  show/diff/log/grep/status/rev-parse`, `ls`, `wc`) ; tout autre appel est refusé d'office en mode `-p`. Les mesures du
+  2026-11-22 ont été prises avant ce durcissement, en `bypassPermissions` : certains relecteurs avaient alors créé des
+  dossiers à côté de leur worktree, ou tenté un `pip install` (échec). Une campagne future se compare à elles sous
+  cette réserve.
 - Les remarques en plus d'un bras (≈ 3,6 par relecture pour la chaîne retenue) ont un coût en aval, pour qui les traite,
   que ce banc ne mesure pas.

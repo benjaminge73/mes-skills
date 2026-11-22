@@ -16,6 +16,10 @@ ICI = Path(__file__).resolve().parent
 DEPOT = ICI.parent.parent
 DONNEES = Path(os.environ.get("BANC_DONNEES", "~/.local/share/banc-relecture")).expanduser()
 RELECTEUR = DEPOT / "plugins" / "plans-notion" / "agents" / "relecteur.md"
+# Ce qu'un relecteur rejoué peut lancer : lire, chercher, et des commandes git ou shell sans effet de bord.
+# Pas de tests rejoués : un test exécute le code relu, donc du contenu non fiable.
+LECTURE = ["Read", "Grep", "Glob", "Bash(git show:*)", "Bash(git diff:*)", "Bash(git log:*)", "Bash(git grep:*)",
+           "Bash(git status:*)", "Bash(git rev-parse:*)", "Bash(ls:*)", "Bash(wc:*)"]
 
 
 def charger(nom: str):
@@ -34,9 +38,12 @@ def claude(prompt: str, *, cwd: str | Path = "/tmp", modele: str = "claude-haiku
     `--strict-mcp-config`) ; rend le JSON de sortie, ou {"erreur": ...}.
 
     `agent` : définition inline d'un sous-agent (consigne, modèle, effort) ; sinon modèle et outils directs.
-    Aucun outil d'écriture : Edit et Write sont toujours refusés."""
+    Les relecteurs lisent du code et des briefs venus d'autres dépôts : du contenu non fiable. Pas de
+    `bypassPermissions` donc, mais une liste blanche en lecture seule (`LECTURE`) ; en mode `-p`, tout autre appel est
+    refusé d'office, sans question. Aucun outil d'écriture : Edit, Write et NotebookEdit sont toujours refusés."""
     cmd = ["claude", "-p", "--setting-sources", "project", "--strict-mcp-config", "--output-format", "json",
-           "--permission-mode", "bypassPermissions", "--disallowedTools", "Edit,Write,NotebookEdit", "--max-turns", str(tours)]
+           "--permission-mode", "default", "--allowedTools", ",".join(LECTURE),
+           "--disallowedTools", "Edit,Write,NotebookEdit,WebFetch,WebSearch", "--max-turns", str(tours)]
     if agent:
         cmd += ["--agents", json.dumps({"relecteur-banc": agent}), "--agent", "relecteur-banc"]
     else:
