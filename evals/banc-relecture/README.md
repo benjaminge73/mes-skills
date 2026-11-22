@@ -73,8 +73,10 @@ demi-remarque sur 11. Ses chiffres servent à **comparer des bras entre eux**, p
 - Sur le Mac, les relecteurs ne rejouent pas les tests (pas de venv des dépôts) : un Haiku y coûte ≈ 1,3 dollar les
   24 cas, contre 2,71 sur le VPS.
 - **Les relecteurs rejoués lisent du contenu non fiable** (code et briefs d'autres dépôts). Ils tournent donc sans
-  `bypassPermissions`, avec une liste blanche en lecture seule (`LECTURE` dans `banc.py` : Read, Grep, Glob, `git
-  show/diff/log/grep/status/rev-parse`, `ls`, `wc`) ; tout autre appel est refusé d'office en mode `-p`. Les mesures du
+  `bypassPermissions` et **sans Bash** : seulement Read, Grep et Glob (`LECTURE` dans `banc.py`). Même un git en
+  lecture n'est pas sûr (`git grep -O <cmd>` exécute, `git log --output=<fichier>` écrit) : le diff et le journal de
+  la plage sont préparés à l'avance dans le worktree (`.banc/plage.diff`, `.banc/journal.txt`). Aucun test n'est
+  rejoué. Les mesures du
   2026-11-22 ont été prises avant ce durcissement, en `bypassPermissions` : certains relecteurs avaient alors créé des
   dossiers à côté de leur worktree, ou tenté un `pip install` (échec). Une campagne future se compare à elles sous
   cette réserve.

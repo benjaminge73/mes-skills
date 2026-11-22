@@ -23,8 +23,8 @@ EXTRACTION = ("Voici {n} rapports de relecture du MÊME changement. Extrais la l
               "déclarés non bloquants sans défaut. Réponds UNIQUEMENT par un JSON : "
               "{{\"remarques\": [\"<remarque autonome, ≤ 400 car., avec fichier:ligne et scénario s'ils sont donnés>\"]}}\n\n{rapports}")
 VERIFICATION = ("Tu vérifies UNE remarque de relecture sur ce dépôt (le worktree courant est au commit relu ; la plage relue est "
-                "{plage}). Objectif de l'étape : {obj}\n\nREMARQUE À VÉRIFIER :\n{txt}\n\nVa lire le code (Read, Grep, git "
-                "show/diff/log). Le défaut est-il réel dans ce code ? Cite la ou les lignes qui le prouvent (fichier:ligne + "
+                "{plage}). Objectif de l'étape : {obj}\n\nREMARQUE À VÉRIFIER :\n{txt}\n\nVa lire le code (Read, Grep, Glob ; "
+                "le diff de la plage est dans `.banc/plage.diff`, son journal dans `.banc/journal.txt`). Le défaut est-il réel dans ce code ? Cite la ou les lignes qui le prouvent (fichier:ligne + "
                 "extrait exact). Si tu ne peux pas citer de ligne qui prouve le défaut, ou si le code le contredit, il est "
                 "réfuté. Dernière ligne, seule : VERDICT: CONFIRMED ou VERDICT: REFUTED")
 
@@ -51,7 +51,7 @@ def cas(c: dict):
     with banc.Worktree(c, f"{a.sortie}-{k}") as wt:
         def verifier(r: str):
             v = banc.claude(VERIFICATION.format(plage=c["plage"], obj=banc.objectif(c, 1200), txt=r), cwd=wt,
-                            outils="Read,Grep,Glob,Bash", tours=15, delai=900)
+                            outils=",".join(banc.LECTURE), tours=15, delai=900)
             t = v.get("result") or ""
             verdict = "CONFIRMED" if re.search(r"VERDICT:\s*CONFIRMED", t) else "REFUTED" if re.search(r"VERDICT:\s*REFUTED", t) else "?"
             if verdict == "REFUTED" and cle:

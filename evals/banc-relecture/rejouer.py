@@ -32,7 +32,7 @@ if a.angle:
     ajout += "\n\n" + json.loads((banc.ICI / "angles.json").read_text())[a.angle]
 notes = banc.charger(a.notes) if a.notes else {}
 agent = {"description": "relecteur rejoué (banc)", "prompt": banc.corps_relecteur(), "model": a.modele,
-         "disallowedTools": ["Edit", "Write", "NotebookEdit"]}
+         "tools": banc.LECTURE}
 if a.effort != "-":
     agent["effort"] = a.effort
 sortie = banc.DONNEES / "sorties" / a.bras
@@ -48,7 +48,7 @@ def un(cas: dict):
         if depense[0] >= a.plafond:
             return k, "plafond"
     with banc.Worktree(cas, f"{a.bras}-{k}") as wt:
-        prompt = cas["prompt"].replace(cas["rep"], str(wt)) + (("\n\n" + ajout) if ajout else "")
+        prompt = cas["prompt"].replace(cas["rep"], str(wt)) + banc.NOTE_LECTURE + (("\n\n" + ajout) if ajout else "")
         if notes.get(k):
             prompt += "\n\n" + notes[k]
         d = banc.claude(prompt, cwd=wt, agent=agent, tours=60)

@@ -16,10 +16,13 @@ ICI = Path(__file__).resolve().parent
 DEPOT = ICI.parent.parent
 DONNEES = Path(os.environ.get("BANC_DONNEES", "~/.local/share/banc-relecture")).expanduser()
 RELECTEUR = DEPOT / "plugins" / "plans-notion" / "agents" / "relecteur.md"
-# Ce qu'un relecteur rejoué peut lancer : lire, chercher, et des commandes git ou shell sans effet de bord.
-# Pas de tests rejoués : un test exécute le code relu, donc du contenu non fiable.
-LECTURE = ["Read", "Grep", "Glob", "Bash(git show:*)", "Bash(git diff:*)", "Bash(git log:*)", "Bash(git grep:*)",
-           "Bash(git status:*)", "Bash(git rev-parse:*)", "Bash(ls:*)", "Bash(wc:*)"]
+# Ce qu'un relecteur rejoué peut faire : lire et chercher, rien d'autre. Pas de Bash du tout : même `git grep -O <cmd>`
+# ou `git log --output=<fichier>` exécutent ou écrivent. Le diff et le journal de la plage sont préparés à l'avance
+# dans le worktree (`.banc/`, voir Worktree) ; aucun test n'est rejoué (un test exécute le code relu).
+LECTURE = ["Read", "Grep", "Glob"]
+NOTE_LECTURE = ("\n\nCONDITIONS DE CE REJEU : tu n'as que Read, Grep et Glob (pas de Bash, donc ni git ni tests). "
+                "Le diff complet de la plage est dans `.banc/plage.diff` et son journal (`git log --stat`) dans "
+                "`.banc/journal.txt`, à la racine du worktree ; les fichiers du worktree sont à l'état du dernier commit relu.")
 
 
 def charger(nom: str):
@@ -74,12 +77,18 @@ class Worktree:
     def __init__(self, cas: dict, nom: str):
         self.git = DONNEES / "depots" / (Path(cas["base"]).name + ".git")
         self.chemin = DONNEES / "worktrees" / nom
-        self.fin = cas["fin"]
+        self.debut, self.fin = cas["debut"], cas["fin"]
 
     def __enter__(self) -> Path:
         self.chemin.parent.mkdir(parents=True, exist_ok=True)
         subprocess.run(["git", "--git-dir", str(self.git), "worktree", "add", "--detach", str(self.chemin), self.fin],
                        capture_output=True, check=True)
+        # Ce que le relecteur lisait avant par `git diff` et `git log`, préparé ici puisqu'il n'a plus Bash.
+        prep = self.chemin / ".banc"
+        prep.mkdir(exist_ok=True)
+        g = ["git", "--git-dir", str(self.git)]
+        (prep / "plage.diff").write_text(subprocess.run(g + ["diff", f"{self.debut}..{self.fin}"], capture_output=True, text=True).stdout)
+        (prep / "journal.txt").write_text(subprocess.run(g + ["log", "--stat", f"{self.debut}..{self.fin}"], capture_output=True, text=True).stdout)
         return self.chemin
 
     def __exit__(self, *exc):
