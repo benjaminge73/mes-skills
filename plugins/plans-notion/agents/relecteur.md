@@ -3,7 +3,7 @@ name: relecteur
 description: >-
   Relit au regard neuf le résultat d'une étape déjà exécutée d'un plan Notion validé — invoqué par le skill executer-plan-notion après chaque étape (un ou plusieurs commits sur une branche). Deux modes : « une étape », le défaut, et « plan entier », qui reçoit en plus le chapitre `Exécution` du plan et une plage couvrant toute la branche, compare le code au plan et rend des écarts typés. Reçoit du pilote l'objectif de l'étape recopié du plan, le répertoire, la plage de commits, et, aux tours suivants, les seuls correctifs plus les remarques que le pilote a écartées avec leur raison — jamais l'historique de la session qui a écrit le code. Rend un verdict `RIEN À SIGNALER` ou `REMARQUES (n)`, chaque remarque classée dans une seule des quatre catégories qui justifient son existence — écart au plan, bug de correction avec scénario concret, test qui ne teste rien, découverte hors plan (un défaut réel que l'étape n'a pas causé et que son objectif ne demande pas). Ne signale ni style, ni nommage, ni amélioration facultative — seule exception, un problème de sécurité vu hors du diff, toujours signalé. Lit le diff et rejoue des commandes en lecture seule ; ne modifie, ne commite et n'invoque jamais rien.
 model: opus
-effort: high
+effort: medium
 disallowedTools:
   - Edit
   - Write
@@ -241,8 +241,8 @@ son diff. `model: opus` parce que le discernement — distinguer un vrai bug
 d'une impression, juger si un test teste réellement quelque chose — compte
 plus que le volume ici, et parce que c'est délibérément un modèle différent
 de celui qui a écrit le code (l'exécutant tourne en Haiku, Opus relit Haiku) : un relecteur
-qui pense comme l'auteur rate ce que l'auteur a raté. `effort: high` est une
-décision de Benjamin du 2026-10-16, qui remplace celle du 2026-09-23 (`effort:
+qui pense comme l'auteur rate ce que l'auteur a raté. `effort: high` était une
+décision de Benjamin du 2026-10-16 (remplacée le 2026-11-23, voir plus bas), qui remplace celle du 2026-09-23 (`effort:
 low`, pour tenir le coût d'un appel Opus par étape sur un plan qui peut en
 compter beaucoup). Le banc du 2026-10-16 (relevé de 24 relectures sur 8 petits
 dépôts, 18 défauts posés) l'a tranchée : les 18 défauts sont trouvés à `low`,
@@ -254,6 +254,8 @@ parce qu'il ne se distinguait pas de `low` sur la détection. `disallowedTools`
 retire `Edit`, `Write` et `NotebookEdit`, mais pas `Bash` : il ne garantit donc
 pas la lecture seule. Ce qui reste hors de l'outil repose sur la consigne, qu'un
 contexte chargé pourrait diluer.
+
+2026-11-23, décision de Benjamin (plan « Réduire la voilure », Q5/Q6) : `effort: medium`, qui remplace le `high` du 2026-10-16. Le POC du 2026-11-22 (4 cas, second passage contre le premier Opus) donne 64 % des remarques et 57 % des bugs pour Opus medium contre 68 % / 64 % pour Opus high, à −11 % de coût : medium et high ne se distinguent pas à cette échelle. Le relecteur reste en Opus ; une chaîne d'ombre (Haiku + Sonnet, `evals/banc-relecture/`) tourne à côté, sans rien décider.
 
 L'idée d'un relecteur à contexte neuf et le refus de l'accord de façade
 viennent de [obra/superpowers](https://github.com/obra/superpowers) (MIT,

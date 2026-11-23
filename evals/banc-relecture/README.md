@@ -37,6 +37,7 @@ détaillés », sous le projet Mes Skills.
 | `rejouer.py` | joue un bras : modèle, effort, ajout de consigne (`--ajout checklist.txt`, `--angle secu`), notes de passe précédente |
 | `juge.py` | note un bras, ou l'union de plusieurs, contre `ref-opus.json` (Sonnet medium, texte seul) |
 | `chaine.py` | la chaîne retenue : N rapports → extraction et dédoublonnage → vérification de chaque remarque dans le code |
+| `ombre.py` | ombre d'une relecture réelle, à la volée : 3 Haiku high + checklist-v2 + chaîne, et un bras Sonnet medium compté à part. Usage : `ombre.py --id <id> --brief <brief> --rep <worktree> --depot <dépôt> --debut <sha> --fin <sha>` ; `--dry-run` imprime les cinq commandes sans appeler `claude` |
 | `jev.py` | Jev (TypeSafe System One) : aiguillage des angles, second avis sur une remarque |
 | `banc.py` | socle : emplacement des données, appel `claude -p` isolé, worktree jetable |
 | `checklist.txt`, `angles.json` | les consignes ajoutées au brief (checklist en 8 catégories, 4 angles du comité) |
@@ -95,3 +96,5 @@ demi-remarque sur 11. Ses chiffres servent à **comparer des bras entre eux**, p
   (`failIfUnavailable`).
 - Les remarques en plus d'un bras (≈ 3,6 par relecture pour la chaîne retenue) ont un coût en aval, pour qui les traite,
   que ce banc ne mesure pas.
+- 2026-11-23 : le bras Sonnet medium d'`ombre.py` mesure l'apport de Sonnet au-dessus de Haiku sur la même checklist
+  (`checklist-v2.txt`), compté à part de la chaîne. La bascule « chaîne à la place d'Opus » n'est pas faite.

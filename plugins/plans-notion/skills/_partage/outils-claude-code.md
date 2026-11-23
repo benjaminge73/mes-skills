@@ -287,7 +287,7 @@ relevé. Plans : Team et Enterprise, sur dépôts GitHub (page lue le 2026-10-16
 - Ne pas le tenir pour le `relecteur` de `plans-notion` : la page ne dit pas que Code Review
   reçoit l'objectif d'une étape, ce que le `relecteur` fait.
 
-**Repli** : le `relecteur` de `plans-notion` (agent Opus, effort `high`), qui ne dépend pas
+**Repli** : le `relecteur` de `plans-notion` (agent Opus, effort `medium`), qui ne dépend pas
 de ce service.
 
 ## Fiche — i-have-adhd (règles de forme des réponses, skill)
