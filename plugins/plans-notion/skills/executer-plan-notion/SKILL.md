@@ -51,8 +51,8 @@ au chargement, en une commande :
 bash "${CLAUDE_PLUGIN_ROOT}/skills/_partage/scripts/verifier-version.sh" "${CLAUDE_PLUGIN_ROOT}"
 ```
 
-Code 0 : à jour. Code 1 : écart de version ou de chemin (le message dit
-lequel). Code 2 : lecture impossible. Écart → le dire à Benjamin en une ligne,
+Code 0 : à jour. Code 1 : écart de version ou de chemin, ou copie installée en retard sur `main` (le message dit
+lequel) ; pour une copie en retard, `claude plugin marketplace update atelier` puis `claude plugin update plans-notion@atelier` (redémarrage requis), relire l'installPath n'y change rien. Code 2 : lecture impossible. Écart → le dire à Benjamin en une ligne,
 puis lire ce `SKILL.md` et `_partage/` depuis l'`installPath` d'`installed_plugins.json`
 (plugin `plans-notion@atelier`), pas depuis la copie chargée. Pour charger la
 plus récente : `claude plugin update plans-notion@atelier` (redémarrage

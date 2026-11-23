@@ -35,7 +35,7 @@ bash "${CLAUDE_PLUGIN_ROOT}/skills/_partage/scripts/verifier-version.sh" "${CLAU
 ```
 
 Code 0 : à jour. Code 1 : version ou chemin différents de l'`installPath` : le dire, puis
-lire ce skill depuis lui. Code 2 : lecture impossible, à dire.
+lire ce skill depuis lui. Copie en retard : geste de `plan-notion`. Code 2 : lecture impossible, à dire.
 
 ## 1. Envoyer les étapes
 

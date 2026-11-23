@@ -39,7 +39,7 @@ bash "${CLAUDE_PLUGIN_ROOT}/skills/_partage/scripts/verifier-version.sh" "${CLAU
 Code 0 : à jour. Code 1 : la version chargée (`plugin.json`) ou le chemin chargé
 (« Base directory for this skill », soit `${CLAUDE_PLUGIN_ROOT}`) diffère de
 l'`installPath` installé → le dire à Benjamin en une ligne, puis lire ce `SKILL.md`
-et `_partage/` depuis cet `installPath`, pas depuis la copie chargée. Code 2 :
+et `_partage/` depuis cet `installPath`, pas depuis la copie chargée. Copie installée en retard sur `main` (le message le dit) : `claude plugin marketplace update atelier` puis `claude plugin update plans-notion@atelier` (redémarrage requis), relire l'installPath n'y change rien. Code 2 :
 lecture impossible, à dire aussi. Pour charger la plus récente : `claude plugin update
 plans-notion@atelier` (redémarrage requis) ; en session cloud, le setup script pose
 déjà la dernière version publiée — jamais plus loin que ce que `main` du dépôt
