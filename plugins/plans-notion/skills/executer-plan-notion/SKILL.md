@@ -51,8 +51,8 @@ au chargement, en une commande :
 bash "${CLAUDE_PLUGIN_ROOT}/skills/_partage/scripts/verifier-version.sh" "${CLAUDE_PLUGIN_ROOT}"
 ```
 
-Code 0 : à jour. Code 1 : écart de version ou de chemin (le message dit
-lequel). Code 2 : lecture impossible. Écart → le dire à Benjamin en une ligne,
+Code 0 : à jour. Code 1 : écart de version ou de chemin, ou copie installée en retard sur `main` (le message dit
+lequel) ; pour une copie en retard, `claude plugin marketplace update atelier` puis `claude plugin update plans-notion@atelier` (redémarrage requis), relire l'installPath n'y change rien. Code 2 : lecture impossible. Écart → le dire à Benjamin en une ligne,
 puis lire ce `SKILL.md` et `_partage/` depuis l'`installPath` d'`installed_plugins.json`
 (plugin `plans-notion@atelier`), pas depuis la copie chargée. Pour charger la
 plus récente : `claude plugin update plans-notion@atelier` (redémarrage
@@ -302,9 +302,11 @@ demande** : c'est la CI qui merge. `Statut` = `execute` dans le tour où le
 merge est constaté sur `main`.
 
 📄 `${CLAUDE_PLUGIN_ROOT}/skills/executer-plan-notion/cloture.md` — **à lire à la clôture, et à chaque demande de PR ou de
-remontée sur `main`** : le détail de chaque point ci-dessus, la séquence de
-clôture complète, la section « La PR, puis la remontée sur `main` » et la
-ligne `Evals`.
+remontée sur `main`** : le noyau, qui donne l'ordre des points et renvoie aux trois fichiers lus quand la clôture y arrive.
+
+📄 `${CLAUDE_PLUGIN_ROOT}/skills/executer-plan-notion/cloture-reste-et-suite.md` — lu quand l'`État final` s'écrit, que le reste à faire se trie ou que le compte rendu se rédige.
+📄 `${CLAUDE_PLUGIN_ROOT}/skills/executer-plan-notion/cloture-doc.md` — lu quand la clôture en est à la preuve doc ou à la doc (Récap, Changelog, fiches, ligne `Doc :`).
+📄 `${CLAUDE_PLUGIN_ROOT}/skills/executer-plan-notion/cloture-pr-et-ci.md` — lu avant le push, pour la PR, la CI et la remontée sur `main`, avec la ligne `Evals`.
 
 ## 7. Le reste à faire, et le plan de suite
 

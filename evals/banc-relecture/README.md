@@ -1,7 +1,7 @@
 # Banc de relecture : peut-on relire aussi bien qu'Opus, pour bien moins cher ?
 
 Ce banc rejoue des relectures réelles du sous-agent `relecteur` (`plugins/plans-notion/agents/relecteur.md`, Opus 5.5
-effort high, ≈ 1,7 dollar l'appel) avec d'autres modèles, d'autres consignes et des chaînes d'agents, puis note chaque
+effort high jusqu'au 2026-11-23, medium depuis ; les relectures rejouées ici sont celles d'origine, en high, ≈ 1,7 dollar l'appel) avec d'autres modèles, d'autres consignes et des chaînes d'agents, puis note chaque
 bras contre la relecture Opus d'origine. Il est né du plan « Réduire la voilure » du 2026-11-22 : le relecteur était le
 premier sous-agent en coût (≈ 22 % de la dépense du VPS sur deux semaines). Les résultats sont dans
 [RESULTATS.md](RESULTATS.md) ; ils servent de base à la refonte de `plan-notion` et `executer-plan-notion`.
@@ -37,6 +37,7 @@ détaillés », sous le projet Mes Skills.
 | `rejouer.py` | joue un bras : modèle, effort, ajout de consigne (`--ajout checklist.txt`, `--angle secu`), notes de passe précédente |
 | `juge.py` | note un bras, ou l'union de plusieurs, contre `ref-opus.json` (Sonnet medium, texte seul) |
 | `chaine.py` | la chaîne retenue : N rapports → extraction et dédoublonnage → vérification de chaque remarque dans le code |
+| `ombre.py` | ombre d'une relecture réelle, à la volée : 3 Haiku high + checklist-v2 + chaîne, et un bras Sonnet medium compté à part. Usage : `ombre.py --id <id> --brief <brief> --rep <worktree> --depot <dépôt> --debut <sha> --fin <sha>` ; `--dry-run` imprime les cinq commandes sans appeler `claude` |
 | `jev.py` | Jev (TypeSafe System One) : aiguillage des angles, second avis sur une remarque |
 | `banc.py` | socle : emplacement des données, appel `claude -p` isolé, worktree jetable |
 | `checklist.txt`, `angles.json` | les consignes ajoutées au brief (checklist en 8 catégories, 4 angles du comité) |
@@ -95,3 +96,6 @@ demi-remarque sur 11. Ses chiffres servent à **comparer des bras entre eux**, p
   (`failIfUnavailable`).
 - Les remarques en plus d'un bras (≈ 3,6 par relecture pour la chaîne retenue) ont un coût en aval, pour qui les traite,
   que ce banc ne mesure pas.
+- 2026-11-23 : `ombre.py` joue la chaîne sans le repêchage Jev (`chaine.py` sans `--jev`) et sans `--bash-enferme` : elle est donc plus stricte que la chaîne de référence de `RESULTATS.md`. Le second avis `jev-1.14.0` se joue à part sur les remarques gardées (`jev.plausibilite`) ; à lire ainsi avant de comparer les deux semaines d'ombre.
+- 2026-11-23 : le bras Sonnet medium d'`ombre.py` mesure l'apport de Sonnet au-dessus de Haiku sur la même checklist
+  (`checklist-v2.txt`), compté à part de la chaîne. La bascule « chaîne à la place d'Opus » n'est pas faite.

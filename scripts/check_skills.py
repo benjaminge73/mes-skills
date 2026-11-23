@@ -99,6 +99,11 @@ Les règles, et le fait de doc qui fonde chacune (voir ``docs/veille.md``) :
     couvre le fichier jusqu'à ce plafond ; le cliquet l'empêche de monter, et la
     table ne peut que se vider. Une exception dont le fichier passe sous le seuil,
     ou n'est plus soumis, est périmée et refusée.
+    Extension de la règle (q) : un fichier Markdown de plugin qu'un ``SKILL.md``
+    désigne comme à lire (renvoi ``📄 `${CLAUDE_PLUGIN_ROOT}/…` ``) tient sous
+    25 000 **octets** (``len(texte.encode())``), sauf exception datée
+    (``taille_fichier_lu`` de ``scripts/limites.json``, plafond = taille du jour).
+    Le texte lu en route se paie à chaque passage d'une exécution, d'où ce seuil.
 
 Exceptions datées
 -----------------
@@ -145,6 +150,9 @@ CHAMPS_D_UNE_EXCEPTION = ("regle", "cible", "date", "raison", "levee_par")
 PLAFOND_CARACTERES_SKILL = 25_000
 PLAFOND_CARACTERES_PARTAGE = 30_000
 CHAMPS_D_UNE_EXCEPTION_BUDGET = ("date", "raison", "levee_par")
+PLAFOND_OCTETS_FICHIER_LU = 25_000
+CHAMPS_D_UNE_EXCEPTION_LU = ("date", "raison", "levee_par")
+_RENVOI_LU = re.compile(r"📄 `\$\{CLAUDE_PLUGIN_ROOT\}/([^`\s]+)`")
 
 
 class BaseIndisponible(RuntimeError):
@@ -880,6 +888,87 @@ def _regle_q(racine: Path, limites: dict,
 
 
 # --------------------------------------------------------------------------
+# Fichiers lus en route (règle q, extension)
+# --------------------------------------------------------------------------
+
+def _fichiers_lus(racine: Path) -> list[Path]:
+    """Les fichiers Markdown de plugin qu'un ``SKILL.md`` désigne par un renvoi « 📄 ».
+
+    Dédoublonnés, triés. Un renvoi vers un fichier absent n'est pas ici (le garde des
+    renvois, ``check_references.py``, le refuse). Un renvoi vers un ``.py`` ou un ``.sh``
+    n'est pas du texte lu en route : il est écarté.
+    """
+    trouves: set[Path] = set()
+    for plugin in _plugins(racine):
+        for skill in plugin.glob("skills/*/SKILL.md"):
+            for relatif in _RENVOI_LU.findall(skill.read_text(encoding="utf-8")):
+                cible = plugin / relatif
+                if cible.suffix == ".md" and cible.is_file():
+                    trouves.add(cible)
+    return sorted(trouves)
+
+
+def _regle_q_lus(racine: Path, limites: dict,
+                 sans_exceptions: bool = False) -> tuple[list[Anomalie], list[tuple[Anomalie, dict]]]:
+    """Fichiers lus en route (règle q, extension) : rend ``(refus, excusees)``.
+
+    Même patron que ``_regle_q`` : une exception datée (``taille_fichier_lu.exceptions``, une
+    par fichier) couvre le fichier jusqu'à son ``plafond`` en octets ; elle doit dire ``date``,
+    ``raison`` et ``levee_par``. Elle est périmée si le fichier tient sous le seuil ou n'est
+    plus désigné par un SKILL.md. ``sans_exceptions`` juge chaque fichier au seuil.
+    """
+    lus = limites.get("taille_fichier_lu", {})
+    seuil = lus.get("plafond_octets", PLAFOND_OCTETS_FICHIER_LU)
+    exceptions: dict = {} if sans_exceptions else lus.get("exceptions", {})
+    refus: list[Anomalie] = []
+    excusees: list[tuple[Anomalie, dict]] = []
+    vues: set[str] = set()
+
+    for chemin in _fichiers_lus(racine):
+        cible = _rel(racine, chemin)
+        vues.add(cible)
+        octets = len(chemin.read_bytes())
+        exc = exceptions.get(cible)
+        if exc is not None:
+            manquants = [c for c in CHAMPS_D_UNE_EXCEPTION_LU if not exc.get(c)]
+            if manquants or not isinstance(exc.get("plafond"), int):
+                refus.append(Anomalie("q", cible, (
+                    "exception incomplète dans scripts/limites.json (`taille_fichier_lu`) : il manque "
+                    + ", ".join(manquants or ["plafond (un entier)"]) + ". Une exception dit sa "
+                    "date, sa raison et l'étape qui la lève.")))
+                continue  # une seule anomalie par fichier : l'exception incomplète ne couvre rien
+        if octets <= seuil:
+            if exc is not None:
+                refus.append(Anomalie("q", cible, (
+                    "exception datée périmée : le fichier tient sous son seuil "
+                    f"({_milliers(octets)} octets). La retirer de scripts/limites.json "
+                    "(`taille_fichier_lu`).")))
+            continue
+        if exc is None:
+            refus.append(Anomalie("q", cible, (
+                f"{_milliers(octets)} octets, au-dessus du plafond de {_milliers(seuil)} : fichier "
+                "lu en route par un SKILL.md, payé à chaque passage d'une exécution. Le découper "
+                "(la partie lue à chaque passage reste ici, le détail va ailleurs). Une exception "
+                "datée dans scripts/limites.json (`taille_fichier_lu`) ne sert que de passif "
+                "connu, et son plafond ne peut que baisser.")))
+        elif octets > exc["plafond"]:
+            refus.append(Anomalie("q", cible, (
+                f"{_milliers(octets)} octets, au-dessus du plafond d'exception de "
+                f"{_milliers(exc['plafond'])} posé dans scripts/limites.json : une exception ne "
+                "laisse pas grossir le fichier. Le découper.")))
+        else:
+            excusees.append((Anomalie("q", cible, (
+                f"{_milliers(octets)} octets, au-dessus de {_milliers(seuil)} : couvert par "
+                f"l'exception datée jusqu'à {_milliers(exc['plafond'])}.")), exc))
+
+    for cible in sorted(set(exceptions) - vues):
+        refus.append(Anomalie("q", cible, (
+            "exception datée périmée : ce fichier n'est plus désigné à lire par un SKILL.md "
+            "(absent, ou renvoi retiré). La retirer de scripts/limites.json (`taille_fichier_lu`).")))
+    return refus, excusees
+
+
+# --------------------------------------------------------------------------
 # Contrôle d'ensemble, exceptions, cliquet, registre
 # --------------------------------------------------------------------------
 
@@ -945,6 +1034,9 @@ def controler(racine: Path, limites: dict, sans_exceptions: bool = False) -> Res
     budget_refus, budget_excusees = _regle_q(racine, limites, sans_exceptions)
     resultat.refus += budget_refus
     resultat.excusees += budget_excusees
+    lus_refus, lus_excusees = _regle_q_lus(racine, limites, sans_exceptions)
+    resultat.refus += lus_refus
+    resultat.excusees += lus_excusees
     return resultat
 
 
@@ -1004,6 +1096,36 @@ def verifier_cliquet(limites: dict, limites_base: dict | None) -> list[Anomalie]
                     f"plafond d'exception relevé de {anciennes[fichier].get('caracteres')} à "
                     f"{nouvelle.get('caracteres')} caractères dans limites.json : un plafond ne peut "
                     "que baisser. Découper le fichier au lieu de relever le plafond.")))
+    # Fichiers lus en route (règle q, extension) : même patron que budget_caracteres. Le plafond
+    # par défaut et le plafond de chaque exception ne montent pas ; une exception neuve ne
+    # s'ajoute pas une fois la clé en base ; la clé ne disparaît pas. Absente de la base, elle
+    # entre avec cette PR (intérim).
+    lus_base = limites_base.get("taille_fichier_lu")
+    if lus_base is not None:
+        lus = limites.get("taille_fichier_lu")
+        if lus is None:
+            anomalies.append(Anomalie("q", "scripts/limites.json", (
+                "la clé `taille_fichier_lu` a disparu de scripts/limites.json alors que la base "
+                "la porte : retirer la table revient à l'effacer sans la vider. La remettre, avec "
+                "`exceptions` à `{}` si elle est vide.")))
+        else:
+            if lus.get("plafond_octets", math.inf) > lus_base.get("plafond_octets", math.inf):
+                anomalies.append(Anomalie("q", "scripts/limites.json", (
+                    f"plafond des fichiers lus relevé de {lus_base.get('plafond_octets')} à "
+                    f"{lus.get('plafond_octets')} octets dans limites.json : un plafond ne peut que "
+                    "baisser. Découper le fichier au lieu de relever le plafond.")))
+            anciennes = lus_base.get("exceptions", {})
+            for fichier, nouvelle in lus.get("exceptions", {}).items():
+                if fichier not in anciennes:
+                    anomalies.append(Anomalie("q", fichier, (
+                        "exception nouvelle dans scripts/limites.json (`taille_fichier_lu`) : depuis "
+                        "la base, cette table ne fait que se vider. Découper le fichier au lieu de "
+                        "l'exempter.")))
+                elif nouvelle.get("plafond", math.inf) > anciennes[fichier].get("plafond", math.inf):
+                    anomalies.append(Anomalie("q", fichier, (
+                        f"plafond d'exception relevé de {anciennes[fichier].get('plafond')} à "
+                        f"{nouvelle.get('plafond')} octets dans limites.json : un plafond ne peut "
+                        "que baisser. Découper le fichier au lieu de relever le plafond.")))
     ancien = limites_base.get("veille_jours_max")
     nouveau = limites.get("veille_jours_max")
     if ancien is not None and (nouveau is None or nouveau > ancien):

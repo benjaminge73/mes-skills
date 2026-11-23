@@ -63,7 +63,7 @@ Séquence, dans l'ordre :
      Benjamin plutôt que d'ouvrir en silence : c'est un trou dans la CI, pas un
      détail à contourner.
    - **Un trou e2e non couvert par la CI du dépôt** se pose à Benjamin **avant**
-     d'ouvrir, avec les trois réponses de `cloture.md` (ouvrir prête quand même,
+     d'ouvrir, avec les trois réponses de `cloture-pr-et-ci.md` (ouvrir prête quand même,
      ouvrir en brouillon, attendre). Sans PR, `PR` reste vide et la page reste à
      `a merger`.
    - `PR` renseignée sur la page dès l'ouverture, puis `plan-en-cours.py pr --numero <n>` :

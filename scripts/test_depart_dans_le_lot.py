@@ -10,6 +10,15 @@ from pathlib import Path
 RACINE = Path(__file__).resolve().parent.parent
 SKILLS = RACINE / "plugins" / "plans-notion" / "skills"
 SCRIPT = SKILLS / "_partage" / "scripts" / "depart-dans-le-lot.py"
+CLOTURE_FICHIERS = ("cloture.md", "cloture-doc.md", "cloture-pr-et-ci.md", "cloture-reste-et-suite.md")
+
+
+def lire_skill(chemin: str) -> str:
+    """Texte d'un fichier de skill. La clôture se lit entière : noyau et trois fichiers de détail (dde926e)."""
+    if chemin == "executer-plan-notion/cloture.md":
+        dossier = SKILLS / "executer-plan-notion"
+        return "\n".join((dossier / f).read_text(encoding="utf-8") for f in CLOTURE_FICHIERS)
+    return (SKILLS / chemin).read_text(encoding="utf-8")
 
 MAITRE = """# [Plan maître] demo - Trois plans
 
@@ -109,7 +118,7 @@ class DepartDansLeLot(unittest.TestCase):
                                 ("executer-plan-notion/cloture.md", "sans quitter la PR"),
                                 ("executer-plan-notion/SKILL.md", "suit la PR jusqu'au merge")):
             with self.subTest(fichier=chemin):
-                texte = " ".join((SKILLS / chemin).read_text(encoding="utf-8").split())
+                texte = " ".join(lire_skill(chemin).split())
                 self.assertIn(attendu, texte)
 
     def test_le_maitre_se_reverifie_quand_le_contenu_d_un_plan_change(self):

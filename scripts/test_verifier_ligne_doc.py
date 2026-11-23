@@ -23,6 +23,13 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "plugins/plans-notion/skills/_partage/scripts/verifier-ligne-doc.py"
+CLOTURE_DIR = ROOT / "plugins/plans-notion/skills/executer-plan-notion"
+CLOTURE_FICHIERS = ("cloture.md", "cloture-doc.md", "cloture-pr-et-ci.md", "cloture-reste-et-suite.md")
+
+
+def lire_cloture() -> str:
+    """Texte entier de la clôture : le noyau et ses trois fichiers de détail (dde926e)."""
+    return "\n".join((CLOTURE_DIR / f).read_text(encoding="utf-8") for f in CLOTURE_FICHIERS)
 
 GARDE_JOUET = """import os, sys
 corps = os.environ["PR_BODY"]
@@ -94,8 +101,7 @@ class VraieGarde(unittest.TestCase):
 
 class Cablage(unittest.TestCase):
     def test_la_cloture_joue_le_script_avant_gh_pr_ready(self):
-        cloture = " ".join((ROOT / "plugins/plans-notion/skills/executer-plan-notion/cloture.md")
-                           .read_text(encoding="utf-8").split())
+        cloture = " ".join(lire_cloture().split())
         self.assertIn("verifier-ligne-doc.py", cloture)
         self.assertLess(cloture.index("verifier-ligne-doc.py"), cloture.index("gh pr ready <n>"))
 

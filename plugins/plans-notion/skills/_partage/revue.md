@@ -58,7 +58,7 @@ exactement celui du 2026-09-23 ; seul le second est nouveau.
 Un appel `Agent` avec `subagent_type: "plans-notion:relecteur"` — nom
 qualifié, le nom court ne résout pas, comme pour `plans-notion:executant`
 (§3 du skill). **Sans paramètre `model`** : le frontmatter de l'agent porte
-`opus` et `effort: high`, et c'est le même principe que pour l'exécutant — le
+`opus` et `effort: medium`, et c'est le même principe que pour l'exécutant — le
 modèle garanti par construction plutôt que par une discipline d'appel.
 
 Le brief du relecteur, et rien de plus :
@@ -172,16 +172,19 @@ puce Effets.
 
 ## Coût assumé
 
-Un appel Opus effort `high` par étape marquée `étape` et par lot, plus un par
+Un appel Opus effort `medium` par étape marquée `étape` et par lot, plus un par
 tour de correction, plus un pour le plan entier — décisions de Benjamin du
 2026-09-23 et du 2026-09-30 pour
 le régime, et du 2026-10-16 pour l'effort `high` (il remplace le `low` posé le
-2026-09-23).
+2026-09-23), et du 2026-11-23 pour l'effort `medium` (il remplace le `high` posé
+le 2026-10-16).
 Avant ce fichier, le pilote ne rejouait que des tests, jamais un
 regard neuf sur le diff : c'est exactement la dérive que superpowers
 `executing-plans` met en garde — « Do not skip it, and do not replace it with
 your own read of the diff » — un pilote qui a écrit ou brief l'étape partage
 les angles morts de celui qui l'a écrite.
+
+L'ombre de relecture (`evals/banc-relecture/ombre.py`) tourne à côté de chaque relecture d'étape tant que le plan le décide : trois Haiku high avec la checklist v2, la chaîne retenue sur leurs rapports, et un bras Sonnet medium compté à part. Le pilote ne traite que les remarques d'Opus ; celles de l'ombre sont seulement comparées.
 
 ## Les étapes sans code
 

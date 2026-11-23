@@ -1390,6 +1390,151 @@ class CliquetDuBudget(unittest.TestCase):
         self.assertEqual([a.regle for a in check_skills.verifier_cliquet(nouveau, ancien)], ["q"])
 
 
+class FichierLuEnRoute(Depot):
+    """Règle (q), extension : un fichier Markdown qu'un SKILL.md désigne comme à lire (renvoi
+    ``📄 `${CLAUDE_PLUGIN_ROOT}/…` ``) tient sous 25 000 octets, sauf exception datée
+    (``taille_fichier_lu`` de ``scripts/limites.json``) qui le couvre jusqu'à son plafond.
+
+    Pannes attrapées : un fichier lu de 30 000 octets qui passe sans que personne le voie, un
+    seuil mesuré en caractères (14 000 « é » font 28 000 octets), une exception qui laisse grossir
+    le fichier, une exception qui survit au passage sous le seuil, une exception sans ``levee_par``,
+    une exception qui n'est pas retirée avec ``--sans-exceptions``, et un fichier non Markdown ou
+    non désigné jugé à tort.
+    """
+    LU = "plugins/p/skills/s/lu.md"
+    RENVOI = "📄 `${CLAUDE_PLUGIN_ROOT}/skills/s/lu.md` : à lire à la première étape.\n"
+
+    def lu_texte(self, texte: str) -> None:
+        _manifeste(self.racine, "p")
+        _skill(self.racine, "p", "s", corps=self.RENVOI)
+        _ecrire(self.racine / self.LU, texte)
+
+    def lu_de(self, octets: int) -> None:
+        self.lu_texte("x" * octets)
+
+    def table_sur(self, chemin: str, plafond: int, **plus) -> dict:
+        exc = {"plafond": plafond, "date": "2026-11-23",
+               "raison": "lu en route, à découper dans un plan suivant", "levee_par": "plan suivant"}
+        exc.update(plus)
+        return {"plafond_octets": 25_000, "exceptions": {chemin: exc}}
+
+    def refus_lu(self, limites=None, **kw) -> list:
+        return [a for a in self.controler(limites, **kw).refus if a.regle == "q"]
+
+    def test_un_fichier_lu_de_30000_octets_sans_exception_est_refuse_et_nomme(self):
+        self.lu_de(30_000)
+        refus = self.refus_lu()
+        self.assertEqual([a.cible for a in refus], [self.LU])
+        self.assertIn("25 000", refus[0].message)
+
+    def test_un_fichier_lu_de_24000_octets_passe(self):
+        # Vert avant le code : le seuil ne doit pas refuser un fichier qui y tient.
+        self.lu_de(24_000)
+        self.assertEqual(self.refus_lu(), [])
+
+    def test_le_seuil_se_mesure_en_octets_et_non_en_caracteres(self):
+        # 14 000 « é » : 14 000 caractères, 28 000 octets. Au-dessus du seuil en octets seulement.
+        self.lu_texte("é" * 14_000)
+        self.assertEqual([a.cible for a in self.refus_lu()], [self.LU])
+
+    def test_une_exception_couvre_un_fichier_lu_jusqu_a_son_plafond(self):
+        self.lu_de(30_000)
+        res = self.controler(_limites(self.racine, taille_fichier_lu=self.table_sur(self.LU, 30_000)))
+        self.assertEqual([a for a in res.refus if a.regle == "q"], [])
+        excusees = [(a, exc) for a, exc in res.excusees if a.regle == "q"]
+        self.assertEqual([a.cible for a, _ in excusees], [self.LU])
+        self.assertEqual(excusees[0][1]["levee_par"], "plan suivant")
+
+    def test_une_exception_ne_laisse_pas_grossir_le_fichier_lu_au_dela_de_son_plafond(self):
+        self.lu_de(30_001)
+        refus = self.refus_lu(_limites(self.racine, taille_fichier_lu=self.table_sur(self.LU, 30_000)))
+        self.assertEqual([a.cible for a in refus], [self.LU])
+
+    def test_une_exception_dont_le_fichier_repasse_sous_le_seuil_est_perimee(self):
+        self.lu_de(24_000)
+        refus = self.refus_lu(_limites(self.racine, taille_fichier_lu=self.table_sur(self.LU, 30_000)))
+        self.assertEqual(len(refus), 1)
+        self.assertIn("périmée", refus[0].message)
+
+    def test_une_exception_sans_levee_par_ne_couvre_rien(self):
+        self.lu_de(30_000)
+        table = self.table_sur(self.LU, 30_000)
+        del table["exceptions"][self.LU]["levee_par"]
+        refus = self.refus_lu(_limites(self.racine, taille_fichier_lu=table))
+        self.assertEqual([a.cible for a in refus], [self.LU])
+
+    def test_sans_exceptions_le_fichier_lu_redevient_bloquant(self):
+        self.lu_de(30_000)
+        res = self.controler(_limites(self.racine, taille_fichier_lu=self.table_sur(self.LU, 30_000)),
+                             sans_exceptions=True)
+        self.assertEqual([a.cible for a in res.refus if a.regle == "q"], [self.LU])
+        self.assertEqual([a for a, _ in res.excusees if a.regle == "q"], [])
+
+    def test_un_script_designe_par_un_renvoi_est_ignore(self):
+        # Un .py désigné n'est pas du texte lu en route : la règle ne le mesure pas.
+        _manifeste(self.racine, "p")
+        _skill(self.racine, "p", "s", corps="📄 `${CLAUDE_PLUGIN_ROOT}/skills/s/outil.py`\n")
+        _ecrire(self.racine / "plugins/p/skills/s/outil.py", "x" * 30_000)
+        self.assertEqual(self.refus_lu(), [])
+
+    def test_un_fichier_de_plugin_non_designe_n_est_pas_juge(self):
+        _manifeste(self.racine, "p")
+        _skill(self.racine, "p", "s")
+        _ecrire(self.racine / "plugins/p/skills/s/orphelin.md", "x" * 30_000)
+        self.assertEqual(self.refus_lu(), [])
+
+    def test_le_depot_reel_respecte_la_regle_des_fichiers_lus(self):
+        racine = Path(__file__).resolve().parents[1]
+        limites = json.loads((racine / "scripts" / "limites.json").read_text("utf-8"))
+        res = check_skills.controler(racine, limites)
+        self.assertEqual([a for a in res.refus if a.regle == "q"], [])
+
+
+class CliquetFichierLu(unittest.TestCase):
+    """Le cliquet tient la règle des fichiers lus : le plafond par défaut ne monte pas, le plafond
+    d'une exception ne monte pas, une exception neuve ne s'ajoute pas une fois la table en base,
+    et la clé ne disparaît pas."""
+    CHEMIN = "plugins/p/skills/s/lu.md"
+
+    def base(self, plafond_octets=25_000, exceptions=None):
+        return {"taille_fichier_lu": {"plafond_octets": plafond_octets,
+                                      "exceptions": exceptions or {}},
+                "veille_jours_max": 30}
+
+    def exception(self, plafond):
+        return {"plafond": plafond, "date": "2026-11-23", "raison": "lu en route",
+                "levee_par": "plan suivant"}
+
+    def test_le_plafond_par_defaut_ne_monte_pas(self):
+        anomalies = check_skills.verifier_cliquet(self.base(plafond_octets=26_000), self.base())
+        self.assertEqual([a.regle for a in anomalies], ["q"])
+
+    def test_le_plafond_d_une_exception_ne_monte_pas(self):
+        ancien = self.base(exceptions={self.CHEMIN: self.exception(31_000)})
+        nouveau = self.base(exceptions={self.CHEMIN: self.exception(31_001)})
+        self.assertEqual([a.regle for a in check_skills.verifier_cliquet(nouveau, ancien)], ["q"])
+
+    def test_une_exception_ajoutee_alors_que_la_base_a_la_table_est_refusee(self):
+        nouveau = self.base(exceptions={self.CHEMIN: self.exception(31_000)})
+        self.assertEqual([a.regle for a in check_skills.verifier_cliquet(nouveau, self.base())], ["q"])
+
+    def test_la_table_introduite_par_la_pr_est_acceptee(self):
+        # Intérim : la base d'avant cette règle n'a pas la clé, sa première version passe.
+        nouveau = self.base(exceptions={self.CHEMIN: self.exception(31_000)})
+        self.assertEqual(check_skills.verifier_cliquet(nouveau, {"veille_jours_max": 30}), [])
+
+    def test_une_exception_retiree_et_une_baisse_de_plafond_sont_acceptees(self):
+        ancien = self.base(exceptions={self.CHEMIN: self.exception(31_000)})
+        self.assertEqual(check_skills.verifier_cliquet(self.base(), ancien), [])
+        moins = self.base(exceptions={self.CHEMIN: self.exception(30_000)})
+        self.assertEqual(check_skills.verifier_cliquet(moins, ancien), [])
+
+    def test_la_cle_retiree_alors_que_la_base_la_porte_est_refusee(self):
+        # Retirer la clé relèverait la table à l'infini, comme pour budget_caracteres.
+        self.assertEqual([a.regle for a in check_skills.verifier_cliquet(
+            {"veille_jours_max": 30}, self.base())], ["q"])
+
+
 class LireFrontmatter(unittest.TestCase):
     def test_scalaire_liste_bloc_et_flux(self):
         texte = ("---\nname: a\ndescription: >-\n  premiere\n  seconde\n"
