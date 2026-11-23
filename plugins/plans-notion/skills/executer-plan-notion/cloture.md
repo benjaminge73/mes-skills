@@ -53,7 +53,7 @@ Dans le **même tour** que le compte rendu à Benjamin, jamais « plus tard »
 Ordre de la clôture, point par point : chaque ligne donne le point, ce qu'il fait, et le fichier qui porte son texte.
 
 - **Dans le même tour, suite de la liste** : `Journal d'exécution` clos par `État final`, compte rendu du chat, « Côté technique » → `cloture-reste-et-suite.md` ; **Doc vivante** → `cloture-doc.md`.
-- **Avant le point 1** : trier le reste à faire, avant la suite complète → `cloture-reste-et-suite.md`. Une étape **déjà validée** et confiée à Hal (« déjà validé ») se transmet à Hal, sans question à Benjamin : `demander-a-hal.md` (§ 2 bis).
+- **Avant le point 1** : trier le reste à faire, avant la suite complète → `cloture-reste-et-suite.md`. Une étape **déjà validée** et confiée à Hal (« déjà validé ») se transmet à Hal, sans question à Benjamin : `${CLAUDE_PLUGIN_ROOT}/skills/_partage/demander-a-hal.md` (§ 2 bis).
 - **Le point 1** : suite complète jouée en local, e2e compris (verdict de fin de plan) → `cloture-pr-et-ci.md`.
 - **Le point 2** : allègement des `CLAUDE.md` trop longs, sans demander → `cloture-pr-et-ci.md`.
 - **Le point 2 bis** : preuve doc (`qualite-doc.py`), avant le push → `cloture-doc.md`.
