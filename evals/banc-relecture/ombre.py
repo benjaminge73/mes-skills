@@ -20,6 +20,10 @@ Sorties : `<sortie>/ombre-<id>.json` (défaut : $BANC_DONNEES/ombres/), et les s
 $BANC_DONNEES/sorties/ombre-<id>-*/. Un bras déjà joué pour cet id est repris sans être repayé, comme rejouer.py :
 relancer avec le même id ne refait pas les relectures existantes.
 
+Sans Jev dans la chaîne : `chaine.py` est appelé sans `--jev`, donc aucune remarque réfutée par Haiku n'est repêchée par le
+second avis. La chaîne mesurée ici est plus stricte que la référence de RESULTATS.md (v2 × 3 + `chaine.py` + Jev) ; le second
+avis `jev-1.14.0` se joue à part, sur les remarques gardées (`jev.plausibilite`), et se consigne à côté du tableau d'ombre.
+
 Sans Bash : les relectures de l'ombre n'ont que Read, Grep et Glob (pas de `--bash-enferme`), comme le banc.
 Le bilan compte les remarques Sonnet : son en-tête `REMARQUES (n)` s'il est là, sinon les lignes commençant
 par une puce ou un numéro.
