@@ -14,6 +14,8 @@ Usage :
   ombre.py --id <id> --brief <fichier du brief> --rep <worktree cité dans le brief> --depot <dépôt git>
            --debut <sha> --fin <sha> [--sortie <dossier>] [--plafond 3] [--dry-run]
 
+--plafond : garde-fou de rejouer.py, sans effet sur un cas unique : la dépense réelle est dans le bilan imprimé.
+
 Sorties : `<sortie>/ombre-<id>.json` (défaut : $BANC_DONNEES/ombres/), et les sorties brutes des bras dans
 $BANC_DONNEES/sorties/ombre-<id>-*/. Un bras déjà joué pour cet id est repris sans être repayé, comme rejouer.py :
 relancer avec le même id ne refait pas les relectures existantes.
@@ -43,7 +45,7 @@ ap.add_argument("--depot", required=True, help="chemin du dépôt git")
 ap.add_argument("--debut", required=True, help="sha de début de la plage relue (exclu)")
 ap.add_argument("--fin", required=True, help="sha de fin de la plage relue (inclus)")
 ap.add_argument("--sortie", help="dossier de l'ombre-<id>.json (défaut : $BANC_DONNEES/ombres)")
-ap.add_argument("--plafond", type=float, default=3, help="plafond en dollars, par bras")
+ap.add_argument("--plafond", type=float, default=3, help="garde-fou de rejouer.py, sans effet sur un cas unique : la dépense réelle est dans le bilan imprimé")
 ap.add_argument("--dry-run", action="store_true", help="prépare le clone et le cas, imprime les commandes, n'appelle pas claude")
 a = ap.parse_args()
 

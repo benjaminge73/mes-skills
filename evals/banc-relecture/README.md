@@ -1,7 +1,7 @@
 # Banc de relecture : peut-on relire aussi bien qu'Opus, pour bien moins cher ?
 
 Ce banc rejoue des relectures réelles du sous-agent `relecteur` (`plugins/plans-notion/agents/relecteur.md`, Opus 5.5
-effort high, ≈ 1,7 dollar l'appel) avec d'autres modèles, d'autres consignes et des chaînes d'agents, puis note chaque
+effort high jusqu'au 2026-11-23, medium depuis ; les relectures rejouées ici sont celles d'origine, en high, ≈ 1,7 dollar l'appel) avec d'autres modèles, d'autres consignes et des chaînes d'agents, puis note chaque
 bras contre la relecture Opus d'origine. Il est né du plan « Réduire la voilure » du 2026-11-22 : le relecteur était le
 premier sous-agent en coût (≈ 22 % de la dépense du VPS sur deux semaines). Les résultats sont dans
 [RESULTATS.md](RESULTATS.md) ; ils servent de base à la refonte de `plan-notion` et `executer-plan-notion`.
