@@ -2,6 +2,8 @@
 
 Détail du §6 (`cloture.md`, noyau) : lu quand la clôture en est aux points 1 à 6 (suite complète, allègement des `CLAUDE.md`, relecture, porte, push, PR, contrôle bloquant), au point 8 (suivi de la CI), ou à une demande de PR ou de remontée sur `main` (section « La PR, puis la remontée sur `main` »). Texte repris tel quel, sans réécriture.
 
+Ordre de la clôture (qui suit qui) : `cloture-reste-et-suite.md` (tri, avant le point 1) → `cloture-pr-et-ci.md` (points 1 à 2) → `cloture-doc.md` (point 2 bis) → `cloture-pr-et-ci.md` (points 2 ter à 6) → `cloture-doc.md` (point 7) → `cloture-reste-et-suite.md` (garde des restes, puis `a merger`) → `cloture-pr-et-ci.md` (point 8). Un « point N » cité sans nom de fichier se trouve dans le fichier que `cloture.md` lui assigne.
+
 - **Livrer la PR, prête, et la suivre jusqu'au merge.** La PR s'ouvre à la
   clôture ; c'est la CI qui la merge, jamais la session (points 5 et 8). La
   séquence de clôture est courte :
@@ -47,6 +49,8 @@ Détail du §6 (`cloture.md`, noyau) : lu quand la clôture en est aux points 1 
      - **Résultat** : une ligne à l'entrée `État final`, par fichier concerné,
        avec la taille avant, la taille après et les destinations créées — ou,
        si rien n'a dépassé, `CLAUDE.md : sous les plafonds, aucun allègement`.
+
+     Le point 2 bis (preuve doc, `qualite-doc.py`) est dans `cloture-doc.md` : il se joue après ce point 2, avant le point 2 ter.
 
   2 ter. **Relecture du plan entier, après la suite complète et avant la porte.**
      Un appel `Agent` avec `subagent_type: "plans-notion:relecteur"` (sans
@@ -153,6 +157,10 @@ Détail du §6 (`cloture.md`, noyau) : lu quand la clôture en est aux points 1 
      dans l'entrée `État final`.
 
      📄 `${CLAUDE_PLUGIN_ROOT}/skills/_partage/vagues.md`
+
+     Le point 7 (Récap, ligne `Doc :`, `gh pr ready`) est dans :
+     📄 `${CLAUDE_PLUGIN_ROOT}/skills/executer-plan-notion/cloture-doc.md`, puis son garde des restes et le passage à `a merger` dans :
+     📄 `${CLAUDE_PLUGIN_ROOT}/skills/executer-plan-notion/cloture-reste-et-suite.md`. Ne passe pas au point 8 sans l'avoir joué.
 
   8. **Suivre la CI jusqu'au merge, sans jamais merger soi-même, et sans quitter la PR
      avant son issue.** Une CI longue (30 à 40 minutes d'e2e) ne se suit pas au premier

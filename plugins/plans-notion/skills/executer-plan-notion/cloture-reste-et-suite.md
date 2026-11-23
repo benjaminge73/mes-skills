@@ -2,6 +2,8 @@
 
 Détail du §6 (`cloture.md`, noyau) : lu quand la clôture écrit l'`État final` du journal, trie le reste à faire (« Avant le point 1 »), joue le garde des restes du point 7 ou rédige le compte rendu du chat. Texte repris tel quel, sans réécriture.
 
+Ordre de la clôture (qui suit qui) : `cloture-reste-et-suite.md` (tri, avant le point 1) → `cloture-pr-et-ci.md` (points 1 à 2) → `cloture-doc.md` (point 2 bis) → `cloture-pr-et-ci.md` (points 2 ter à 6) → `cloture-doc.md` (point 7) → `cloture-reste-et-suite.md` (garde des restes, puis `a merger`) → `cloture-pr-et-ci.md` (point 8). Un « point N » cité sans nom de fichier se trouve dans le fichier que `cloture.md` lui assigne.
+
 - `Journal d'exécution` clos par une entrée `État final` (H3, comme les autres,
   §4) : ce qui est livré, le verdict de la suite complète (point 1 ci-dessous),
   les écarts, le reste à faire s'il y en a — **chaque ligne avec son propriétaire** :
@@ -131,6 +133,8 @@ Détail du §6 (`cloture.md`, noyau) : lu quand la clôture écrit l'`État fina
   part pas à Benjamin comme un reste : elle se transmet à Hal, `${CLAUDE_PLUGIN_ROOT}/skills/_partage/demander-a-hal.md`
   (§ 2 bis), et le compte rendu écrit « transmise à Hal, plafond X $, validé en Qn ». Jamais « dis-moi go ».
   Un dépassement de ce plafond, lui, reste une question à Benjamin.
+
+     Suite du tri : le point 1 (suite complète) est dans `cloture-pr-et-ci.md`. Le garde ci-dessous se joue au point 7, après la clôture écrite de `cloture-doc.md`.
 
      **Avant de poser `a merger`, le garde des restes** (tout plan, PR en brouillon ou
      non) : relire le miroir frais de la page du plan, puis jouer

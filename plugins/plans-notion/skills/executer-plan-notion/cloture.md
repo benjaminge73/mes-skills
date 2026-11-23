@@ -14,7 +14,7 @@ Sommaire :
 
 Le détail de chaque point est dans trois fichiers, lus au moment où la clôture y arrive, et pas avant :
 
-📄 `${CLAUDE_PLUGIN_ROOT}/skills/executer-plan-notion/cloture-reste-et-suite.md` — **à lire quand** l'`État final` s'écrit, que le reste à faire se trie (« Avant le point 1 ») ou que le compte rendu du chat se rédige.
+📄 `${CLAUDE_PLUGIN_ROOT}/skills/executer-plan-notion/cloture-reste-et-suite.md` — **à lire quand** l'`État final` s'écrit, que le reste à faire se trie (« Avant le point 1 »), que le garde des restes du point 7 se joue ou que le compte rendu du chat se rédige.
 
 📄 `${CLAUDE_PLUGIN_ROOT}/skills/executer-plan-notion/cloture-doc.md` — **à lire quand** la clôture en est à la preuve doc (point 2 bis) ou à la doc (point 7 : Récap, Changelog, fiches, rattachement, ligne `Doc :`).
 

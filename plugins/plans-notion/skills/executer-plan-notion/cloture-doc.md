@@ -2,6 +2,8 @@
 
 Détail du §6 (`cloture.md`, noyau) : lu quand la clôture en est à la preuve doc (point 2 bis) ou à l'écriture de la doc (point 7 : Récap, entrée du hub, fiches, rattrapage, ligne `Doc :`). Texte repris tel quel, sans réécriture.
 
+Ordre de la clôture (qui suit qui) : `cloture-reste-et-suite.md` (tri, avant le point 1) → `cloture-pr-et-ci.md` (points 1 à 2) → `cloture-doc.md` (point 2 bis) → `cloture-pr-et-ci.md` (points 2 ter à 6) → `cloture-doc.md` (point 7) → `cloture-reste-et-suite.md` (garde des restes, puis `a merger`) → `cloture-pr-et-ci.md` (point 8). Un « point N » cité sans nom de fichier se trouve dans le fichier que `cloture.md` lui assigne.
+
 - **Doc vivante** : une ligne dit quel palier a posé l'entrée du hub (connecteur
   Notion, `composio`, ou fichier confié à Hermes : point 7, cascade), ou que le
   projet est désactivé, ou pose la question « Doc vivante : à activer pour
@@ -38,6 +40,8 @@ Détail du §6 (`cloture.md`, noyau) : lu quand la clôture en est à la preuve 
        quelle. Un `passages_omis` non nul (plus de 200 passages) se dit au journal :
        le relevé est alors incomplet. Un code 2 (relevé ou entrée illisible)
        n'ouvre pas la clôture, et on le dit à Benjamin.
+
+     Suite du point 2 bis : les points 2 ter à 6 sont dans `cloture-pr-et-ci.md`, puis le point 7 reprend ici.
 
   7. **Écrire la clôture, dans le même tour que le compte rendu.** Quatre gestes sur
      la doc du projet, dans cet ordre, puis l'écriture du journal. Le format, l'ancrage
@@ -234,3 +238,5 @@ Détail du §6 (`cloture.md`, noyau) : lu quand la clôture en est à la preuve 
      (point 5) : relire `gh pr view <n> --json isDraft`, `false` exigé. Un `true` veut
      dire que la PR n'est pas passée prête : la ligne `Doc :` écrite, on la passe
      prête ; seul un brouillon demandé par Benjamin reste tel quel (point 8, issue c).
+
+Suite du point 7 (garde des restes, `Statut` = `a merger`) : 📄 `${CLAUDE_PLUGIN_ROOT}/skills/executer-plan-notion/cloture-reste-et-suite.md`, puis point 8 : 📄 `${CLAUDE_PLUGIN_ROOT}/skills/executer-plan-notion/cloture-pr-et-ci.md`.
