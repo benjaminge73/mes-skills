@@ -29,10 +29,16 @@ RACINE = Path(__file__).resolve().parent.parent
 PLUGINS = RACINE / "plugins"
 PLANS_NOTION = PLUGINS / "plans-notion"
 CHANGELOG = PLANS_NOTION / "skills" / "_partage" / "changelog-et-doc.md"
-CLOTURE = PLANS_NOTION / "skills" / "executer-plan-notion" / "cloture.md"
+CLOTURE_DIR = PLANS_NOTION / "skills" / "executer-plan-notion"
+CLOTURE_FICHIERS = ("cloture.md", "cloture-doc.md", "cloture-pr-et-ci.md", "cloture-reste-et-suite.md")
 
 A_CLASSER = re.compile(r"à\s+classer", re.IGNORECASE)
 URL_NOTION = re.compile(r"(?:notion\.so|app\.notion\.com)/\S")
+
+
+def lire_cloture() -> str:
+    """Texte entier de la clôture : le noyau et ses trois fichiers de détail (dde926e)."""
+    return "\n".join((CLOTURE_DIR / f).read_text(encoding="utf-8") for f in CLOTURE_FICHIERS)
 
 
 def fichiers_texte(racine: Path):
@@ -117,7 +123,7 @@ class HubHermesCustomFixe(unittest.TestCase):
 
     def test_rattachement_de_cloture_dit_que_le_hub_hermes_custom_est_fixe(self):
         # Panne (b) bis : le point (e) de la clôture laisse deviner le projet.
-        texte = CLOTURE.read_text(encoding="utf-8")
+        texte = lire_cloture()
         bloc = bloc_rattachement(texte)
         self.assertTrue(bloc, "puce « Rattachement » introuvable dans cloture.md")
         self.assertTrue(

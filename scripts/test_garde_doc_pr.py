@@ -17,6 +17,13 @@ SCRIPT = Path(__file__).resolve().parent / "garde_doc_pr.py"
 ROOT = Path(__file__).resolve().parent.parent
 WORKFLOWS = Path(__file__).resolve().parent.parent / ".github" / "workflows"
 NOTION = "https://app.notion.com/p/0123456789abcdef0123456789abcdef"
+CLOTURE_DIR = ROOT / "plugins/plans-notion/skills/executer-plan-notion"
+CLOTURE_FICHIERS = ("cloture.md", "cloture-doc.md", "cloture-pr-et-ci.md", "cloture-reste-et-suite.md")
+
+
+def lire_cloture() -> str:
+    """Texte entier de la clôture : le noyau et ses trois fichiers de détail (dde926e)."""
+    return "\n".join((CLOTURE_DIR / f).read_text(encoding="utf-8") for f in CLOTURE_FICHIERS)
 
 
 class Accepte(unittest.TestCase):
@@ -174,7 +181,7 @@ class LienDeRepliAccepte(unittest.TestCase):
     def test_le_repli_est_prescrit_avec_le_tiret_long(self):
         regle = " ".join((ROOT / "plugins/plans-notion/skills/_partage/changelog-et-doc.md").read_text(encoding="utf-8").split())
         self.assertIn("— entrée « 2026-10-28 · … (PR #N) »", regle)
-        cloture = " ".join((ROOT / "plugins/plans-notion/skills/executer-plan-notion/cloture.md").read_text(encoding="utf-8").split())
+        cloture = " ".join(lire_cloture().split())
         self.assertIn("jamais le titre entre parenthèses", cloture)
 
     def test_lien_suivi_d_autre_chose_reste_refuse(self):
@@ -195,8 +202,7 @@ class DocSurPrPretesSeulement(unittest.TestCase):
         self.assertRegex(ci, r"types: \[[^\]]*ready_for_review")
 
     def test_la_cloture_ouvre_en_brouillon_puis_passe_prete(self):
-        cloture = (ROOT / "plugins/plans-notion/skills/executer-plan-notion/cloture.md").read_text(encoding="utf-8")
-        cloture = " ".join(cloture.split())
+        cloture = " ".join(lire_cloture().split())
         self.assertIn("avec `--draft`", cloture)
         self.assertIn("`draft == false`", cloture)
         self.assertIn("`gh pr ready <n>`", cloture)
@@ -210,7 +216,7 @@ class DocSurPrPretesSeulement(unittest.TestCase):
             self.assertRegex(tete, r"pull_request\.draft (!= true|== false)", racine)
 
     def test_la_cloture_verifie_que_la_pr_est_prete_avant_a_merger(self):
-        cloture = " ".join((ROOT / "plugins/plans-notion/skills/executer-plan-notion/cloture.md").read_text(encoding="utf-8").split())
+        cloture = " ".join(lire_cloture().split())
         self.assertIn("gh pr view <n> --json isDraft", cloture)
         self.assertIn("`micro-trading` depuis le 2026-11-02", cloture)
 
@@ -219,7 +225,7 @@ class DocSurPrPretesSeulement(unittest.TestCase):
         self.assertIn("`Statut : a merger` (posé avant le merge) passe à `Statut : execute`", remontee)
 
     def test_palier_3_garde_la_pr_en_brouillon_jusqu_a_l_entree(self):
-        cloture = " ".join((ROOT / "plugins/plans-notion/skills/executer-plan-notion/cloture.md").read_text(encoding="utf-8").split())
+        cloture = " ".join(lire_cloture().split())
         self.assertIn("le connecteur Notion **puis** `composio` ont échoué", cloture)
         self.assertIn("La PR **reste en brouillon**", cloture)
 
