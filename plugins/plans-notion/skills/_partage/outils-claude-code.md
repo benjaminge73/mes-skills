@@ -191,6 +191,7 @@ sert pas de chiffre sans dédoublonnage.
   pas.
 - **2026-11-13 : `claude -p` sans `--allowedTools` refuse ses outils et rend quand même un succès.** Un agent qui lit des pages a eu 8 outils refusés et une fiche vide, alors que le code de sortie valait 0 et que `subtype` valait `success`. Le succès de l'enveloppe ne prouve donc pas qu'un outil a servi : juger l'appel sur le champ `permission_denials` de la sortie JSON, pas sur le code de sortie.
 - **2026-11-13 : `--allowedTools` avale l'argument qui le suit.** Une consigne placée après lui disparaît : elle doit venir avant, `claude -p "<consigne>" --allowedTools "..."`.
+- **2026-11-23 : `--max-budget-usd` ne vaut qu'avec `--print`.** Une session interactive (Remote Control, par exemple la veille Dependabot) ignore ce plafond : elle n'a donc aucune garde de dépense par ce drapeau. Le plafond se pose ailleurs (choix du modèle, durée, fermeture de la session).
 
 **Bonne pratique** :
 
