@@ -302,9 +302,11 @@ demande** : c'est la CI qui merge. `Statut` = `execute` dans le tour où le
 merge est constaté sur `main`.
 
 📄 `${CLAUDE_PLUGIN_ROOT}/skills/executer-plan-notion/cloture.md` — **à lire à la clôture, et à chaque demande de PR ou de
-remontée sur `main`** : le détail de chaque point ci-dessus, la séquence de
-clôture complète, la section « La PR, puis la remontée sur `main` » et la
-ligne `Evals`.
+remontée sur `main`** : le noyau, qui donne l'ordre des points et renvoie aux trois fichiers lus quand la clôture y arrive.
+
+📄 `${CLAUDE_PLUGIN_ROOT}/skills/executer-plan-notion/cloture-reste-et-suite.md` — lu quand l'`État final` s'écrit, que le reste à faire se trie ou que le compte rendu se rédige.
+📄 `${CLAUDE_PLUGIN_ROOT}/skills/executer-plan-notion/cloture-doc.md` — lu quand la clôture en est à la preuve doc ou à la doc (Récap, Changelog, fiches, ligne `Doc :`).
+📄 `${CLAUDE_PLUGIN_ROOT}/skills/executer-plan-notion/cloture-pr-et-ci.md` — lu avant le push, pour la PR, la CI et la remontée sur `main`, avec la ligne `Evals`.
 
 ## 7. Le reste à faire, et le plan de suite
 

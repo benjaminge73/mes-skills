@@ -22,11 +22,11 @@ Détail du § 6 (« Clore ») de `executer-plan-notion/SKILL.md`, lu à la deman
   puis `PR` et `Statut`, puis « Côté technique » — étapes parties en sous-agent
   `executant` (Haiku) et pourquoi pour les autres, PR ouverte (son URL, prête, ou
   pourquoi retenue), palier qui a posé le Changelog.
-- **Preuve doc, avant le push** : `qualite-doc.py lecteurs` puis `juger` (`cloture.md`, point 2 bis) ; passages douteux ou marqués d'office traités, sinon la clôture ne s'ouvre pas.
+- **Preuve doc, avant le push** : `qualite-doc.py lecteurs` puis `juger` (`cloture.md`, point 2 bis, détail dans `cloture-doc.md`) ; passages douteux ou marqués d'office traités, sinon la clôture ne s'ouvre pas.
 - **Porte des preuves, avant le push** : `preuves-des-etapes.py <page.md>
   --apres` — code 0, on poursuit ; code 1, des défauts de journal, on corrige
   la page et on rejoue ; code 3, une étape `unverifiable` est nommée, et sa
-  question part à Benjamin avant la PR (`cloture.md`, point 3).
+  question part à Benjamin avant la PR (`cloture.md`, point 3, détail dans `cloture-pr-et-ci.md`).
 - **Livrer la PR prête, et la suivre jusqu'au merge** : la suite complète jouée
   en local, e2e compris, c'est le verdict de fin de plan — la PR ne s'ouvre pas
   sur une suite rouge ; puis le push de la branche, et la PR ouverte (`gh pr
@@ -39,4 +39,4 @@ Détail du § 6 (« Clore ») de `executer-plan-notion/SKILL.md`, lu à la deman
   soi-même**. Merge constaté sur `main` → `execute`, puis retrait du worktree,
   **pas la branche**. Rouge → correction dans le worktree encore présent. Retenue,
   ou session qui s'arrête avant le merge → le worktree se retire, `a merger`
-  reste avec l'URL de la PR. Le détail des points et des trois issues : `cloture.md`.
+  reste avec l'URL de la PR. Le détail des points et des trois issues : `cloture.md` (noyau), qui renvoie aux trois fichiers de détail.
