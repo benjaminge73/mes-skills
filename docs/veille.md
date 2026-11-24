@@ -35,7 +35,7 @@ par `scripts/check_veille.py` selon son propre garde (30 jours). On relit alors 
 (les lignes de la partie 2 qui les citent), puis on ajoute une entrée au journal. Exemple
 vécu : la 2.1.293, relevée dans la passe du 2026-10-08, a fait de `haiku` Haiku 5.5 sur
 l'API Anthropic. La clôture d'un plan qui touche ces fichiers rappelle ce déclencheur
-(`plugins/plans-notion/skills/executer-plan-notion/cloture.md`, point 2 quater). Le
+(`plugins/plans-notion/skills/executer-plan-notion/cloture-pr-et-ci.md`, point 2 quater). Le
 déclencheur ne détecte rien tout seul : c'est la session qui constate l'arrivée d'un modèle
 (annonce, changelog, alias) et compare à la date de la dernière entrée du journal.
 
