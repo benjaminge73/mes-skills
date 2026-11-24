@@ -6,7 +6,8 @@ Usage :
   rejouer.py <bras> <modele> <effort|-> <plafond_dollars> [--cas echantillon.json]
              [--liste <chemin> | --ajout checklist.txt] [--angle secu|archi|senior|tests] [--notes notes.json] [--par 6]
 
---liste : la liste de relecture ajoutée au brief (défaut : le fichier du plugin plans-notion, la checklist v2).
+--liste : la liste de relecture ajoutée au brief (ex. le fichier du plugin plans-notion, la checklist v2). Sans --liste ni --ajout,
+         aucune consigne n'est ajoutée : c'est le bras témoin, qui doit rester reproductible.
 --ajout : un autre texte ajouté au brief, à côté de ce script (ex. checklist.txt, la v1) ; exclusif de --liste.
 
 Sorties : $BANC_DONNEES/sorties/<bras>/<id>.json (sortie JSON de `claude -p`, dont `result` et `total_cost_usd`).
@@ -28,8 +29,8 @@ ap = argparse.ArgumentParser()
 ap.add_argument("bras"); ap.add_argument("modele"); ap.add_argument("effort"); ap.add_argument("plafond", type=float)
 ap.add_argument("--cas", default="echantillon.json", help="fichier de cas, dans $BANC_DONNEES")
 consigne = ap.add_mutually_exclusive_group()
-consigne.add_argument("--liste", default=str(LISTE_PLUGIN),
-                      help="liste de relecture ajoutée au brief (défaut : le fichier du plugin plans-notion)")
+consigne.add_argument("--liste", nargs="?", const=str(LISTE_PLUGIN),
+                      help="liste de relecture ajoutée au brief ; sans valeur : le fichier du plugin plans-notion ; absent : aucune consigne")
 consigne.add_argument("--ajout", help="texte ajouté au brief (ex. checklist.txt, à côté de ce script) ; remplace --liste")
 ap.add_argument("--angle", help="clé de angles.json ajoutée au brief (comité)")
 ap.add_argument("--notes", help="JSON {id: texte} ajouté au brief cas par cas (2e passe), dans $BANC_DONNEES")
@@ -39,8 +40,10 @@ a = ap.parse_args()
 
 if a.ajout:
     ajout = (banc.ICI / a.ajout).read_text()
-else:
+elif a.liste:
     ajout = Path(a.liste).expanduser().read_text()
+else:
+    ajout = ""
 if a.angle:
     ajout += "\n\n" + json.loads((banc.ICI / "angles.json").read_text())[a.angle]
 notes = banc.charger(a.notes) if a.notes else {}
