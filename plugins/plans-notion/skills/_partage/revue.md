@@ -94,6 +94,8 @@ elle est réversible, hors sécurité et petite ; question à Benjamin sinon, av
 Décision de Benjamin du 2026-09-23 (Q4) : « pas de nouveau plan, on itère
 jusqu'à ce que ce soit ok pour le reviewer. »
 
+Avant tout, le pilote vérifie que le rapport ouvre par le bloc `Liste parcourue` : neuf lignes, A à H puis « Hors liste », chacune « rien » ou des numéros `R<n>` (`relecteur.md`, « La liste, puis les quatre catégories »). **Un rapport sans ce bloc est refusé** : le pilote ne le lit pas, il le renvoie au relecteur, et le renvoi compte comme un tour.
+
 Le relecteur rend `RIEN À SIGNALER` ou `REMARQUES (n)`. Pour chaque remarque :
 
 1. **Le pilote la vérifie avant d'agir** — relit le code visé, rejoue une

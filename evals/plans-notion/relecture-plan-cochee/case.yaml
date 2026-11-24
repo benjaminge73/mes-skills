@@ -31,3 +31,13 @@ graders:
     flags: m
     match: not_contains
     target: {source: file, path: relecture.md}
+  - name: cases-de-hal-presentes-decochees
+    type: regex
+    pattern: '^- \[ \] 16\. .*\n- \[ \] 17\. .*\n- \[ \] 18\. .*\n- \[ \] 19\. '
+    flags: m
+    target: {source: file, path: relecture.md}
+  - name: liste-complete-de-2-a-20
+    type: regex
+    pattern: '(?s)^- \[[ xX]\] 2\. .*^- \[[ xX]\] 3\. .*^- \[[ xX]\] 6\. .*^- \[[ xX]\] 9\. .*^- \[[ xX]\] 12\. .*^- \[[ xX]\] 15\. .*^- \[[ xX]\] 20\. '
+    flags: m
+    target: {source: file, path: relecture.md}

@@ -19,10 +19,10 @@ Plan natif : pas de page, pas de miroir, pas de Hal. Les cases 4, 9, 15 et 16 à
 - [ ] 9. La répétition à blanc est jouée et reportée dans `Contraintes techniques vérifiées`, sous « État de départ ». — preuve : l'intertitre « La répétition à blanc et le POC de décision » et sa date.
 - [ ] 10. Une ligne « Existant cherché : … / trouvé : … / fait maison parce que … » existe par artefact non propre au projet. — preuve : une ligne par artefact, ou `aucun artefact non propre`.
 - [ ] 11. Une carte de voisinage figure dans `Contraintes techniques vérifiées`, ou `Pas de carte — <raison>` recevable (dépôt de contenu, serveur MCP absent, dépôt non indexé). — preuve : la carte datée, ou la dispense.
-- [ ] 12. `verifier-preuves.py` rend 0 sur le miroir (`--depot <dépôt> --transcripts`). — preuve : la commande et son code de sortie 0 (format de la preuve : `poc.md`), ou chaque écart corrigé ou dispensé.
+- [ ] 12. `python3 "${CLAUDE_PLUGIN_ROOT}/skills/_partage/scripts/verifier-preuves.py" <miroir> --depot <dépôt> --transcripts` rend 0. — preuve : la commande et son code de sortie 0 (format de la preuve : `poc.md`), ou chaque écart corrigé ou dispensé.
 - [ ] 13. Chaque cron, hook ou workflow sur événement touché a son étape `C<n>`, ou la page dit `Aucun cron touché` (`cron-a-la-main.md`). — preuve : l'étape `C<n>`, ou la phrase.
 - [ ] 14. Chaque étape qui touche un fichier cité par la doc du dépôt porte sa ligne « Docs relues », « Fichiers touchés » compris. — preuve : la ligne, avec le fichier de doc lu (`chapitres-questions-execution.md`).
-- [ ] 15. Chaque ligne `ouvert` des dépôts du plan est citée dans `Restes repris` : reprise, ou « laissée ouverte » avec sa raison (`restes.md`, règle 7). — preuve : `restes-repris.py <miroir> --lignes <export>` rend 0.
+- [ ] 15. Chaque ligne `ouvert` des dépôts du plan est citée dans `Restes repris` : reprise, ou « laissée ouverte » avec sa raison (`restes.md`, règle 7). — contrôle bloquant (Q8) — preuve : `python3 "${CLAUDE_PLUGIN_ROOT}/skills/_partage/scripts/restes-repris.py" <miroir> --lignes <export>` rend 0.
 
 ## Les quatre points de Hal
 
