@@ -1,22 +1,29 @@
 #!/usr/bin/env python3
 """Boucle d'amélioration de la liste de relecture (étape 7 du plan « Refonte des plugins par la checklist »).
 
-Relève les lignes candidates (une remarque retenue que la chaîne a manquée, vue dans deux étapes de la même
-catégorie), mesure chacune sur le jeu de validation (43 cas), et ne l'ajoute que si le rappel monte sans que le bruit
-dépasse celui de l'A/A (deux relectures identiques, mesurées une fois et notées dans le journal).
+Relève les lignes candidates (une remarque retenue que la chaîne a manquée, vue dans deux étapes de la même catégorie),
+mesure chacune sur le jeu de validation (43 cas), et ne l'ajoute que si le rappel monte sans que le bruit dépasse celui
+de l'A/A (deux relectures identiques, mesurées une fois).
 
 Usage : boucle_liste.py --section NOM [--plafond-mois 5] [--dry-run] [--cron]
-Codes : 0 rien à ajouter ; 10 une ligne ajoutée (PR ouverte) ; 1 erreur réelle (jeu absent, git ou gh en échec) ;
-        3 plafond de dépense du mois atteint ; 5 bilan de Q2 pas encore passé.
+Codes : 0 rien à ajouter, une PR en cours, ou un souci signalé en ligne ; 10 une ligne ajoutée (PR ouverte) ;
+        1 erreur réelle (jeu absent, git, gh ou état en échec) ; 3 plafond du mois atteint, ou budget restant sous le coût
+        d'une mesure complète ; 5 bilan de Q2 pas encore passé.
 --cron : sort en 0 ([SILENT] ou une ligne de message), sauf pour une erreur réelle (code 1, une ligne). Une exception
         inattendue devient une ligne et un 0 : jamais de trace Python dans le cron.
 
 Quota du fournisseur (HTTP 402, « out of extra usage », plafond de dépense) : le texte du service passe tel quel dans
 la sortie, une seule fois ; ensuite [SILENT] jusqu'au premier succès. Rien n'est compté contre le plafond.
 
-Deux écritures, deux lieux :
-  - l'état (coût cumulé par mois, quota signalé) vit dans `$BANC_DONNEES/etat-boucle-<section>.json`, hors du dépôt ;
-  - le journal `journal-checklist.md` porte les entrées de mesure, et la PR en emporte la copie.
+Trois écritures, trois lieux :
+  - l'état (coût par mois, dernière mesure complète, mesures faites, base, décisions sur les candidats, quota) vit dans
+    `$BANC_DONNEES/etat-boucle-<section>.json`, hors du dépôt : c'est lui qui fait foi ;
+  - le journal `journal-checklist.md` porte la trace de chaque décision, et la PR en emporte la copie ;
+  - la PR ouverte porte la ligne, le bump de version et le journal.
+Le cron tourne dans un worktree neuf d'origin/main : son journal de travail ne porte pas les entrées non mergées, d'où
+l'état. Une PR ouverte n'est pas une décision définitive : au passage suivant son état est lu sur GitHub. Une seule PR
+de la boucle est en vol à la fois.
+
 Journal : une section `## NOM` par liste ou par plan, des entrées `### AAAA-MM-JJ — titre` dont les puces ont une clé
 fixe (`- Ligne candidate : …`, `- Décision : …`, `- PR : …`, etc.). Ce format est l'interface que P3 réutilise
 (`--section Enquête`) : ne pas le changer sans lui.
@@ -65,6 +72,11 @@ RE_DECISION_RETENUE = re.compile(r"^- Décision : (retenue)\s*$")
 RE_DECISION_REFUSEE = re.compile(r"^- Décision : (refusée)\s*$")
 RE_PR_OUVERTE = re.compile(r"^- PR : (https://\S+)\s*$")
 RE_PR_ECHEC = re.compile(r"^- PR : (échec)\b")
+
+# Statuts d'un candidat dans l'état. « en vol » : PR ouverte, pas encore mergée (pas une décision définitive).
+STATUTS_TRAITES = {"refusée", "mergée", "fermée", "en vol"}
+# Contrôles de PR rouges, tels que `gh pr view --json statusCheckRollup` les rend.
+ROUGES = {"FAILURE", "ERROR", "TIMED_OUT", "STARTUP_FAILURE", "ACTION_REQUIRED"}
 
 
 @dataclass(frozen=True)
@@ -143,31 +155,6 @@ def _blocs(texte: str):
     yield bloc
 
 
-def candidats_decides(texte: str) -> set[str]:
-    """Les lignes dont une entrée porte un verdict définitif : refusée, ou PR ouverte. Une PR en échec n'en est pas un."""
-    decides = set()
-    for bloc in _blocs(texte):
-        ligne = dernier(bloc, RE_CANDIDAT)
-        if ligne and ligne[0] != "aucune" and (dernier(bloc, RE_DECISION_REFUSEE) or dernier(bloc, RE_PR_OUVERTE)):
-            decides.add(ligne[0])
-    return decides
-
-
-def candidats_en_attente(texte: str, sha: str) -> list[Candidat]:
-    """Les lignes retenues dont la PR a échoué, mesurées sur cette liste et pas encore ouvertes : à réessayer sans
-    remesure. Une entrée dont la liste a changé n'est pas réessayée : sa mesure ne vaut plus pour la liste courante."""
-    attente = {}
-    for bloc in _blocs(texte):
-        if not dernier(bloc, RE_PR_ECHEC):
-            continue
-        ligne, cat = dernier(bloc, RE_CANDIDAT), dernier(bloc, RE_CATEGORIE)
-        liste = dernier(bloc, RE_LISTE_MESUREE)
-        if ligne and cat and liste and liste[0] == sha and dernier(bloc, RE_DECISION_RETENUE):
-            attente[ligne[0]] = Candidat(categorie=cat[0], ligne=ligne[0])
-    decides = candidats_decides(texte)
-    return [c for ligne, c in attente.items() if ligne not in decides]
-
-
 def ajouter_entree(texte: str, section: str, date: str, titre: str, puces: list[str]) -> str:
     """Ajoute une entrée à la fin de sa section, avant la section suivante."""
     lignes = texte.split("\n")
@@ -217,7 +204,135 @@ def mesure_depuis_jugement(jugement: dict, ref: dict, cout: float) -> Mesure:
     return Mesure(rappel=num / den if den else 0.0, bruit=bruit / n if n else 0.0, cout=round(cout, 4))
 
 
-# --- État : coût et quota, hors du journal -------------------------------------------------------------------------
+# --- Candidats : regroupement des remarques retenues ---------------------------------------------------------------
+
+def normaliser(resume: str) -> str:
+    """Clé de regroupement : casse, ponctuation et espaces ignorées."""
+    return " ".join(re.sub(r"[^\w\s]", " ", str(resume).casefold()).split())
+
+
+def regrouper(remarques: list[tuple[str, dict]]) -> list[Candidat]:
+    """`remarques` : (identifiant de l'étape, remarque). Une catégorie vue dans deux étapes distinctes, quel que soit le
+    libellé de ses remarques, donne un candidat : la ligne est le résumé qui revient dans le plus d'étapes (à égalité, le
+    premier vu). Une étape compte une fois. Sans catégorie valide, le regroupement se fait sur le résumé normalisé, et le
+    candidat a `categorie` vide : il n'a pas de lettre où s'insérer, donc il n'est jamais mesuré."""
+    par_cat: dict[str, dict] = {}
+    sans_cat: dict[str, list] = {}
+    for etape, r in remarques:
+        resume = une_ligne(r.get("resume", ""))
+        if r.get("origine") != "opus" or not resume:
+            continue
+        cat = r.get("categorie")
+        norm = normaliser(resume)
+        if cat in list(LETTRES):
+            g = par_cat.setdefault(cat, {"etapes": set(), "resumes": {}})
+            g["etapes"].add(etape)
+            g["resumes"].setdefault(norm, [set(), resume])[0].add(etape)
+        else:
+            sans_cat.setdefault(norm, [set(), resume])[0].add(etape)
+    sortie = []
+    for cat, g in par_cat.items():
+        if len(g["etapes"]) >= 2:
+            _, resume = max(g["resumes"].values(), key=lambda v: len(v[0]))
+            sortie.append(Candidat(categorie=cat, ligne=resume[:200]))
+    for etapes, resume in sans_cat.values():
+        if len(etapes) >= 2:
+            sortie.append(Candidat(categorie="", ligne=resume[:200]))
+    return sortie
+
+
+# --- État des candidats et des PR ---------------------------------------------------------------------------------
+
+def definir_candidat(etat: dict, ligne: str, **champs) -> dict:
+    candidats = dict(etat.get("candidats") or {})
+    candidats[ligne] = {**candidats.get(ligne, {}), **champs}
+    return {**etat, "candidats": candidats}
+
+
+def en_vol(etat: dict) -> list[tuple[str, dict]]:
+    return [(l, r) for l, r in (etat.get("candidats") or {}).items() if r.get("statut") == "en vol"]
+
+
+def retenues_en_attente(etat: dict, sha: str) -> list[tuple[str, dict]]:
+    """Les lignes retenues dont la PR a échoué, mesurées sur cette liste : à réessayer sans remesure."""
+    return [(l, r) for l, r in (etat.get("candidats") or {}).items()
+            if r.get("statut") == "retenue" and r.get("liste") == sha and r.get("categorie") in list(LETTRES)]
+
+
+def traites(etat: dict) -> set[str]:
+    """Les lignes qu'on ne remesure pas : refusées, mergées, fermées, ou PR encore ouverte."""
+    return {l for l, r in (etat.get("candidats") or {}).items() if r.get("statut") in STATUTS_TRAITES}
+
+
+def importer_journal(sec: list[str] | None, etat: dict) -> dict:
+    """Les décisions du journal que l'état ne porte pas encore : refusée, PR ouverte, PR en échec. L'état fait foi : une
+    ligne déjà dans l'état n'est jamais réécrite par le journal. La dernière entrée du journal l'emporte sur les autres."""
+    if not sec:
+        return etat
+    importes: dict[str, dict] = {}
+    for bloc in _blocs("\n".join(sec)):
+        ligne = dernier(bloc, RE_CANDIDAT)
+        if not ligne or ligne[0] == "aucune":
+            continue
+        champs = {}
+        cat, liste = dernier(bloc, RE_CATEGORIE), dernier(bloc, RE_LISTE_MESUREE)
+        if cat:
+            champs["categorie"] = cat[0]
+        if liste:
+            champs["liste"] = liste[0]
+        pr = dernier(bloc, RE_PR_OUVERTE)
+        if dernier(bloc, RE_DECISION_REFUSEE):
+            importes[ligne[0]] = {**champs, "statut": "refusée"}
+        elif pr:
+            importes[ligne[0]] = {**champs, "statut": "en vol", "pr": pr[0]}
+        elif dernier(bloc, RE_PR_ECHEC) and dernier(bloc, RE_DECISION_RETENUE):
+            importes[ligne[0]] = {**champs, "statut": "retenue"}
+    candidats = dict(etat.get("candidats") or {})
+    for ligne, rec in importes.items():
+        candidats.setdefault(ligne, rec)
+    return {**etat, "candidats": candidats}
+
+
+def classer_pr(d: dict) -> str:
+    """L'état d'une PR tel que `gh pr view --json state,statusCheckRollup` le rend : mergée, fermée, rouge, ouverte."""
+    etat = str(d.get("state") or "").upper()
+    if etat == "MERGED":
+        return "mergée"
+    if etat == "CLOSED":
+        return "fermée"
+    if etat != "OPEN":
+        raise Souci(f"état de PR inconnu : {etat!r}", reelle=True)
+    valeurs = [str(c.get("conclusion") or c.get("state") or "").upper()
+               for c in (d.get("statusCheckRollup") or []) if isinstance(c, dict)]
+    return "rouge" if any(v in ROUGES for v in valeurs) else "ouverte"
+
+
+def chemin_interdit(chemin: Path, depot: Path) -> bool:
+    """Un worktree de PR ne peut ni égaler le dépôt de lancement, ni le contenir, ni être dedans : `_retirer` effacerait
+    ce qui s'y trouve."""
+    c, d = Path(chemin).resolve(), Path(depot).resolve()
+    return c == d or c in d.parents or d in c.parents
+
+
+def base_connue(etat: dict, sec: list[str] | None, sha: str):
+    """La base (rappel, bruit, bruit A/A) de cette liste : dans l'état, sinon dans le journal. None si pas encore mesurée."""
+    b = etat.get("base") or {}
+    if b.get("liste") == sha and b.get("bruit_aa") is not None:
+        return float(b["rappel"]), float(b["bruit"]), float(b["bruit_aa"])
+    if not sec:
+        return None
+    base = None
+    for l in sec:
+        g = dernier([l], RE_BASE)
+        if g and g[2] == sha:
+            base = (float(g[0]), float(g[1]))
+    aa = dernier(sec, RE_AA)
+    if base is None or aa is None:
+        return None
+    return base[0], base[1], float(aa[0])
+
+
+# --- Coût, mesures, état --------------------------------------------------------------------------------------------
 
 def cout_du_mois(etats: list[dict], mois: str) -> float:
     """Le coût cumulé du mois (AAAA-MM), toutes sections confondues."""
@@ -228,6 +343,17 @@ def ajouter_cout(etat: dict, mois: str, cout: float) -> dict:
     couts = dict(etat.get("couts") or {})
     couts[mois] = round(float(couts.get(mois, 0.0)) + cout, 4)
     return {**etat, "couts": couts}
+
+
+def enregistrer_mesure(etat: dict, bras: str, m: Mesure, mois: str) -> dict:
+    """Une mesure complète (bras et juge) : son coût, son résultat (pour ne jamais la repayer), et la dernière dépense
+    connue d'une mesure, qui sert de seuil au budget du passage suivant."""
+    mesures = {**(etat.get("mesures") or {}), bras: {"rappel": m.rappel, "bruit": m.bruit, "cout": m.cout}}
+    etat = ajouter_cout(etat, mois, m.cout)
+    etat = {**etat, "mesures": mesures, "cout_mesure": m.cout}
+    if etat.get("quota") == "signalé":
+        etat = {**etat, "quota": "levé"}
+    return etat
 
 
 # --- Ce qu'on écrit dans la PR -----------------------------------------------------------------------------------
@@ -319,10 +445,10 @@ class Dependances:
     def liste_texte(self) -> str:
         """La liste telle qu'elle est sur origin/main : c'est elle que la boucle mesure et amende."""
         if self._liste is None:
-            f = _lancer(["git", "-C", str(DEPOT), "fetch", "--quiet", "origin", "main"])
+            f = self.sh(["git", "-C", str(DEPOT), "fetch", "--quiet", "origin", "main"], None, None)
             if f.returncode != 0:
                 raise Souci(f"fetch de origin/main en échec : {une_ligne(f.stderr)[-200:]}", reelle=True)
-            r = _lancer(["git", "-C", str(DEPOT), "show", f"origin/main:{LISTE_REL}"])
+            r = self.sh(["git", "-C", str(DEPOT), "show", f"origin/main:{LISTE_REL}"], None, None)
             if r.returncode != 0:
                 raise Souci(f"liste de relecture illisible sur origin/main : {une_ligne(r.stderr)[-200:]}", reelle=True)
             self._liste = r.stdout
@@ -338,15 +464,16 @@ class Dependances:
         """Une relecture Haiku high sur les 43 cas, puis le juge. Coûte de l'argent : le cron seul l'appelle.
 
         Le dossier de sorties du bras est vidé d'abord : rejouer.py ne rejoue pas les cas déjà présents, donc un bras
-        réutilisé compterait des rapports d'une autre liste, et un coût déjà compté. Une erreur porte la dépense faite."""
+        réutilisé compterait des rapports d'une autre liste, et un coût déjà compté. Une erreur porte la dépense faite.
+        Des sorties incomplètes (le budget a coupé le rejeu) s'arrêtent avant le juge, coût journalisé."""
         dossier = banc.DONNEES / "listes-boucle"
         dossier.mkdir(parents=True, exist_ok=True)
         fichier = dossier / f"{bras}.md"
         fichier.write_text(liste)
         sorties_dir = banc.DONNEES / "sorties" / bras
         shutil.rmtree(sorties_dir, ignore_errors=True)
-        r = _lancer([sys.executable, str(banc.ICI / "rejouer.py"), bras, "claude-haiku-5-5", "high",
-                     f"{budget:.2f}", "--cas", CAS_VALIDATION, "--liste", str(fichier)], cwd=banc.ICI)
+        r = self.sh([sys.executable, str(banc.ICI / "rejouer.py"), bras, "claude-haiku-5-5", "high",
+                     f"{budget:.2f}", "--cas", CAS_VALIDATION, "--liste", str(fichier)], banc.ICI, None)
         sorties, illisibles = {}, []
         for f in sorted(sorties_dir.glob("*.json")):
             try:
@@ -370,8 +497,11 @@ class Dependances:
             raise Souci(f"cas en erreur pour {bras} : {', '.join(en_erreur)[:200]}", cout=cout)
         if r.returncode != 0 or not sorties:
             raise Souci(f"rejouer.py en échec pour {bras} : {une_ligne(r.stderr or r.stdout)[-300:]}", cout=cout)
-        j = _lancer([sys.executable, str(banc.ICI / "juge.py"), f"{bras}.json", bras, "--ref", REF_VALIDATION],
-                    cwd=banc.ICI)
+        attendus = len(banc.charger(CAS_VALIDATION))
+        if len(sorties) < attendus:
+            raise Souci(f"sorties incomplètes pour {bras} : {len(sorties)} sur {attendus}, juge non appelé", cout=cout)
+        j = self.sh([sys.executable, str(banc.ICI / "juge.py"), f"{bras}.json", bras, "--ref", REF_VALIDATION],
+                    banc.ICI, None)
         m = re.search(r"coût juge ([\d.]+)", j.stdout or "")
         cout += float(m.group(1)) if m else 0.0
         if j.returncode != 0:
@@ -385,19 +515,26 @@ class Dependances:
             raise Souci(f"jugement illisible pour {bras} : {une_ligne(e)}", cout=cout)
 
     def candidats(self) -> list[Candidat]:
-        """Remarques retenues par Opus seul (la chaîne les a manquées), de même catégorie, dans deux étapes au moins."""
-        vues: dict[tuple[str, str], tuple[str, set]] = {}
+        """Remarques retenues par Opus seul (la chaîne les a manquées), regroupées par catégorie (voir regrouper)."""
+        remarques = []
         for f in sorted((banc.DONNEES / "ombres").glob("retenues-*.json")):
             d = json.loads(f.read_text())
             for r in d.get("remarques", []):
-                cat = r.get("categorie")
-                resume = " ".join(str(r.get("resume", "")).split())
-                if r.get("origine") != "opus" or cat not in list(LETTRES) or not resume:
-                    continue
-                cle = (cat, resume.casefold())
-                vues.setdefault(cle, (resume, set()))[1].add(d.get("id", f.name))
-        return [Candidat(categorie=cat, ligne=resume[:200])
-                for (cat, _), (resume, ids) in vues.items() if len(ids) >= 2]
+                remarques.append((d.get("id", f.name), r))
+        return regrouper(remarques)
+
+    def etat_pr(self, url: str) -> dict:
+        """L'état d'une PR de la boucle, lu sur GitHub. Aucune écriture."""
+        r = self.sh(["gh", "pr", "view", url, "--json", "state,statusCheckRollup"], None, None)
+        if r.returncode != 0:
+            raise Souci(f"gh pr view en échec : {une_ligne(r.stderr or r.stdout)[-200:]}", reelle=True)
+        try:
+            d = json.loads(r.stdout)
+        except ValueError:
+            raise Souci("gh pr view : réponse illisible", reelle=True)
+        if not isinstance(d, dict):
+            raise Souci("gh pr view : réponse qui n'est pas un objet", reelle=True)
+        return d
 
     def _run(self, argv, quoi, cwd=None, env=None, reelle=False):
         r = self.sh(argv, cwd, env)
@@ -418,10 +555,14 @@ class Dependances:
     def ouvrir_pr(self, candidat: Candidat, iso: str) -> str:
         """Une PR prête qui ajoute la ligne, dans son propre worktree depuis origin/main, retiré à la fin.
 
-        Ordre : worktree, ligne, bump, copie du journal, garde Doc et sélection des évals (en local, comme la CI),
-        puis commit, push, `gh pr create` (sans --draft : la CI merge au vert). Une garde qui refuse arrête avant push."""
+        Ordre : garde du chemin, worktree, ligne, bump, copie du journal, garde Doc et sélection des évals (en local,
+        comme la CI), commit, garde de veille (en local, comme la CI), puis push, `gh pr create` (sans --draft : la CI
+        merge au vert). Une garde qui refuse arrête avant push."""
+        chemin = self.racine / f"boucle-liste-pr-{iso}"
+        if chemin_interdit(chemin, DEPOT):
+            raise Souci(f"worktree de PR refusé : {chemin} recouvre le dépôt de lancement ; rien n'est effacé",
+                        reelle=True)
         branche = f"chore/boucle-liste-{iso}"
-        chemin = self.racine / f"boucle-liste-{iso}"
         git = ["git", "-C", str(DEPOT)]
         try:
             self._run(git + ["fetch", "--quiet", "origin", "main"], "fetch de origin/main", reelle=True)
@@ -445,6 +586,13 @@ class Dependances:
             dans_wt = ["git", "-C", str(chemin)]
             self._run(dans_wt + ["add", "--", LISTE_REL, PLUGIN_JSON, JOURNAL_REL], "git add")
             self._run(dans_wt + ["commit", "-q", "-m", message_commit(candidat, iso)], "commit")
+            veille = self.sh([sys.executable, str(chemin / "scripts" / "check_veille.py"), "--racine", str(chemin),
+                              "--base", "origin/main", "--aujourdhui", iso], chemin, None)
+            if veille.returncode == 1:
+                raise Souci(f"garde de veille refusée : {une_ligne(veille.stdout or veille.stderr)[-200:]}")
+            if veille.returncode != 0:
+                raise Souci(f"garde de veille en panne : {une_ligne(veille.stderr or veille.stdout)[-200:]}",
+                            reelle=True)
             self._run(dans_wt + ["push", "-q", "-u", "origin", branche], "push de la branche", reelle=True)
             r = self._run(["gh", "pr", "create", "--base", "main", "--head", branche, "--title", titre_pr(candidat),
                            "--body", corps], "gh pr create", cwd=chemin, reelle=True)
@@ -478,9 +626,15 @@ def _plafond_atteint(cout: float, plafond: float) -> Resultat:
                                    "arrêt avant la mesure suivante"])
 
 
-def _a_mesurer(texte: str, deps) -> list[Candidat]:
-    deja = candidats_decides(texte)
-    return [c for c in deps.candidats() if c.ligne not in deja]
+def _budget_insuffisant(reste: float, seuil: float) -> Resultat:
+    return Resultat(CODE_PLAFOND, [f"budget restant {reste:.2f} dollars ce mois-ci, sous le coût d'une mesure complète "
+                                   f"({seuil:.2f}) : rien n'est lancé"])
+
+
+def _a_mesurer(etat: dict, deps) -> list[Candidat]:
+    """Les candidats à mesurer : ni déjà traités, ni sans catégorie (pas de lettre où les insérer)."""
+    deja = traites(etat)
+    return [c for c in deps.candidats() if c.categorie in list(LETTRES) and c.ligne not in deja]
 
 
 def executer(section, deps, aujourdhui, plafond=PLAFOND_MOIS, dry_run=False) -> Resultat:
@@ -489,7 +643,8 @@ def executer(section, deps, aujourdhui, plafond=PLAFOND_MOIS, dry_run=False) -> 
     if bilan is None or bilan > aujourdhui.isoformat():
         return Resultat(CODE_BILAN, ["bilan de Q2 pas encore passé : la ligne « Bilan de Q2 : AAAA-MM-JJ » "
                                      "manque au journal"], silencieux=True)
-    if lignes_section(texte, section) is None:
+    sec = lignes_section(texte, section)
+    if sec is None:
         return Resultat(CODE_ERREUR, [f"section « {section} » absente du journal"], reelle=True)
     if not deps.jeu_present():
         return Resultat(CODE_ERREUR, ["jeu de validation absent (ref-validation.json ou "
@@ -498,8 +653,9 @@ def executer(section, deps, aujourdhui, plafond=PLAFOND_MOIS, dry_run=False) -> 
     if cout >= plafond:
         return _plafond_atteint(cout, plafond)
     if dry_run:
+        etat = importer_journal(sec, deps.lire_etat(section))
         return Resultat(CODE_OK, [f"dry-run : aucune mesure, aucune PR ; candidats à mesurer : "
-                                  f"{len(_a_mesurer(texte, deps))}"])
+                                  f"{len(_a_mesurer(etat, deps))}"])
     try:
         return _boucle(section, deps, aujourdhui, plafond)
     except QuotaAtteint as q:
@@ -524,85 +680,125 @@ def _boucle(section, deps, aujourdhui, plafond) -> Resultat:
     sec = lignes_section(texte, section)
     liste = deps.liste_texte()
     sha = deps.liste_sha()
+    deps.ecrire_etat(section, importer_journal(sec, deps.lire_etat(section)))
 
-    def noter(titre, puces, cout=0.0):
-        """Une entrée au journal (la PR en emporte la copie) ; le coût et le quota vont à l'état, hors du dépôt."""
+    def changer_etat(fn):
+        deps.ecrire_etat(section, fn(deps.lire_etat(section)))
+
+    def ecrire(titre, puces):
+        """Une entrée au journal (la PR en emporte la copie). Le coût et les mesures vont à l'état, avant."""
         deps.ecrire_journal(ajouter_entree(deps.lire_journal(), section, iso, titre, puces))
-        etat = deps.lire_etat(section)
-        if cout:
-            etat = ajouter_cout(etat, mois, cout)
-        if etat.get("quota") == "signalé":
-            etat["quota"] = "levé"
-        deps.ecrire_etat(section, etat)
 
     def cout_courant():
         return cout_du_mois(deps.etats_tous(), mois)
 
     def arret():
+        """Le plafond du mois, puis le budget restant face au coût d'une mesure complète connue (défaut prudent, en
+        l'absence de mesure connue : le plafond entier, donc une mesure ne part qu'en début de mois)."""
         c = cout_courant()
-        return _plafond_atteint(c, plafond) if c >= plafond else None
+        if c >= plafond:
+            return _plafond_atteint(c, plafond)
+        reste = plafond - c
+        connu = deps.lire_etat(section).get("cout_mesure")
+        seuil = float(connu) if connu is not None else plafond
+        if reste < seuil:
+            return _budget_insuffisant(reste, seuil)
+        return None
+
+    def en_cache(bras):
+        return bras in (deps.lire_etat(section).get("mesures") or {})
 
     def mesurer(liste_, bras, titre):
+        """Une mesure faite n'est jamais repayée : elle reste dans l'état, sous son nom de bras."""
+        if en_cache(bras):
+            e = deps.lire_etat(section)["mesures"][bras]
+            return Mesure(rappel=float(e["rappel"]), bruit=float(e["bruit"]), cout=float(e.get("cout", 0.0)))
         try:
-            return deps.mesurer(liste_, bras, plafond - cout_courant())
+            m = deps.mesurer(liste_, bras, plafond - cout_courant())
         except Souci as s:
-            noter(f"{titre} en échec", [f"- Souci : {une_ligne(s)[:200]}", f"- Coût : {s.cout:.3f} dollars"],
-                  cout=s.cout)
+            changer_etat(lambda e: ajouter_cout(e, mois, s.cout))
+            ecrire(f"{titre} en échec", [f"- Souci : {une_ligne(s)[:200]}", f"- Coût : {s.cout:.3f} dollars"])
             raise
+        changer_etat(lambda e: enregistrer_mesure(e, bras, m, mois))
+        return m
 
     def ouvrir(c):
         """Ouvre la PR d'une ligne retenue ; un échec est noté (la ligne reste réessayable) puis remonté."""
         try:
             url = deps.ouvrir_pr(c, iso)
         except Souci as s:
-            noter("PR non ouverte", [f"- Ligne candidate : {c.ligne}", f"- Catégorie : {c.categorie}",
-                                     f"- Liste mesurée : {sha}", "- Décision : retenue",
-                                     f"- PR : échec — {une_ligne(s)[:300]}"])
+            changer_etat(lambda e: definir_candidat(e, c.ligne, statut="retenue", categorie=c.categorie, liste=sha))
+            ecrire("PR non ouverte", [f"- Ligne candidate : {c.ligne}", f"- Catégorie : {c.categorie}",
+                                      f"- Liste mesurée : {sha}", "- Décision : retenue",
+                                      f"- PR : échec — {une_ligne(s)[:300]}"])
             raise
-        noter("PR ouverte", [f"- Ligne candidate : {c.ligne}", f"- PR : {url}"])
+        changer_etat(lambda e: definir_candidat(e, c.ligne, statut="en vol", pr=url, categorie=c.categorie, liste=sha))
+        ecrire("PR ouverte", [f"- Ligne candidate : {c.ligne}", f"- Catégorie : {c.categorie}", f"- PR : {url}"])
         return Resultat(CODE_PR, [f"ligne ajoutée à la catégorie {c.categorie} : {c.ligne} — PR {url}"])
 
-    # Une PR en échec sur cette liste se réessaie d'abord, sans rien remesurer.
-    for c in candidats_en_attente(texte, sha):
-        return ouvrir(c)
+    # 1. Les PR déjà ouvertes : leur état est lu sur GitHub. Une PR ouverte fait attendre toute la boucle.
+    for ligne, rec in en_vol(deps.lire_etat(section)):
+        statut = classer_pr(deps.etat_pr(rec["pr"]))
+        if statut == "mergée":
+            changer_etat(lambda e, l=ligne: definir_candidat(e, l, statut="mergée"))
+            continue
+        if statut == "ouverte":
+            return Resultat(CODE_OK, [], silencieux=True)
+        if statut == "rouge":
+            return Resultat(CODE_OK, [f"PR en échec : {rec['pr']} (ligne « {ligne[:80]} ») : rien n'est mesuré "
+                                      "ni ouvert tant qu'elle est rouge"])
+        changer_etat(lambda e, l=ligne: definir_candidat(e, l, statut="fermée"))
+        ecrire("PR fermée sans merge", [f"- Ligne candidate : {ligne}", f"- PR : {rec['pr']}",
+                                        "- Souci : fermée sans être mergée ; la ligne ne revient pas sans décision humaine"])
+        return Resultat(CODE_OK, [f"PR fermée sans merge : {rec['pr']} (ligne « {ligne[:80]} ») : décision humaine, "
+                                  "rien n'est rouvert"])
 
-    def puces_base(m):
-        return [f"- Mesure de base : rappel {m.rappel:.3f} ; bruit {m.bruit:.3f} ; liste {sha}",
-                f"- Coût : {m.cout:.3f} dollars"]
+    # 2. Une PR échouée sur cette liste se réessaie d'abord, sans rien remesurer.
+    for ligne, rec in retenues_en_attente(deps.lire_etat(section), sha):
+        return ouvrir(Candidat(categorie=rec["categorie"], ligne=ligne))
 
-    s8 = _sha8(liste)
-    base = None
-    for groupes in (dernier([l], RE_BASE) for l in sec):
-        if groupes and groupes[2] == sha:
-            base = (float(groupes[0]), float(groupes[1]))
-    bruit_aa = dernier(sec, RE_AA)
-    if base is None or bruit_aa is None:
+    # 3. La base : deux relectures identiques, mesurées une fois par liste ; le bruit A/A en vient.
+    base = base_connue(deps.lire_etat(section), sec, sha)
+    if base is None:
+        s8 = _sha8(liste)
+
+        def puces_base(m):
+            return [f"- Mesure de base : rappel {m.rappel:.3f} ; bruit {m.bruit:.3f} ; liste {sha}",
+                    f"- Coût : {m.cout:.3f} dollars"]
+
+        bras1, bras2 = f"base-{s8}-1", f"base-{s8}-2"
         if (r := arret()) is not None:
             return r
-        m1 = mesurer(liste, f"base-{s8}-1", "mesure de base, bras 1")
-        noter("mesure de base, bras 1", puces_base(m1), cout=m1.cout)
+        if en_cache(bras1):
+            m1 = mesurer(liste, bras1, "mesure de base, bras 1")   # déjà payé : lu dans l'état, rien ne part
+        else:
+            m1 = mesurer(liste, bras1, "mesure de base, bras 1")
+            ecrire("mesure de base, bras 1", puces_base(m1))
         if (r := arret()) is not None:
             return r
-        m2 = mesurer(liste, f"base-{s8}-2", "mesure de base, bras 2")
+        m2 = mesurer(liste, bras2, "mesure de base, bras 2")
         aa = abs(m1.bruit - m2.bruit)
-        noter("mesure de base, bras 2 et bruit A/A", puces_base(m2) + [f"- Bruit A/A : {aa:.3f}"], cout=m2.cout)
-        bruit_aa, base = aa, (m2.rappel, m2.bruit)
-    else:
-        bruit_aa = float(bruit_aa[0])
+        ecrire("mesure de base, bras 2 et bruit A/A", puces_base(m2) + [f"- Bruit A/A : {aa:.3f}"])
+        changer_etat(lambda e: {**e, "base": {"liste": sha, "rappel": m2.rappel, "bruit": m2.bruit, "bruit_aa": aa}})
+        base = (m2.rappel, m2.bruit, aa)
+    rappel_base, bruit_base, bruit_aa = base
 
-    for c in _a_mesurer(texte, deps):
+    # 4. Les candidats, un à un : chacun contre la base, dans le budget.
+    for c in _a_mesurer(deps.lire_etat(section), deps):
         if (r := arret()) is not None:
             return r
         liste_c = deps.liste_avec(c)
         m = mesurer(liste_c, f"cand-{_sha8(liste_c)}", f"candidat « {c.ligne[:60]} »")
-        gain, hausse = m.rappel - base[0], m.bruit - base[1]
+        gain, hausse = m.rappel - rappel_base, m.bruit - bruit_base
         retenue = gain > 0 and hausse <= bruit_aa
-        noter(f"candidat « {c.ligne[:60]} »", [
+        ecrire(f"candidat « {c.ligne[:60]} »", [
             f"- Ligne candidate : {c.ligne}", f"- Catégorie : {c.categorie}", f"- Liste mesurée : {sha}",
             f"- Mesure : rappel {m.rappel:.3f} ; bruit {m.bruit:.3f} ; gain {gain:+.3f} ; hausse de bruit {hausse:+.3f}",
-            f"- Décision : {'retenue' if retenue else 'refusée'}", f"- Coût : {m.cout:.3f} dollars"], cout=m.cout)
-        if retenue:
-            return ouvrir(c)
+            f"- Décision : {'retenue' if retenue else 'refusée'}", f"- Coût : {m.cout:.3f} dollars"])
+        if not retenue:
+            changer_etat(lambda e: definir_candidat(e, c.ligne, statut="refusée", categorie=c.categorie, liste=sha))
+            continue
+        return ouvrir(c)
     return Resultat(CODE_OK, [], silencieux=True)
 
 

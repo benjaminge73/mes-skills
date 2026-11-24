@@ -9,7 +9,9 @@ premier sous-agent en coût (≈ 22 % de la dépense du VPS sur deux semaines). 
 Ce n'est **pas** un banc d'évals de plugin (`evals/<plugin>/`, `evals_ab.py`) : il ne se joue pas en CI et ne touche
 aucune catégorie. On le lance à la main, sur décision de Benjamin, comme toute dépense de jetons. Une exception, tranchée
 par Benjamin le 2026-11-24 : le cron de la boucle de la liste (`boucle_liste.py`, plus bas) le lance seul, dans un plafond
-d'environ 5 dollars par mois, sans passer par `lancer.sh`.
+d'environ 5 dollars par mois, sans passer par `lancer.sh`. Deuxième exception, datée : l'ombre de relecture d'étape
+(`ombre.py`, ≈ 0,3 dollar), lancée par le pilote après chaque relecture d'étape, décidée au plan « Réduire la voilure » et
+reprise par Q2 de P1. Ni l'une ni l'autre ne passe par `lancer.sh`, et le reste de la règle ne change pas.
 
 ## Les données : hors de ce dépôt
 
@@ -44,7 +46,7 @@ détaillés », sous le projet Mes Skills.
 | `ombre.py` | ombre d'une relecture réelle, à la volée : 3 Haiku high + la liste de relecture du plugin + chaîne, et un bras Sonnet medium compté à part. Usage : `ombre.py --id <id> --brief <brief> --rep <worktree> --depot <dépôt> --debut <sha> --fin <sha> [--liste <chemin>] [--opus <rapport d'Opus>] [--retenues <tri>]` ; `--dry-run` imprime le chemin et le sha256 de la liste, puis les cinq commandes, sans appeler `claude`. Chaque `ombre-<id>.json` porte `liste`, `liste_sha256` et la date `fait_le`. `--opus` range le rapport d'Opus en `opus-<id>.md` ; `--retenues` valide le tri du pilote (forme dans `bilan_ombre.valider_retenues`) et le range en `retenues-<id>.json`. Relancer avec le même `--id` ne rejoue aucune relecture |
 | `bilan_ombre.py` | bilan de l'ombre sur les étapes triées : cumule les `ombre-<id>.json` qui ont un `retenues-<id>.json`, appelle `juge.py` contre la vérité (remarques retenues, plus celles de l'ombre seule jugées réelles), applique la règle de décision et rend `bascule`, `hybride`, `statu quo` ou `pas assez d'étapes`. Usage : `bilan_ombre.py [--depuis AAAA-MM-JJ] [--min-etapes 20]`. Codes : 0 décision, 3 pas assez d'étapes, 4 versions de liste mêlées. `--source-json` (lignes d'un journal exporté) est réservé et n'est pas branché |
 | `test_bilan_ombre.py` | tests du bilan (pytest, sans réseau) : frontière 70 %, remarque de l'ombre seule au dénominateur, versions mêlées, ombre sans tri |
-| `boucle_liste.py` | la boucle de la liste de relecture (étape 7) : relève les lignes candidates (remarques retenues par Opus seul, vues dans deux étapes de la même catégorie), mesure chacune sur les 43 cas de validation contre une base mesurée et un bruit A/A, et ne l'ajoute que si le rappel monte sans que le bruit dépasse celui de l'A/A. Usage : `boucle_liste.py --section Code [--plafond-mois 5] [--dry-run] [--cron]`. Codes : 0 rien à ajouter, 10 une ligne ajoutée (PR), 1 erreur réelle, 3 plafond du mois atteint, 5 bilan de Q2 pas encore passé. `--cron` sort toujours en 0 (`[SILENT]` ou une ligne). Le journal est `journal-checklist.md`, à côté du script (une section par liste, `## Code` ici) |
+| `boucle_liste.py` | la boucle de la liste de relecture (étape 7) : relève les lignes candidates (remarques retenues par Opus seul, vues dans deux étapes de la même catégorie), mesure chacune sur les 43 cas de validation contre une base mesurée et un bruit A/A, et ne l'ajoute que si le rappel monte sans que le bruit dépasse celui de l'A/A. Usage : `boucle_liste.py --section Code [--plafond-mois 5] [--dry-run] [--cron]`. Codes : 0 rien à ajouter, 10 une ligne ajoutée (PR), 1 erreur réelle, 3 plafond du mois atteint, 5 bilan de Q2 pas encore passé. `--cron` sort en 0 (`[SILENT]` ou une ligne), sauf erreur réelle (code 1, une ligne). Le journal est `journal-checklist.md`, à côté du script (une section par liste, `## Code` ici) ; l'état (coût, mesures, décisions) est dans `$BANC_DONNEES/etat-boucle-<section>.json`, voir plus bas. Le code 3 vaut aussi quand le budget restant est sous le coût d'une mesure complète |
 | `test_boucle_liste.py` | tests de la boucle (pytest, sans réseau ni `claude` ni `gh`) : décision retenue et refusée, plafond, bilan, quota, mode cron |
 | `jev.py` | Jev (TypeSafe System One) : aiguillage des angles, second avis sur une remarque |
 | `banc.py` | socle : emplacement des données, appel `claude -p` isolé, worktree jetable |
@@ -93,9 +95,34 @@ n'est pas lisible par le banc : l'option `--source-json` est prévue pour la ren
 de relecture, et il ne l'ajoute qu'après une mesure. Il refuse tant que le journal `journal-checklist.md` ne porte pas la
 ligne `Bilan de Q2 : AAAA-MM-JJ` (code 5). Il mesure une base et son bruit A/A une fois (deux relectures identiques),
 puis chaque candidat ; une ligne est retenue si le rappel monte et si sa hausse de bruit ne dépasse pas le bruit A/A. Le
-coût de chaque mesure va dans le journal ; le total du mois, toutes sections confondues, ne doit pas dépasser 5 dollars
-(code 3). Le format du journal (sections `## NOM`, entrées `### AAAA-MM-JJ`, puces à clé fixe) est l'interface que
-réutilise un autre plan (`--section`) : ne pas le changer sans lui.
+total du mois, toutes sections confondues, ne doit pas dépasser 5 dollars (code 3). Le format du journal (sections `## NOM`,
+entrées `### AAAA-MM-JJ`, puces à clé fixe) est l'interface que réutilise un autre plan (`--section`) : ne pas le changer
+sans lui.
+
+**L'état de la boucle fait foi** (`$BANC_DONNEES/etat-boucle-<section>.json`, hors du dépôt) : le coût par mois, la dernière
+mesure complète, chaque mesure faite sous son nom de bras (une mesure faite n'est jamais repayée), la base et son bruit A/A,
+et le statut de chaque candidat (`refusée`, `retenue`, `en vol`, `mergée`, `fermée`). Le cron tourne dans un worktree neuf
+d'origin/main, dont le journal ne porte pas les entrées non mergées : sans cet état, une ligne refusée serait remesurée
+chaque mois. Le journal reste la trace publiée ; une ligne déjà dans l'état n'est jamais réécrite par lui.
+
+**Le budget** : une mesure ne part que si le budget restant couvre le coût de la dernière mesure complète connue ; sans mesure
+connue, le plafond entier. `rejouer.py` ne lance pas un cas si le budget restant, cas en vol réservés, ne couvre pas le coût
+moyen d'un lot de six cas. Des sorties incomplètes s'arrêtent avant le juge, et leur dépense est journalisée.
+
+**Une PR de la boucle** : une seule est en vol à la fois. Son état est lu sur GitHub (`gh pr view`) à chaque passage : ouverte,
+la boucle attend ; rouge, la ligne est signalée et rien n'est mesuré ni ouvert ; fermée sans merge, la ligne est signalée une
+fois et ne revient pas sans décision humaine ; mergée, elle devient une décision définitive. Avant le push, `ouvrir_pr` joue
+`scripts/check_veille.py` en local, comme les gardes Doc et Evals : un refus arrête sans push, avec une entrée « PR non ouverte ».
+Le worktree de PR s'appelle `boucle-liste-pr-<date>` sous `~/repos/worktrees/mes-skills/` ; un chemin qui égale, contient ou
+recouvre le dépôt de lancement est refusé, sans rien effacer.
+
+**Le dossier de lancement**, à donner à Hal dans la configuration du cron : un worktree neuf d'origin/main, à rafraîchir avant
+chaque passage. Jamais le checkout principal, ni un worktree de travail :
+`python3 <dossier>/evals/banc-relecture/boucle_liste.py --section Code --cron`.
+
+**Le budget en chiffres** : un bras de 43 cas coûte environ 4,9 dollars sur le VPS (extrapolé des 2,71 dollars de 24 cas,
+Haiku high), juge compris autour de 5,2. Avec 5 dollars par mois, une seule mesure complète tient dans un mois : la base
+(deux bras) prend donc deux mois. Le plafond ou le nombre de bras est une décision de Benjamin, à prendre avant le bilan de Q2.
 
 Sans `--liste` ni `--ajout`, `rejouer.py` n'ajoute aucune consigne (le bras témoin reste reproductible) ; `--liste` seul ajoute la liste du plugin.
 Les rejeux antérieurs à cette promotion restent reproductibles par l'ancien fichier de la checklist v2, dans l'historique git (commit `bfd7133`)
