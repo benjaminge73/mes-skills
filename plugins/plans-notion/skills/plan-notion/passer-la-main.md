@@ -12,49 +12,13 @@ Quand Benjamin valide le plan :
    `Exécution` juste, ou il n'y passe pas : c'est ce chapitre-là, et pas les
    réponses éparpillées dans la page, qui part dans les briefs des sous-agents
    d'exécution.
-2. **Passer le plan au filtre de l'enquête.** Quinze vérifications, et elles se
-   font page ouverte, pas de mémoire :
-   1. plus aucune question ouverte dont la réponse était vérifiable et n'a pas
-      été vérifiée ;
-   2. plus aucune option qui reporte une mesure faisable aujourd'hui ;
-   3. chaque chemin de « Fichiers touchés » qui existe vraiment, ou qui est
-      annoncé comme une création ;
-   4. le chapitre `Maquette` tient : aucune étape dont l'`Impact fonctionnel`
-      dit autre chose que « Rien » sans maquette qui la montre **dans la
-      version courante des étapes**, légende avec son `file_upload_id` — ou
-      une dispense dont la raison est l'une des deux recevables (§3) ;
-   5. une relecture de **cohérence interne** : les renvois entre sections
-      pointent juste, l'ordre des étapes est le bon, et aucune prémisse ne
-      contredit une réponse tranchée plus loin dans la page ;
-   6. chaque « Preuve de fin » a été **jouée**, ou est **réfutable**, avant de
-      passer `valide` — une preuve qu'on ne peut ni jouer ni contredire ne
-      prouve rien à l'exécution ;
-   7. aucun chiffre n'est repris d'un plan `#N-1` **sans remesure** ;
-   8. toute question chiffrée porte, à côté de sa réponse, la commande jouée
-      et son résultat — sinon rien ne permet de la remesurer au point 7
-      ci-dessus ;
-   9. la répétition à blanc a été **jouée et reportée** dans `Contraintes
-      techniques vérifiées`, sous « État de départ » (« La répétition à blanc et
-      le POC de décision ») ;
-   10. une ligne « Existant cherché : … / trouvé : … / fait maison parce que … »
-      **par artefact** non propre au projet que les étapes fabriquent, présente
-      dans `Contraintes techniques vérifiées` (gisement 6, « L'extérieur »).
-   11. une **carte de voisinage** présente dans `Contraintes techniques
-       vérifiées` (geste du pilote, `enquete.md`), ou une dispense écrite
-       `Pas de carte — <raison>` dont la raison est l'une des trois recevables :
-       dépôt de contenu sans code touché, serveur MCP absent, dépôt non indexé.
-   12. le miroir de la page (fetch) rend 0 à
-       `python3 "${CLAUDE_PLUGIN_ROOT}/skills/_partage/scripts/verifier-preuves.py" <miroir> --depot <dépôt> --transcripts` :
-       chaque écart se corrige, ou se justifie par une dispense motivée, avant
-       `valide` ; le format de la preuve est dans `${CLAUDE_PLUGIN_ROOT}/skills/_partage/poc.md`.
-   13. chaque cron créé ou modifié (job Hermes, unité systemd, workflow `schedule:`, autre planificateur), hook ou workflow sur événement, a son
-       étape `C<n>`, ou la page dit « Aucun cron touché » : `${CLAUDE_PLUGIN_ROOT}/skills/_partage/cron-a-la-main.md`.
-   14. chaque étape qui touche un fichier cité par la doc du dépôt porte sa ligne
-       « Docs relues » (`chapitres-questions-execution.md`, « Fichiers touchés » compris).
-   15. chaque ligne `ouvert` des dépôts du plan est citée dans `Restes repris` : reprise si elle
-       est du sujet, « laissée ouverte » avec sa raison sinon. Contrôle bloquant (Q8) :
-       `python3 "${CLAUDE_PLUGIN_ROOT}/skills/_partage/scripts/restes-repris.py" <miroir> --lignes <export>`
-       rend 0 (`_partage/restes.md`, règle 7).
+2. **Passer le plan à la liste de relecture commune.** Quinze vérifications de
+   l'enquête, quatre points de Hal et deux points d'Anthropic, en vingt et une
+   cases, chacune avec sa preuve, page ouverte, pas de mémoire :
+   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/listes/relecture-plan.md`. Sa copie
+   cochée est celle que la relecture de Hal a reçue avant `en revue`
+   (`relecture-par-hal.md` § 3) : ici, on la reprend sur la page fraîche et on
+   recoche ce qui tient encore. Une case non tenue se corrige avant `valide`.
 
    Ce filtre vient de l'enquête sur les plans passés ; il coûte quelques minutes ici et évite
    la découverte en pleine exécution, qui coûte une étape. Mesures : `docs/retex/plan-notion.md`.

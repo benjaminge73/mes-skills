@@ -44,3 +44,8 @@ sans sauter d'étape :
 
    Code 1 : un écart par ligne, à corriger dans le plan. Code 2 : plan illisible
    (pas de section `## Décisions`, ou aucune ligne `D<n>` dedans).
+
+6 bis. **Jouer la liste de relecture** `${CLAUDE_PLUGIN_ROOT}/skills/_partage/listes/relecture-plan.md`
+   sur le plan natif, après le code 0, et avant `ExitPlanMode` : la copie cochée, case par case, chacune
+   avec sa preuve. Ses cases 4, 9, 15 et 16 à 19 se cochent `sans objet — plan natif` (la liste le dit en
+   tête). Une case non tenue se corrige dans le plan, puis se recoche.
