@@ -180,7 +180,9 @@ if a.dry_run:
 erreurs = jouer({b: cmd_rejouer(b, "claude-haiku-5-5", "high") for b in BRAS_HAIKU})
 haiku_ok = [b for b in BRAS_HAIKU if lire(b)[0]]
 cmds = {BRAS_SONNET: cmd_rejouer(BRAS_SONNET, "claude-sonnet-5-5", "medium")}
-if haiku_ok:
+if haiku_ok and lire(BRAS_CHAINE)[0]:
+    pass  # chaîne déjà jouée : une reprise (--retenues) ne la repaie pas et ne remplace pas le rapport trié
+elif haiku_ok:
     cmds[BRAS_CHAINE] = cmd_chaine()
 else:
     erreurs[BRAS_CHAINE] = "aucun rapport Haiku : chaîne non lancée"

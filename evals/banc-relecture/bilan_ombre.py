@@ -41,7 +41,7 @@ PLAFOND_BUGS = 1            # bugs de correction retenus manqués par la chaîne
 PLAFOND_NON_FONDEES = 1     # remarques de l'ombre seule jugées bruit, en moyenne par relecture
 PLAFOND_COUT = 0.5          # dollars par relecture, Haiku + chaîne (le bras Sonnet est compté à part)
 POIDS = {"oui": Fraction(1), "partiel": Fraction(1, 2), "non": Fraction(0)}
-ORIGINES = {"opus": {"retenue"}, "commune": {"retenue"}, "ombre": {"réelle", "bruit"}}
+ORIGINES = {"opus": {"retenue"}, "commune": {"retenue", "écartée"}, "ombre": {"réelle", "bruit"}}
 VERITE = {"retenue", "réelle"}
 PAS_ASSEZ = "pas assez d'étapes"
 
@@ -140,11 +140,11 @@ def calculer(etapes: list[dict], jugement: dict) -> tuple[list[list[str]], dict]
         tot["pond"] += pond
         tot["bugs"] += sum(1 for i, r in enumerate(verites, 1)
                            if r.get("gravite", "autre").startswith("bug") and matchs.get(i, "non") == "non")
-        bruit = sum(1 for r in rem if r["origine"] == "ombre" and r["verdict"] == "bruit")
+        bruit = sum(1 for r in rem if r["verdict"] in ("bruit", "écartée"))
         tot["bruit"] += bruit
         tot["cout"] += e["cout"]
         n_op = sum(1 for r in rem if r["origine"] == "opus")
-        n_co = sum(1 for r in rem if r["origine"] == "commune")
+        n_co = sum(1 for r in rem if r["origine"] == "commune" and r["verdict"] == "retenue")
         n_om = sum(1 for r in rem if r["origine"] == "ombre" and r["verdict"] == "réelle")
         rappel_etape = f"{float(pond / len(verites)) * 100:.0f} %" if verites else "—"
         lignes.append([e["id"], str(n_op + n_co), str(n_co + n_om + bruit), str(n_co), str(n_om), str(bruit),

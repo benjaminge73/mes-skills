@@ -109,3 +109,16 @@ def test_ombre_sans_tri_du_pilote_ne_compte_pas_et_ne_juge_pas(tmp_path, capsys)
 
     assert code == 3
     assert dernier_mot_de_decision(capsys.readouterr().out) == "DÉCISION : pas assez d'étapes"
+
+
+def test_remarque_commune_ecartee_compte_comme_bruit_de_la_chaine(tmp_path, capsys):
+    # Panne attrapée : le bruit que la chaîne partage avec Opus resterait invisible et le bilan basculerait
+    # alors que la chaîne fait deux remarques non fondées par relecture (plafond : une).
+    ecrire_etape(tmp_path, "e1", remarques=[opus(), {"origine": "commune", "verdict": "écartée", "gravite": "autre", "resume": "x"},
+                                            {"origine": "commune", "verdict": "écartée", "gravite": "autre", "resume": "y"}])
+
+    bilan_ombre.main(["--min-etapes", "1"], donnees=tmp_path, juger=juge_fictif({("e1", 1)}))
+
+    sortie = capsys.readouterr().out
+    assert "jugées bruit par relecture : 2.00" in sortie
+    assert "DÉCISION : statu quo" in sortie
