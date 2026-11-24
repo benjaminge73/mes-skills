@@ -1,0 +1,36 @@
+schema_version: "1.1"
+name: relecteur-liste-cochee
+description: "Le pilote fait relire une étape par plans-notion:relecteur, sur un diff propre. Le rapport doit ouvrir par le bloc « Liste parcourue » : neuf lignes, A à H puis « Hors liste », chacune « rien » ou des numéros R<n>. Un rapport sans ce bloc, ou dont une case manque, ne passe pas."
+expected_outcome: "Le rapport ouvre par « Liste parcourue », suivi des lignes A à H puis « Hors liste », dans cet ordre, chacune « rien » ou des numéros R<n> ; aucune case laissée sans verdict ; sur ce diff propre, toutes les cases sont « rien » et le verdict est RIEN À SIGNALER."
+tags: [execution]
+# Le pilote délègue à l'agent du plugin (outil Agent) : la leçon vient du plugin, pas du prompt.
+# Lecture seule par consigne (Bash reste ouvert). 40 tours et 600 s, comme relecteur-checkout.
+execution:
+  max_turns: 40
+  timeout_seconds: 600
+  allowed_tools: [Read, Glob, Grep, Bash, Agent]
+context:
+  scaffold_script: fixture.sh
+# Juges gratuits sur la réponse finale, joués par le pré-vol sur oracle/reponse.md ; le témoin
+# nul (réponse vide) doit échouer chacun d'eux. Le juge tool_used (relecteur appelé) ne se
+# vérifie pas sans modèle : il se lit dans la trace de la session.
+graders:
+  - name: bloc-liste-parcourue
+    type: regex
+    pattern: '^Liste parcourue[ \t]*$'
+    flags: m
+  # Ordre et présence des neuf lignes : A à H puis « Hors liste », chacune « rien » ou R<n>.
+  # Un rapport qui saute une case, ou qui écrit une case sans verdict, échoue ici.
+  - name: neuf-lignes-dans-l-ordre
+    type: regex
+    pattern: '^A\b[^\n]*: (?:rien|R\d+(?:, R\d+)*)[ \t]*$[\s\S]*?^B\b[^\n]*: (?:rien|R\d+(?:, R\d+)*)[ \t]*$[\s\S]*?^C\b[^\n]*: (?:rien|R\d+(?:, R\d+)*)[ \t]*$[\s\S]*?^D\b[^\n]*: (?:rien|R\d+(?:, R\d+)*)[ \t]*$[\s\S]*?^E\b[^\n]*: (?:rien|R\d+(?:, R\d+)*)[ \t]*$[\s\S]*?^F\b[^\n]*: (?:rien|R\d+(?:, R\d+)*)[ \t]*$[\s\S]*?^G\b[^\n]*: (?:rien|R\d+(?:, R\d+)*)[ \t]*$[\s\S]*?^H\b[^\n]*: (?:rien|R\d+(?:, R\d+)*)[ \t]*$[\s\S]*?^Hors liste\b[^\n]*: (?:rien|R\d+(?:, R\d+)*)[ \t]*$'
+    flags: m
+  - name: verdict-en-toutes-lettres
+    type: regex
+    pattern: 'RIEN À SIGNALER|REMARQUES \(\d+\)'
+  # Le relecteur est appelé par le pilote (trace de session, non vérifié sans modèle).
+  - name: relecteur-appele
+    type: tool_used
+    tool: Agent
+    input_match: plans-notion:relecteur
+    min: 1

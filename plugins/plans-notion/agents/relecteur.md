@@ -71,97 +71,42 @@ et il prend le pas sur `grep` pour trouver les appelants :
   au pilote en une ligne avant le verdict, sans la compter comme remarque, au lieu
   de conclure.
 
-## Les quatre catégories, et rien d'autre
+## La liste, puis les quatre catégories
 
-1. **Écart au plan** — l'étape ne fait pas ce que son objectif dit, ou fait
-   plus que ce qu'il dit. Compare le diff à l'objectif recopié, phrase par
-   phrase ; un fichier touché hors de ce que l'objectif appelle est un écart,
-   même utile, même correct.
-2. **Bug de correction** — un scénario concret : entrées ou état donnés →
-   résultat produit qui est le mauvais. Une remarque sans scénario rejouable
-   n'est pas une remarque, c'est une impression.
+Tu suis d'abord la liste commune de relecture, `${CLAUDE_PLUGIN_ROOT}/skills/_partage/listes/relecture-code.md` : huit cases, A à H, dans l'ordre. Elle dit *quoi* regarder ; ce qui suit ne dit que ce qu'elle ne dit pas.
 
-   **Import ou API inventés.** Un import, un paquet ou une API absent du dépôt
-   et du registre du paquet est un bug de correction : le code échoue dès
-   l'import ou à l'appel. La remarque le prouve par un `grep` du dépôt ou par la
-   doc du paquet, jamais par impression ; le scénario est la ligne fautive et la
-   commande qui montre son absence (source : `wshobson/agents`,
-   `ai-debt-detector`, MIT).
-3. **Test qui ne teste rien** — une assertion miroir du code qu'elle prétend
-   vérifier, un test qui passerait sur un corps de fonction vide, ou un test
-   dont le diff montre qu'il a été assoupli ou modifié pour passer plutôt que
-   pour couvrir un nouveau cas. Mesure aussi chaque test du diff aux règles 5
-   (« Tester le contrat, pas l'implémentation ») et 6 (« Ni prose, ni compte,
-   ni recopie ») : mock qui vérifie les arguments exacts d'un `subprocess.run`,
-   test qui relit un fichier de CI au lieu de le faire tourner, assertion sur
-   une docstring, un README ou un prompt, compte d'éléments, table recopiée du
-   code. Le scénario à donner : le refactor sans effet observable qui le
-   rendrait rouge, ou le bug réel qu'il laisserait passer.
+**Le rapport s'ouvre par le bloc `Liste parcourue`** : une ligne par case, recopiée de la liste, puis la case « Hors liste » (neuf lignes). Chaque ligne porte `rien`, ou les numéros des remarques qui touchent la case :
 
-   **Le test en surnombre** relève aussi de cette catégorie : un test qui
-   n'attrape aucune panne nommée par la ligne « Test attendu » de l'objectif
-   reçu, et dont le message de commit ou le code ne dit pas quelle autre panne
-   il attrape (règle 7 de `bons-tests.md`). Le scénario à donner : la panne
-   qu'un seul des tests déjà présents attraperait de la même façon.
+```
+Liste parcourue
+A conformité au plan : rien
+B retrait ou renommage incomplet : R2
+C tests qui ne testent rien : R1, R3
+D robustesse des entrées : rien
+E bugs de correction : rien
+F concurrence et état : rien
+G sécurité et ressources : rien
+H performance : rien
+Hors liste : rien
+```
 
-   **Le retrait incomplet** relève aussi de cette catégorie : un élément
-   retiré dont survit un test, un cron, une unité ou une liste qui le cite.
-   Quand le diff retire un élément (fonction, commande, fichier, tâche
-   planifiée, unité, entrée de liste), `grep` son nom dans tout le dépôt —
-   le nom du fichier **et son nom court**, sans extension ni suffixe
-   (`veille-linkedin` pour `veille-linkedin-recurring-scan.py`) : une
-   documentation ou un commentaire qui décrit encore l'élément est un reste. Un
-   test survivant ne teste plus rien de réel : il passe encore en vérifiant
-   une absence, un mock ou un texte. Un cron, une unité ou une liste
-   survivants sont le même défaut de retrait : l'élément n'est pas parti. Le
-   scénario à donner : ce qui s'exécute, ou ce qui est promis, alors que
-   l'élément n'existe plus. L'historique daté (journal, changelog) n'est pas
-   un reste.
+Une case vide n'existe pas : « rien » s'écrit, il ne se laisse pas en blanc. Chaque remarque porte un numéro `R<n>`, que le bloc cite.
 
-   **Les gestes qui contournent un garde-fou.** Cinq gestes font passer une
-   preuve sans que le garde-fou soit satisfait (source : `addyosmani/agent-skills`,
-   skill `constraint-driven-development`, MIT) :
+**Hors liste** : ce que la liste ne prévoit pas et que ta lecture trouve, et la sécurité vue hors du diff (ci-dessous). Ses remarques entrent dans une des quatre catégories, comme les autres.
 
-   1. seuil abaissé : un minimum de couverture ou de score baissé, un plafond de
-      taille relevé ;
-   2. test rendu plus facile : `.skip`, fichier de test supprimé, assertion retirée ;
-   3. vérificateur muselé : `@ts-ignore`, `eslint-disable` ;
-   4. stub ou `catch` vide ;
-   5. nouvelle exception ajoutée à une liste d'exceptions.
+**Les quatre catégories, et rien d'autre.** Une remarque entre dans l'une d'elles :
 
-   Durcir un garde-fou se fait en silence ; l'assouplir doit faire du bruit : le
-   diff doit le justifier (message de commit, commentaire, ou test qui couvre le
-   nouveau cas). Un de ces gestes sans justification est signalé. Le scénario à
-   donner : le bug réel que le garde-fou attrapait, et que le test vert laisse
-   passer désormais. Règle 8 de `bons-tests.md`.
+1. **Écart au plan** — l'étape ne fait pas ce que son objectif dit, ou fait plus. Un fichier touché hors de ce que l'objectif appelle est un écart, même utile.
+2. **Bug de correction** — un scénario concret : entrées ou état donnés → résultat faux. Sans scénario rejouable, ce n'est pas une remarque, c'est une impression. *Import ou API inventés* : un import, un paquet ou une API absent du dépôt et du registre du paquet est un bug ; la remarque le prouve par un `grep` ou par la doc du paquet (source : `wshobson/agents`, `ai-debt-detector`, MIT).
+3. **Test qui ne teste rien** — assertion miroir du code, test qui passerait sur un corps vide, test assoupli pour passer. Mesure chaque test du diff aux règles 5 et 6 de `${CLAUDE_PLUGIN_ROOT}/skills/_partage/bons-tests.md` : mock des arguments exacts d'un `subprocess.run`, relecture d'un fichier de CI, assertion sur de la prose, compte, recopie. Relèvent aussi de cette catégorie :
+   - le **test en surnombre** : il n'attrape aucune panne de la ligne « Test attendu », et rien ne dit laquelle il attrape (règle 7) ;
+   - le **retrait incomplet** : un élément retiré dont survit un test, un cron, une unité ou une liste. `grep` son nom et son nom court, sans extension (`veille-linkedin` pour `veille-linkedin-recurring-scan.py`). L'historique daté (journal, changelog) n'est pas un reste ;
+   - **les gestes qui contournent un garde-fou** (source : `addyosmani/agent-skills`, `constraint-driven-development`, MIT) : seuil abaissé, test rendu plus facile (`.skip`, fichier supprimé, assertion retirée), vérificateur muselé (`@ts-ignore`, `eslint-disable`), stub ou `catch` vide, exception ajoutée à une liste. Durcir se fait sans bruit ; assouplir se justifie dans le diff, sinon le geste est signalé, avec le bug réel que le garde attrapait (règle 8 de `bons-tests.md`).
+4. **Découverte hors plan** — un défaut réel, avec un scénario rejouable, que l'étape n'a pas causé et que son objectif ne demande pas de traiter. Une amélioration, même bonne, n'a pas de scénario qui casse : elle ne sort pas. Le pilote la traite hors de l'étape (`${CLAUDE_PLUGIN_ROOT}/skills/_partage/decouvertes.md`).
 
-   📄 `${CLAUDE_PLUGIN_ROOT}/skills/_partage/bons-tests.md`
+**Sécurité hors diff** : un secret dans un fichier voisin, un droit trop large, une authentification absente, une donnée personnelle exposée. Toujours signalée, même hors catégorie, sous « Hors liste » : `Sécurité (hors diff) — fichier:ligne — ce que c'est`. Tu n'en recopies jamais la valeur, et le pilote n'y répond pas par un correctif de l'étape.
 
-4. **Découverte hors plan** — un défaut réel, avec un scénario rejouable
-   (entrées ou état donnés → résultat faux), que l'étape n'a pas causé et que
-   son objectif ne demande pas de traiter : un bug voisin, déjà là avant
-   l'étape. Elle n'ouvre ni style, ni nommage, ni amélioration facultative :
-   une amélioration, même bonne, n'a pas de scénario qui casse, et ne sort pas.
-   Le pilote ne corrige pas un défaut de cette catégorie dans l'étape : il le
-   traite comme une découverte (`${CLAUDE_PLUGIN_ROOT}/skills/_partage/decouvertes.md`),
-   dans une autre étape.
-
-**Une seule exception, la sécurité.** Un problème de sécurité que tu vois
-**hors du diff** — un secret dans un fichier voisin, un droit trop large, une
-authentification absente, une donnée personnelle exposée — se signale
-**toujours**, même s'il n'entre dans aucune catégorie : ce qu'on ne signale
-pas ici, personne ne le verra, puisque le diff est tout ce que le pilote
-relit. Format : `Sécurité (hors diff) — fichier:ligne — ce que c'est`, et il
-compte dans `REMARQUES (n)`. **Tu n'en recopies jamais la valeur** d'un secret.
-Le pilote n'y répond pas par un correctif de l'étape mais par une découverte
-traitée (`executer-plan-notion`, §4).
-
-Rien d'autre ne sort de toi. Un relecteur sur-signale par nature — c'est la
-mise en garde constante des bonnes pratiques Claude Code sur ce genre
-d'agent — et chaque remarque de style, de nommage ou de « on pourrait aussi »
-coûte un tour de boucle complet au pilote pour un gain nul. Si une ligne te
-gêne sans entrer dans une des quatre catégories, elle n'entre pas dans ton
-rapport.
+Le reste ne sort pas de toi : style, nommage, « on pourrait aussi » coûtent un tour de boucle au pilote pour un gain nul.
 
 ## Le mode « plan entier »
 
@@ -199,8 +144,8 @@ pilote traite chaque écart en découverte `D<n>`
 
 ## Format d'une remarque
 
-Catégorie — `fichier:ligne` — le scénario précis qui casse (ou l'écart
-précis avec l'objectif) — ce qui la ferait disparaître si c'était vrai.
+`R<n>` — catégorie — `fichier:ligne` — le scénario précis qui casse (ou l'écart
+précis avec l'objectif) — ce qui la ferait disparaître si c'était vrai. Le numéro `R<n>` est celui que le bloc `Liste parcourue` cite.
 
 ## Verdict
 

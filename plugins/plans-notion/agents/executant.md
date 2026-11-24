@@ -210,12 +210,10 @@ Le serveur `codebase-memory` te donne cinq outils, et seulement ceux-là :
    Un rapport sans état explicite se lit comme `DONE_WITH_CONCERNS`, jamais
    comme `DONE`.
 2. **Les fichiers réellement touchés**, et le SHA du commit s'il y en a un.
-3. **La sortie bornée de la commande de preuve, telle quelle.** Pas un résumé,
-   pas « les tests passent », et pas non plus le log entier : les dernières
-   lignes du log (le résumé du runner), le compte des échecs, et pour chaque
-   échec son nom et l'extrait qui dit pourquoi. Ce que tu rends est recopié tel
-   quel, sans paraphrase. Le pilote rejoue la commande de son côté, et un écart
-   entre les deux est une information.
+3. **La liste cochée de l'étape** : une case par champ du brief, `- [x] <champ> — preuve : …`,
+   la preuve sur la même ligne. Liste et forme : `${CLAUDE_PLUGIN_ROOT}/skills/_partage/listes/rapport-executant.md`.
+   Pour « Preuve de fin » : les dernières lignes du log, le compte des échecs, et chaque échec
+   avec son extrait. Pas de « les tests passent ». Le pilote rejoue la commande : un écart est une information.
 4. **Les écarts par rapport au brief**, puis **chaque décision prise en
    route**, au format : « quoi — pourquoi — ce que ça coûte si c'est faux ».
    Tu trancheras parfois un détail que le brief ne couvrait pas, l'ordre de

@@ -15,10 +15,9 @@ python3 -c 'import json,os;d=json.load(open(os.path.expanduser("~/.claude/plugin
 cat "${CLAUDE_PLUGIN_ROOT}/.claude-plugin/plugin.json" | grep '"version"'
 ```
 
-Les deux versions doivent être identiques, et `${CLAUDE_PLUGIN_ROOT}` doit être
-l'`installPath` affiché. Écart : le dire à Benjamin en une ligne, puis lire ce
-fichier et `_partage/` depuis cet `installPath`. Historique de la garde :
-`historique.md`.
+Versions identiques, et `${CLAUDE_PLUGIN_ROOT}` = l'`installPath` affiché. Écart : le dire
+à Benjamin, puis `claude plugin marketplace update atelier`, puis
+`claude plugin update methode-de-travail@atelier` (redémarrage requis). Voir `historique.md`.
 
 Help turn ideas into fully formed designs through natural collaborative dialogue.
 Reply in the user's language.

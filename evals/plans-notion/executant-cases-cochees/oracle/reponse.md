@@ -1,0 +1,1 @@
+Le rapport de l'exécutant n'est pas accepté. `verifier-rapport.py --brief brief.md --rapport rapport.md` rend code 1 : `case sans preuve : Test attendu`. La case « Test attendu » est cochée sans preuve, donc je ne lis pas le rapport comme une preuve : je renvoie l'étape à l'exécutant avec cette case nommée.

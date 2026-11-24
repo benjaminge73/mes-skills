@@ -3,7 +3,8 @@
 
 Pour une étape que le `relecteur` (Opus) vient de relire, rejoue le MÊME brief sur la chaîne d'ombre, sans toucher
 à la relecture d'origine ni à ce qu'elle a décidé :
-  - trois relectures Haiku high avec la checklist v2 (`checklist-v2.txt`), puis la chaîne retenue (`chaine.py` :
+  - trois relectures Haiku high avec la checklist v2 (`plugins/plans-notion/skills/_partage/listes/relecture-code.md`,
+    lue via `--liste`), puis la chaîne retenue (`chaine.py` :
     extraction, dédoublonnage, vérification de chaque remarque) sur ces trois rapports ;
   - un bras Sonnet medium avec la même checklist, compté À PART : il mesure ce que Sonnet ajoute au-dessus de Haiku
     sur la même consigne, et n'entre dans aucun total de la chaîne.
@@ -12,9 +13,18 @@ seulement comparées. La bascule « chaîne à la place d'Opus » n'est pas fait
 
 Usage :
   ombre.py --id <id> --brief <fichier du brief> --rep <worktree cité dans le brief> --depot <dépôt git>
-           --debut <sha> --fin <sha> [--sortie <dossier>] [--plafond 3] [--dry-run]
+           --debut <sha> --fin <sha> [--sortie <dossier>] [--plafond 3] [--liste <chemin>] [--dry-run]
+           [--opus <rapport d'Opus>] [--retenues <fichier de tri du pilote>]
+
+--opus : le rapport d'Opus de la relecture, copié à côté de l'ombre (`opus-<id>.md`).
+--retenues : le tri du pilote (remarques retenues, et remarques de l'ombre seule jugées réelles ou bruit), validé par
+`bilan_ombre.valider_retenues` puis copié en `retenues-<id>.json`. Les relectures déjà jouées ne se refont pas : relancer
+avec le même `--id` ne paie que le tri. Le pilote lance l'ombre en tâche de fond juste après la relecture, puis passe ce
+fichier une fois le tri fait (`revue.md`, « L'ombre de relecture »).
 
 --plafond : garde-fou de rejouer.py, sans effet sur un cas unique : la dépense réelle est dans le bilan imprimé.
+--liste : la liste de relecture jouée (défaut : le fichier du plugin). Son sha256 part dans l'ombre-<id>.json
+(`liste_sha256`) : une sortie se rattache ainsi à la version exacte de la liste qui l'a produite.
 
 Sorties : `<sortie>/ombre-<id>.json` (défaut : $BANC_DONNEES/ombres/), et les sorties brutes des bras dans
 $BANC_DONNEES/sorties/ombre-<id>-*/. Un bras déjà joué pour cet id est repris sans être repayé, comme rejouer.py :
@@ -32,6 +42,8 @@ from __future__ import annotations
 
 import argparse
 import concurrent.futures as cf
+import datetime
+import hashlib
 import json
 import re
 import shlex
@@ -40,6 +52,7 @@ import sys
 from pathlib import Path
 
 import banc
+import bilan_ombre
 
 ap = argparse.ArgumentParser(description="Ombre d'une relecture réelle : 3 Haiku puis chaîne, et un bras Sonnet à part.")
 ap.add_argument("--id", required=True, help="identifiant de l'ombre (lettres, chiffres, '.', '_', '-')")
@@ -50,11 +63,29 @@ ap.add_argument("--debut", required=True, help="sha de début de la plage relue 
 ap.add_argument("--fin", required=True, help="sha de fin de la plage relue (inclus)")
 ap.add_argument("--sortie", help="dossier de l'ombre-<id>.json (défaut : $BANC_DONNEES/ombres)")
 ap.add_argument("--plafond", type=float, default=3, help="garde-fou de rejouer.py, sans effet sur un cas unique : la dépense réelle est dans le bilan imprimé")
+ap.add_argument("--liste", default=str(banc.ICI.parents[1] / "plugins/plans-notion/skills/_partage/listes/relecture-code.md"),
+                help="liste de relecture jouée (défaut : le fichier du plugin plans-notion) ; son sha256 part dans le JSON")
 ap.add_argument("--dry-run", action="store_true", help="prépare le clone et le cas, imprime les commandes, n'appelle pas claude")
+ap.add_argument("--opus", help="rapport d'Opus de la relecture (copié en opus-<id>.md à côté de l'ombre)")
+ap.add_argument("--retenues", help="tri du pilote (JSON : {\"remarques\": [...]}), validé puis copié en retenues-<id>.json")
 a = ap.parse_args()
 
 if not re.fullmatch(r"[A-Za-z0-9_.-]+", a.id):
     sys.exit("ombre : --id n'accepte que lettres, chiffres, '.', '_' et '-' (il sert de nom de fichier)")
+
+LISTE = Path(a.liste).expanduser().resolve()
+if not LISTE.is_file():
+    sys.exit(f"ombre : liste de relecture introuvable : {LISTE}")
+LISTE_SHA256 = hashlib.sha256(LISTE.read_bytes()).hexdigest()
+
+# Le tri du pilote et le rapport d'Opus sont vérifiés avant toute dépense : une forme fausse ne coûte pas un appel.
+if a.opus and not Path(a.opus).expanduser().is_file():
+    sys.exit(f"ombre : rapport d'Opus introuvable : {a.opus}")
+if a.retenues:
+    try:
+        RETENUES = bilan_ombre.valider_retenues(json.loads(Path(a.retenues).expanduser().read_text()))
+    except (OSError, ValueError) as e:
+        sys.exit(f"ombre : tri du pilote invalide ({a.retenues}) : {e}")
 
 CAS = f"ombre-cas-{a.id}.json"
 BRAS_HAIKU = [f"ombre-{a.id}-h{i}" for i in (1, 2, 3)]
@@ -85,7 +116,7 @@ def preparer_clone(depot: Path) -> Path:
 
 def cmd_rejouer(bras: str, modele: str, effort: str) -> list[str]:
     return [sys.executable, str(banc.ICI / "rejouer.py"), bras, modele, effort, str(a.plafond),
-            "--cas", CAS, "--ajout", "checklist-v2.txt"]
+            "--cas", CAS, "--liste", str(LISTE)]
 
 
 def cmd_chaine() -> list[str]:
@@ -140,6 +171,7 @@ banc.DONNEES.mkdir(parents=True, exist_ok=True)
                                            ensure_ascii=False))
 
 if a.dry_run:
+    print(f"liste : {LISTE} (sha256 {LISTE_SHA256})")
     for cmd in [*(cmd_rejouer(b, "claude-haiku-5-5", "high") for b in BRAS_HAIKU), cmd_chaine(),
                 cmd_rejouer(BRAS_SONNET, "claude-sonnet-5-5", "medium")]:
         print(shlex.join(cmd))
@@ -148,7 +180,9 @@ if a.dry_run:
 erreurs = jouer({b: cmd_rejouer(b, "claude-haiku-5-5", "high") for b in BRAS_HAIKU})
 haiku_ok = [b for b in BRAS_HAIKU if lire(b)[0]]
 cmds = {BRAS_SONNET: cmd_rejouer(BRAS_SONNET, "claude-sonnet-5-5", "medium")}
-if haiku_ok:
+if haiku_ok and lire(BRAS_CHAINE)[0]:
+    pass  # chaîne déjà jouée : une reprise (--retenues) ne la repaie pas et ne remplace pas le rapport trié
+elif haiku_ok:
     cmds[BRAS_CHAINE] = cmd_chaine()
 else:
     erreurs[BRAS_CHAINE] = "aucun rapport Haiku : chaîne non lancée"
@@ -178,8 +212,19 @@ sonnet = {"result": d_sonnet["result"], "cout": round(d_sonnet.get("total_cost_u
 sortie = Path(a.sortie).expanduser() if a.sortie else banc.DONNEES / "ombres"
 sortie.mkdir(parents=True, exist_ok=True)
 fichier = sortie / f"ombre-{a.id}.json"
-fichier.write_text(json.dumps({"id": a.id, "haiku": {"rapports": haiku_rapports, "cout": round(haiku_cout, 4)},
+# La date de l'ombre (`fait_le`) sert au filtre --depuis du bilan ; une reprise garde la date de la première passe.
+if fichier.exists():
+    anterieur = json.loads(fichier.read_text())
+    fait_le = anterieur.get("fait_le") or datetime.date.fromtimestamp(fichier.stat().st_mtime).isoformat()
+else:
+    fait_le = datetime.date.today().isoformat()
+fichier.write_text(json.dumps({"id": a.id, "fait_le": fait_le, "liste": str(LISTE), "liste_sha256": LISTE_SHA256,
+                               "haiku": {"rapports": haiku_rapports, "cout": round(haiku_cout, 4)},
                                "chaine": chaine, "sonnet": sonnet, "erreurs": erreurs}, ensure_ascii=False))
+if a.opus:
+    (sortie / f"opus-{a.id}.md").write_text(Path(a.opus).expanduser().read_text())
+if a.retenues:
+    (sortie / f"retenues-{a.id}.json").write_text(json.dumps({"id": a.id, "remarques": RETENUES}, ensure_ascii=False))
 
 gardees = sum(1 for v in chaine["verdicts"] if v != "REFUTED") if chaine else None
 lignes_sonnet = compter_remarques(sonnet["result"]) if sonnet else None

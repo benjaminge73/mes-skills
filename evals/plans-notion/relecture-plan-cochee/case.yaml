@@ -1,0 +1,43 @@
+schema_version: "1.1"
+name: relecture-plan-cochee
+description: "Plan en revue, relecture avant valide : la session recopie la liste commune de relecture-plan.md (21 cases), coche avec preuve ce qu'elle tient et laisse décochées les cases de Hal. Une relecture qui ne recopie pas la liste ne passe pas."
+tags: [execution]
+expected_outcome: "relecture.md recopie les cases 1 à 21 de la liste ; les cases 1, 4 et 5 sont cochées avec leur preuve ; les cases 16 à 19 restent décochées, l'avis de Hal étant absent ; aucune commande n'est donnée comme jouée, la session n'ayant pas de shell."
+execution:
+  max_turns: 30
+  timeout_seconds: 600
+  allowed_tools: [Read, Glob, Grep, Skill, Write, Edit]
+context:
+  scaffold_script: fixture.sh
+graders:
+  - name: liste-recopiee-premiere-case
+    type: regex
+    pattern: '^- \[[ xX]\] 1\. '
+    flags: m
+    target: {source: file, path: relecture.md}
+  - name: liste-recopiee-derniere-case
+    type: regex
+    pattern: '^- \[[ xX]\] 21\. '
+    flags: m
+    target: {source: file, path: relecture.md}
+  - name: cases-tenues-avec-preuve
+    type: regex
+    pattern: '^- \[[xX]\] (1|4|5)\. .*preuve\s*:'
+    flags: m
+    target: {source: file, path: relecture.md}
+  - name: hal-non-coche-sans-avis
+    type: regex
+    pattern: '^- \[[xX]\] (16|17|18|19)\. '
+    flags: m
+    match: not_contains
+    target: {source: file, path: relecture.md}
+  - name: cases-de-hal-presentes-decochees
+    type: regex
+    pattern: '^- \[ \] 16\. .*\n- \[ \] 17\. .*\n- \[ \] 18\. .*\n- \[ \] 19\. '
+    flags: m
+    target: {source: file, path: relecture.md}
+  - name: liste-complete-de-2-a-20
+    type: regex
+    pattern: '(?s)^- \[[ xX]\] 2\. .*^- \[[ xX]\] 3\. .*^- \[[ xX]\] 6\. .*^- \[[ xX]\] 9\. .*^- \[[ xX]\] 12\. .*^- \[[ xX]\] 15\. .*^- \[[ xX]\] 20\. '
+    flags: m
+    target: {source: file, path: relecture.md}

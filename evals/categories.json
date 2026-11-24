@@ -157,8 +157,8 @@
       "plancher": 0.9
     },
     "preuves": {
-      "exerce": ["skills/_partage/poc.md", "skills/_partage/cron-a-la-main.md", "agents/evaluateur.md", "skills/_partage/scripts/verifier-preuves.py", "skills/_partage/scripts/qualite-doc.py", "skills/_partage/grille-doc.md", "skills/plan-notion/chapitres-questions-execution.md", "skills/_partage/decouvertes.md", "skills/_partage/plan-de-suite.md", "skills/executer-plan-notion/cloture.md", "skills/_partage/restes.md", "skills/_partage/scripts/restes-sans-ligne.py", "skills/_partage/scripts/restes-repris.py"],
-      "cas": ["poc-jugement", "preuve-par-reponse", "cron-a-la-main", "cron-nouveau", "cousins-du-cron", "decouverte-sans-humain", "la-suite-integree", "reste-a-faire-trie", "suite-faite-en-session", "reste-recopie-dans-la-session", "reste-cron-lance-a-la-main", "reste-devient-ligne", "plan-reprend-les-restes"]
+      "exerce": ["skills/_partage/poc.md", "skills/_partage/cron-a-la-main.md", "agents/evaluateur.md", "skills/_partage/scripts/verifier-preuves.py", "skills/_partage/scripts/qualite-doc.py", "skills/_partage/grille-doc.md", "skills/plan-notion/chapitres-questions-execution.md", "skills/_partage/decouvertes.md", "skills/_partage/plan-de-suite.md", "skills/executer-plan-notion/cloture.md", "skills/_partage/restes.md", "skills/_partage/scripts/restes-sans-ligne.py", "skills/_partage/scripts/restes-repris.py", "skills/_partage/listes/rapport-executant.md", "skills/_partage/scripts/verifier-rapport.py"],
+      "cas": ["poc-jugement", "preuve-par-reponse", "cron-a-la-main", "cron-nouveau", "cousins-du-cron", "decouverte-sans-humain", "la-suite-integree", "reste-a-faire-trie", "suite-faite-en-session", "reste-recopie-dans-la-session", "reste-cron-lance-a-la-main", "reste-devient-ligne", "plan-reprend-les-restes", "executant-cases-cochees"]
     },
     "revue-hors-plan": {
       "exerce": [
@@ -166,9 +166,11 @@
         "agents/relecteur.md",
         "skills/_partage/revue.md",
         "skills/_partage/decouvertes.md",
-        "skills/_partage/relecture-par-hal.md"
+        "skills/_partage/relecture-par-hal.md",
+        "skills/_partage/listes/relecture-code.md",
+        "skills/_partage/listes/relecture-plan.md"
       ],
-      "cas": ["revue-hors-plan", "revue-sans-avis-de-hal", "relecteur-checkout"]
+      "cas": ["revue-hors-plan", "revue-sans-avis-de-hal", "relecteur-checkout", "relecteur-liste-cochee", "relecture-plan-cochee"]
     },
     "escalade-bornee": {
       "exerce": [

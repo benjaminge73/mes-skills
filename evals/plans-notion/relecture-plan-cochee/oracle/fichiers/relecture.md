@@ -1,0 +1,23 @@
+# Relecture du plan
+
+- [x] 1. Aucune question ouverte vérifiable : Q1 est tranchée par la case cochée de Benjamin. — preuve : lecture de la page, Q1 cochée sur `rapport.txt`.
+- [x] 2. Aucune option ne reporte une mesure faisable. — preuve : une seule question, sans mesure reportée.
+- [ ] 3. Chaque chemin de « Fichiers touchés » existe ou est annoncé comme création. — non cochée : `src/rapport.py` est absent du dépôt et n'est pas annoncé comme création ; l'étape 1 est à corriger.
+- [x] 4. Chapitre Maquette : « Impact fonctionnel » à « Rien » dans les deux étapes, aucune maquette requise. — preuve : les deux lignes `Impact fonctionnel` de l'`Exécution`.
+- [x] 5. Cohérence interne : Q1 renvoyée par l'étape 1, ordre 1 puis 2 juste. — preuve : renvoi relu dans l'étape 1, ordre des titres.
+- [ ] 6. Chaque « Preuve de fin » jouée ou réfutable. — non cochée : `grep -q 'RAPPORT OK' out/rapport.txt` n'est pas jouée, pas de shell dans cet essai.
+- [x] 7. Aucun chiffre repris d'un plan `#N-1`. — preuve : aucun chiffre dans la page.
+- [x] 8. Aucune question chiffrée. — preuve : aucune question chiffrée dans la page.
+- [ ] 9. Répétition à blanc jouée et reportée sous « État de départ ». — non cochée : ni répétition ni intertitre « État de départ » dans la page, à faire.
+- [x] 10. Aucun artefact non propre au projet fabriqué par les étapes. — preuve : les étapes n'écrivent qu'un rapport texte.
+- [ ] 11. Carte de voisinage ou `Pas de carte — <raison>`. — non cochée : ni carte ni dispense dans la page.
+- [ ] 12. `verifier-preuves.py` rend 0 sur le miroir. — non cochée : script non joué, pas de shell dans cet essai.
+- [x] 13. Chaque cron, hook ou workflow touché a son étape `C<n>`, ou « Aucun cron touché ». — preuve : la page porte « Aucun cron touché ».
+- [ ] 14. Chaque étape qui touche un fichier cité par la doc porte sa ligne « Docs relues ». — non cochée : aucune doc du dépôt lue dans cet essai.
+- [ ] 15. Chaque ligne `ouvert` des dépôts est citée dans `Restes repris`. — non cochée : `restes-repris.py` non joué, pas de shell dans cet essai.
+- [ ] 16. Les préférences de Benjamin ne contredisent pas le plan. — non cochée : à Hal, pas d'avis rendu dans cet essai.
+- [ ] 17. Aucun autre plan ouvert du même dépôt ne touche les mêmes fichiers. — non cochée : à Hal.
+- [ ] 18. Les faits du plan sur le VPS sont vérifiés en lecture seule. — non cochée : à Hal.
+- [ ] 19. Le plan ne refait pas un piège déjà payé. — non cochée : à Hal.
+- [ ] 20. Chaque étape a un contrôle qui rend réussi ou échoué. — non cochée : l'étape 2 a pour preuve un contrôle manuel, pas un code de sortie.
+- [ ] 21. Une seule chose par étape. — non cochée : l'étape 1 nomme deux actions (écrire le rapport et son titre) : à découper.

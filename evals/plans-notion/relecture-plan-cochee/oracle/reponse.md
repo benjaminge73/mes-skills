@@ -1,0 +1,1 @@
+La relecture est écrite dans `relecture.md` : les 21 cases recopiées, huit cochées avec leur preuve (1, 2, 4, 5, 7, 8, 10, 13), treize décochées avec leur raison, dont 16 à 19 qui attendent l'avis de Hal. Le plan ne passe pas `valide` tant que l'étape 1 cite un fichier absent (`src/rapport.py`), fait deux choses, et que sa preuve de fin n'est pas un code de sortie.

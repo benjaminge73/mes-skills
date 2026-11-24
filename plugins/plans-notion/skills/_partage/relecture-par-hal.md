@@ -52,6 +52,13 @@ pré-lecture` (les fiches). Tout ce qui précède le premier titre est « la pag
 `Cadrage avec Hal :` doit s'y trouver, sinon le contrôle du tour 1 refuse. Le délai de `relire` est de 300 secondes (constante
 `DELAI_RELECTURE_S`) ; `question` garde 120 secondes.
 
+Avant `relire`, la session joint à la page sa copie cochée de la liste de relecture commune
+(`${CLAUDE_PLUGIN_ROOT}/skills/_partage/listes/relecture-plan.md`), placée avant le premier titre :
+elle fait donc partie de « la page » pour la commande. Les cases 1 à 15, 20 et 21 sont cochées
+par la session, chacune avec sa preuve ; les cases 16 à 19 restent décochées tant que l'avis de Hal
+ne les tranche pas (§ 9). La même liste sert à `plan-notion` (`passer-la-main.md`) : une seule liste,
+deux moments.
+
 La sortie de Hal a une forme fixe : une ligne `VERDICT: OK` ou `VERDICT: RESERVES` ; une
 réserve par ligne, `R<n>`, avec sa source entre parenthèses, `(source : …)` ; les rubriques
 « Ce que j'ai vérifié » et « À vérifier par la session ». La commande y ajoute la rubrique
@@ -149,6 +156,9 @@ Hal lit le VPS en lecture seule. Il dispose de `memory`, `session_search`, `term
 tours au plus. La consigne lui nomme les commandes permises : `ls`, `cat`, `grep`, `git log`,
 `git diff`, `git show`, `git status`, `hermes cron list`, `systemctl --user status`. Il liste dans
 « À vérifier par la session » les faits du VPS qu'il soupçonne.
+
+Les quatre points de Hal sont les cases 16 à 19 de `${CLAUDE_PLUGIN_ROOT}/skills/_partage/listes/relecture-plan.md` : préférences de
+Benjamin, plans en conflit, état réel du VPS, pièges déjà payés. Le reste de la liste n'est pas le sien.
 
 ## 10. Le registre et le hook
 

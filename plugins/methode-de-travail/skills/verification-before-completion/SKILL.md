@@ -23,11 +23,11 @@ cat "${CLAUDE_PLUGIN_ROOT}/.claude-plugin/plugin.json" | grep '"version"'
 Les deux versions doivent être identiques, et le chemin annoncé au chargement
 (« Base directory for this skill », soit `${CLAUDE_PLUGIN_ROOT}`) doit être
 l'`installPath` rendu ci-dessus. Écart → le dire à Benjamin en une ligne, puis
-lire ce `SKILL.md` et `_partage/` depuis cet `installPath`, pas depuis la
-copie chargée. Pour charger la plus récente : `claude plugin update
-methode-de-travail@atelier` (redémarrage requis) ; en session cloud, le
-setup script pose déjà la dernière version publiée — jamais plus loin que ce
-que `main` du dépôt porte. Ce que cette garde ne règle pas : une copie qui ne
+mettre la copie installée à jour : `claude plugin marketplace update atelier`,
+puis `claude plugin update methode-de-travail@atelier` (redémarrage requis).
+Relire l'`installPath` n'y change rien. En session cloud, le setup script pose
+déjà la dernière version publiée — jamais plus loin que ce que `main` du dépôt
+porte. Ce que cette garde ne règle pas : une copie qui ne
 l'embarque pas ne préviendra jamais — elle protège à partir de la version qui
 la porte.
 

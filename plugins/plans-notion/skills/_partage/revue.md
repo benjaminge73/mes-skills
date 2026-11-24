@@ -94,6 +94,8 @@ elle est réversible, hors sécurité et petite ; question à Benjamin sinon, av
 Décision de Benjamin du 2026-09-23 (Q4) : « pas de nouveau plan, on itère
 jusqu'à ce que ce soit ok pour le reviewer. »
 
+Avant tout, le pilote vérifie que le rapport ouvre par le bloc `Liste parcourue` : neuf lignes, A à H puis « Hors liste », chacune « rien » ou des numéros `R<n>` (`relecteur.md`, « La liste, puis les quatre catégories »). **Un rapport sans ce bloc est refusé** : le pilote ne le lit pas, il le renvoie au relecteur, et le renvoi compte comme un tour.
+
 Le relecteur rend `RIEN À SIGNALER` ou `REMARQUES (n)`. Pour chaque remarque :
 
 1. **Le pilote la vérifie avant d'agir** — relit le code visé, rejoue une
@@ -184,7 +186,32 @@ regard neuf sur le diff : c'est exactement la dérive que superpowers
 your own read of the diff » — un pilote qui a écrit ou brief l'étape partage
 les angles morts de celui qui l'a écrite.
 
-L'ombre de relecture (`evals/banc-relecture/ombre.py`) tourne à côté de chaque relecture d'étape tant que le plan le décide : trois Haiku high avec la checklist v2, la chaîne retenue sur leurs rapports, et un bras Sonnet medium compté à part. Le pilote ne traite que les remarques d'Opus ; celles de l'ombre sont seulement comparées.
+Le coût de l'ombre, environ 0,3 dollar par étape relue tant qu'elle tourne, s'ajoute à celui-ci : voir « L'ombre de relecture ».
+
+## L'ombre de relecture
+
+Une ombre rejoue le brief d'une étape relue en régime `étape` sur trois Haiku high (la checklist de `_partage/listes/relecture-code.md`), puis sur la chaîne qui vérifie leurs remarques, et un bras Sonnet medium compté à part. Elle ne décide rien : elle mesure, sur de vraies étapes, si la chaîne peut remplacer Opus. Le bilan qui tranche est `evals/banc-relecture/bilan_ombre.py`, et sa règle est dans `evals/banc-relecture/README.md`.
+
+Le geste, pour le pilote, après chaque relecture d'étape :
+
+1. **Lancer l'ombre en tâche de fond** (`run_in_background`), dès que le rapport d'Opus est reçu, depuis un checkout de `mes-skills` (le script vit dans ce dépôt, pas dans le plugin installé) :
+   `python3 evals/banc-relecture/ombre.py --id <id> --brief <brief.txt> --rep <worktree de l'étape> --depot <dépôt de l'étape> --debut <base> --fin <tête> --opus <rapport-opus.md>`
+   `<id>` tient en lettres, chiffres, `.`, `_` et `-` (par exemple `<plan>-e<n>`). Le brief est le fichier même envoyé au relecteur, et le rapport d'Opus est écrit dans un fichier avant l'appel.
+2. **Traiter les remarques d'Opus** comme d'habitude (boucle ci-dessus), en notant celles que tu retiens dans un fichier de tri.
+3. **À la fin de l'ombre** (notification), lire son rapport de chaîne (`chaine.result` dans `$BANC_DONNEES/ombres/ombre-<id>.json`, par défaut `~/.local/share/banc-relecture`) et trier chaque remarque de la chaîne : celle qu'Opus ne fait pas (`origine` `ombre`, `verdict` `réelle` si elle est fondée, `bruit` sinon) et celle qu'Opus fait aussi mais que tu écartes (`origine` `commune`, `verdict` `écartée`, comptée comme bruit de la chaîne). Une remarque de l'ombre seule jugée réelle entre au bilan même si tu ne la retiens pas : juger et corriger sont deux gestes. Tu ne la corriges que si tu la retiens, par la boucle de revue ; jamais parce qu'elle vient de l'ombre.
+4. **Écrire le tri** au format suivant, puis relancer la même commande avec `--retenues <fichier>` : elle valide le tri et le range à côté de l'ombre, sans rejouer une seule relecture (une sortie de chaîne déjà présente n'est pas relancée).
+   ```json
+   {"remarques": [
+     {"origine": "opus", "verdict": "retenue", "gravite": "bug (correction)", "categorie": "D", "resume": "..."},
+     {"origine": "commune", "verdict": "retenue", "gravite": "autre", "resume": "..."},
+     {"origine": "ombre", "verdict": "réelle", "gravite": "autre", "resume": "..."},
+     {"origine": "ombre", "verdict": "bruit", "gravite": "autre", "resume": "..."}
+   ]}
+   ```
+   `origine` : `opus` (remarque d'Opus retenue, que l'ombre n'a pas), `commune` (Opus et l'ombre la disent, retenue), `ombre` (de l'ombre seule, triée). `gravite` commence par `bug` pour un défaut de correction, sinon `autre`. Une remarque d'Opus écartée ne s'écrit pas ici : elle reste au journal, avec sa raison.
+`categorie` (facultatif, A à H) : la lettre de la catégorie de la liste de relecture qui aurait dû la voir.
+
+Le bilan se lance à la date fixée par le plan, jamais dans une étape : `python3 evals/banc-relecture/bilan_ombre.py [--depuis AAAA-MM-JJ]`. Il rend une recommandation (`bascule`, `hybride`, `statu quo` ou `pas assez d'étapes`) et ne bascule rien : la décision reste à Benjamin.
 
 ## Les étapes sans code
 

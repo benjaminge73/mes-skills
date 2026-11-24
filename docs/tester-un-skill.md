@@ -10,6 +10,12 @@ comment on la prouve.
 > message courant (décision du 2026-10-16) : une éval coûte des jetons et du temps.
 > Hors CI, `evals/outillage/lancer.sh` refuse (code 64) sans `EVALS_DEMANDE_PAR_BENJAMIN=1`,
 > variable à ne poser que sur cette demande. Le pré-vol et `--estimer` sont gratuits.
+> Deux exceptions datées. L'ombre de relecture d'étape (`ombre.py`, environ 0,3 dollar, lancée par le pilote
+> après chaque relecture) est décidée par le plan « Réduire la voilure » et reprise par Q2 du plan de la refonte.
+> Exception tranchée par Benjamin le 2026-11-24 : le cron de la boucle de la liste de relecture
+> (`evals/banc-relecture/boucle_liste.py`, créé par Hal) mesure sans demande dans le message courant, dans un
+> plafond d'environ 5 dollars par mois. Il n'appelle pas `lancer.sh` : la variable ne s'y pose pas. Hors de ce cron,
+> la règle tient telle quelle.
 > En CI, le banc (A/B) ne part que sur le label `evals` ou en lancement manuel ; la **fumée**
 > (la tête seule, quelques dollars) ne part que sur le label `fumee`, à la demande : elle ne
 > part plus seule sur une PR qui touche un skill (décision du 2026-10-27, qui remplace celle du

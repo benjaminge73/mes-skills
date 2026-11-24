@@ -287,10 +287,7 @@ et c'est ce qui donne ensuite l'envie de « faire soi-même ». Le brief porte d
      `DONE_WITH_CONCERNS` par défaut, jamais comme `DONE`.
    - **Fichiers réellement touchés** et le SHA du commit s'il y en a un
      (regroupement, `vagues.md`).
-   - **La sortie bornée de la commande de preuve**, recopiée sans paraphrase :
-     dernières lignes du log (résumé du runner), compte des échecs, nom de
-     chaque échec et extrait qui dit pourquoi — jamais le log entier. (Le pilote,
-     lui, lit la sortie complète de sa propre relance.)
+   - **La liste cochée de l'étape** : une case par champ, en puce `- **Champ** : valeur` dans le brief, rendue `- [x] <champ> — preuve : …` (`skills/_partage/listes/rapport-executant.md`). Pour « Preuve de fin » : sortie bornée, jamais le log entier.
    - **Les écarts par rapport au brief**, et **chaque décision prise en
      route** au format : « quoi — pourquoi — ce que ça coûte si c'est faux. »
      Un sous-agent tranche parfois un détail que le brief ne couvrait pas
@@ -330,11 +327,7 @@ en disant quelles étapes ont été faites en direct et pourquoi.
 
 ### Après chaque étape
 
-- **Un rapport de sous-agent n'est pas une preuve : rejouer la commande** chez le
-  pilote, **sur la liste réelle des fichiers touchés**
-  (`git diff --name-only`), pas sur celle du brief (§3). Un sous-agent qui
-  annonce « les tests passent » a parfois lancé autre chose que ce qu'on croit,
-  ou touché un fichier de plus que ce que la commande couvrait.
+- **Rapport `DONE*` avant lecture** (`BLOCKED` : le lire), `verifier-rapport.py --brief <f> --rapport <f>` (`skills/_partage/scripts/`) : code 1, il repart sans être lu ; 2 (plan natif), le lire. Code 0 : **rejouer la commande** chez le pilote, **sur `git diff --name-only`** (pas sur le brief, §3) : un rapport n'est pas une preuve.
 - **Au retour de l'exécutant, le pilote joue `perimetre-etape.py --base <sha d'avant l'étape> --fichiers <liste du brief>` (dans `skills/_partage/scripts/`) : un fichier hors liste (code 1) se traite comme une découverte du journal, sans commit pour ce fichier ; le script lit les commits, pas l'arbre : regarder aussi `git status`.**
 - **Poser le `Verdict` de l'étape**, dans son entrée de journal (écrite
   ci-dessous), **après ce rejeu** : `- **Verdict** : verified` si la preuve du

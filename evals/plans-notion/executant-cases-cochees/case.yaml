@@ -1,0 +1,38 @@
+schema_version: "1.1"
+name: executant-cases-cochees
+description: "Le pilote écrit le brief de l'étape avec ses champs en puces, puis joue verifier-rapport.py sur le rapport de l'exécutant avant de le lire : une case « Test attendu » cochée sans preuve fait refuser le rapport."
+tags: [execution]
+expected_outcome: "brief.md porte une puce par champ de l'étape (Fichiers touchés, Test attendu, Preuve de fin) ; le rapport est contrôlé avant lecture, code 1, « case sans preuve : Test attendu » ; la réponse dit que le rapport n'est pas accepté et que la case repart à l'exécutant."
+execution:
+  max_turns: 30
+  timeout_seconds: 600
+  allowed_tools: [Read, Glob, Grep, Skill, Write, Edit, Bash]
+context:
+  scaffold_script: fixture.sh
+# Panne nommée : le pilote lit le rapport et l'accepte sans le contrôler, parce que la case
+# « Test attendu » est cochée. Les juges fichier disent ce qui est écrit dans brief.md ; le
+# contrôle se voit dans la réponse (code et case nommée), et la trace d'un Bash qui appelle
+# verifier-rapport.py le confirme. Jamais sur le récit du pilote seul.
+graders:
+  - name: brief-a-test-attendu
+    type: regex
+    pattern: '^- \*\*Test attendu\*\* :'
+    flags: m
+    target: {source: file, path: brief.md}
+  - name: brief-a-preuve-de-fin
+    type: regex
+    pattern: '^- \*\*Preuve de fin\*\* :'
+    flags: m
+    target: {source: file, path: brief.md}
+  - name: verifier-joue
+    type: tool_used
+    tool: Bash
+    input_match: verifier-rapport
+    min: 1
+  - name: case-sans-preuve-nommee
+    type: regex
+    pattern: 'case sans preuve : Test attendu'
+  - name: rapport-refuse
+    type: regex
+    pattern: 'code 1|refus'
+    flags: i

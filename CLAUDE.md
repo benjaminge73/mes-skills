@@ -150,7 +150,7 @@ valider autre chose que la CI : un écart de version se regarde d'abord là.
 2026-10-16 : trop de jetons et de temps). Ni `claude plugin eval`, ni `evals_ab.py`, ni
 `lancer.sh`, ni `gh workflow run ci.yml`, ni « pour vérifier » : un cas d'éval **s'écrit**
 sans se jouer. Hors CI, `lancer.sh` refuse sans `EVALS_DEMANDE_PAR_BENJAMIN=1`, à ne poser
-que sur cette demande. La fumée est à la demande elle aussi : elle ne part que sur le label `fumee` (décision du 2026-10-27, qui remplace celle du 2026-10-16 qui la gardait sans label). Détail, et comment la demander ou la jouer en local : [docs/tester-un-skill.md](docs/tester-un-skill.md).
+que sur cette demande. Deux exceptions, datées, et elles seules : le cron de Hal qui mesure la boucle de la liste de relecture lance le banc sans cette demande, dans un plafond d'environ 5 dollars par mois (décision de Benjamin du 2026-11-24, détail dans `docs/garde-fous.md`) ; et l'ombre de relecture d'étape, lancée par le pilote après chaque relecture d'étape (≈ 0,3 dollar, décidée au plan « Réduire la voilure », reprise par Q2 de P1). Tout le reste reste soumis à l'accord dans le message courant. La fumée est à la demande elle aussi : elle ne part que sur le label `fumee` (décision du 2026-10-27, qui remplace celle du 2026-10-16 qui la gardait sans label). Détail, et comment la demander ou la jouer en local : [docs/tester-un-skill.md](docs/tester-un-skill.md).
 
 **Toute leçon ajoutée à un skill, un agent ou un `_partage/` arrive avec son
 cas d'évaluation** dans `evals/<plugin>/`, prouvé par un oracle qui passe et un

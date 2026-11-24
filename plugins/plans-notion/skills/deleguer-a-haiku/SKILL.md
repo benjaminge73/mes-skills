@@ -18,7 +18,7 @@ Il ne lit ni n'écrit de page hors clôture.
 ## Avant le plan
 
 Au lancement en mode plan natif, avant `ExitPlanMode` : lire
-`${CLAUDE_PLUGIN_ROOT}/skills/_partage/avant-le-plan.md` et suivre ses six temps.
+`${CLAUDE_PLUGIN_ROOT}/skills/_partage/avant-le-plan.md` et suivre ses temps.
 
 ## Invariants
 
@@ -39,15 +39,14 @@ lire ce skill depuis lui. Copie en retard : geste de `plan-notion`. Code 2 : lec
 
 ## 1. Envoyer les étapes
 
-- Brief : la forme de `${CLAUDE_PLUGIN_ROOT}/skills/executer-plan-notion/etapes.md`,
+- Brief : la forme de `${CLAUDE_PLUGIN_ROOT}/skills/executer-plan-notion/etapes.md` (champs de l'étape en puces),
   sans recopier l'`executant` ni le code : chemin et la ligne.
 - **En parallèle** si les fichiers sont disjoints, sinon en séquence (`${CLAUDE_PLUGIN_ROOT}/skills/_partage/vagues.md`).
 
 ## 2. Relire et rejouer
 
-- Lire chaque rapport en entier : état, fichiers, écarts.
-- **Rejouer soi-même la preuve de fin** de chaque étape. Tout écart avec le rapport se signale.
-- `NEEDS_CONTEXT` ou `BLOCKED` : le dire à Benjamin, ne pas trancher à sa place.
+- `NEEDS_CONTEXT` ou `BLOCKED` : le dire à Benjamin, sans trancher.
+- `DONE` : `${CLAUDE_PLUGIN_ROOT}/skills/_partage/scripts/verifier-rapport.py --brief <fichier> --rapport <fichier>` : code 1, le rapport repart sans être lu ; 2, lire à l'œil ; 0, lire, rejouer la preuve.
 
 ## 3. Relecteur, seulement au-delà de cinq fichiers
 
@@ -68,7 +67,7 @@ Chaque passage relevé se traite selon la rubrique « Preuve doc » de
 
 ## 5. Compte rendu
 
-Avant la réponse finale, poser l'entrée du changelog selon `${CLAUDE_PLUGIN_ROOT}/skills/_partage/changelog-et-doc.md` (`controle-changelog.py`), puis lire `${CLAUDE_PLUGIN_ROOT}/skills/_partage/compte-rendu-natif.md` : il fixe le texte (preuve doc, cinq rubriques, « Changelog » après la pose).
+Avant la réponse finale, poser l'entrée du changelog selon `${CLAUDE_PLUGIN_ROOT}/skills/_partage/changelog-et-doc.md` (`controle-changelog.py`), puis lire `${CLAUDE_PLUGIN_ROOT}/skills/_partage/compte-rendu-natif.md`, qui fixe le texte.
 
 Ses compagnons sont :
 `${CLAUDE_PLUGIN_ROOT}/skills/_partage/avant-le-plan.md`, `${CLAUDE_PLUGIN_ROOT}/skills/_partage/vagues.md`, `${CLAUDE_PLUGIN_ROOT}/skills/_partage/revue.md`,
