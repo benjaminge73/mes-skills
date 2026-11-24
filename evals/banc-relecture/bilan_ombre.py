@@ -6,7 +6,8 @@ Pour chaque étape, deux fichiers dans `$BANC_DONNEES/ombres/` :
   - `retenues-<id>.json`, écrit par le pilote après tri : `{"id": ..., "remarques": [...]}`, où chaque remarque porte
     `origine` (`opus` : remarque d'Opus retenue seule ; `commune` : Opus et l'ombre la disent, retenue ; `ombre` :
     remarque de l'ombre seule, triée) et `verdict` (`retenue` pour opus et commune ; `réelle` ou `bruit` pour ombre).
-    `gravite` (« bug… » ou « autre ») et `resume` sont requis, `extrait` est facultatif.
+    `gravite` (« bug… » ou « autre ») et `resume` sont requis, `extrait` est facultatif ; `categorie` (A à H) aussi,
+    s'il est là, et la boucle de la liste s'en sert.
 
 Vérité = remarques retenues (opus, commune) plus remarques de l'ombre seule jugées réelles (union). La chaîne est
 mesurée par `juge.py` (Sonnet, texte seul) contre cette vérité : rappel pondéré (oui 1, partiel 0,5, non 0).
@@ -44,6 +45,7 @@ POIDS = {"oui": Fraction(1), "partiel": Fraction(1, 2), "non": Fraction(0)}
 ORIGINES = {"opus": {"retenue"}, "commune": {"retenue", "écartée"}, "ombre": {"réelle", "bruit"}}
 VERITE = {"retenue", "réelle"}
 PAS_ASSEZ = "pas assez d'étapes"
+CATEGORIES = tuple("ABCDEFGH")   # lettres de la liste de relecture ; `categorie` est facultatif
 
 
 def valider_retenues(donnees) -> list[dict]:
@@ -59,6 +61,9 @@ def valider_retenues(donnees) -> list[dict]:
             raise ValueError(f"remarque {i} : verdict {verdict!r} interdit pour l'origine {origine}")
         if not str(r.get("resume", "")).strip():
             raise ValueError(f"remarque {i} : « resume » vide")
+        cat = r.get("categorie")
+        if cat is not None and cat not in CATEGORIES:
+            raise ValueError(f"remarque {i} : categorie {cat!r} hors A à H")
     return remarques
 
 

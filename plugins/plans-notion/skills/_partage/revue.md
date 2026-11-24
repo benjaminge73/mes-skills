@@ -202,13 +202,14 @@ Le geste, pour le pilote, après chaque relecture d'étape :
 4. **Écrire le tri** au format suivant, puis relancer la même commande avec `--retenues <fichier>` : elle valide le tri et le range à côté de l'ombre, sans rejouer une seule relecture (une sortie de chaîne déjà présente n'est pas relancée).
    ```json
    {"remarques": [
-     {"origine": "opus", "verdict": "retenue", "gravite": "bug (correction)", "resume": "..."},
+     {"origine": "opus", "verdict": "retenue", "gravite": "bug (correction)", "categorie": "D", "resume": "..."},
      {"origine": "commune", "verdict": "retenue", "gravite": "autre", "resume": "..."},
      {"origine": "ombre", "verdict": "réelle", "gravite": "autre", "resume": "..."},
      {"origine": "ombre", "verdict": "bruit", "gravite": "autre", "resume": "..."}
    ]}
    ```
    `origine` : `opus` (remarque d'Opus retenue, que l'ombre n'a pas), `commune` (Opus et l'ombre la disent, retenue), `ombre` (de l'ombre seule, triée). `gravite` commence par `bug` pour un défaut de correction, sinon `autre`. Une remarque d'Opus écartée ne s'écrit pas ici : elle reste au journal, avec sa raison.
+`categorie` (facultatif, A à H) : la lettre de la catégorie de la liste de relecture qui aurait dû la voir.
 
 Le bilan se lance à la date fixée par le plan, jamais dans une étape : `python3 evals/banc-relecture/bilan_ombre.py [--depuis AAAA-MM-JJ]`. Il rend une recommandation (`bascule`, `hybride`, `statu quo` ou `pas assez d'étapes`) et ne bascule rien : la décision reste à Benjamin.
 

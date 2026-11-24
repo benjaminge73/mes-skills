@@ -122,3 +122,12 @@ def test_remarque_commune_ecartee_compte_comme_bruit_de_la_chaine(tmp_path, caps
     sortie = capsys.readouterr().out
     assert "jugées bruit par relecture : 2.00" in sortie
     assert "DÉCISION : statu quo" in sortie
+
+
+def test_categorie_facultative_entre_et_une_lettre_hors_a_h_est_refusee():
+    # Panne attrapée : un champ categorie non lettre passe, et candidats() ignore alors la remarque sans rien dire.
+    avec = {"remarques": [{"origine": "opus", "verdict": "retenue", "categorie": "D", "resume": "x"}]}
+    assert bilan_ombre.valider_retenues(avec)[0]["categorie"] == "D"
+    with pytest.raises(ValueError, match="categorie"):
+        bilan_ombre.valider_retenues({"remarques": [{"origine": "opus", "verdict": "retenue",
+                                                     "categorie": "Z", "resume": "x"}]})
