@@ -45,8 +45,8 @@ lire ce skill depuis lui. Copie en retard : geste de `plan-notion`. Code 2 : lec
 
 ## 2. Relire et rejouer
 
-- `verifier-rapport.py --brief <fichier> --rapport <fichier>` (`_partage/scripts/`) avant de lire : code 1, le rapport repart sans être lu ; code 0, lire en entier, puis rejouer la preuve de fin.
-- `NEEDS_CONTEXT` ou `BLOCKED` : le dire à Benjamin, ne pas trancher à sa place.
+- `NEEDS_CONTEXT` ou `BLOCKED` : le dire à Benjamin, sans trancher.
+- `DONE` : `${CLAUDE_PLUGIN_ROOT}/skills/_partage/scripts/verifier-rapport.py --brief <fichier> --rapport <fichier>` : code 1, le rapport repart sans être lu ; 2, lire à l'œil ; 0, lire, rejouer la preuve.
 
 ## 3. Relecteur, seulement au-delà de cinq fichiers
 

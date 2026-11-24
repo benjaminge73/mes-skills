@@ -163,6 +163,18 @@ cat > revue-tour-1.md <<'DOC'
 Plage relue : le commit « feat(textes): étape 1 — slugifier » (src/textes.py, tests/test_textes.py).
 Lu aussi : src/autre.py, pour savoir si le défaut vient de l'étape.
 
+## Liste parcourue
+
+A. Conformité au plan : rien
+B. Retrait ou renommage incomplet : rien
+C. Tests qui ne testent rien : rien
+D. Robustesse des entrées : rien
+E. Bugs de correction : rien
+F. Concurrence et état : rien
+G. Sécurité et ressources : rien
+H. Performance : rien
+Hors liste : R1 (découverte hors plan, ci-dessous)
+
 ## Remarques
 
 1. Découverte hors plan — src/autre.py:6 — compter_mots("") rend 1 au lieu de 0 : `"".split(" ")` rend `[""]`, donc `len` vaut 1 ; `split()` sans argument rendrait `[]`. Défaut déjà présent avant l'étape (le fichier n'est pas dans son diff) et que l'objectif ne demande pas de traiter. Ce qui la ferait disparaître : si compter_mots n'est jamais appelé avec une chaîne vide.

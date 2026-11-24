@@ -327,7 +327,7 @@ en disant quelles étapes ont été faites en direct et pourquoi.
 
 ### Après chaque étape
 
-- **Avant de lire le rapport**, `verifier-rapport.py --brief <fichier> --rapport <fichier>` (`skills/_partage/scripts/`) : code 1, il repart à l'exécutant sans être lu. Code 0 : **rejouer la commande** chez le pilote, **sur `git diff --name-only`** (pas sur le brief, §3) : un rapport n'est pas une preuve.
+- **Rapport `DONE*` avant lecture** (`BLOCKED` : le lire), `verifier-rapport.py --brief <f> --rapport <f>` (`skills/_partage/scripts/`) : code 1, il repart sans être lu ; 2 (plan natif), le lire. Code 0 : **rejouer la commande** chez le pilote, **sur `git diff --name-only`** (pas sur le brief, §3) : un rapport n'est pas une preuve.
 - **Au retour de l'exécutant, le pilote joue `perimetre-etape.py --base <sha d'avant l'étape> --fichiers <liste du brief>` (dans `skills/_partage/scripts/`) : un fichier hors liste (code 1) se traite comme une découverte du journal, sans commit pour ce fichier ; le script lit les commits, pas l'arbre : regarder aussi `git status`.**
 - **Poser le `Verdict` de l'étape**, dans son entrée de journal (écrite
   ci-dessous), **après ce rejeu** : `- **Verdict** : verified` si la preuve du
