@@ -34,14 +34,15 @@ détaillés », sous le projet Mes Skills.
 | Script | Rôle |
 | --- | --- |
 | `extraire_cas.py` | sur la machine des journaux (le VPS) : construit le jeu de cas et les bundles git |
-| `rejouer.py` | joue un bras : modèle, effort, ajout de consigne (`--ajout checklist.txt`, `--angle secu`), notes de passe précédente |
+| `rejouer.py` | joue un bras : modèle, effort, ajout de consigne (`--liste`, qui vaut par défaut la liste du plugin ; `--ajout checklist.txt` pour un autre texte, exclusif de `--liste`), `--angle secu`, notes de passe précédente |
 | `juge.py` | note un bras, ou l'union de plusieurs, contre `ref-opus.json` (Sonnet medium, texte seul) |
 | `chaine.py` | la chaîne retenue : N rapports → extraction et dédoublonnage → vérification de chaque remarque dans le code |
-| `ombre.py` | ombre d'une relecture réelle, à la volée : 3 Haiku high + checklist-v2 + chaîne, et un bras Sonnet medium compté à part. Usage : `ombre.py --id <id> --brief <brief> --rep <worktree> --depot <dépôt> --debut <sha> --fin <sha>` ; `--dry-run` imprime les cinq commandes sans appeler `claude` |
+| `ombre.py` | ombre d'une relecture réelle, à la volée : 3 Haiku high + la liste de relecture du plugin + chaîne, et un bras Sonnet medium compté à part. Usage : `ombre.py --id <id> --brief <brief> --rep <worktree> --depot <dépôt> --debut <sha> --fin <sha> [--liste <chemin>]` ; `--dry-run` imprime le chemin et le sha256 de la liste, puis les cinq commandes, sans appeler `claude`. Chaque `ombre-<id>.json` porte `liste` et `liste_sha256` |
 | `jev.py` | Jev (TypeSafe System One) : aiguillage des angles, second avis sur une remarque |
 | `banc.py` | socle : emplacement des données, appel `claude -p` isolé, worktree jetable |
 | `checklist.txt`, `angles.json` | les consignes ajoutées au brief (checklist en 8 catégories, 4 angles du comité) |
-| `checklist-v2.txt`, `passe-plan-tests.txt` | checklist v2 (conformité au plan, retraits incomplets et tests par mutations en tête), passe dédiée plan et tests |
+| `passe-plan-tests.txt` | passe dédiée plan et tests |
+| `plugins/plans-notion/skills/_partage/listes/relecture-code.md` (hors de ce dossier) | checklist v2 (conformité au plan, retraits incomplets et tests par mutations en tête) : la seule source, lue par `ombre.py` et `rejouer.py` (`--liste`). Promue depuis le fichier du banc au commit `bfd7133`, contenu identique octet pour octet |
 | `construire_ref.py`, `par_categorie.py` | référence Opus d'un jeu de validation hors échantillon ; rappel par catégorie de défaut |
 
 Chaque appel passe par `claude -p --setting-sources project --strict-mcp-config` : les réglages, hooks et plugins du
@@ -56,14 +57,23 @@ python3 juge.py j-checklist.json haiku-checklist                                
 python3 juge.py j-union.json haiku-checklist haiku-checklist-2 haiku-checklist-3      # l'union de trois tirages
 python3 chaine.py chaine haiku-checklist haiku-checklist-2 haiku-checklist-3          # extraction + vérification
 python3 juge.py j-chaine.json chaine
-python3 rejouer.py sb-ck2 claude-haiku-5-5 high 3 --ajout checklist-v2.txt --bash-enferme  # Bash dans le bac à sable
+python3 rejouer.py sb-ck2 claude-haiku-5-5 high 3 --bash-enferme  # la liste du plugin par défaut ; Bash dans le bac à sable
 python3 juge.py v-sb.json sb-ck2 --ref ref-validation.json                            # sur le jeu de validation
 python3 par_categorie.py v-sb.json --ref ref-validation.json
 ```
 
 La checklist s'améliore en continu : un défaut qu'Opus voit et que la chaîne manque devient une ligne de
-`checklist-v2.txt` (sa catégorie, un exemple générique, jamais un extrait d'un autre dépôt), puis la nouvelle version
-se mesure sur le jeu de validation, qui n'a pas servi à l'écrire.
+`plugins/plans-notion/skills/_partage/listes/relecture-code.md` (sa catégorie, un exemple générique, jamais un extrait d'un
+autre dépôt), puis la nouvelle version se mesure sur le jeu de validation, qui n'a pas servi à l'écrire.
+
+**Figée jusqu'au bilan de Q2** : le contenu de cette liste ne change pas pendant les deux semaines d'ombre, parce que l'ombre
+la mesure telle quelle. La neuvième case « Hors liste » n'y entre qu'après ce bilan ; d'ici là elle vit dans le brief du
+relecteur. Chaque `ombre-<id>.json` porte le `liste_sha256` joué : deux sorties comparées doivent porter la même empreinte.
+
+Sans `--ajout`, `rejouer.py` ajoute désormais la liste du plugin : un bras joué sans consigne ajoutée n'existe plus par
+défaut (le passer avec `--ajout` pointant vers un fichier vide, à côté du script, si on en a besoin).
+Les rejeux antérieurs à cette promotion restent reproductibles par l'ancien fichier de la checklist v2, dans l'historique git (commit `bfd7133`)
+et par `checklist.txt` (la v1, toujours là).
 
 Jev demande sa clé : `chaine.py … --jev <fichier .env>:<VARIABLE>`. Elle est lue dans le fichier donné, par le seul
 processus, et jamais affichée.
@@ -98,4 +108,4 @@ demi-remarque sur 11. Ses chiffres servent à **comparer des bras entre eux**, p
   que ce banc ne mesure pas.
 - 2026-11-23 : `ombre.py` joue la chaîne sans le repêchage Jev (`chaine.py` sans `--jev`) et sans `--bash-enferme` : elle est donc plus stricte que la chaîne de référence de `RESULTATS.md`. Le second avis `jev-1.14.0` se joue à part sur les remarques gardées (`jev.plausibilite`) ; à lire ainsi avant de comparer les deux semaines d'ombre.
 - 2026-11-23 : le bras Sonnet medium d'`ombre.py` mesure l'apport de Sonnet au-dessus de Haiku sur la même checklist
-  (`checklist-v2.txt`), compté à part de la chaîne. La bascule « chaîne à la place d'Opus » n'est pas faite.
+  (la liste du plugin), compté à part de la chaîne. La bascule « chaîne à la place d'Opus » n'est pas faite.
