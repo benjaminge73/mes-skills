@@ -28,6 +28,13 @@ Pannes attrapées :
 - ``test_fiche_json_claude_p_lue_comme_texte`` (en plus du budget) : la fiche arrive parfois en sortie
   JSON de ``claude -p`` (champ ``result``). Une fiche complète dans ce JSON doit sortir en 0 ; un script
   qui lirait le JSON brut ne trouverait aucune case et sortirait en 1.
+- ``test_preuve_non_verifiee_signalee_sans_refuser`` (budget de l'étape 3) : la case C6 est cochée, mais
+  sa preuve dit « (non vérifié) » : une preuve partielle. Le script doit la nommer sur la sortie
+  (« preuve partielle : C6 ») et sortir en 0, sans refuser la fiche. Sans ce test, une fiche qui coche
+  une case en avouant qu'elle ne l'a pas vérifiée passerait pour complète.
+- ``test_preuve_sans_marqueur_non_signalee`` (budget de l'étape 3) : contre-épreuve. Une case cochée dont
+  la preuve ne dit pas « non vérifié » (la ligne C0 réelle) ne doit pas être signalée : sortie vide, code 0.
+  Sans ce test, un script qui signalerait toute case cochée passerait le test précédent.
 """
 from __future__ import annotations
 
@@ -48,6 +55,17 @@ LISTE_DE_TEST = """# Liste de test
 - [ ] C2 Docs — geste ; preuve : forme
 - [ ] C3 Gardes — geste ; preuve : forme
 - [ ] C7 Valeurs — geste ; preuve : forme
+"""
+
+LISTE_C0 = """# Liste de test
+
+- [ ] C0 Objets touchés — geste ; preuve : forme
+"""
+
+LISTE_C0_C6 = """# Liste de test
+
+- [ ] C0 Objets touchés — geste ; preuve : forme
+- [ ] C6 Contrat d'un outil externe — geste ; preuve : forme
 """
 
 FICHE_COMPLETE = """- [x] C2 Docs — preuve : `grep -rn` rend 0 résultat
@@ -133,6 +151,28 @@ class VerifierFicheEnquete(unittest.TestCase):
         fiche_json = json.dumps({"type": "result", "result": FICHE_COMPLETE}, ensure_ascii=False)
         resultat = self._lancer(fiche_json, liste=self.liste)
         self.assertEqual(resultat.returncode, 0, resultat.stdout + resultat.stderr)
+
+    def test_preuve_non_verifiee_signalee_sans_refuser(self) -> None:
+        # Ligne C6 réelle d'une fiche d'enquête (identifiants Slack retirés) : cochée, preuve « (non vérifié) ».
+        liste = self._ecrire("liste_c0_c6.md", LISTE_C0_C6)
+        fiche = (
+            "- [x] C0 Objets touchés — preuve : les 54 lignes du tableau ci-dessous (sites 🔴 réels, numéros relus).\n"
+            "- [x] C6 Contrat outil externe — preuve : docs/sorties-automatiques.md:17-18, "
+            "Contrat de slack_post.post non lu (non vérifié). Contrat natif « stdout d'un cron = livré par Hermes » : "
+            "seulement la doc du repo (docs/sorties-automatiques.md:36-38), cron.md natif non lu.\n"
+        )
+        resultat = self._lancer(fiche, liste=liste)
+        self.assertEqual(resultat.returncode, 0, resultat.stdout + resultat.stderr)
+        self.assertEqual(resultat.stdout.splitlines(), ["preuve partielle : C6"], resultat.stdout)
+
+    def test_preuve_sans_marqueur_non_signalee(self) -> None:
+        # Ligne C0 réelle : cochée, preuve sans « non vérifié ». Rien à signaler.
+        liste = self._ecrire("liste_c0.md", LISTE_C0)
+        fiche = ("- [x] C0 Objets touchés — preuve : les 54 lignes du tableau ci-dessous "
+                 "(sites 🔴 réels, numéros relus).\n")
+        resultat = self._lancer(fiche, liste=liste)
+        self.assertEqual(resultat.returncode, 0, resultat.stdout + resultat.stderr)
+        self.assertEqual(resultat.stdout, "", resultat.stdout)
 
 
 if __name__ == "__main__":
