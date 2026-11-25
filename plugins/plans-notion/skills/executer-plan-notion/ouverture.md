@@ -38,8 +38,7 @@ préparation est le travail du pilote, elle se joue donc déjà à ce réglage.
     `claude://code/new?q=<brief encodé>&folder=<chemin absolu du dépôt, encodé>`, ouvert
     par `open` (macOS), `xdg-open` (Linux) ou `start ""` (Windows) ; sans bureau (une
     session cloud), le lien se donne tel quel à Benjamin pour qu'il le clique. Il ouvre
-    une **nouvelle session dans la barre latérale**, qu'il suit comme n'importe quelle
-    autre. Le lien **pré-remplit** le prompt sans l'envoyer, demande de **confirmer le
+    une **nouvelle session dans la barre latérale**. Le lien **pré-remplit** le prompt sans l'envoyer, demande de **confirmer le
     dossier**, et **ne fixe ni modèle ni effort** : le message dit à Benjamin de choisir
     Sonnet 5.5 et `medium` avant d'envoyer.
   - **Dans un terminal** : donner à Benjamin la ligne à coller dans une nouvelle fenêtre,
@@ -133,12 +132,12 @@ question à Benjamin, ou correction datée du chapitre `Exécution`. Ce n'est pa
 une étape `D`, rien n'a été exécuté.
 
 Cette passe **met le plan à jour, elle ne le redessine pas**. Si une réponse remet
-en cause l'approche elle-même — pas une étape, l'approche — ce n'est plus une mise
+en cause l'approche elle-même, ce n'est plus une mise
 à jour mais une nouvelle passe de conception : le dire, repasser par
 `plan-notion`, et ne rien coder en attendant.
 
 **La porte des preuves, avant.** Une étape sans preuve de fin ne se code pas :
-on ne saurait pas dire comment on prouvera qu'elle est faite. Une fois la
+on ne saurait pas la prouver. Une fois la
 remise à jour écrite et relue, le contrôle se joue par script, sur le miroir
 local de la page :
 
@@ -192,11 +191,9 @@ que la porte du `pret`, plus bas, n'est pas franchie) :
   git worktree add ~/repos/worktrees/<repo>/<branche-kebab> -b <branche> origin/main
   ```
 
-  Le checkout principal du dépôt peut être occupé par une autre session au
-  même moment ; y créer la branche du plan directement, c'est risquer que les
-  deux modifient le même répertoire sans le savoir — la raison même de la règle
-  globale `CLAUDE.md` sur les worktrees, qui entre ici dans le skill qui ouvre
-  les branches. Toute la suite de l'exécution (§3 et suivants) se joue dans ce
+  Le checkout principal peut être occupé par une autre session : y créer la branche,
+  c'est risquer que deux sessions modifient le même répertoire, la raison de la règle
+  `CLAUDE.md` sur les worktrees. Toute la suite de l'exécution (§3 et suivants) se joue dans ce
   worktree ; il est retiré à la clôture (§6), pas avant. Reprise sur un worktree
   qui existe déjà : le rendre frais avant de reprendre
   (`_partage/fraicheur-du-depot.md`, conflit ou arbre sale : s'arrêter et le dire).
@@ -219,8 +216,7 @@ que la porte du `pret`, plus bas, n'est pas franchie) :
   d'un dépôt à l'autre et qu'il n'existe pas partout (§6) ;
   **un job merge-t-il tout seul les PR vertes ?** (si oui, la PR de clôture
   déclenche un run, puis le merge par la CI quand il est vert : la clôture
-  remonte donc le plan sur `main` sans autre geste, et Benjamin le sait déjà
-  par la règle. Sur `micro-trading`, ce merge déploie. Sur `vahiny`,
+  remonte donc le plan sur `main` sans autre geste. Sur `micro-trading`, ce merge déploie. Sur `vahiny`,
   `review-required` commande la suite complète avant le merge : sans lui, ce
   dépôt ne joue que les tests unitaires.)
 
@@ -228,7 +224,7 @@ que la porte du `pret`, plus bas, n'est pas franchie) :
   chevauchement du chapitre `Exécution` (`Étape · Fichiers touchés · Dépend de
   · Vague · Relecture`) et déterminer quelles étapes peuvent tourner en parallèle, et
   lesquelles se regroupent dans un seul sous-agent. Le calcul se joue par
-  script, qui lit la page (miroir local, sortie de `notion-fetch`) :
+  script, sur le miroir local de la page :
 
   ```bash
   python3 "${CLAUDE_PLUGIN_ROOT}/skills/_partage/scripts/vagues.py" <page.md>             # une ligne par vague
@@ -244,15 +240,15 @@ que la porte du `pret`, plus bas, n'est pas franchie) :
   même seule dans sa vague (`vagues.md`, « Une étape relue seule ») : le calcul
   ci-dessus ne change pas pour elle.
 
-  Le résultat — la liste des vagues, une ligne par vague — s'ajoute à l'entrée
-  `Ouverture` du journal (§4), à côté des trois réponses sur la CI ci-dessus :
+  Le résultat (la liste des vagues) s'ajoute à l'entrée `Ouverture` du journal (§4), à côté des réponses
+  sur la CI :
   les deux relevés commandent la suite de la même façon, et se lisent
   ensemble.
 
 ### Les prérequis — tout ce qu'il faut hors du dépôt, vérifié avant `pret`
 
-Une exécution qui s'arrête à l'étape 12 faute d'une clé d'API (constaté le 2026-11-20) a
-coûté douze étapes pour rien : le manque se voyait dès la page. **Un plan ne passe pas `pret`
+Une exécution arrêtée à l'étape 12 faute d'une clé d'API (constaté le 2026-11-20) a
+coûté douze étapes : le manque se voyait dès la page. **Un plan ne passe pas `pret`
 tant que chaque chose dont l'exécution a besoin n'est pas vérifiée disponible.**
 
 1. **Inventorier** en lisant le chapitre `Exécution` en entier, puis `Contraintes techniques
@@ -301,7 +297,7 @@ plus :
 - **Relecture** : chapitre `Exécution` relu le 2026-10-15 ; Q3 et Q5 reprises (étapes 2 et 4), le reste « inchangé »
 - **Questions** : Q1 à Q6 vertes, 6 sur 6 ; 2 `(reco appliquée par défaut)`
 - **Preuves** : `preuves-des-etapes.py --avant` code 0 ; `verifier-preuves.py <miroir> --depot <dépôt> --transcripts` code 0
-- **Répétition** : « État de départ » présent dans `Contraintes techniques vérifiées` (POC compris), `main` inchangé depuis sa date
+- **Répétition** : `releve-du-jour.py --comparer` sans écart ; « État de départ » présent (POC compris), `main` inchangé depuis sa date
 - **Maquette** : sans objet — aucune étape à impact fonctionnel
 - **CI** : `push` sans run hors `main` ; pas d'e2e ; `review-required` sans effet ; `merge-auto` actif
 - **Vagues** : vague 1 : étapes 1 et 2 ; vague 2 : étape 3
@@ -330,10 +326,14 @@ Ce que chaque puce porte :
   Une étape qui crée ce qu'elle teste est rouge avant d'être faite : le rouge
   attendu s'écrit tel quel. Une preuve qui ne se joue pas en commande (lecture,
   relecture humaine) s'écrit avec sa nature, pas avec un code.
-- **Répétition** : l'« État de départ » de `poc.md` existe dans la page. Si `main`
-  a bougé depuis sa date, on rejoue les gestes 1 et 2 de `poc.md` dans un
-  worktree détaché avant de l'écrire ; un plan sans cette section n'a pas eu sa
-  répétition, et on le dit plutôt que d'écrire `sans objet`.
+- **Répétition** : `python3 "${CLAUDE_PLUGIN_ROOT}/skills/_partage/scripts/releve-du-jour.py" --comparer <fiche>`,
+  où <fiche> est le bloc « Relevé du jour » de `Contraintes techniques vérifiées`,
+  recopié dans un fichier du scratchpad. Seul l'écart va dans cette puce ; sortie
+  vide = aucun écart, code 2 = fiche illisible, à dire. L'« État de départ » de
+  `poc.md` existe dans la page. Si `main` a bougé depuis sa date, on rejoue les
+  gestes 1 et 2 de `poc.md` dans un worktree détaché avant de l'écrire. Un plan
+  sans ce bloc, ou sans « État de départ », n'a pas eu sa répétition : on le dit
+  en une ligne plutôt que d'écrire `sans objet`.
 - **Vagues** : la liste que `vagues.py` calcule (une ligne par vague), **et** les
   étapes regroupées dans un seul sous-agent, avec leur raison ; le script compare
   en plus la colonne « Vague » du tableau de chevauchement au calcul et refuse un
@@ -357,10 +357,8 @@ python3 "${CLAUDE_PLUGIN_ROOT}/skills/_partage/scripts/preparation-prete.py" <pa
 ```
 
 `<page.md>` et `<maitre.md>` sont les miroirs de `notion-fetch` ; `--maitre` est
-obligatoire dès que **Orchestration** cite un plan maître. Le script rejoue pour
-toi la porte des preuves, `verifier-preuves.py` et `vagues.py --comparer` : leurs
-défauts sortent dans le même rapport, préfixés (`preuves :`, `réponses :`,
-`vagues :`).
+obligatoire dès que **Orchestration** cite un plan maître. Il rejoue aussi la porte des
+preuves, `verifier-preuves.py` et `vagues.py --comparer` ; leurs défauts sortent dans le même rapport, préfixés (`preuves :`, `réponses :`, `vagues :`).
 
 - **Code 0** : `prêt : …`. `Statut` = `pret`, `Branche` renseignée, en une
   écriture Notion ; relire le miroir pour confirmer.
@@ -372,8 +370,7 @@ défauts sortent dans le même rapport, préfixés (`preuves :`, `réponses :`,
 - **Code 2** : page, chapitre ou journal introuvable, ou `--depot` manquant. On le dit à Benjamin, sans
   rien commencer.
 
-Le script vérifie que chaque geste a laissé sa trace, pas que le geste est juste :
-la justesse reste à la relecture du pilote.
+Le script vérifie qu'un geste a laissé sa trace, pas qu'il est juste : c'est la relecture du pilote.
 
 **3. `Statut` = `en cours`** se pose sur la page `pret`, juste avant la première
 étape, dans le même tour si rien ne l'arrête. Une session qui s'arrête entre les
@@ -422,8 +419,7 @@ continuer.
   identifiant inventé ; vide s'il est absent) ; `machine` → propriété `Machine`, qui reçoit
   le nom d'hôte, `$(hostname)` (une fiche ouverte avant ce champ ne le porte pas : on pose
   quand même `$(hostname)`, sans rien inventer d'autre) ; `sonnette` → propriété `Sonnette`.
-  Le relevé `plans_veille` compare `Machine` au nom d'hôte de la machine pour dire si la
-  session tourne sur le VPS. `origine` (« app de bureau », « serveur Remote Control » ou
+  `plans_veille` compare `Machine` au nom d'hôte pour dire si la session tourne sur le VPS. `origine` (« app de bureau », « serveur Remote Control » ou
   « terminal du VPS ») reste dans la fiche et ne va plus dans `Machine`. Le `session_locale`
   reste local : il ne va pas dans Notion.
 
