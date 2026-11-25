@@ -1,0 +1,1 @@
+ubuntu ALL=(root) NOPASSWD: /usr/bin/tar -czf /var/backups/app.tar.gz /srv/app
