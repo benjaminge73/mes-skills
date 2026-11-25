@@ -682,3 +682,10 @@ Une entrée par passe, la plus récente en dernier. Le titre est
 - **Ce qui a changé** : la 2.1.332 ajoute l'événement `PreSkillShellCommand` et change les alias `sonnet` et `opus` hors API Anthropic. La page des skills dit que les hooks `PreToolUse` ne voient pas les commandes injectées au chargement d'un skill ; aucun `SKILL.md` du dépôt n'en injecte (recherche jouée ce jour).
 - **Faits porteurs** : aucun changé ; `scripts/veille_faits.py` rejoué le 2026-11-25 : 23 faits vérifiés, 0 citation à signaler, 0 page injoignable.
 - **Ce qu'on en fait** : rien ne change pour la PR. Le changement d'alias ne touche pas l'API Anthropic ; il est signalé à Benjamin en fin de plan.
+
+### 2026-11-25 — passe avant la PR « tri des faits à décision » (plans-notion 0.82.0)
+
+- **Sources lues** : aucune source nouvelle pour cette passe. La passe complète du même jour (entrée « relevé du jour du VPS », plans-notion 0.81.0) couvre les sources du 2026-11-25 ; elle est reprise ici sans nouvelle lecture, et aucun appel à l'agent `chercheur`.
+- **Ce qui a changé** : rien de neuf à ce jour au-delà de cette passe reprise. `python3 scripts/veille_faits.py` rejoué maintenant : « 23 fait(s) vérifié(s) : 0 citation(s) à signaler, 0 page(s) injoignable(s). » (sortie relue, code 0).
+- **Faits porteurs** : aucun ajout ni retrait au tableau de la partie 2.
+- **Ce qu'on en fait** : rien ne change pour la PR. La veille de 30 jours (`scripts/check_veille.py`) est respectée par cette entrée.
