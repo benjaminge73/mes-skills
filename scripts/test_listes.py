@@ -12,7 +12,11 @@ Pannes nommées, une par test :
 (c) une liste existe en copie octet pour octet ailleurs dans le dépôt : deux
     versions qui divergent sans que rien ne le dise ;
 (d) l'ancien nom ``checklist-v2.txt`` réapparaît à côté de la liste : la même
-    liste, sous un autre nom, que (c) ne voit pas quand le contenu a bougé.
+    liste, sous un autre nom, que (c) ne voit pas quand le contenu a bougé ;
+(e) la liste d'enquête ``enquete.md`` perd une case (C0 à C12 attendues, dans
+    l'ordre) : la fiche de l'enquêteur ne la recopiera plus, sans que rien le dise ;
+(f) une case de ``enquete.md`` n'a pas sa forme de preuve (``; preuve : <forme>``) :
+    l'enquêteur ne saurait pas quelle preuve rendre, et la fiche cocherait sans attendu.
 
 Les lecteurs sont lus comme des fichiers texte, par un renvoi de chemin : rien
 n'est exécuté, rien n'est mocké. Lancé par
@@ -45,9 +49,22 @@ LECTEURS = {
         "plugins/plans-notion/skills/_partage/avant-le-plan.md",
         "plugins/plans-notion/skills/_partage/relecture-par-hal.md",
     ],
+    "enquete.md": [
+        "plugins/plans-notion/agents/enqueteur.md",
+        "plugins/plans-notion/skills/plan-notion/enquete.md",
+        "plugins/plans-notion/skills/_partage/avant-le-plan.md",
+        "plugins/plans-notion/skills/_partage/scripts/verifier-fiche-enquete.py",
+        "evals/banc-relecture/enquete.py",
+        "evals/banc-relecture/boucle_liste.py",
+    ],
 }
 
 NOM_PERIME = "checklist-v2.txt"
+
+# Liste d'enquête : une case est ``- [ ] C<n> …`` (même forme que verifier-fiche-enquete.py),
+# et sa forme de preuve est ``; preuve : <forme>`` (enquete.md, en fin de ligne).
+CASE_D_ENQUETE = re.compile(r"^[ \t]*[-*][ \t]+\[[ xX]\][ \t]+(?P<id>C\d+)\b(?P<reste>.*)$")
+PREUVE_D_ENQUETE = re.compile(r";[ \t]*preuve[ \t]*:[ \t]*\S")
 
 
 def _fichiers_du_depot():
@@ -108,6 +125,30 @@ class ListesDeRelecture(unittest.TestCase):
         # sous ce nom, modifiée ensuite, n'est plus une copie octet pour octet.
         trouves = [str(f.relative_to(RACINE)) for f in _fichiers_du_depot() if f.name == NOM_PERIME]
         self.assertEqual(trouves, [], f"le nom périmé {NOM_PERIME} réapparaît : {trouves}")
+
+    def _cases_d_enquete(self):
+        """Les lignes de case de enquete.md, dans l'ordre du fichier (texte lu, rien d'exécuté)."""
+        texte = (DOSSIER_LISTES / "enquete.md").read_text(encoding="utf-8")
+        return [m for m in (CASE_D_ENQUETE.match(ligne) for ligne in texte.splitlines()) if m]
+
+    def test_enquete_ne_perd_aucune_case_C0_a_C12(self):
+        # Panne (e). enqueteur.md et la fiche disent « treize cases, C0 à C12 » : une case retirée
+        # de la liste sort de la fiche sans que personne le voie. Le compte fixe ce contrat.
+        ids = [m.group("id") for m in self._cases_d_enquete()]
+        self.assertEqual(
+            ids, [f"C{n}" for n in range(13)],
+            "la liste d'enquête ne porte pas C0 à C12 dans l'ordre : une case a disparu ou changé d'identifiant",
+        )
+
+    def test_chaque_case_d_enquete_a_sa_forme_de_preuve(self):
+        # Panne (f). Une case sans « ; preuve : <forme> » ne dit pas à l'enquêteur quelle preuve rendre :
+        # la fiche la cochera sans attendu. On nomme chaque case fautive, pas seulement la première.
+        sans_forme = [m.group("id") for m in self._cases_d_enquete()
+                      if not PREUVE_D_ENQUETE.search(m.group("reste"))]
+        self.assertEqual(
+            sans_forme, [],
+            "cases de enquete.md sans « ; preuve : <forme> » : " + ", ".join(sans_forme),
+        )
 
 
 if __name__ == "__main__":

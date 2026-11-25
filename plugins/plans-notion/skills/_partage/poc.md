@@ -80,7 +80,7 @@ geste 2 et l'inventaire des garde-fous se jouent d'un coup avec
 `${CLAUDE_PLUGIN_ROOT}/skills/_partage/scripts/etat-de-depart.sh [<dépôt>]`, qui
 rend un bloc court prêt à recopier. Il ne modifie rien dans le dépôt inspecté :
 la suite se joue dans une copie jetable de `HEAD`, et `--sans-repetition` la
-nomme sans la jouer. L'`enqueteur` (`agents/enqueteur.md`, geste 10) en cite le
+nomme sans la jouer. L'`enqueteur` (`agents/enqueteur.md`, case C3) en cite le
 bloc dans sa fiche ; la liste à suivre à la main dépendait de la mémoire de
 celui qui l'appliquait, et un hook redécouvert en trois plans en est la preuve.
 

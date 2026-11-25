@@ -167,7 +167,7 @@ flowchart TD
   TEND[("tendances.md<br>77 plans dépouillés, 215 découvertes")]:::data
   subgraph V1["Vague 1 — quatre étapes en parallèle, fichiers disjoints"]
     E1["1 · _partage/schemas.md"]:::det
-    E3["3 · enqueteur : gestes 7 à 12<br>+ docs/retex-plans-2026-09.md"]:::det
+    E3["3 · enqueteur : cases C5 à C11<br>+ docs/retex-plans-2026-09.md"]:::det
     E7["7 · brainstorming : trois chemins"]:::det
     E8["8 · ecrire-dans-notion : pièges 4 et 5"]:::det
   end

@@ -25,6 +25,9 @@ SHA = "a" * 64
 LISTE = "A. CONFORMITÉ\n   1. première remarque\n\nRends le verdict\n"
 CANDIDAT = bl.Candidat(categorie="D", ligne="Une remarque retenue que la chaîne a manquée")
 SECTION = ["--section", "Code"]
+ENQUETE = "Enquête"
+SECTION_ENQUETE = ["--section", ENQUETE]
+CANDIDAT_ENQUETE = bl.Candidat(categorie="", ligne="Une case d'enquête que l'enquêteur a manquée")
 
 
 def journal(bilan="Bilan de Q2 : 2026-12-07", corps=""):
@@ -32,16 +35,28 @@ def journal(bilan="Bilan de Q2 : 2026-12-07", corps=""):
     return entete + "## Code\n\n### 2026-11-23 — premier passage\n- Ligne candidate : aucune\n" + corps
 
 
-class Faux:
-    """Dépendances de test : le journal est un vrai fichier ; mesures, état, PR et état des PR sont fictifs, en mémoire."""
+def journal_enquete(bilan="Bilan de Q2 : 2026-12-07"):
+    """Un journal à deux sections : « Code » et « Enquête », chacune avec son premier passage sans candidat."""
+    entete = "# Journal de test\n\n" + (bilan + "\n\n" if bilan else "")
+    return (entete + "## Code\n\n### 2026-11-23 — premier passage\n- Ligne candidate : aucune\n\n"
+            "## Enquête\n\n### 2026-11-23 — premier passage\n- Ligne candidate : aucune\n")
 
-    def __init__(self, chemin, *, mesurer, candidats=(), jeu=True, pr_echoue=False):
+
+class Faux:
+    """Dépendances de test : le journal est un vrai fichier ; mesures, état, PR et état des PR sont fictifs, en mémoire.
+
+    `section` est reçu par chaque méthode qui en a besoin ; `sections_mesurees` note la section de chaque mesure, parallèle
+    à `bras_mesures`. Les candidats d'enquête sont ceux de `candidats_enquete`, les autres ceux de « Code »."""
+
+    def __init__(self, chemin, *, mesurer, candidats=(), candidats_enquete=(), jeu=True, pr_echoue=False):
         self.chemin = chemin
         self._mesurer = mesurer
         self._candidats = list(candidats)
+        self._candidats_enquete = list(candidats_enquete)
         self._jeu = jeu
         self.pr_echoue = pr_echoue
         self.bras_mesures = []
+        self.sections_mesurees = []
         self.budgets = []
         self.prs = []
         self.etats = {}
@@ -66,24 +81,25 @@ class Faux:
     def jeu_present(self):
         return self._jeu
 
-    def liste_texte(self):
+    def liste_texte(self, section=None):
         return LISTE
 
-    def liste_sha(self):
+    def liste_sha(self, section=None):
         return SHA
 
-    def liste_avec(self, candidat):
+    def liste_avec(self, candidat, section=None):
         return LISTE + f"CANDIDAT {candidat.ligne}\n"
 
-    def mesurer(self, liste, bras, budget):
+    def mesurer(self, liste, bras, budget, section=None):
         self.bras_mesures.append(bras)
+        self.sections_mesurees.append(section or "Code")
         self.budgets.append(budget)
         return self._mesurer(liste, bras)
 
-    def candidats(self):
-        return list(self._candidats)
+    def candidats(self, section=None):
+        return list(self._candidats_enquete if section == ENQUETE else self._candidats)
 
-    def ouvrir_pr(self, candidat, iso):
+    def ouvrir_pr(self, candidat, iso, section=None):
         if self.pr_echoue:
             raise bl.Souci("gh pr create en échec", reelle=True)
         self.prs.append(candidat)
@@ -116,12 +132,15 @@ def mesurer_quota(liste, bras):
     raise bl.QuotaAtteint("HTTP 402 : out of extra usage, plafond de dépense atteint")
 
 
-def lancer(tmp_path, argv, *, texte, mesurer, candidats=(), jeu=True, pr_echoue=False, etat=None, prs=None):
+def lancer(tmp_path, argv, *, texte, mesurer, candidats=(), candidats_enquete=(), jeu=True, pr_echoue=False, etat=None,
+           etats=None, prs=None):
     chemin = tmp_path / "journal-checklist.md"
     chemin.write_text(texte)
-    faux = Faux(chemin, mesurer=mesurer, candidats=candidats, jeu=jeu, pr_echoue=pr_echoue)
+    faux = Faux(chemin, mesurer=mesurer, candidats=candidats, candidats_enquete=candidats_enquete, jeu=jeu,
+                pr_echoue=pr_echoue)
     if etat is not None:
         faux.etats["Code"] = etat
+    faux.etats.update(etats or {})
     faux.prs_etat.update(prs or {})
     code = bl.main(argv, deps=faux, aujourdhui=AUJOURDHUI)
     return code, faux, chemin
@@ -268,6 +287,91 @@ def test_cron_ne_rend_1_que_pour_une_erreur_reelle(tmp_path, capsys, kwargs, cod
     sortie = capsys.readouterr().out
     assert code == code_attendu
     assert "Traceback" not in sortie
+
+
+# --- Section « Enquête » : même boucle et même plafond, sans bilan de Q2 ni liste de relecture ----------------------------
+
+def test_enquete_au_cumul_de_cinq_dollars_du_mois_rend_3_sans_rien_mesurer(tmp_path):
+    # Panne attrapée : le plafond n'est pas commun aux sections : une case d'enquête part alors que la relecture a déjà
+    # dépensé les 5 dollars du mois.
+    code, faux, _ = lancer(tmp_path, SECTION_ENQUETE, texte=journal_enquete(), mesurer=mesurer_scripte(hausse=0.02),
+                           candidats_enquete=[CANDIDAT_ENQUETE], etats={"Code": {"couts": {MOIS: 5.0}}})
+    assert code == bl.CODE_PLAFOND
+    assert faux.bras_mesures == []
+
+
+def test_enquete_ne_touche_pas_la_section_code(tmp_path):
+    # Panne attrapée : une mesure d'enquête qui lit la liste de relecture, compte dans son état, ou écrit dans son journal.
+    avant = journal_enquete()
+    # Cumul nul : « Enquête » n'a pas de mesure connue, donc son budget exige le plafond entier (règle de P1).
+    etat_code = {"couts": {MOIS: 0.0}, "cout_mesure": 1.0}
+    code, faux, chemin = lancer(tmp_path, SECTION_ENQUETE, texte=avant, mesurer=mesurer_scripte(hausse=0.02),
+                                candidats=[CANDIDAT], candidats_enquete=[CANDIDAT_ENQUETE], etats={"Code": etat_code})
+    assert code == bl.CODE_PR
+    assert "Code" not in faux.sections_mesurees
+    assert faux.prs == [CANDIDAT_ENQUETE]
+    assert faux.etats["Code"] == etat_code
+    assert bl.lignes_section(chemin.read_text(), "Code") == bl.lignes_section(avant, "Code")
+
+
+def test_enquete_sans_ligne_bilan_de_q2_mesure_et_ne_rend_pas_5(tmp_path):
+    # Panne attrapée : la garde « Bilan de Q2 », faite pour la liste de relecture, bloque aussi l'enquête (code 5).
+    code, faux, _ = lancer(tmp_path, SECTION_ENQUETE, texte=journal_enquete(bilan=None),
+                           mesurer=mesurer_scripte(hausse=0.02), candidats_enquete=[CANDIDAT_ENQUETE])
+    assert code != bl.CODE_BILAN
+    assert code == bl.CODE_PR
+    assert faux.prs == [CANDIDAT_ENQUETE]
+
+
+def test_enquete_quota_402_un_seul_message_puis_silence_jusqu_au_succes(tmp_path, capsys):
+    # Panne attrapée : un 402 de l'enquête répété à chaque passage dans #arbitrage, ou compté comme une dépense.
+    code1, faux, chemin = lancer(tmp_path, SECTION_ENQUETE + ["--cron"], texte=journal_enquete(), mesurer=mesurer_quota,
+                                 candidats_enquete=[CANDIDAT_ENQUETE])
+    sortie1 = capsys.readouterr().out
+    assert code1 == 0
+    assert sortie1.count("HTTP 402") == 1
+    assert faux.etats[ENQUETE]["quota"] == "signalé"
+
+    code2 = bl.main(SECTION_ENQUETE + ["--cron"], deps=faux, aujourdhui=AUJOURDHUI)
+    sortie2 = capsys.readouterr().out
+    assert code2 == 0
+    assert sortie2 == bl.SILENCE + "\n"
+    assert "- Coût" not in chemin.read_text()
+
+
+def test_enquete_sans_candidat_ne_mesure_pas_la_base_et_se_tait(tmp_path, capsys):
+    # Panne attrapée : sans case à mesurer, la base d'enquête part quand même, et chaque passage sort en erreur.
+    code, faux, _ = lancer(tmp_path, SECTION_ENQUETE + ["--cron"], texte=journal_enquete(),
+                           mesurer=mesurer_scripte(hausse=0.02), candidats_enquete=())
+    sortie = capsys.readouterr().out
+    assert code == 0
+    assert sortie == bl.SILENCE + "\n"
+    assert faux.bras_mesures == []
+
+
+def test_enquete_dry_run_rend_0_et_ne_mesure_rien(tmp_path):
+    # Panne attrapée : le dry-run d'enquête lance une mesure, ou rend une erreur sur une section pourtant saine.
+    code, faux, _ = lancer(tmp_path, SECTION_ENQUETE + ["--dry-run"], texte=journal_enquete(),
+                           mesurer=mesurer_scripte(hausse=0.02), candidats_enquete=[CANDIDAT_ENQUETE])
+    assert code == bl.CODE_OK
+    assert faux.bras_mesures == []
+    assert faux.prs == []
+
+
+def test_mesure_d_enquete_non_branchee_ne_lance_rien(tmp_path):
+    # Panne attrapée : une case d'enquête mesurée par le banc de relecture (rejouer.py, jeu de validation « Code ») au
+    # lieu de enquete.py : une dépense sur le mauvais jeu, comptée sous le mauvais nom.
+    appels = []
+
+    def sh(argv, cwd=None, env=None):
+        appels.append(argv)
+        return subprocess.CompletedProcess(argv, 0, "", "")
+
+    dep = bl.Dependances(journal=tmp_path / "j.md", sh=sh)
+    with pytest.raises(bl.Souci) as e:
+        dep.mesurer(LISTE, "cand-x", 5.0, ENQUETE)
+    assert e.value.reelle
+    assert appels == []
 
 
 def test_mesure_en_echec_journalise_son_cout_avant_de_lever(tmp_path):

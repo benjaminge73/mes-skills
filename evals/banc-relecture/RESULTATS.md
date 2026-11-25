@@ -108,3 +108,43 @@ echantillon.json`) n'a servi à écrire aucune checklist : il dit si `checklist-
    binaire `claude` ; supprimées et rejouées, `rejouer.py` saute les cas déjà faits.
 
 Coût de cette suite : ≈ 35 dollars de rejeux en high (hors bras medium et juges).
+
+## 2026-11-25 — POC du plan « enquête-checklist »
+
+**Jeu.** 10 plans exécutés (8 hermes-custom, 2 mes-skills ; 116 découvertes trouvables selon le classement Sonnet),
+rejoués au merge-base. Haiku 5.5 effort high, 60 tours au plus ; juge Sonnet medium, texte seul, un passage par bras. Le
+détail par plan reste hors de ce dépôt (page Notion du projet Mes Skills).
+
+### Tableau C : enquêteur actuel contre liste (agrégé)
+
+| Bras | Rappel strict, 3 tirages | Moyenne | Rappel avec partiels | Union des 3 | Faits par 10 fiches | Hors sujet | Fiches complètes (script) | Coût par fiche |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Enquêteur actuel (prose) | 6,0 · 2,6 · 6,0 % | 4,9 % | 12 à 14 % | 7,8 % | 289 à 362 | 28 à 40 | 0 sur 30 | 0,08 à 0,13 dollar |
+| Liste de 12 cases (prototype) | 8,6 · 7,8 · 4,3 % | 6,9 % | 13 à 17 % | 8,6 % | 158 à 180 | 8 à 15 | 16 sur 30 | 0,10 à 0,12 dollar |
+| Liste + Bash enfermé | 7,8 · 7,8 · 7,8 % | 7,8 % | 13 à 19 % | 6,0 % | 200 à 348 | 17 à 26 | 15 sur 30 | 0,19 à 0,26 dollar |
+| Actuel + fichiers touchés dans le brief (1 tirage) | 5,2 % | — | 17,7 % | — | 447 | 47 | — | 0,14 dollar |
+| Liste + fichiers touchés (1 tirage) | 3,4 % | — | 16,4 % | — | 387 | 39 | 5 sur 10 | 0,15 dollar |
+| Relevé `git grep` du nom de chaque fichier touché (script, sans modèle) | 22 % (borne haute) | — | — | — | 47 à 575 fichiers voisins par plan | — | — | 0 |
+
+Ce qu'on en retient : le rappel ne bouge pas d'un bras à l'autre (écart liste contre prose dans la dispersion des
+tirages) ; la liste gagne sur la qualité de la fiche, à coût égal ; Bash double le coût sans gain. Le goulot n'est ni la
+consigne ni l'entrée : donner les fichiers touchés ne suffit pas. Coût de l'ensemble : 23,4 dollars d'appels `claude -p`
+(16,1 pour les fiches, 7,3 pour les juges), hors agents de la passe non chiffrés.
+
+### Relevé sur le corpus de départ (sans modèle)
+
+Relevé des 40 premiers voisins par co-change, sur les 29 plans du corpus (27 ont des découvertes trouvables relevées),
+étiquette brute du journal (« découverte — trouvable au plan »).
+
+| Mesure | Découvertes | Retrouvées | Rappel |
+| --- | --- | --- | --- |
+| Étiquette brute, dédoublonnée au texte près | 196 | 32 | 16,3 % |
+| Étiquette brute, sans dédoublonnage | 197 | 32 | 16,2 % |
+| Même relevé, classé par compte de références (sans co-change) | 196 | 27 | 13,8 % |
+| Toutes les références, sans coupure à 40 | 196 | 45 | 23,0 % |
+| Référence annoncée au plan (étiquette brute, 30 sur 197) | 197 | 30 | 15,2 % (non reproduite) |
+
+Lecture : le relevé mesuré sur ce corpus est au-dessus du seuil de garde de 12 % du plan, mais le chiffre de référence
+de 15,2 % n'est pas celui que donne le script, quel que soit le classement testé (le numérateur reste à 32, pas à 30). Le
+chiffre à citer est à trancher par le pilote, avant le relevé sur le jeu neuf ; le chiffre de 17,4 % du chapitre D
+(classement Sonnet, 32 sur 184) reste la mesure du prototype.

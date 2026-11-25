@@ -1,0 +1,5 @@
+---
+type: regex
+flags: m
+pattern: '^- \[[x ]\] C0\b[^\n]*— (?:preuve|sans objet|non vérifié) :[^\n]*$\n(?:[ \t]*\n)*^- \[[x ]\] C1\b[^\n]*— (?:preuve|sans objet|non vérifié) :[^\n]*$\n(?:[ \t]*\n)*^- \[[x ]\] C2\b[^\n]*— (?:preuve|sans objet|non vérifié) :[^\n]*$\n(?:[ \t]*\n)*^- \[[x ]\] C3\b[^\n]*— (?:preuve|sans objet|non vérifié) :[^\n]*$\n(?:[ \t]*\n)*^- \[[x ]\] C4\b[^\n]*— (?:preuve|sans objet|non vérifié) :[^\n]*$\n(?:[ \t]*\n)*^- \[[x ]\] C5\b[^\n]*— (?:preuve|sans objet|non vérifié) :[^\n]*$\n(?:[ \t]*\n)*^- \[[x ]\] C6\b[^\n]*— (?:preuve|sans objet|non vérifié) :[^\n]*$\n(?:[ \t]*\n)*^- \[[x ]\] C7\b[^\n]*— (?:preuve|sans objet|non vérifié) :[^\n]*$\n(?:[ \t]*\n)*^- \[[x ]\] C8\b[^\n]*— (?:preuve|sans objet|non vérifié) :[^\n]*$\n(?:[ \t]*\n)*^- \[[x ]\] C9\b[^\n]*— (?:preuve|sans objet|non vérifié) :[^\n]*$\n(?:[ \t]*\n)*^- \[[x ]\] C10\b[^\n]*— (?:preuve|sans objet|non vérifié) :[^\n]*$\n(?:[ \t]*\n)*^- \[[x ]\] C11\b[^\n]*— (?:preuve|sans objet|non vérifié) :[^\n]*$\n(?:[ \t]*\n)*^- \[[x ]\] C12\b[^\n]*— (?:preuve|sans objet|non vérifié) :[^\n]*$'
+---

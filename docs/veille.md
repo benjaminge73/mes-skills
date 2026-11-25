@@ -625,3 +625,10 @@ Une entrée par passe, la plus récente en dernier. Le titre est
 - **Ce qui a changé** : rien depuis le 2026-11-23. Les pages que le plan cite (bonnes pratiques des skills : une checklist à cocher pour les workflows complexes, liberté haute pour la relecture de code ; relecture de code en agents parallèles suivie d'une étape de vérification ; séparer l'agent qui fait de celui qui juge) sont celles de la passe du 2026-11-23.
 - **Faits porteurs** : aucun ajout au tableau ; les citations existantes ne sont pas rejouées ce jour.
 - **Ce qu'on en fait** : la PR fait de `_partage/listes/` la seule source des listes de relecture, avec un garde (`scripts/test_listes.py`) qui vérifie que chaque lecteur cite sa liste et qu'aucune copie ne reste ailleurs. Aucune conduite de skill n'est changée par la passe ; la question des hooks `onFailure: block`, relevée le 2026-11-23, reste hors de ce plan.
+
+### 2026-11-25 — passe avant la PR « plans-notion 0.78.0 : l'enquête du plan par la checklist »
+
+- **Sources lues** : changelog Claude Code (2.1.331, daté du 23 novembre, non relu par les passes précédentes), pages sous-agents, skills, référence et chargement des plugins, hooks, évals de plugin, configuration des modèles, guide de rédaction des skills de la plateforme, `anthropics/skills` (dernier commit le 16 novembre), anthropic.com/engineering (dernier article le 13 novembre), un billet de claude.dev du 24 novembre (non normatif). Lectures par résumé ; plusieurs pages longues non lues jusqu'au bout.
+- **Ce qui a changé** : la 2.1.331 ajoute `optionalDependencies` aux manifestes (absent de la page de référence lue, à vérifier avant de s'en servir) et change le sens de `retry` pour `PermissionDenied`.
+- **Faits porteurs** : aucun changé ; `scripts/veille_faits.py` rejoué le 2026-11-25 : 23 faits vérifiés, 0 citation à signaler, 0 page injoignable.
+- **Ce qu'on en fait** : rien ne change pour la PR. La liste à cocher s'appuie sur le modèle de checklist documenté par le guide de la plateforme.
