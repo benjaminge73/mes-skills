@@ -28,7 +28,7 @@ Plan natif : pas de page, pas de miroir, pas de Hal. Les cases 4, 9, 15 et 16 à
 
 - [ ] 16. Les préférences et décisions de Benjamin (`fact_store`) ne contredisent pas le plan. — preuve : la réserve de Hal qui cite son fait, ou la ligne « Ce que j'ai vérifié » qui le couvre.
 - [ ] 17. Aucun autre plan ouvert du même dépôt ne touche les mêmes fichiers. — preuve : le bloc « Plans ouverts des mêmes dépôts » croisé avec « Fichiers touchés », ou `aucun conflit`.
-- [ ] 18. Les faits du plan sur le VPS (cron, unité, fichier) sont vérifiés en lecture seule. — preuve : la commande et sa sortie, ou le fait listé dans « À vérifier par la session ».
+- [ ] 18. Les faits du plan sur le VPS sont dans la fiche du relevé du jour jointe ; Hal ne vérifie en lecture seule que ceux qui n'y sont pas. — preuve : la ligne de la fiche qui porte le fait, ou la commande de lecture seule et sa sortie pour un fait absent de la fiche, ou le fait listé dans « À vérifier par la session ».
 - [ ] 19. Le plan ne refait pas un piège déjà payé (fait ou plan antérieur). — preuve : le fait ou le plan cité, et la ligne du plan qui l'évite.
 
 ## Les deux points d'Anthropic

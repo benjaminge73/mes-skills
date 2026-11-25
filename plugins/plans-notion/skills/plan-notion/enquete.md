@@ -52,8 +52,24 @@ qui est déjà su.** Six gisements, du moins cher au plus cher :
    ```
 
    Il rend au plus 40 références, classées par co-change ; sa sortie entre dans le brief de
-   l'enquêteur, qui la vérifie (cases C1 et C2) : c'est un point de départ, pas un fait. Enfin
-   invoquer l'agent **`enqueteur`** (outil `Agent`,
+   l'enquêteur, qui la vérifie (cases C1 et C2) : c'est un point de départ, pas un fait.
+
+   Juste après, le **relevé du jour**, joué par le pilote et non par l'enquêteur : l'état réel
+   du VPS (cœur Hermes non commité, unités en panne, crons qui divergent de leur miroir) et,
+   sur les fichiers du plan, les motifs de sécurité. `--objets` reçoit les chemins relatifs au
+   dépôt des objets de C0 que le pilote tient déjà de son plan, et la commande se joue depuis le dépôt :
+
+   ```bash
+   python3 "${CLAUDE_PLUGIN_ROOT}/skills/_partage/scripts/releve-du-jour.py" --objets <chemins>
+   ```
+
+   La fiche entre dans le brief de l'enquêteur. Le pilote recopie sa sortie dans la page,
+   chapitre `Contraintes techniques vérifiées`, dans un bloc de code titré « Relevé du jour » :
+   l'ouverture et la relecture la relisent de là. Une ligne `SECURITE · chemin:ligne · motif`
+   devient une question d'office à Benjamin dans la page, sans enquête préalable ; elle
+   s'ajoute à la case C12 et ne la remplace pas.
+
+   Enfin invoquer l'agent **`enqueteur`** (outil `Agent`,
    `subagent_type: "plans-notion:enqueteur"` — le nom qualifié par le plugin,
    le nom court ne résout pas) plutôt que fouiller soi-même : il suit la liste commune
    `listes/enquete.md`, treize cases (C0 à C12), qui couvrent les angles morts de voisinage —
@@ -129,8 +145,19 @@ qui est déjà su.** Six gisements, du moins cher au plus cher :
 
    Code 0 : la fiche passe. Code 1 : une ligne par case fautive, et le pilote renvoie **une
    fois** cette liste à l'enquêteur. Au second code 1, la fiche passe telle quelle. Dans tous
-   les cas, le pilote ne joue lui-même que les cases « non vérifié », chacune avec sa preuve,
-   jamais la fiche entière ; ce qui reste non vérifié va dans `Contraintes techniques vérifiées`.
+   les cas, le pilote ne rejoue jamais la fiche entière.
+
+   **Les lectures d'état, confiées au sondeur.** Une fois la fiche contrôlée, le pilote écrit
+   ses questions d'état : les cases « non vérifié » de C4, C10 et C11 qui tiennent à une lecture
+   du VPS, et ce que C0 nomme (un cron, un fichier d'état, une unité). Il les confie à **un
+   seul** appel de `plans-notion:sondeur`, sans `model` ni `effort` (la définition les porte).
+   Le brief les écrit ainsi : « Questions d'état : <une par ligne> ; rends la commande jouée, la
+   sortie bornée, la réponse ». Chaque ligne porte la question et sa cible, le nom ou la commande à
+   jouer : le sondeur ne devine pas une commande à partir d'un objectif. Le brief porte aussi son plafond (aucun appel payant,
+   aucun sous-agent) et le chemin de son scratchpad. Le sondeur rend une fiche : commandes jouées,
+   sorties bornées, réponses. Sa fiche entre dans `Contraintes techniques vérifiées`, commandes
+   comprises. Le pilote ne rejoue lui-même que ce que le sondeur n'a pas pu trancher, chacun avec
+   sa preuve ; ce qui reste non vérifié va dans `Contraintes techniques vérifiées`.
 4. **L'historique.** `git log` sur les fichiers concernés, PR mergées, tests
    existants. Un comportement qui a déjà été changé l'a été pour une raison, et
    cette raison contraint le plan.

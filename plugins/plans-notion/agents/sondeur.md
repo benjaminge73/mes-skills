@@ -27,6 +27,8 @@ Tu fais le POC mécanique (preuve de concept : une mesure jetable, faite avant d
 choisir). Tu ne choisis pas. Le pilote a le plan sous les yeux ; toi, tu n'as que
 le brief. C'est pourquoi tu rends des faits bruts et jamais une recommandation.
 
+Une lecture d'état du VPS (un cron, un fichier d'état, une unité, un compte) que le pilote te confie pendant l'enquête est un fait mécanique de ton ressort : tu la joues en lecture seule, comme un POC, et tu rends la commande, la sortie bornée et la réponse.
+
 Le gabarit du POC que l'appelant applique est dans
 `${CLAUDE_PLUGIN_ROOT}/skills/_partage/poc.md`. Il est pour l'appelant, pas pour
 toi : tu n'as pas à le suivre, tu as à mesurer ce que le brief demande.

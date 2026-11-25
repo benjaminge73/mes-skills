@@ -2,7 +2,7 @@
 - [x] C1 Consommateurs — preuve : `Grep "appliquer_remise" .` → `src/remise.py:7`, `caisse/panier.py:1,5` (appelant direct, dans la carte), `tests/test_remise.py:8,11,14` (direct) ; `Grep "total_panier" .` → `caisse/panier.py:4`, `tests/test_panier.py:3,8` (consommateur de `appliquer_remise`, hors de la carte)
 - [x] C2 Docs et consignes qui le citent — preuve : `CLAUDE.md:3` (« SEUIL = 100 », et « ne le change pas sans mettre à jour docs/remise.md ») ; `docs/remise.md:3` (« au-delà de 100 € », devient faux après le changement)
 - [x] C3 Gardes, CI et règles — preuve : `CLAUDE.md:3` (règle écrite : seuil et doc liés) ; `scripts/ci_locale.sh:3` lance `python3 -m unittest discover -s tests`, sans valeur figée ; `Glob .github/**` → 0 fichier
-- [x] C4 L'état vivant — preuve : `Glob cron/**`, `Glob **/jobs.json`, `Glob **/*.service` → 0 fichier ; aucun état déployé ne lit le seuil
+- [ ] C4 L'état vivant — non vérifié : sans Bash, et le brief ne porte pas de fiche du relevé du jour
 - [x] C5 Le brief contre le code — preuve : `src/remise.py:7-11` lue en entier : `appliquer_remise(montant)` n'a pas de paramètre de taux ; le taux est la constante `TAUX` (`src/remise.py:4`), le seuil `SEUIL` (`src/remise.py:3`) ; la carte est juste : `caisse/panier.py:5` appelle bien la fonction
 - [ ] C6 Contrat d'un outil externe — sans objet : le changement n'appelle aucun outil ni service externe
 - [x] C7 Une valeur à plusieurs endroits — preuve : `Grep "100" src/ docs/ tests/ CLAUDE.md` → `src/remise.py:3` (`SEUIL = 100`), `src/remise.py:8` (docstring « 100 € »), `tests/test_remise.py:7,10,13` (noms de tests), `tests/test_remise.py:11` (assertion), `CLAUDE.md:3`, `docs/remise.md:3`

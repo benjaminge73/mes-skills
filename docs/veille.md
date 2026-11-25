@@ -675,3 +675,10 @@ Une entrée par passe, la plus récente en dernier. Le titre est
   `_partage/listes/aiguillage-plan.md` et `_partage/scripts/aiguiller-plan.py`, cas
   d'éval `plan-leger-eligibilite` écrit et non joué. L'effet du mode se juge à l'usage
   (coût réel et décisions prises sans question, à la clôture de chaque plan léger).
+
+### 2026-11-25 — passe avant la PR « relevé du jour du VPS » (plans-notion 0.81.0)
+
+- **Sources lues** : changelog Claude Code (2.1.332, datée du 25 novembre), pages skills, hooks, sous-agents, configuration des modèles, bac à sable, référence des plugins, claude.dev, anthropic.com/engineering, `anthropics/skills` (aucun commit depuis le 24 novembre). Lectures par résumé ; la page des évals de plugin n'a pas pu être lue.
+- **Ce qui a changé** : la 2.1.332 ajoute l'événement `PreSkillShellCommand` et change les alias `sonnet` et `opus` hors API Anthropic. La page des skills dit que les hooks `PreToolUse` ne voient pas les commandes injectées au chargement d'un skill ; aucun `SKILL.md` du dépôt n'en injecte (recherche jouée ce jour).
+- **Faits porteurs** : aucun changé ; `scripts/veille_faits.py` rejoué le 2026-11-25 : 23 faits vérifiés, 0 citation à signaler, 0 page injoignable.
+- **Ce qu'on en fait** : rien ne change pour la PR. Le changement d'alias ne touche pas l'API Anthropic ; il est signalé à Benjamin en fin de plan.

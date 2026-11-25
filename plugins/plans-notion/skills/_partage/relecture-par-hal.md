@@ -29,7 +29,7 @@ passe ce contrôle : elle dit que le rendez-vous a échoué, pas qu'il a eu lieu
 La pré-lecture se fait avant l'appel à `relire`. La session lance un agent
 `plans-notion:lecteur` (Haiku) **par plan ouvert des mêmes dépôts**, plan maître compris, et
 joint leurs fiches à la page. La fiche de l'enquêteur, cochée, et la sortie de
-`verifier-fiche-enquete.py` sont jointes à la pré-lecture aussi. Cela se joue côté session, hors du délai de `relire`. La fiche est celle de l'agent `lecteur` :
+`verifier-fiche-enquete.py` sont jointes à la pré-lecture aussi. La fiche du relevé du jour rejoint elle aussi les fiches de pré-lecture : c'est le bloc « Relevé du jour » du chapitre « Contraintes techniques vérifiées » de la page, sortie de `releve-du-jour.py`, que la session place sous `## Fiches de pré-lecture`. Elle porte les faits du VPS que le plan cite (cron, unité, fichier) : Hal ne les revérifie en lecture seule que s'ils n'y sont pas (case 18 de la liste, § 9). Cela se joue côté session, hors du délai de `relire`. La fiche est celle de l'agent `lecteur` :
 courte et sourcée, elle donne le Statut, la Branche, la date, les étapes avec leurs fichiers
 touchés et ce qui en reste, les questions ouvertes et tranchées, et les affirmations sur le dépôt à
 revérifier.
