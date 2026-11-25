@@ -139,6 +139,46 @@ réelle ou bruit, sur le texte seul. `juge.py` automatise ce jugement pour ≈ 0
 garde le même classement que l'évaluateur, à 2 à 9 points près ; deux passages du juge sur le même bras diffèrent d'une
 demi-remarque sur 11. Ses chiffres servent à **comparer des bras entre eux**, pas à donner une valeur absolue.
 
+## Le banc d'enquête
+
+`enquete.py` mesure l'enquête d'avant-plan. L'enquêteur (`plugins/plans-notion/agents/enqueteur.md`, ou une liste
+d'enquête) rejoue, au commit où la branche d'un plan exécuté est partie, la fiche qu'il aurait rendue ; on compte les
+découvertes que l'exécution a faites plus tard et qui étaient trouvables au moment du plan. Il repose sur le socle du banc
+de relecture (`banc.py` : `claude -p` isolé, worktree jetable) et reprend son `Budget` (`rejouer.py`). POC et chiffres :
+[RESULTATS.md](RESULTATS.md), section « POC du plan enquête-checklist ».
+
+| Commande | Effet |
+| --- | --- |
+| `python3 enquete.py --dry-run actuel 0` | imprime les dix commandes `claude -p`, n'en lance aucune, n'écrit rien |
+| `python3 enquete.py <bras> <plafond> [<tirage>]` | rejoue un bras sur les dix plans de l'échantillon : `actuel`, `liste`, `liste-bash` |
+| `python3 enquete.py juge:<bras>[@<tirage>] <plafond>` | note les fiches d'un bras (Sonnet medium, texte seul) contre les découvertes du classement |
+| `python3 enquete.py releve [--corpus <dossier>]` | relevé déterministe, sans modèle ni plafond : `git grep` et `git log` en lecture seule |
+
+Le plafond est positionnel, comme dans `rejouer.py`. Sans plafond positif, le script refuse (code 2) ; seul `--dry-run`
+s'en passe, puisqu'il n'appelle rien. Un bras inconnu est refusé : il n'y a pas de bras `spike`.
+
+**Les données** sont hors de ce dépôt, sous `BANC_ENQUETE_DONNEES` (défaut `~/.local/share/banc-enquete`), dossier distinct
+de celui du banc de relecture (le script force `BANC_DONNEES` sur le sien, pour ne jamais écrire dans celui de la
+relecture). `corpus/` porte `pages/<id>.md` (une page de plan par fichier), `bases.json` (dépôt et commit de départ par
+plan), `echantillon.json` (les dix ids rejoués), `classement.json` (juge seulement) ; `depots/` (clones miroir), `sorties/`
+et `releves/` sont produits par le script. `--corpus` remplace le dossier `corpus/` par défaut.
+
+**Le relevé** prend les découvertes « trouvable au plan » du journal, en étiquette brute : le passage tel qu'il est écrit,
+une fois chacun. Une découverte compte comme retrouvée si le fichier qu'elle cite, hors fichiers du plan, figure parmi les
+40 premiers voisins du relevé, classés par co-change. Le détail par plan va dans `releves/`, hors dépôt ; la sortie
+n'imprime que le total.
+
+Ce qui a été tranché en écrivant le script :
+- Le bras `liste` joue le fichier livré, `_partage/listes/enquete.md` (13 cases, C0 à C12). Le POC jouait un prototype de
+  12 cases : les deux ne sont pas le même objet, et le tableau du POC ne les compare pas.
+- Un appel en erreur, ou un juge illisible, n'écrit aucune sortie : le relancement reprend ce plan. Un juge sans fiche
+  n'est pas lancé.
+- Le relevé est celui du chapitre D du POC (références classées par co-change), pas le classement Sonnet : sa mesure en
+  étiquette brute ne se compare donc qu'à elle-même. Le chiffre de référence du plan (15,2 %) n'est pas reproduit, voir
+  RESULTATS.md.
+
+Tests : `python3 -m pytest -q evals/banc-relecture/test_enquete.py` (pas de réseau, pas de `claude`, temporaire de pytest).
+
 ## Les limites à garder en tête
 
 - La référence est **un** passage d'Opus, lui-même non exhaustif : un second passage d'Opus high n'en retrouve que 68 %.
