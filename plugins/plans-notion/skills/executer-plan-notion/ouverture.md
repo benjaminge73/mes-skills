@@ -332,8 +332,8 @@ Ce que chaque puce porte :
   vide = aucun écart, code 2 = fiche illisible, à dire. L'« État de départ » de
   `poc.md` existe dans la page. Si `main` a bougé depuis sa date, on rejoue les
   gestes 1 et 2 de `poc.md` dans un worktree détaché avant de l'écrire. Un plan
-  sans ce bloc, ou sans « État de départ », n'a pas eu sa répétition : on le dit
-  en une ligne plutôt que d'écrire `sans objet`.
+  sans ce bloc se dit « relevé : pas de fiche dans la page ». Un plan sans « État
+  de départ » n'a pas eu sa répétition : on le dit en une ligne plutôt que d'écrire `sans objet`.
 - **Vagues** : la liste que `vagues.py` calcule (une ligne par vague), **et** les
   étapes regroupées dans un seul sous-agent, avec leur raison ; le script compare
   en plus la colonne « Vague » du tableau de chevauchement au calcul et refuse un
