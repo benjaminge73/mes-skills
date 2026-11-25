@@ -29,6 +29,13 @@ sans sauter d'étape :
    `SECURITE` du relevé devient une question d'office à Benjamin dans le plan, hors de `## Étapes`, en
    plus de la case C12. Le pilote ne lit pas lui-même un fichier de plus de
    200 lignes : `${CLAUDE_PLUGIN_ROOT}/skills/_partage/lecture-deleguee.md`.
+
+   **Les faits à décision.** Avant d'écrire les questions, le pilote confronte aux options chaque fait
+   coché en C1, C4, C8, C10, C11 ou C12 de la fiche : un fait qui change une option devient une
+   question ou entre dans cette option. Une case que le contrôle de la fiche liste « preuve partielle : Cn »
+   se confronte comme les autres, quel que soit son numéro ; le pilote ne joue lui-même la partie
+   non vérifiée que si elle peut changer une option. Le geste complet est dans
+   `${CLAUDE_PLUGIN_ROOT}/skills/plan-notion/enquete.md`, gisement 3, « Ce qu'on en fait ».
 4. **Invoquer `plans-notion:chercheur`** seulement si une étape fabrique un artefact qui n'est
    pas propre au projet : une ligne « Existant cherché : … / trouvé : … / fait maison parce
    que … » par artefact (`enquete.md`, gisement 6, « L'extérieur »). Les dépôts étoilés se
