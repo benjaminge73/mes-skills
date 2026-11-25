@@ -632,3 +632,10 @@ Une entrée par passe, la plus récente en dernier. Le titre est
 - **Ce qui a changé** : la 2.1.331 ajoute `optionalDependencies` aux manifestes (absent de la page de référence lue, à vérifier avant de s'en servir) et change le sens de `retry` pour `PermissionDenied`.
 - **Faits porteurs** : aucun changé ; `scripts/veille_faits.py` rejoué le 2026-11-25 : 23 faits vérifiés, 0 citation à signaler, 0 page injoignable.
 - **Ce qu'on en fait** : rien ne change pour la PR. La liste à cocher s'appuie sur le modèle de checklist documenté par le guide de la plateforme.
+
+### 2026-11-25 — passe avant la PR « jeton lourd automatique » (plans-notion 0.79.0)
+
+- **Sources lues** : la page des hooks (`code.claude.com/docs/en/hooks.md`), relue ce jour par recherche de mots-clés (parallélisme des hooks d'un même événement, `updatedInput`, sections PreToolUse et mode auto), pas en entier. Pas d'appel à l'agent `chercheur` : une seule page porte le fait.
+- **Ce qui a changé** : deux points pour le hook `jeton_lourd.py`. (1) « When an event fires, its matching hooks run in parallel » : la doc ne dit pas quel `updatedInput` gagne quand deux hooks d'un même événement en renvoient un ; sa règle de précédence (deny > defer > ask > allow) vise les décisions, pas les réécritures. (2) En mode auto, un `updatedInput` sans `permissionDecision` peut être refusé par Claude Code, avec le message « a hook changed this call's input after auto mode reviewed it ».
+- **Faits porteurs** : aucun ajout au tableau de la partie 2. La phrase sur le parallélisme est relevée ce jour ; elle n'est pas encore citée par un garde.
+- **Ce qu'on en fait** : D7 garde la compression rtk dans le hook lui-même (`rtk rewrite` appliqué avant la réécriture), faute de savoir quel `updatedInput` gagne entre deux hooks. Le point (2) n'est pas traité par ce plan : à signaler si un refus de ce type apparaît en mode auto.

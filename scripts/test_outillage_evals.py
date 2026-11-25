@@ -303,12 +303,11 @@ class LancerLocalRefuseSiUnBancTourneEnCi(unittest.TestCase):
 class LancerLocalPrendLeJetonMachine(unittest.TestCase):
     """En local, les évals sont une action lourde : elles ne partent qu'avec le jeton."""
 
-    def test_deux_places_tenues_le_lanceur_attend_puis_refuse_sans_lancer_claude(self):
-        # Deux places (PLACES_LOURDES = 2) : deux détenteurs voisins les tiennent
-        # toutes, et le lanceur ne doit pas passer.
+    def test_une_place_tenue_le_lanceur_attend_puis_refuse_sans_lancer_claude(self):
+        # Une seule place (PLACES_LOURDES = 1 sur le VPS) : un détenteur voisin la
+        # tient, et le lanceur ne doit pas passer.
         lancement = _LancementLocal(self)
-        voisins = [("Plan voisin", subprocess.Popen(["sleep", "60"])),
-                   ("Plan voisin bis", subprocess.Popen(["sleep", "60"]))]
+        voisins = [("Plan voisin", subprocess.Popen(["sleep", "60"]))]
         for _plan, detenteur in voisins:
             self.addCleanup(lambda d=detenteur: (d.kill(), d.wait()))
         for plan, detenteur in voisins:
@@ -328,7 +327,6 @@ class LancerLocalPrendLeJetonMachine(unittest.TestCase):
         self.assertNotEqual(resultat.returncode, 0, resultat.stderr)
         self.assertGreaterEqual(duree, 1.0, "EVALS_ATTENDRE=1 : le lanceur doit avoir attendu")
         self.assertIn("Plan voisin", resultat.stderr, "le refus doit dire qui tient le jeton")
-        self.assertIn("Plan voisin bis", resultat.stderr, "le refus cite tous les détenteurs")
         self.assertEqual(lancement.lancements_de_claude(), [])
 
     def test_le_jeton_est_tenu_pendant_claude_au_nom_du_plan_donne(self):

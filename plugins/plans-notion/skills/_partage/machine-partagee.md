@@ -10,13 +10,14 @@ Il part d'une mesure. Le POC du 2026-10-01 (VPS, 6 cœurs) a vu deux actions
 lourdes lancées ensemble faire tomber une e2e sur un timeout et allonger la
 suite de 32 %. Plusieurs sessions Claude Code partagent la même machine ;
 aucune ne voit ce que fait l'autre. D'où un **jeton à places** pour les actions
-lourdes, et un geste pour le prendre. Il y a **deux places** sur le VPS depuis le
-POC du 2026-10-12 : la suite de hermes-custom seule prend 677 s, 727 s et 720 s avec
-l'e2e de vahiny en parallèle, sans aucun échec sur les deux passages ; le
-relevé disait « chargée » pendant l'e2e seul, jamais « saturée ». Le POC du
-2026-10-01 avait vu l'échec, celui du 2026-10-12 ne l'a pas reproduit : la
-deuxième place est une décision mesurée, pas une garantie. Une autre machine
-déclare son nombre de places dans son profil (§ « Le profil machine »).
+lourdes, et une prise pour le tenir. Le VPS n'a **qu'une place** depuis le
+2026-11-25. Le POC du 2026-10-12 en avait accepté deux (la suite de hermes-custom
+seule prend 677 s, avec l'e2e de vahiny en parallèle 727 s et 720 s, sans échec),
+mais la mesure du 2026-11-25 a vu 2 à 5 suites tourner ensemble (charge 35 sur
+6 cœurs, pression mémoire à 59, 5,7 Go de swap) pendant que le relevé disait
+encore « libre ». Règle de Benjamin du 17/11 : on repasse à une place quand la
+machine sature. Une autre machine déclare son nombre de places dans son profil
+(§ « Le profil machine »).
 
 ## Ce qui est lourd
 
@@ -34,6 +35,31 @@ pour lui la suite complète et les e2e de la clôture, et **ceux-là prennent le
 jeton**.
 
 ## Le geste
+
+**La prise est automatique pour une suite lourde.** Le hook
+`hooks/jeton_lourd.py` (plugin plans-notion) regarde chaque commande `Bash` avant
+de la jouer. Si c'est une suite complète (pytest, vitest, jest, `npm test`,
+Playwright, `claude plugin eval`, `docker run`), il la réécrit : elle part dans
+l'enveloppeur `skills/_partage/scripts/sous-jeton.sh`, qui prend le jeton, joue la
+commande, puis rend le jeton, même si la commande échoue. Une preuve ciblée (un
+fichier de test, `-k`, `::`, `--version`) passe telle quelle, sans jeton.
+
+- **Attente, pas refus.** Si le jeton est tenu, on attend par paliers de 60 s.
+  Le plafond est de **300 s** en avant-plan et de **1800 s** en arrière-plan
+  (`run_in_background`). Au plafond, la commande n'est pas jouée : sortie en
+  **code 75**, avec le nom du détenteur.
+- **Pas de double prise.** Une commande lancée sous un jeton déjà tenu par un
+  parent (par exemple `lancer.sh`) ne reprend pas le jeton.
+- **Fail-open.** Si le hook ou `etat-machine.py` échoue, la commande part sans
+  jeton, avec un avertissement. Le hook ne pose aucune décision de permission :
+  il ne refuse rien.
+- **Limites.** Un `cd` dans une commande enveloppée ne persiste pas dans le shell
+  de la session. Un lancement par `bash -c` ou par un script maison n'est pas
+  reconnu : il part sans jeton. Une commande qui cite déjà `etat-machine.py`,
+  `sous-jeton.sh` ou `lancer.sh` n'est pas réécrite.
+
+**Reste au geste manuel** : le rejeu d'un plan, un build, et toute suite lancée
+par un script. Pour ceux-là, le geste ci-dessous tient.
 
 **Tout tient dans un seul appel de shell.** Une session Claude ouvre un shell
 **neuf à chaque appel de l'outil `Bash`**, et il meurt à la fin de l'appel. Le
@@ -73,7 +99,7 @@ est lu s'il existe. Ni l'un ni l'autre : pas de profil, et ce sont les valeurs d
 Clés, toutes optionnelles :
 
 - `machine` : libellé libre ;
-- `places_lourdes` : entier ≥ 1 (VPS : 2) ;
+- `places_lourdes` : entier ≥ 1 (VPS : 1) ;
 - `seuil_mem_full_avg60`, `seuil_cpu_some_avg10` : nombres (VPS : 40 et 50) ;
 - `seuil_mem_disponible_ko` : entier ≥ 0 (VPS : 1 572 864, soit 1,5 Go).
 
@@ -121,6 +147,6 @@ suite (verdict et causes du relevé), noter au journal, continuer le léger.
 
 Le plan maître porte une section **« File des actions lourdes »**. Le pilote y
 range les suites, e2e et évals de **tous** les plans et les prend dans l'ordre
-de la file, chacune avec son jeton : **au plus autant** qu'il y a de places (deux
-sur le VPS) tiennent le jeton à la fois. Le parallèle reste la règle pour tout le reste :
+de la file, chacune avec son jeton : **au plus autant** qu'il y a de places (une
+seule sur le VPS) tiennent le jeton à la fois. Le parallèle reste la règle pour tout le reste :
 la file ne concerne que ce qui est lourd.
