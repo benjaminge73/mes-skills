@@ -22,7 +22,8 @@ sans sauter d'étape :
    `releve-du-jour.py --objets <fichiers touchés>` depuis le dépôt et joint sa sortie au brief. Il suit la liste
    `listes/enquete.md` et rend une fiche cochée, sourcée en `fichier:ligne` ; le pilote la contrôle
    par `verifier-fiche-enquete.py`, une relance au plus, puis confie les cases d'état « non vérifié »
-   (C4, C10, C11, et ce que C0 nomme : cron, fichier d'état, unité) à **un** appel de `plans-notion:sondeur`
+   (C4, C10 et C11 quand elles tiennent à une lecture du VPS, et ce que C0 nomme : cron, fichier d'état,
+   unité) à **un** appel de `plans-notion:sondeur`
    (`enquete.md`, gisement 3, « Les lectures d'état, confiées au sondeur »). Pas de page Notion ici :
    le relevé reste dans le plan, sous un intertitre « Relevé du jour », hors de `## Étapes`. Une ligne
    `SECURITE` du relevé devient une question d'office à Benjamin dans le plan, hors de `## Étapes`, en
