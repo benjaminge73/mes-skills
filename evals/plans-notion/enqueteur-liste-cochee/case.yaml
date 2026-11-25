@@ -1,0 +1,14 @@
+schema_version: "1.1"
+name: enqueteur-liste-cochee
+description: >
+  Un plan veut changer le seuil de remise de src/remise.py et ajouter un paramètre à
+  appliquer_remise. Le pilote fait enquêter le voisinage par plans-notion:enqueteur. La
+  fiche doit commencer par les treize cases de la liste, cochées avec leur preuve, puis
+  les rubriques de la fiche. Une fiche sans cases ne passe pas.
+expected_outcome: >
+  La fiche ouvre par les cases C0 à C12 dans cet ordre, chacune cochée « — preuve : » ou
+  marquée « sans objet : » / « non vérifié : » ; suivent Couverture, Faits vérifiés,
+  Hypothèses, Non vérifié, Chiffres remesurés. Le caller direct, le test du consommateur et
+  les deux documents qui citent le seuil figurent dans les faits.
+context:
+  scaffold_script: fixture.sh
