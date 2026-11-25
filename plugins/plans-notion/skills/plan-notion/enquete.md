@@ -151,8 +151,9 @@ qui est déjà su.** Six gisements, du moins cher au plus cher :
    ses questions d'état : les cases « non vérifié » de C4, C10 et C11 qui tiennent à une lecture
    du VPS, et ce que C0 nomme (un cron, un fichier d'état, une unité). Il les confie à **un
    seul** appel de `plans-notion:sondeur`, sans `model` ni `effort` (la définition les porte).
-   Chaque ligne porte la question et sa cible, le nom ou la commande à jouer : le sondeur ne devine
-   pas une commande à partir d'un objectif. Le brief porte aussi son plafond (aucun appel payant,
+   Le brief les écrit ainsi : « Questions d'état : <une par ligne> ; rends la commande jouée, la
+   sortie bornée, la réponse ». Chaque ligne porte la question et sa cible, le nom ou la commande à
+   jouer : le sondeur ne devine pas une commande à partir d'un objectif. Le brief porte aussi son plafond (aucun appel payant,
    aucun sous-agent) et le chemin de son scratchpad. Le sondeur rend une fiche : commandes jouées,
    sorties bornées, réponses. Sa fiche entre dans `Contraintes techniques vérifiées`, commandes
    comprises. Le pilote ne rejoue lui-même que ce que le sondeur n'a pas pu trancher, chacun avec
