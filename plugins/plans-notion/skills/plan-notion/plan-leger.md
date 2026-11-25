@@ -5,7 +5,7 @@ exception, ouverte seulement quand l'aiguillage la propose **et** que Benjamin l
 garde les questions fonctionnelles et les critères ; il laisse la découverte technique à
 l'exécution.
 
-Pourquoi borné (mesure du 2026-11-24, `docs/veille.md`) : rejoués en léger, trois anciens plans
+Pourquoi borné (mesure du 2026-11-24, entrée du 2026-11-25 de `docs/veille.md` du dépôt) : rejoués en léger, trois anciens plans
 coûtent 6 à 27 % du coût réel, mais aucun ne tient tous les critères, et 31 % des découvertes
 trouvables au plan auraient exigé une question à Benjamin.
 
@@ -76,12 +76,14 @@ ni relecteur par étape.
   la PR, ouverte en brouillon. Toute décision de la liste `Arrêts`, ou du §1 de
   `_partage/decouvertes.md`, rencontrée en route s'écrit dans **`QUESTIONS.md` à la racine du
   worktree**, jamais commité, **sans agir** sur ce point ; le reste avance.
-- **Relecture finale du diff**, avant de passer la PR prête : un appel à
-  `plans-notion:evaluateur` (Sonnet), avec la page (`Besoins`, réponses, `Arrêts`) recopiée et
-  la plage de commits. Grille : « liste chaque décision prise dans ce diff que ni la demande ni
-  une réponse ne tranchait, avec la ligne du diff qui la porte ». Sonnet et non Haiku : sur ce
-  jugement, Haiku a rendu les mêmes étiquettes d'un passage à l'autre dans 81,5 % des cas
-  seulement.
+- **Relecture finale du diff**, avant de passer la PR prête : un appel `Agent`
+  (`subagent_type: "general-purpose"`, `model: "sonnet"`), en lecture seule. Le brief porte le
+  worktree et la plage de commits, la page recopiée (`Besoins`, réponses, `Arrêts`), l'ordre de
+  ne rien modifier ni commiter, et la question : « liste chaque décision prise dans ce diff que
+  ni la demande ni une réponse ne tranchait, avec la ligne du diff qui la porte ; s'il n'y en a
+  aucune, écris `aucune` ». Un rapport sans liste ni `aucune` se redemande. Sonnet et non
+  Haiku : à juger si une découverte était une décision, Haiku n'a rendu la même étiquette d'un
+  passage à l'autre que dans 81,5 % des cas.
 - **Avant la PR prête** : poser à Benjamin, en une fois, les points de `QUESTIONS.md` et les
   décisions listées par la relecture. La session ne merge jamais.
 - **Clôture** : les points de doc d'un plan (Changelog, ligne `Doc :`,
@@ -93,7 +95,9 @@ ni relecteur par étape.
 
 **Opus 5.5, effort `medium`** : c'est le réglage mesuré. Une session lancée par Hal le reçoit
 par la ligne `Modèle de session : opus` du prompt, plus `Mode : auto` si la tâche passe le
-contrôle du « Chemin allégé » du skill `piloted-code-change` (hermes-custom). La liste
+contrôle du « Chemin allégé » du skill `piloted-code-change` (hermes-custom). Ce chemin dit
+« Pas de plan Notion » : pour un plan léger, la page, son `Statut`, son journal et ses deux
+lignes de clôture restent dus, et le prompt le dit. La liste
 d'aiguillage reprend ses conditions (cases A2, A6 à A9) et y ajoute les classes mesurées
 (A1, A3 à A5).
 
