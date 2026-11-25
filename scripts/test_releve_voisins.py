@@ -1,16 +1,18 @@
 """Le relevé des voisins (releve-voisins.py) : qui cite un fichier touché, et dans quel ordre.
 
-Chaque test monte un dépôt jouet dans tmp_path et lance le script comme le ferait le pilote (sous-processus,
+Chaque test monte un dépôt jouet dans un dossier temporaire et lance le script comme le ferait le pilote (sous-processus,
 sortie lue ligne à ligne). Aucun mock de git : c'est git qui décide de l'historique et du contenu.
+
+Écrit en ``unittest`` pur : la CI le joue avec un ``python3`` sans pytest (``python3 -m unittest discover -s scripts``).
 """
 from __future__ import annotations
 
 import re
 import subprocess
 import sys
+import tempfile
+import unittest
 from pathlib import Path
-
-import pytest
 
 SCRIPT = (Path(__file__).resolve().parents[1]
           / "plugins/plans-notion/skills/_partage/scripts/releve-voisins.py")
@@ -24,13 +26,6 @@ def git(depot: Path, *args: str) -> str:
         ["git", "-C", str(depot), "-c", "user.name=test", "-c", "user.email=test@example.invalid",
          "-c", "commit.gpgsign=false", *args],
         check=True, capture_output=True, text=True).stdout
-
-
-def depot_jouet(tmp_path: Path) -> Path:
-    depot = tmp_path / "depot"
-    depot.mkdir()
-    git(depot, "init", "-q", "-b", "main")
-    return depot
 
 
 def valider(depot: Path, message: str, fichiers: dict[str, str]) -> None:
@@ -62,63 +57,72 @@ def voisins(sortie: str) -> list[dict]:
     return out
 
 
-def test_le_releve_liste_les_deux_fichiers_qui_citent_le_fichier_touche(tmp_path):
-    # Panne visée : le script ne retrouve qu'un des deux citants (grep incomplet, ou grep du seul chemin).
-    depot = depot_jouet(tmp_path)
-    valider(depot, "cron", {"cron/y.md": "Lance a.py chaque nuit.\n"})
-    valider(depot, "docs", {"docs/x.md": "Voir a.py pour le détail.\n"})
-    valider(depot, "a", {"a.py": "v0\n"})
+class ReleveDesVoisins(unittest.TestCase):
 
-    chemins = [v["chemin"] for v in voisins(releve(depot, "a.py"))]
+    def setUp(self) -> None:
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.depot = Path(tmp.name) / "depot"
+        self.depot.mkdir()
+        git(self.depot, "init", "-q", "-b", "main")
 
-    assert "docs/x.md" in chemins
-    assert "cron/y.md" in chemins
+    def test_le_releve_liste_les_deux_fichiers_qui_citent_le_fichier_touche(self):
+        # Panne visée : le script ne retrouve qu'un des deux citants (grep incomplet, ou grep du seul chemin).
+        depot = self.depot
+        valider(depot, "cron", {"cron/y.md": "Lance a.py chaque nuit.\n"})
+        valider(depot, "docs", {"docs/x.md": "Voir a.py pour le détail.\n"})
+        valider(depot, "a", {"a.py": "v0\n"})
+
+        chemins = [v["chemin"] for v in voisins(releve(depot, "a.py"))]
+
+        self.assertIn("docs/x.md", chemins)
+        self.assertIn("cron/y.md", chemins)
+
+    def test_un_citant_co_modifie_avec_le_fichier_touche_passe_devant(self):
+        # Panne visée : le classement ignore le co-change et range les citants dans l'ordre du grep.
+        # docs/x.md est modifié trois fois avec a.py ; cron/y.md, cité pareil, jamais.
+        depot = self.depot
+        valider(depot, "cron", {"cron/y.md": "Lance a.py chaque nuit.\n"})
+        valider(depot, "docs", {"docs/x.md": "Voir a.py pour le détail.\n"})
+        valider(depot, "a", {"a.py": "v0\n"})
+        for i in range(1, 4):
+            valider(depot, f"modif {i}", {"a.py": f"v{i}\n", "docs/x.md": f"Voir a.py pour le détail, {i}.\n"})
+
+        chemins = [v["chemin"] for v in voisins(releve(depot, "a.py"))]
+
+        self.assertLess(chemins.index("docs/x.md"), chemins.index("cron/y.md"))
+
+    def test_un_commit_de_25_fichiers_ne_compte_pas_dans_le_co_change(self):
+        # Panne visée : le co-change compte les commits « fourre-tout » (plus de 20 fichiers). Ici cron/y.md
+        # n'apparaît qu'avec a.py dans un commit de 25 fichiers : sa part doit rester à 0 %.
+        # Si le commit comptait, sa part vaudrait 33 % (1 commit sur les 3 où a.py figure).
+        depot = self.depot
+        valider(depot, "cron", {"cron/y.md": "Lance a.py chaque nuit.\n"})
+        valider(depot, "a", {"a.py": "v0\n"})
+        gros = {"a.py": "v1\n", "cron/y.md": "Lance a.py chaque nuit. (bis)\n"}
+        gros.update({f"bulk/f{i}.txt": f"bruit {i}\n" for i in range(23)})
+        valider(depot, "gros commit", gros)
+        valider(depot, "a seul", {"a.py": "v2\n"})
+
+        conf = {v["chemin"]: v["conf"] for v in voisins(releve(depot, "a.py"))}
+
+        self.assertEqual(conf["cron/y.md"], 0)
+
+    def test_un_commit_posterieur_a_head_n_existe_pas_pour_le_script(self):
+        # Panne visée : le script lit tout l'historique (--all) et voit des commits d'une branche future.
+        # cron/y.md co-changerait trois fois avec a.py sur la branche « futur » ; HEAD (main) ne les contient pas.
+        depot = self.depot
+        valider(depot, "cron", {"cron/y.md": "Lance a.py chaque nuit.\n"})
+        valider(depot, "a", {"a.py": "v0\n"})
+        git(depot, "checkout", "-q", "-b", "futur")
+        for i in range(1, 4):
+            valider(depot, f"futur {i}", {"a.py": f"v{i}\n", "cron/y.md": f"Lance a.py chaque nuit ({i}).\n"})
+        git(depot, "checkout", "-q", "main")
+
+        conf = {v["chemin"]: v["conf"] for v in voisins(releve(depot, "a.py"))}
+
+        self.assertEqual(conf["cron/y.md"], 0)
 
 
-def test_un_citant_co_modifie_avec_le_fichier_touche_passe_devant(tmp_path):
-    # Panne visée : le classement ignore le co-change et range les citants dans l'ordre du grep.
-    # docs/x.md est modifié trois fois avec a.py ; cron/y.md, cité pareil, jamais.
-    depot = depot_jouet(tmp_path)
-    valider(depot, "cron", {"cron/y.md": "Lance a.py chaque nuit.\n"})
-    valider(depot, "docs", {"docs/x.md": "Voir a.py pour le détail.\n"})
-    valider(depot, "a", {"a.py": "v0\n"})
-    for i in range(1, 4):
-        valider(depot, f"modif {i}", {"a.py": f"v{i}\n", "docs/x.md": f"Voir a.py pour le détail, {i}.\n"})
-
-    voisins_releves = voisins(releve(depot, "a.py"))
-    chemins = [v["chemin"] for v in voisins_releves]
-
-    assert chemins.index("docs/x.md") < chemins.index("cron/y.md")
-
-
-def test_un_commit_de_25_fichiers_ne_compte_pas_dans_le_co_change(tmp_path):
-    # Panne visée : le co-change compte les commits « fourre-tout » (plus de 20 fichiers). Ici cron/y.md
-    # n'apparaît qu'avec a.py dans un commit de 25 fichiers : sa part doit rester à 0 %.
-    # Si le commit comptait, sa part vaudrait 33 % (1 commit sur les 3 où a.py figure).
-    depot = depot_jouet(tmp_path)
-    valider(depot, "cron", {"cron/y.md": "Lance a.py chaque nuit.\n"})
-    valider(depot, "a", {"a.py": "v0\n"})
-    gros = {"a.py": "v1\n", "cron/y.md": "Lance a.py chaque nuit. (bis)\n"}
-    gros.update({f"bulk/f{i}.txt": f"bruit {i}\n" for i in range(23)})
-    valider(depot, "gros commit", gros)
-    valider(depot, "a seul", {"a.py": "v2\n"})
-
-    conf = {v["chemin"]: v["conf"] for v in voisins(releve(depot, "a.py"))}
-
-    assert conf["cron/y.md"] == 0
-
-
-def test_un_commit_posterieur_a_head_n_existe_pas_pour_le_script(tmp_path):
-    # Panne visée : le script lit tout l'historique (--all) et voit des commits d'une branche future.
-    # cron/y.md co-changerait trois fois avec a.py sur la branche « futur » ; HEAD (main) ne les contient pas.
-    depot = depot_jouet(tmp_path)
-    valider(depot, "cron", {"cron/y.md": "Lance a.py chaque nuit.\n"})
-    valider(depot, "a", {"a.py": "v0\n"})
-    git(depot, "checkout", "-q", "-b", "futur")
-    for i in range(1, 4):
-        valider(depot, f"futur {i}", {"a.py": f"v{i}\n", "cron/y.md": f"Lance a.py chaque nuit ({i}).\n"})
-    git(depot, "checkout", "-q", "main")
-
-    conf = {v["chemin"]: v["conf"] for v in voisins(releve(depot, "a.py"))}
-
-    assert conf["cron/y.md"] == 0
+if __name__ == "__main__":
+    unittest.main()

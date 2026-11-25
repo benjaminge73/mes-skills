@@ -124,6 +124,12 @@ chaque passage. Jamais le checkout principal, ni un worktree de travail :
 Haiku high), juge compris autour de 5,2. Avec 5 dollars par mois, une seule mesure complète tient dans un mois : la base
 (deux bras) prend donc deux mois. Le plafond ou le nombre de bras est une décision de Benjamin, à prendre avant le bilan de Q2.
 
+**La section « Enquête » (inerte)** : `boucle_liste.py --section Enquête` relève la même boucle, sur `listes/enquete.md`, avec le
+plafond mensuel commun aux deux sections. Elle ne mesure rien aujourd'hui : aucune source de candidats n'est branchée (la source
+prévue, les lignes « découverte — trouvable au plan » des clôtures de plan, n'alimente aucun fichier), et `enquete.py` ne prend
+pas de liste candidate en argument. Sans candidat, la section passe en silence ; une mesure ou une PR demandée dans cette section
+rend une erreur réelle, sans rien lancer ni dépenser. La garde « Bilan de Q2 » ne la concerne pas.
+
 Sans `--liste` ni `--ajout`, `rejouer.py` n'ajoute aucune consigne (le bras témoin reste reproductible) ; `--liste` seul ajoute la liste du plugin.
 Les rejeux antérieurs à cette promotion restent reproductibles par l'ancien fichier de la checklist v2, dans l'historique git (commit `bfd7133`)
 et par `checklist.txt` (la v1, toujours là).
