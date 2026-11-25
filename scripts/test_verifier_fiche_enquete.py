@@ -35,6 +35,10 @@ Pannes attrapées :
 - ``test_preuve_sans_marqueur_non_signalee`` (budget de l'étape 3) : contre-épreuve. Une case cochée dont
   la preuve ne dit pas « non vérifié » (la ligne C0 réelle) ne doit pas être signalée : sortie vide, code 0.
   Sans ce test, un script qui signalerait toute case cochée passerait le test précédent.
+- ``test_code_1_avec_preuve_partielle_sur_la_sortie`` (revue de l'étape 3) : une fiche avec un défaut (C0
+  cochée sans preuve) et une preuve partielle (C6) sort en 1 et porte les deux lignes, le défaut d'abord.
+  Sans ce test, le chemin « code 1 + ligne preuve partielle » ne serait testé par rien : un script qui
+  perdrait la ligne partielle quand un défaut existe passerait tous les autres tests.
 """
 from __future__ import annotations
 
@@ -173,6 +177,21 @@ class VerifierFicheEnquete(unittest.TestCase):
         resultat = self._lancer(fiche, liste=liste)
         self.assertEqual(resultat.returncode, 0, resultat.stdout + resultat.stderr)
         self.assertEqual(resultat.stdout, "", resultat.stdout)
+
+    def test_code_1_avec_preuve_partielle_sur_la_sortie(self) -> None:
+        # Défaut sur C0 (cochée sans « — preuve : ») et preuve partielle sur C6 dans la même fiche :
+        # code 1, et la sortie porte les deux lignes, le défaut d'abord, puis la preuve partielle.
+        liste = self._ecrire("liste_c0_c6_bis.md", LISTE_C0_C6)
+        fiche = (
+            "- [x] C0 Objets touchés\n"
+            "- [x] C6 Contrat outil externe — preuve : Contrat de slack_post.post non lu (non vérifié).\n"
+        )
+        resultat = self._lancer(fiche, liste=liste)
+        self.assertEqual(resultat.returncode, 1, resultat.stderr)
+        lignes = resultat.stdout.splitlines()
+        self.assertEqual(len(lignes), 2, resultat.stdout)
+        self.assertTrue(lignes[0].startswith("C0 cochée sans preuve"), lignes[0])
+        self.assertEqual(lignes[1], "preuve partielle : C6", resultat.stdout)
 
 
 if __name__ == "__main__":
