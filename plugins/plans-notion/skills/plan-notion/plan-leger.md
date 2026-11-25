@@ -26,7 +26,9 @@ d'écrire la page :
 
    Code 0 : « léger » ; code 1 : « complet » ; code 2 : aiguillage impossible (clé absente,
    service en panne, demande refusée). **Seul le code 0 permet de continuer** : 1 et 2 valent
-   plan complet, sans nouvel essai avec une demande reformulée.
+   plan complet, sans nouvel essai avec une demande reformulée. Dans ces deux cas, dire à
+   Benjamin `Aiguillage : complet`, la cause (les `motifs` du script, ou son message d'erreur)
+   et, quand la demande la montre, la case de la liste concernée.
 3. Sur un code 0, recopier la liste `_partage/listes/aiguillage-plan.md` et **prouver chaque
    case**, sous la forme qu'elle demande. Le juge ne rend qu'une note : la preuve est ce que la
    session a lu. Dans la copie, une case prouvée se coche (`— preuve : …`) ; une case sans preuve
