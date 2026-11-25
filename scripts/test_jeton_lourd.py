@@ -62,6 +62,19 @@ LOURDS = [
     "pytest --ignore tests/test_a.py",
     "docker run x",
     "claude plugin eval plugins/plans-notion",
+    # Un gestionnaire de paquets qui lance une suite : run <script>, un binaire, exec.
+    "pnpm run test",
+    "pnpm test:unit",
+    "yarn e2e",
+    "pnpm run test:unit",
+    "pnpm run e2e",
+    "pnpm vitest run",
+    "yarn vitest",
+    "pnpm exec vitest run",
+    # Plusieurs cibles, dont un dossier : la suite entière est lancée.
+    "pytest tests/ scripts/test_a.py",
+    "pytest tests/test_a.py tests/",
+    "pytest -m 'not e2e'",
 ]
 
 # Commandes libres : le hook ne rend rien. Une preuve ciblée, une commande qui ne
@@ -81,6 +94,23 @@ LIBRES = [
     "bash evals/outillage/lancer.sh un-plugin",
     "bash SOUS_JETON_ICI 'pytest'",
     "python3 ETAT_MACHINE_ICI prendre e2e --plan X",
+    # Un gestionnaire de paquets qui ne lance pas de suite : install, add, vitest sur un fichier.
+    "pnpm install",
+    "pnpm add -D vitest",
+    "pnpm vitest run src/a.test.ts",
+    "pnpm exec tsc --noEmit",
+    # Option de vitest qui prend une valeur (--reporter verbose) : « verbose » n'est pas une cible.
+    "npx vitest run --reporter verbose src/a.test.ts",
+    # Options qui prennent une valeur : la valeur n'est pas une cible.
+    "pytest -n 4 tests/test_a.py",
+    "pytest tests/test_a.py -m 'not slow' -p no:cacheprovider",
+    "pytest --tb short scripts/test_a.py",
+    "pytest -o x=y scripts/test_a.py",
+    "pytest --maxfail 1 scripts/test_a.py",
+    # Redirections : ni le fd, ni l'opérateur, ni la cible du fichier ne sont des cibles.
+    "pytest scripts/test_a.py 2>&1",
+    "pytest scripts/test_a.py > x.log",
+    "python3 -m pytest scripts/test_a.py",
 ]
 
 

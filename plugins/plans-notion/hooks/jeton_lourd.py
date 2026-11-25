@@ -51,7 +51,14 @@ AFFECTATION = re.compile(r"[A-Za-z_][A-Za-z0-9_]*=")
 DUREE = re.compile(r"\d+(\.\d+)?[smhd]?$")
 
 # Options de pytest et de jest dont le mot suivant est une valeur, pas une cible.
-OPTIONS_AVEC_VALEUR = {"-c", "--config", "--ignore", "--deselect", "--rootdir"}
+OPTIONS_AVEC_VALEUR = {"-c", "--config", "--ignore", "--deselect", "--rootdir",
+                       "-n", "-p", "-m", "-o", "-r", "-W", "--tb", "--maxfail",
+                       "--junitxml", "--durations", "--basetemp",
+                       "--reporter", "--project"}  # vitest
+# Caractères d'un opérateur de redirection (« 2>&1 » est lexé « 2 », « >& », « 1 »).
+CARACTERES_REDIRECTION = set("<>&")
+# Sous-commande de vitest (« vitest run fichier ») : ce n'est pas une cible.
+SOUS_COMMANDES = {"run"}
 # Options d'information : rien ne tourne, la commande est libre.
 OPTIONS_INFORMATION = {"--version", "--help", "-h", "--collect-only", "--co"}
 # Options de filtrage par nom de test : une preuve ciblée, donc libre.
@@ -80,7 +87,10 @@ def _programme(mots: list[str]) -> list[str]:
                 i += 2 if mots[i] in OPTIONS_TETE_AVEC_VALEUR else 1
             if i < len(mots) and DUREE.match(mots[i]):
                 i += 1
-        elif m in ("uv", "pnpm") and i + 1 < len(mots) and mots[i + 1] in ("run", "exec"):
+        elif m == "uv" and i + 1 < len(mots) and mots[i + 1] == "run":
+            i += 2
+        elif m == "pnpm" and i + 1 < len(mots) and mots[i + 1] == "exec":
+            # Seul « pnpm exec » est sauté : « pnpm run test » nomme le script lancé.
             i += 2
         elif m.startswith("-") and m != "-":
             i += 2 if m in OPTIONS_TETE_AVEC_VALEUR else 1
@@ -91,11 +101,27 @@ def _programme(mots: list[str]) -> list[str]:
     return mots[i:]
 
 
-def _preuve_ciblee(args: list[str]) -> bool:
-    """Vrai si la suite n'est lancée que sur un ou plusieurs fichiers, ou une option d'information."""
-    if any(a in OPTIONS_INFORMATION or a in OPTIONS_FILTRE or a.startswith("--testNamePattern=")
-           for a in args):
-        return True
+def _sans_redirections(mots: list[str]) -> list[str]:
+    """Les mots sans les redirections : l'opérateur, sa cible, et le numéro de fd qui le précède."""
+    gardes = []
+    i = 0
+    while i < len(mots):
+        m = mots[i]
+        if m and set(m) <= CARACTERES_REDIRECTION:
+            i += 2  # l'opérateur (« > », « 2>&1 » lexé « >& ») et le mot qui le suit
+            continue
+        if m.isdigit() and i + 1 < len(mots) and mots[i + 1] \
+                and set(mots[i + 1]) <= CARACTERES_REDIRECTION:
+            i += 1  # le fd (« 2 ») : l'opérateur qui suit est traité au tour suivant
+            continue
+        gardes.append(m)
+        i += 1
+    return gardes
+
+
+def _cibles(args: list[str]) -> list[str]:
+    """Les mots qui désignent ce que la suite lance : ni options, ni valeurs d'option, ni sous-commande."""
+    positionnels = []
     i = 0
     while i < len(args):
         a = args[i]
@@ -105,14 +131,38 @@ def _preuve_ciblee(args: list[str]) -> bool:
         if a.startswith("-"):
             i += 1
             continue
-        if "::" in a or a.endswith(EXTENSIONS_FICHIER_TEST):
-            return True
+        positionnels.append(a)
         i += 1
+    if positionnels and positionnels[0] in SOUS_COMMANDES:
+        positionnels = positionnels[1:]
+    return positionnels
+
+
+def _preuve_ciblee(args: list[str]) -> bool:
+    """Vrai si la suite n'est lancée que sur des fichiers, ou une option d'information.
+
+    Une cible qui n'est ni un fichier de test (extension, ou ``::``) ni une option est
+    un dossier : la suite entière part, même avec un fichier à côté.
+    """
+    if any(a in OPTIONS_INFORMATION or a in OPTIONS_FILTRE or a.startswith("--testNamePattern=")
+           for a in args):
+        return True
+    cibles = _cibles(args)
+    return bool(cibles) and all("::" in c or c.endswith(EXTENSIONS_FICHIER_TEST) for c in cibles)
+
+
+def _commande_lourde(argv: list[str], etat) -> bool:
+    """Une commande jugée sur son programme et ses arguments, sans gestionnaire de paquets."""
+    famille = etat.familles_de(argv)
+    if etat.CLAUDE_PLUGIN_EVAL in famille:
+        return True
+    if etat.SUITE_DE_TESTS in famille:
+        return not _preuve_ciblee(argv[1:])
     return False
 
 
 def _segment_lourd(mots: list[str], etat) -> bool:
-    argv = _programme(mots)
+    argv = _programme(_sans_redirections(mots))
     if not argv:
         return False
     prog = posixpath.basename(argv[0])
@@ -120,18 +170,18 @@ def _segment_lourd(mots: list[str], etat) -> bool:
     if prog == "docker":
         return args[:1] == ["run"]
     if prog in ("npm", "pnpm", "yarn", "bun"):
-        if args[:1] == ["test"]:
+        # « test », ou le raccourci sans « run » (« pnpm test:unit », « yarn e2e »).
+        if args[:1] == ["test"] or (args and args[0].startswith(("test:", "e2e"))):
             return True
-        return args[:1] == ["run"] and len(args) > 1 and args[1].startswith(("test", "e2e"))
+        if args[:1] == ["run"]:
+            # « run <script> » : lourd si le script est une suite, sinon (build…) libre.
+            return len(args) > 1 and args[1].startswith(("test", "e2e"))
+        # Sinon les arguments sont la commande lancée (« pnpm vitest run… ») ; install, add : libres.
+        return _commande_lourde(args, etat)
     if prog == "playwright":
         # Playwright est lourd dès qu'on lance ses tests, même sur un seul fichier.
         return args[:1] == ["test"]
-    famille = etat.familles_de(argv)
-    if etat.CLAUDE_PLUGIN_EVAL in famille:
-        return True
-    if etat.SUITE_DE_TESTS in famille:
-        return not _preuve_ciblee(args)
-    return False
+    return _commande_lourde(argv, etat)
 
 
 def _lourde(commande: str, garde, etat) -> bool:
