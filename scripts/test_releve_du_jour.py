@@ -324,5 +324,93 @@ class ReleveDuJour(unittest.TestCase):
         self.assertIn("pytest_timeout", lignes[0])
 
 
+# Une ligne d'exemple par motif de la liste fermée. Les valeurs sont fausses : elles ne servent qu'à déclencher le motif.
+MOTIFS_ATTENDUS = {
+    "sudo": "sudo systemctl restart x",
+    "NOPASSWD": "hermes ALL=(ALL) NOPASSWD: ALL",
+    "ufw": "ufw allow 22",
+    "chmod": "chmod 600 cfg",
+    "chown": "chown root cfg",
+    "setcap": "setcap cap_net_bind_service+ep bin",
+    "--system": "unit --system",
+    "0.0.0.0": "bind 0.0.0.0:80",
+    "api_key": "api_key = FAUX",
+    "token": "token = FAUX",
+    "secret": "secret = FAUX",
+    "password": "password = FAUX",
+    "identifiant Slack": "canal U0FAUXID12",
+}
+
+
+class ReleveDuJourSecurite(unittest.TestCase):
+    """L'étape 2 : --objets lit le contenu des fichiers touchés et sort un SECURITE par couple (fichier, motif)."""
+
+    def test_chaque_motif_de_la_liste_fait_sortir_une_ligne_SECURITE(self):
+        # Panne visée : un motif de la liste fermée ne sort pas (regex absente, fausse, ou nom de motif faux).
+        foyer = faux_foyer(self)
+        depot = foyer.home / "depot"
+        for i, texte in enumerate(MOTIFS_ATTENDUS.values()):
+            ecrire(depot / f"m{i}.txt", texte + "\n")
+        fichiers = [f"m{i}.txt" for i in range(len(MOTIFS_ATTENDUS))]
+
+        r = relever_foyer(foyer, "--objets", *fichiers, cwd=depot)
+
+        self.assertEqual(r.returncode, 0, r.stderr)
+        for i, motif in enumerate(MOTIFS_ATTENDUS):
+            with self.subTest(motif=motif):
+                self.assertIn(f"SECURITE · m{i}.txt:1 · {motif}", r.stdout.splitlines(), r.stdout)
+
+    def test_un_fichier_sans_motif_ne_sort_pas_meme_si_son_nom_en_porte_un(self):
+        # Panne visée : le motif est cherché dans le nom du fichier (sudo-notes.md) et non dans son contenu.
+        # Le fichier positif (vrai.txt) est là pour que le test ne passe pas au vert sans rien faire.
+        foyer = faux_foyer(self)
+        depot = foyer.home / "depot"
+        ecrire(depot / "sudo-notes.md", "rien à signaler\n")
+        ecrire(depot / "vrai.txt", "sudo systemctl restart x\n")
+
+        r = relever_foyer(foyer, "--objets", "sudo-notes.md", "vrai.txt", cwd=depot)
+
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(constats_de(r.stdout, "SECURITE"), ["SECURITE · vrai.txt:1 · sudo"], r.stdout)
+
+    def test_seul_le_motif_sort_jamais_la_valeur_trouvee(self):
+        # Panne visée : la ligne qui porte le motif est recopiée dans le constat, avec la valeur du jeton.
+        foyer = faux_foyer(self)
+        depot = foyer.home / "depot"
+        ecrire(depot / "cfg.env", "api_key = FAUX-JETON-9c2e\n")
+
+        r = relever_foyer(foyer, "--objets", "cfg.env", cwd=depot)
+
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(constats_de(r.stdout, "SECURITE"), ["SECURITE · cfg.env:1 · api_key"], r.stdout)
+        self.assertNotIn("FAUX-JETON-9c2e", r.stdout + r.stderr)
+
+    def test_un_fichier_absent_ou_binaire_ne_sort_rien_sans_erreur(self):
+        # Panne visée : un fichier absent (supprimé par le plan) ou binaire fait planter le relevé, ou sort un
+        # faux motif trouvé dans des octets. Le fichier positif (ok.txt) empêche le passage au vert sans rien faire.
+        foyer = faux_foyer(self)
+        depot = foyer.home / "depot"
+        depot.mkdir(parents=True)
+        (depot / "bin.dat").write_bytes(b"\x00\x01sudo\x00")
+        ecrire(depot / "ok.txt", "sudo systemctl restart x\n")
+
+        r = relever_foyer(foyer, "--objets", "absent.txt", "bin.dat", "ok.txt", cwd=depot)
+
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertNotIn("Traceback", r.stderr)
+        self.assertEqual(constats_de(r.stdout, "SECURITE"), ["SECURITE · ok.txt:1 · sudo"], r.stdout)
+
+    def test_une_seule_ligne_par_couple_fichier_motif(self):
+        # Panne visée : une ligne par occurrence (sudo à deux endroits, deux constats) : du bruit pour le pilote.
+        foyer = faux_foyer(self)
+        depot = foyer.home / "depot"
+        ecrire(depot / "deux.txt", "a\nsudo un\nb\nc\nsudo deux\n")
+
+        r = relever_foyer(foyer, "--objets", "deux.txt", cwd=depot)
+
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(constats_de(r.stdout, "SECURITE"), ["SECURITE · deux.txt:2 · sudo"], r.stdout)
+
+
 if __name__ == "__main__":
     unittest.main()
