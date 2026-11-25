@@ -35,7 +35,7 @@ sont exclus d'office, sans qu'il faille les nommer.
 Le jeton des actions lourdes
 ----------------------------
 Une action lourde (suite complète, e2e, évals locales, rejeu, build…) ne part
-qu'avec le jeton : ``PLACES_LOURDES`` places, deux sur le VPS (le profil machine
+qu'avec le jeton : ``PLACES_LOURDES`` places, une seule sur le VPS (le profil machine
 peut en donner un autre).
 
 * ``prendre <action> --plan <titre>`` pose le jeton et écrit dans
@@ -46,6 +46,12 @@ peut en donner un autre).
   ``chargée`` n'empêche rien : le relevé est rendu sur la 2e ligne pour que
   l'appelant prévienne les autres.
 * ``rendre`` libère le jeton du PID donné ; sans effet pour un autre PID.
+
+Un descendant du détenteur n'a pas à reprendre le jeton. Quand un **ancêtre** du
+PID demandeur (chaîne des ``ppid``) tient déjà le jeton, ``prendre`` rend
+« accordé » sans nouvelle entrée, avant le contrôle de saturation : c'est le cas
+de ``lancer.sh`` et du geste manuel lancés sous l'enveloppeur ``sous-jeton.sh``.
+``rendre`` par ce descendant ne retire pas l'entrée de l'ancêtre.
 * ``qui`` dit qui les tient (``--json`` : ``{"detenteurs": [...]}``).
 
 Le détenteur est un **PID** (``--pid``, par défaut le processus parent du
@@ -116,14 +122,14 @@ SEUIL_CPU_SOME_AVG10 = 50.0
 
 # --- Le jeton -------------------------------------------------------------------
 
-# Nombre d'actions lourdes simultanées. Provenance : POC de Q3, 2026-10-12 — la
-# suite de hermes-custom seule prend 677 s ; avec l'e2e de vahiny en parallèle,
-# 727 s et 720 s, sans aucun échec sur les deux passages. Le relevé disait
-# « chargée » pendant l'e2e seul, jamais « saturée ». Le POC de Q9, 2026-10-01,
-# avait vu l'e2e tomber sur un timeout de 30 s à deux actions, et la suite
-# prendre 32 % de plus : c'est ce qui valait une seule place jusqu'ici.
-# Changer cette ligne, c'est refaire une mesure.
-PLACES_LOURDES = 2
+# Nombre d'actions lourdes simultanées sur le VPS. Provenance : mesure du
+# 2026-11-25 — 2 à 5 suites complètes (hermes-custom, job-agent) tournaient
+# ensemble : charge 35 sur 6 cœurs, pression mémoire « full » à 59, swap à
+# 5,7 Go ; Benjamin a tué 4 suites à la main. Règle de Benjamin du 17/11 : une
+# seule suite lourde à la fois sur la machine. Le POC de Q3 (2026-10-12), qui
+# avait accepté deux places, ne mesurait pas ce cas. Le Mac garde son profil
+# (``places_lourdes: 4``). Changer cette ligne, c'est refaire une mesure.
+PLACES_LOURDES = 1
 
 SORTIE_OK = 0
 SORTIE_USAGE = 2
@@ -331,6 +337,19 @@ def lire_processus(proc: Path) -> dict[int, tuple[int, list[str]]]:
             ppid = 0
         resultat[int(entree.name)] = (ppid, argv)
     return resultat
+
+
+def ancetres(processus: dict[int, tuple[int, list[str]]], pid: int) -> list[int]:
+    """Les parents de ``pid``, du plus proche au plus lointain (chaîne des ``ppid``)."""
+    chaine: list[int] = []
+    courant = pid
+    while courant in processus:
+        parent = processus[courant][0]
+        if parent <= 0 or parent in chaine or parent == pid:
+            break
+        chaine.append(parent)
+        courant = parent
+    return chaine
 
 
 def descendants(processus: dict[int, tuple[int, list[str]]], racines: set[int]) -> set[int]:
@@ -579,6 +598,8 @@ def prendre(proc: Path, action: str, plan: str, pid: int, attendre: float,
               file=sys.stderr)
         return SORTIE_USAGE
     fin = time.monotonic() + max(attendre, 0.0)
+    # Un descendant du détenteur (lancé sous l'enveloppe) n'a pas à reprendre le jeton.
+    parents = set(ancetres(lire_processus(proc), pid))
     while True:
         with verrou(creer=True, exclusif=True) as fd:
             vivants = [d for d in lire_detenteurs(fd) if est_vivant(proc, d)]
@@ -588,6 +609,11 @@ def prendre(proc: Path, action: str, plan: str, pid: int, attendre: float,
                 moi["action"], moi["plan"] = action, plan
                 ecrire_detenteurs(fd, vivants)
                 print(f"accordé\njeton déjà tenu par le PID {pid}")
+                return SORTIE_OK
+            ancetre = next((d for d in vivants if d["pid"] in parents), None)
+            if ancetre is not None:
+                # Un parent tient déjà le jeton : accord sans nouvelle entrée, même saturée.
+                print(f"accordé\njeton déjà tenu par l'ancêtre PID {ancetre['pid']}")
                 return SORTIE_OK
             if len(vivants) >= places:
                 tenus_par = vivants
