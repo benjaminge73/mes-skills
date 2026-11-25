@@ -123,6 +123,20 @@ class ReleveDesVoisins(unittest.TestCase):
 
         self.assertEqual(conf["cron/y.md"], 0)
 
+    def test_deux_fichiers_separes_par_un_blanc_dans_un_seul_argument_gardent_leurs_citants(self):
+        # Panne visée : --fichiers "a.py b.py" (une seule valeur, séparée par un blanc) n'est découpé que sur les
+        # virgules : le script cherche un fichier nommé « a.py b.py », ne trouve rien, et rend « aucun voisin »
+        # en silence. Les deux citants doivent sortir.
+        depot = self.depot
+        valider(depot, "cron", {"cron/y.md": "Lance b.py chaque nuit.\n"})
+        valider(depot, "docs", {"docs/x.md": "Voir a.py pour le détail.\n"})
+        valider(depot, "a et b", {"a.py": "v0\n", "b.py": "v0\n"})
+
+        chemins = [v["chemin"] for v in voisins(releve(depot, "a.py b.py"))]
+
+        self.assertIn("docs/x.md", chemins)
+        self.assertIn("cron/y.md", chemins)
+
 
 if __name__ == "__main__":
     unittest.main()

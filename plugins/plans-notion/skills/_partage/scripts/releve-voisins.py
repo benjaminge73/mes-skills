@@ -21,7 +21,9 @@ la part des commits du fichier touché où il figure aussi. Les commits de plus 
 Sortie : une ligne Markdown par voisin, du plus au moins lié :
   <chemin> (<type>) — cite <objet> l.<n>[, …] — co-change <confiance>
 <type> : doc, code, config ou test. <confiance> : la plus grande part de co-change parmi les fichiers touchés.
-Le classement, lui, suit la somme de ces parts, comme `enquete.py releve` : la mesure du banc vaut pour ce script.
+Le classement suit la somme de ces parts (le co-change), puis le nombre de lignes citantes. Il ne reprend pas le tri
+d'`enquete.py releve`, dont les clés diffèrent. Le rappel de ce script a été mesuré à part, sur le corpus : 32 découvertes
+sur 196, comme le banc, le 2026-11-25.
 
 Codes :
   0 relevé rendu (sortie sur la sortie standard ; aucun voisin : sortie vide, une note sur l'erreur standard)
@@ -161,7 +163,7 @@ def construire_parseur() -> argparse.ArgumentParser:
 
 def main(argv: list[str] | None = None) -> int:
     a = construire_parseur().parse_args(argv)
-    touches = {f.strip().removeprefix("./") for x in a.fichiers for f in x.split(",") if f.strip()}
+    touches = {p for x in a.fichiers for p in (f.removeprefix("./") for f in re.split(r"[,\s]+", x)) if p}
     if not touches:
         print("refus : aucune liste de fichiers (--fichiers).", file=sys.stderr)
         return USAGE

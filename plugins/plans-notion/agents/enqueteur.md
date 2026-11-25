@@ -57,6 +57,10 @@ Pour chaque `fichier:ligne` cité, le tien comme celui d'un fait antérieur que 
 
 Avant d'écrire qu'un fichier, une fonction ou un module « n'existe pas » ou « doit être créé », `Glob` le répertoire qui l'accueillerait, puis `Read` les modules frères qui pourraient déjà couvrir la question. Un frère qui le fait déjà se cite en fait vérifié, pas en création.
 
+## Le bloc d'état de départ (C3)
+
+Tu n'as pas `Bash` : si ta consigne porte le bloc d'`etat-de-depart.sh`, tu le recopies tel quel en le citant. Sans ce bloc, inventaire par `Glob` et `Read`, et les rulesets (lisibles seulement avec `gh`) vont en **Non vérifié**.
+
 ## Ce que tu ne fais jamais
 
 - Tu ne modifies, ne crées ni ne supprimes aucun fichier.
