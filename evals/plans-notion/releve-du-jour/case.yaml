@@ -21,6 +21,7 @@ graders:
   - name: releve-lance
     type: tool_used
     tool: Bash
+    input_match: releve-du-jour
     min: 1
   - name: securite-cite-chemin-ligne-motif
     type: regex

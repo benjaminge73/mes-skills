@@ -90,7 +90,9 @@ def git_lecture(depot: Path, *args: str) -> str | None:
 
 
 def racine_hermes() -> Path:
-    return Path(os.environ.get("HERMES_HOME") or Path.home() / ".hermes")
+    # Une session de profil Hermes pose HERMES_HOME=<racine>/profiles/<profil> : la racine est alors le grand-parent.
+    chemin = Path(os.environ.get("HERMES_HOME") or Path.home() / ".hermes")
+    return chemin.parent.parent if chemin.parent.name == "profiles" else chemin
 
 
 def constats_coeur(racine: Path) -> list[Constat]:
