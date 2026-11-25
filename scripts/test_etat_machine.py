@@ -239,10 +239,17 @@ class SortieTexte(EtatMachineTestCase):
 
 
 class Jeton(EtatMachineTestCase):
-    """Le jeton des actions lourdes : deux places, des détenteurs, des PID qui font foi."""
+    """Le jeton des actions lourdes : deux places, des détenteurs, des PID qui font foi.
+
+    Les deux places viennent d'un profil posé par ``setUp`` : le VPS n'en a qu'une
+    (``PLACES_LOURDES = 1``), ces tests décrivent la mécanique à deux places.
+    """
 
     def setUp(self):
         super().setUp()
+        profil = self.base / "profil-deux-places.json"
+        profil.write_text('{"places_lourdes": 2}')
+        self.env["PLANS_NOTION_MACHINE_PROFIL"] = str(profil)
         for pid in (900, 901, 902, 903):
             self.proc.processus(pid, ["bash", f"session-{pid}.sh"])
 
@@ -435,10 +442,44 @@ class Jeton(EtatMachineTestCase):
         self.assertEqual(self.qui(), [])
 
 
+class AncetreDetenteur(EtatMachineTestCase):
+    """Un processus descendant du détenteur du jeton n'a pas à reprendre le jeton.
+
+    Le hook enveloppe une suite dans ``sous-jeton.sh``, qui tient la prise ; ce qui
+    tourne dedans (``lancer.sh``, le geste manuel) demande le jeton à son tour. Une
+    chaîne de ``ppid`` qui mène au détenteur suffit : la prise est accordée, sans
+    nouvelle entrée, même quand la place est prise et la machine saturée.
+    """
+
+    def setUp(self):
+        super().setUp()
+        self.proc.processus(900, ["bash", "enveloppe.sh"])
+        self.proc.processus(910, ["bash", "lancer.sh"], ppid=900)
+        self.proc.processus(920, ["bash", "fils.sh"], ppid=910)
+
+    def test_un_petit_fils_du_detenteur_obtient_l_accord_sans_nouvelle_entree_meme_saturee(self):
+        self.assertEqual(self.lancer("prendre", "e2e", "--plan", "Plan A", "--pid", "900").returncode, 0)
+        self.proc.pression(cpu_some_avg10=1.0, mem_full_avg60=45.0)  # machine saturée
+        r = self.lancer("prendre", "e2e", "--plan", "Plan A", "--pid", "920")
+        self.assertEqual(r.returncode, 0, msg=r.stderr)
+        self.assertIn("accordé", r.stdout)
+        self.assertEqual([d["pid"] for d in json.loads(self.lancer("qui", "--json").stdout)["detenteurs"]],
+                         [900], "aucune entrée ajoutée pour le descendant")
+
+    def test_rendre_par_le_descendant_ne_retire_pas_l_entree_de_l_ancetre(self):
+        # Garde de non-régression, hors du seul cas rouge : une implémentation qui
+        # rendrait « le jeton de la chaîne » retirerait l'entrée de l'ancêtre.
+        self.assertEqual(self.lancer("prendre", "e2e", "--plan", "Plan A", "--pid", "900").returncode, 0)
+        self.assertEqual(self.lancer("prendre", "e2e", "--plan", "Plan A", "--pid", "920").returncode, 0)
+        self.lancer("rendre", "--pid", "920")
+        detenteurs = json.loads(self.lancer("qui", "--json").stdout)["detenteurs"]
+        self.assertEqual([d["pid"] for d in detenteurs], [900])
+
+
 class ProfilMachine(EtatMachineTestCase):
     """Le profil machine : ``PLANS_NOTION_MACHINE_PROFIL``, ou le fichier par défaut.
 
-    Sans profil, le VPS garde ses valeurs (deux places, seuils d'origine). Avec un
+    Sans profil, le VPS garde ses valeurs (une seule place, seuils d'origine). Avec un
     profil, ses clés remplacent les constantes du module ; une erreur de profil
     sort en code 2, sur toutes les commandes, avec un message « profil machine : ».
     """
@@ -464,7 +505,14 @@ class ProfilMachine(EtatMachineTestCase):
         self.assertIn("profil machine :", r.stderr)
         self.assertIn(str(chemin), r.stderr)
 
-    def test_sans_profil_le_jeton_garde_deux_places_comme_sur_le_vps(self):
+    def test_sans_profil_le_vps_n_a_qu_une_place(self):
+        self.assertEqual(self.prendre(900).returncode, 0)
+        deuxieme = self.prendre(901)
+        self.assertEqual(deuxieme.returncode, 3, msg=deuxieme.stderr)
+        self.assertIn("(1 sur 1)", deuxieme.stderr)
+
+    def test_profil_deux_places_garde_deux_prises_comme_avant(self):
+        self.poser_profil('{"places_lourdes": 2}')
         self.assertEqual(self.prendre(900).returncode, 0)
         self.assertEqual(self.prendre(901).returncode, 0)
         troisieme = self.prendre(902)
