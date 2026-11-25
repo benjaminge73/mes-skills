@@ -20,6 +20,11 @@ Codes :
     (« C3 cochée sans preuve… », « C7 absente de la fiche », « C2 non cochée sans … »)
   2 usage : option absente, fichier illisible, liste sans aucune case
 
+Signalement sans refus : une case cochée dont la preuve dit « non vérifié » (insensible à la casse ;
+« non verifie » sans accent compte aussi) est nommée sur la sortie standard, sur une ligne
+« preuve partielle : C6 » (plusieurs cases : « preuve partielle : C6, C8 », dans l'ordre de la liste).
+Cette ligne ne change pas le code de sortie : elle s'imprime en 0 comme en 1.
+
 Bibliothèque standard uniquement.
 """
 from __future__ import annotations
@@ -44,6 +49,8 @@ PREUVE = re.compile(r"[ \t]+—[ \t]*preuve[ \t]*:[ \t]*(?P<preuve>.*)", re.IGNO
 # Marqueur d'une case non cochée : ``sans objet :`` ou ``non vérifié :``, avec une raison.
 MARQUEUR = re.compile(
     r"(?:sans objet|non v[ée]rifi[ée])[ \t]*:[ \t]*(?P<raison>.*)", re.IGNORECASE)
+# Preuve qui avoue un trou : « non vérifié » n'importe où dans la preuve d'une case cochée.
+PREUVE_PARTIELLE = re.compile(r"non[ \t]+v[ée]rifi[ée]", re.IGNORECASE)
 
 
 def cases_de_la_liste(texte: str) -> list[str]:
@@ -105,6 +112,20 @@ def verifier(texte_liste: str, texte_fiche: str) -> list[str]:
     return defauts
 
 
+def preuves_partielles(texte_liste: str, texte_fiche: str) -> list[str]:
+    """Les identifiants des cases cochées dont la preuve dit « non vérifié », dans l'ordre de la liste."""
+    entrees = entrees_de_la_fiche(texte_fiche)
+    partielles = []
+    for identifiant in cases_de_la_liste(texte_liste):
+        if identifiant not in entrees:
+            continue
+        coche, reste = entrees[identifiant]
+        m = PREUVE.search(reste) if coche else None
+        if m is not None and PREUVE_PARTIELLE.search(m.group("preuve")):
+            partielles.append(identifiant)
+    return partielles
+
+
 def main(argv: list[str]) -> int:
     parseur = argparse.ArgumentParser(
         description="Vérifie que la fiche de l'enquêteur recopie chaque case de la liste d'enquête.")
@@ -126,9 +147,13 @@ def main(argv: list[str]) -> int:
         return USAGE
 
     defauts = verifier(texte_liste, texte_fiche)
+    partielles = preuves_partielles(texte_liste, texte_fiche)
+    ligne_partielle = [f"preuve partielle : {', '.join(partielles)}"] if partielles else []
     if defauts:
-        print("\n".join(defauts))
+        print("\n".join(defauts + ligne_partielle))
         return INCOMPLET
+    for ligne in ligne_partielle:
+        print(ligne)
     print(f"Fiche complète : {len(cases_de_la_liste(texte_liste))} cases de la liste.", file=sys.stderr)
     return OK
 
