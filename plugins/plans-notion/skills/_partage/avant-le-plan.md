@@ -17,8 +17,11 @@ sans sauter d'étape :
    Le geste est dans `${CLAUDE_PLUGIN_ROOT}/skills/plan-notion/enquete.md`, gisement 3
    (« Le code »), section « La carte de voisinage ». Si la carte est omise, sa dispense
    `Pas de carte — <raison>` s'écrit dans le plan.
-3. **Invoquer `plans-notion:enqueteur`** (nom qualifié) avec la carte dans son brief. Il rend
-   une fiche sourcée en `fichier:ligne`. Le pilote ne lit pas lui-même un fichier de plus de
+3. **Invoquer `plans-notion:enqueteur`** (nom qualifié) avec la carte et le relevé des voisins
+   (`releve-voisins.py`, joué sur les fichiers touchés) dans son brief. Il suit la liste
+   `listes/enquete.md` et rend une fiche cochée, sourcée en `fichier:ligne` ; le pilote la contrôle
+   par `verifier-fiche-enquete.py`, une relance au plus, puis ne joue que les cases « non vérifié »
+   (`enquete.md`, gisement 3). Le pilote ne lit pas lui-même un fichier de plus de
    200 lignes : `${CLAUDE_PLUGIN_ROOT}/skills/_partage/lecture-deleguee.md`.
 4. **Invoquer `plans-notion:chercheur`** seulement si une étape fabrique un artefact qui n'est
    pas propre au projet : une ligne « Existant cherché : … / trouvé : … / fait maison parce

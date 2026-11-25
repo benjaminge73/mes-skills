@@ -43,18 +43,26 @@ qui est déjà su.** Six gisements, du moins cher au plus cher :
 
 3. **Le code.** D'abord, **la copie locale est-elle à jour ?** (`fraicheur-depot.py`, sans
    `--appliquer` sur un checkout qu'une autre session peut occuper : `_partage/fraicheur-du-depot.md`) ;
-   en retard, le plan le dit. Puis deux gestes, dans cet ordre : d'abord la **carte de voisinage**,
-   dressée par le pilote lui-même (détail ci-dessous) ; puis invoquer l'agent
-   **`enqueteur`** (outil `Agent`,
+   en retard, le plan le dit. Puis trois gestes, dans cet ordre : d'abord la **carte de
+   voisinage**, dressée par le pilote lui-même (détail ci-dessous) ; ensuite le **relevé des
+   voisins**, joué par le pilote sur les fichiers que le plan touche, dans le dépôt sur `main` :
+
+   ```bash
+   python3 "${CLAUDE_PLUGIN_ROOT}/skills/_partage/scripts/releve-voisins.py" --depot <dépôt> --fichiers "<fichiers touchés>"
+   ```
+
+   Il rend au plus 40 références, classées par co-change ; sa sortie entre dans le brief de
+   l'enquêteur, qui la vérifie (cases C1 et C2) : c'est un point de départ, pas un fait. Enfin
+   invoquer l'agent **`enqueteur`** (outil `Agent`,
    `subagent_type: "plans-notion:enqueteur"` — le nom qualifié par le plugin,
-   le nom court ne résout pas) plutôt que fouiller soi-même : il porte déjà
-   les quatorze gestes qui évitent les angles morts de voisinage — couverture de
-   l'index, `codebase-memory` en priorité sur la lecture de fichiers entiers,
+   le nom court ne résout pas) plutôt que fouiller soi-même : il suit la liste commune
+   `listes/enquete.md`, treize cases (C0 à C12), qui couvrent les angles morts de voisinage —
+   couverture de l'index, `codebase-memory` en priorité sur la lecture de fichiers entiers,
    `grep` en défaut sur les zones que le graphe exclut, et surtout la
    recherche des **appelants** et pas seulement de la définition, là où se
    cachent la plupart des « découvertes » de l'exécution. Il rend une fiche
    courte et sourcée (`fichier:ligne`, ou la commande jouée et sa réponse),
-   prête à recopier dans `Contraintes techniques vérifiées`.
+   cochée case par case, prête à recopier dans `Contraintes techniques vérifiées`.
 
    📄 `${CLAUDE_PLUGIN_ROOT}/agents/enqueteur.md`
 
@@ -74,7 +82,7 @@ qui est déjà su.** Six gisements, du moins cher au plus cher :
      (`repo_path` absolu), dans son mode : `moderate` par défaut, `full` quand le plan
      touche `scripts/` ou `docs/`, que `moderate` n'indexe pas. Aucun test de péremption
      à écrire : réindexer prend de 2 à 15 s (mesuré le 2026-10-16 sur deux dépôts) et
-     `index_status` rapporte la branche indexée (`agents/enqueteur.md`, geste 3), sans
+     `index_status` rapporte la branche indexée (`agents/enqueteur.md`, « Le graphe de code », puce Couverture), sans
      rien promettre sur le commit. Le pilote relève `status` et le nombre de nœuds dans
      la carte. Si l'indexation échoue, la carte s'omet par la dispense `Pas de carte —
      dépôt non indexé` (ci-dessous) : jamais une carte lue sur un index qu'on n'a pas
@@ -97,8 +105,8 @@ qui est déjà su.** Six gisements, du moins cher au plus cher :
      <raison>`, dans `Contraintes techniques vérifiées` ; le brief part alors **sans
      carte**. Le filtre de passage à `valide` (`SKILL.md` §8, point 11) vérifie cette
      ligne. Un worktree n'est pas une raison : la carte se dresse sur `main`, et
-     l'enquêteur indexe le chemin courant s'il ne l'est pas (geste 2 de
-     `agents/enqueteur.md`).
+     l'enquêteur indexe le chemin courant s'il ne l'est pas (`agents/enqueteur.md`,
+     « Le graphe de code », puce Couverture).
 
    **Forme.** Une liste courte, par étape à risque : symbole touché → appelants
    (`fichier:ligne`) → tests qui l'exercent → zones hors graphe à faire vérifier. Une
@@ -106,12 +114,23 @@ qui est déjà su.** Six gisements, du moins cher au plus cher :
    **question** pour l'enquêteur, jamais comme fait.
 
    **Ce qu'on en fait.** La carte part dans le brief de l'enquêteur. Il la vérifie ligne
-   à ligne, appelant par appelant (geste 5 de `agents/enqueteur.md`), et cherche ce que le
-   graphe ne voit pas (« Ce que le graphe ne voit pas », sous le geste 6). Une fois
+   à ligne, appelant par appelant (case C1), et cherche ce que le
+   graphe ne voit pas (case C1 aussi : le nom cherché dans tout le dépôt, graphe exclu compris). Une fois
    vérifiée, elle entre dans `Contraintes techniques vérifiées`. L'enquêteur relève aussi,
    dans les `*.md` du dépôt, les passages qui citent chaque fichier et symbole touché
-   (« lecteurs documentaires », sous le geste 9) : ils alimentent le champ « Docs relues »
+   (« lecteurs documentaires », case C2) : ils alimentent le champ « Docs relues »
    de chaque étape.
+
+   **Le contrôle de la fiche.** Le pilote joue le script sur la fiche cochée :
+
+   ```bash
+   python3 "${CLAUDE_PLUGIN_ROOT}/skills/_partage/scripts/verifier-fiche-enquete.py" --fiche <fiche>
+   ```
+
+   Code 0 : la fiche passe. Code 1 : une ligne par case fautive, et le pilote renvoie **une
+   fois** cette liste à l'enquêteur. Au second code 1, la fiche passe telle quelle. Dans tous
+   les cas, le pilote ne joue lui-même que les cases « non vérifié », chacune avec sa preuve,
+   jamais la fiche entière ; ce qui reste non vérifié va dans `Contraintes techniques vérifiées`.
 4. **L'historique.** `git log` sur les fichiers concernés, PR mergées, tests
    existants. Un comportement qui a déjà été changé l'a été pour une raison, et
    cette raison contraint le plan.
