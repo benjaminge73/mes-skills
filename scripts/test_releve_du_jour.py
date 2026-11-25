@@ -297,10 +297,12 @@ class ReleveDuJour(unittest.TestCase):
         self.assertIn("utilisateur", lignes[0])
 
     def test_le_fichier_unites_degradees_sort_ses_noms(self):
-        # Panne visée : state/unites-degradees.json n'est pas lu, et une unité dégradée reste hors du relevé.
+        # Panne visée : state/unites-degradees.json n'est pas lu, et une unité en panne qu'il porte reste hors du relevé.
+        # Forme réelle : {nom: {ActiveState, SubState, Result, NRestarts}}, pour toutes les unités surveillées.
         foyer = faux_foyer(self)
-        ecrire(foyer.racine / "state" / "unites-degradees.json",
-               json.dumps({"zzz-test.service": {"etat": "dégradée"}}))
+        ecrire(foyer.racine / "state" / "unites-degradees.json", json.dumps({
+            "zzz-test.service": {"ActiveState": "failed", "SubState": "failed", "Result": "exit-code"},
+        }))
 
         r = relever_foyer(foyer)
 
@@ -308,6 +310,47 @@ class ReleveDuJour(unittest.TestCase):
         lignes = constats_de(r.stdout, "R8")
         self.assertEqual(len(lignes), 1, r.stdout)
         self.assertIn("zzz-test.service", lignes[0])
+        self.assertIn("ActiveState=failed", lignes[0])
+        self.assertIn("Result=exit-code", lignes[0])
+
+    def test_seules_les_unites_en_panne_ou_en_boucle_sortent(self):
+        # Panne visée : le fichier d'état est traité comme une liste d'unités en panne (toutes sortent). Il porte
+        # aussi les unités saines, qui ne sortent pas. Deux branches de la règle sortent : `failed` (panne) et
+        # `auto-restart` (boucle de redémarrage, Result « success », donc seule la seconde branche la rattrape).
+        foyer = faux_foyer(self)
+        ecrire(foyer.racine / "state" / "unites-degradees.json", json.dumps({
+            "sain.service": {"ActiveState": "active", "SubState": "running", "Result": "success"},
+            "panne.service": {"ActiveState": "failed", "SubState": "failed", "Result": "exit-code"},
+            "boucle.service": {"ActiveState": "activating", "SubState": "auto-restart", "Result": "success"},
+        }))
+
+        r = relever_foyer(foyer)
+
+        self.assertEqual(r.returncode, 0, r.stderr)
+        lignes = constats_de(r.stdout, "R8")
+        self.assertEqual(len(lignes), 2, r.stdout)
+        self.assertTrue(any("panne.service" in l for l in lignes), r.stdout)
+        self.assertTrue(any("boucle.service" in l for l in lignes), r.stdout)
+        self.assertNotIn("sain.service", r.stdout)
+
+    def test_un_job_termine_absent_du_miroir_ne_sort_pas(self):
+        # Panne visée : un cron vivant dont state vaut « completed » (job terminé, pas une dérive) sort comme une
+        # dérive. Le cron « scheduled » absent du miroir doit toujours sortir : sinon le test passerait au vert
+        # en ne relevant rien.
+        foyer = faux_foyer(self)
+        ecrire(foyer.racine / "cron" / "jobs.json", json.dumps({"jobs": [
+            {"id": CRON_SAIN, "name": "cron sain", "enabled": True},
+            {"id": "kkkkkkkkkkkk", "name": "cron termine", "enabled": False, "state": "completed"},
+            {"id": "llllllllllll", "name": "cron prevu", "enabled": True, "state": "scheduled"},
+        ]}))
+
+        r = relever_foyer(foyer)
+
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertNotIn("kkkkkkkkkkkk", r.stdout)
+        lignes = constats_de(r.stdout, "R9")
+        self.assertEqual(len(lignes), 1, r.stdout)
+        self.assertIn("llllllllllll", lignes[0])
 
     def test_un_module_de_test_absent_du_venv_sort_R11(self):
         # Panne visée : le détecteur R11 (modules de test absents du venv Hermes) n'existe pas. Le faux venv
