@@ -332,6 +332,29 @@ class ReleveDuJour(unittest.TestCase):
         self.assertTrue(any("panne.service" in l for l in lignes), r.stdout)
         self.assertTrue(any("boucle.service" in l for l in lignes), r.stdout)
         self.assertNotIn("sain.service", r.stdout)
+        # Une unité en redémarrage automatique n'est pas une panne : une seule photo ne fait pas une boucle.
+        boucle = next(l for l in lignes if "boucle.service" in l)
+        self.assertIn("en redémarrage automatique", boucle)
+        self.assertNotIn("en panne", boucle)
+
+    def test_un_result_en_echec_ne_compte_que_si_l_unite_est_inactive(self):
+        # Panne visée : un Result en échec sort quel que soit ActiveState. diagnostiquer ne le retient que pour une
+        # unité inactive (un oneshot ou un timer qui a échoué à son dernier run). « tourne.service » a un Result en
+        # échec mais tourne : il ne sort pas. « arrete.service » est arrêté sur le même Result : il sort.
+        foyer = faux_foyer(self)
+        ecrire(foyer.racine / "state" / "unites-degradees.json", json.dumps({
+            "tourne.service": {"ActiveState": "active", "SubState": "running", "Result": "exit-code"},
+            "arrete.service": {"ActiveState": "inactive", "SubState": "dead", "Result": "exit-code"},
+        }))
+
+        r = relever_foyer(foyer)
+
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertNotIn("tourne.service", r.stdout)
+        lignes = constats_de(r.stdout, "R8")
+        self.assertEqual(len(lignes), 1, r.stdout)
+        self.assertIn("arrete.service", lignes[0])
+        self.assertIn("en panne", lignes[0])
 
     def test_un_job_termine_absent_du_miroir_ne_sort_pas(self):
         # Panne visée : un cron vivant dont state vaut « completed » (job terminé, pas une dérive) sort comme une
