@@ -411,10 +411,8 @@ def prompt_de_l_element(grille: str, element: dict) -> str:
     return f"{grille}\n\n## Élément\n\nIdentifiant : {element['id']}\n\n{element['texte']}\n"
 
 
-def appeler_juge(exe: str, prompt: str, modele: str = MODELE) -> tuple[str, float]:
+def appeler_juge(exe: str, prompt: str) -> tuple[str, float]:
     """Un vote : rend (texte ``result``, coût en dollars). Lancé hors du dépôt, prompt sur stdin.
-
-    ``modele`` (défaut ``MODELE``) est celui qu'on demande à claude et celui qu'on exige servi.
 
     Le dossier de travail est le même à chaque appel : le cwd fait partie du contexte de claude,
     donc un dossier neuf casserait le cache de prompt (chaque appel réécrirait tout en cache).
@@ -433,7 +431,7 @@ def appeler_juge(exe: str, prompt: str, modele: str = MODELE) -> tuple[str, floa
                          "pas à l'utilisateur courant")
     try:
         r = subprocess.run(
-            [exe, "-p", "--model", modele, "--output-format", "json", "--tools", "",
+            [exe, "-p", "--model", MODELE, "--output-format", "json", "--tools", "",
              "--strict-mcp-config", "--setting-sources", "project", "--max-turns", "1"],
             input=prompt.encode("utf-8"), capture_output=True, cwd=dossier, timeout=DELAI_JUGE)
     except subprocess.TimeoutExpired as e:
@@ -453,8 +451,8 @@ def appeler_juge(exe: str, prompt: str, modele: str = MODELE) -> tuple[str, floa
         raise ErreurJuge("juge indisponible : claude signale une erreur (is_error)")
     modeles = sortie.get("modelUsage")
     servis = set(modeles) if isinstance(modeles, dict) else set()
-    if servis != {modele}:
-        raise ErreurJuge(f"modèle servi inattendu : {sorted(servis) or 'aucun'} au lieu de {modele}",
+    if servis != {MODELE}:
+        raise ErreurJuge(f"modèle servi inattendu : {sorted(servis) or 'aucun'} au lieu de {MODELE}",
                          CODE_MODELE_INATTENDU)
     cout = sortie.get("total_cost_usd")
     if isinstance(cout, bool) or not isinstance(cout, (int, float)):
