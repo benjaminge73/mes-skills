@@ -259,6 +259,10 @@ page s'écrit **allégée** : `Cartes` · `Besoins` · `Maquette` · `Exécution
 question à trancher. `Maquette` ne s'allège pas : un petit changement d'écran
 est justement celui qu'on croit pouvoir décrire en mots.
 
+**Plan léger** (exception, jamais le défaut) : si Benjamin en demande un, ou avant d'en
+proposer un, lire `${CLAUDE_PLUGIN_ROOT}/skills/plan-notion/plan-leger.md`. Aiguillage
+puis accord de Benjamin d'abord ; sans les deux, plan complet.
+
 Le détail de chaque chapitre vit dans deux fichiers de référence, à lire **avant
 d'écrire ou de remettre à jour** le chapitre concerné, pas de mémoire :
 

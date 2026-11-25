@@ -639,3 +639,39 @@ Une entrée par passe, la plus récente en dernier. Le titre est
 - **Ce qui a changé** : deux points pour le hook `jeton_lourd.py`. (1) « When an event fires, its matching hooks run in parallel » : la doc ne dit pas quel `updatedInput` gagne quand deux hooks d'un même événement en renvoient un ; sa règle de précédence (deny > defer > ask > allow) vise les décisions, pas les réécritures. (2) En mode auto, un `updatedInput` sans `permissionDecision` peut être refusé par Claude Code, avec le message « a hook changed this call's input after auto mode reviewed it ».
 - **Faits porteurs** : aucun ajout au tableau de la partie 2. La phrase sur le parallélisme est relevée ce jour ; elle n'est pas encore citée par un garde.
 - **Ce qu'on en fait** : D7 garde la compression rtk dans le hook lui-même (`rtk rewrite` appliqué avant la réécriture), faute de savoir quel `updatedInput` gagne entre deux hooks. Le point (2) n'est pas traité par ce plan : à signaler si un refus de ce type apparaît en mode auto.
+
+### 2026-11-25 — préparation minimale : le plan léger et son aiguillage (plan « Préparation minimale : un plan léger, en exception bornée »)
+
+- **Sources lues** (relevées à la conception, le 2026-11-24) : les
+  [bonnes pratiques de Claude Code](https://code.claude.com/docs/en/best-practices.md)
+  (« Only write down what Claude can't find by reading the repo… »), les
+  [bonnes pratiques de consigne](https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices.md)
+  (consignes générales plutôt que pas à pas), la page des
+  [modes de permission](https://code.claude.com/docs/en/permission-modes.md) (mode plan
+  natif), et l'étude ETH Zurich arXiv 2602.11988 sur les fichiers de contexte (réussite
+  non améliorée en moyenne, coût en hausse de plus de 20 % : un proxy, elle ne porte pas
+  sur des plans). Le changelog de Claude Code n'a pas été relu : la passe 0.78.0 du même
+  jour le couvre.
+- **Ce qui a changé** : aucune source lue ne mesure « plan lourd contre plan fonctionnel »
+  sur un Opus récent, d'où deux POC. POC A : sur 184 découvertes d'exécution trouvables au
+  plan, 31 % auraient exigé une question. POC B : trois plans rejoués en « plan
+  fonctionnel + Opus medium nu » coûtent 6 à 27 % du coût réel, aucun ne tient tous les
+  critères. Aucun fait du tableau de la partie 2 n'est
+  touché (`scripts/veille_faits.py` rejoué : 23 faits, 0 citation à signaler).
+- **Mesure de l'aiguillage** (2026-11-25, 30 demandes étiquetées et figées avant le premier
+  appel, deux passages ; seuils : aucun « léger » sur un cas « complet », même verdict aux
+  deux passages sur au moins 27 cas, au moins 6 « léger » reconnus sur 12) :
+
+  | Juge | Faux « léger » | Stabilité | « Léger » reconnus | Verdict |
+  |---|---|---|---|---|
+  | Haiku 5.5 (`claude -p`) | 0 | 26 sur 30 | 3 sur 12 | écarté |
+  | Jev, une question `noul` par case, « non » sous 0,5 | 0 | 30 sur 30 | 6 sur 12 | retenu |
+  | Jev, rejoué par le script livré | 0 | 30 sur 30 | 7 sur 12 | tient |
+
+  Haiku : 0,095 dollar ; Jev ne rend pas son coût ; Sonnet non joué. Limites : un seul jeu
+  de 30 demandes, étiqueté par une session ; Jev rend une note sans justification, la
+  preuve par case reste à la session.
+- **Ce qu'on en fait** : `plan-notion/plan-leger.md` (mode borné, jamais le défaut),
+  `_partage/listes/aiguillage-plan.md` et `_partage/scripts/aiguiller-plan.py`, cas
+  d'éval `plan-leger-eligibilite` écrit et non joué. L'effet du mode se juge à l'usage
+  (coût réel et décisions prises sans question, à la clôture de chaque plan léger).

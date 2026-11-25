@@ -35,9 +35,11 @@
         "skills/_partage/outils-donnees-publiques.md",
         "skills/_partage/ecrire-dans-notion.md",
         "skills/_partage/schemas.md",
-        "skills/_partage/scripts/verifier-version.sh"
+        "skills/_partage/scripts/verifier-version.sh",
+        "skills/_partage/listes/aiguillage-plan.md",
+        "skills/_partage/scripts/aiguiller-plan.py"
       ],
-      "cas": ["bruit-bounded", "bruit-doc-seule", "report-sans-seuil"],
+      "cas": ["bruit-bounded", "bruit-doc-seule", "plan-leger-eligibilite", "report-sans-seuil"],
       "plancher": 0.70
     },
     "etat-de-depart": {

@@ -57,6 +57,9 @@ LECTEURS = {
         "evals/banc-relecture/enquete.py",
         "evals/banc-relecture/boucle_liste.py",
     ],
+    "aiguillage-plan.md": [
+        "plugins/plans-notion/skills/_partage/scripts/aiguiller-plan.py",
+    ],
 }
 
 NOM_PERIME = "checklist-v2.txt"
