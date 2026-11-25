@@ -65,6 +65,7 @@ protège à partir de la version qui la porte. (Historique : `docs/retex/execute
 
 **Aucune ligne de code avant d'avoir lu le `Statut` de la page du plan.**
 
+- **`Mode : léger`** en tête de `Besoins` : pas ce skill. Suivre `${CLAUDE_PLUGIN_ROOT}/skills/plan-notion/plan-leger.md` § 4.
 - `valide` → **préparer** (§2, `ouverture.md`) : aucune étape ne démarre, même
   sur un « go » de Benjamin. La préparation finie et prouvée, `Statut` = `pret`,
   puis `en cours` dans la même séance (règle du « go », plus bas).
