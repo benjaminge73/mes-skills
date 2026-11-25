@@ -6,9 +6,11 @@ mesure chacune sur le jeu de validation (43 cas), et ne l'ajoute que si le rappe
 de l'A/A (deux relectures identiques, mesurées une fois).
 
 Usage : boucle_liste.py --section NOM [--plafond-mois 5] [--dry-run] [--cron]
+Sections : « Code » (la liste de relecture, mesurée sur le jeu de validation de la relecture) et « Enquête » (la liste
+d'enquête, `listes/enquete.md`). Le plafond du mois est commun aux deux. La garde « Bilan de Q2 » ne vaut que pour « Code ».
 Codes : 0 rien à ajouter, une PR en cours, ou un souci signalé en ligne ; 10 une ligne ajoutée (PR ouverte) ;
         1 erreur réelle (jeu absent, git, gh ou état en échec) ; 3 plafond du mois atteint, ou budget restant sous le coût
-        d'une mesure complète ; 5 bilan de Q2 pas encore passé.
+        d'une mesure complète ; 5 bilan de Q2 pas encore passé (section « Code » seulement).
 --cron : sort en 0 ([SILENT] ou une ligne de message), sauf pour une erreur réelle (code 1, une ligne). Une exception
         inattendue devient une ligne et un 0 : jamais de trace Python dans le cron.
 
@@ -52,6 +54,8 @@ DEPOT = ICI.parents[1]
 JOURNAL = ICI / "journal-checklist.md"
 JOURNAL_REL = "evals/banc-relecture/journal-checklist.md"
 LISTE_REL = "plugins/plans-notion/skills/_partage/listes/relecture-code.md"
+ENQUETE_REL = "plugins/plans-notion/skills/_partage/listes/enquete.md"
+SECTION_CODE, SECTION_ENQUETE = "Code", "Enquête"
 PLUGIN_JSON = "plugins/plans-notion/.claude-plugin/plugin.json"
 RACINE_WORKTREES = Path.home() / "repos" / "worktrees" / "mes-skills"
 AUTEUR_PR = "benjaminge73"
@@ -417,7 +421,7 @@ class Dependances:
         self.journal = journal
         self.sh = sh or _lancer
         self.racine = racine
-        self._liste = None
+        self._listes: dict[str, str] = {}
 
     def lire_journal(self) -> str:
         return self.journal.read_text()
@@ -442,30 +446,40 @@ class Dependances:
     def jeu_present(self) -> bool:
         return (banc.DONNEES / REF_VALIDATION).is_file() and (banc.DONNEES / CAS_VALIDATION).is_file()
 
-    def liste_texte(self) -> str:
-        """La liste telle qu'elle est sur origin/main : c'est elle que la boucle mesure et amende."""
-        if self._liste is None:
+    def liste_texte(self, section: str = SECTION_CODE) -> str:
+        """La liste telle qu'elle est sur origin/main : c'est elle que la boucle mesure et amende. « Code » : la liste de
+        relecture ; « Enquête » : la liste d'enquête."""
+        rel = LISTE_REL if section == SECTION_CODE else ENQUETE_REL
+        if rel not in self._listes:
             f = self.sh(["git", "-C", str(DEPOT), "fetch", "--quiet", "origin", "main"], None, None)
             if f.returncode != 0:
                 raise Souci(f"fetch de origin/main en échec : {une_ligne(f.stderr)[-200:]}", reelle=True)
-            r = self.sh(["git", "-C", str(DEPOT), "show", f"origin/main:{LISTE_REL}"], None, None)
+            r = self.sh(["git", "-C", str(DEPOT), "show", f"origin/main:{rel}"], None, None)
             if r.returncode != 0:
-                raise Souci(f"liste de relecture illisible sur origin/main : {une_ligne(r.stderr)[-200:]}", reelle=True)
-            self._liste = r.stdout
-        return self._liste
+                raise Souci(f"liste illisible sur origin/main ({rel}) : {une_ligne(r.stderr)[-200:]}", reelle=True)
+            self._listes[rel] = r.stdout
+        return self._listes[rel]
 
-    def liste_sha(self) -> str:
-        return hashlib.sha256(self.liste_texte().encode()).hexdigest()
+    def liste_sha(self, section: str = SECTION_CODE) -> str:
+        return hashlib.sha256(self.liste_texte(section).encode()).hexdigest()
 
-    def liste_avec(self, candidat: Candidat) -> str:
+    def liste_avec(self, candidat: Candidat, section: str = SECTION_CODE) -> str:
+        if section != SECTION_CODE:
+            raise Souci("insertion d'une case dans la liste d'enquête non branchée : rien n'est mesuré", reelle=True)
         return inserer_ligne(self.liste_texte(), candidat.categorie, candidat.ligne)
 
-    def mesurer(self, liste: str, bras: str, budget: float) -> Mesure:
+    def mesurer(self, liste: str, bras: str, budget: float, section: str = SECTION_CODE) -> Mesure:
         """Une relecture Haiku high sur les 43 cas, puis le juge. Coûte de l'argent : le cron seul l'appelle.
 
         Le dossier de sorties du bras est vidé d'abord : rejouer.py ne rejoue pas les cas déjà présents, donc un bras
         réutilisé compterait des rapports d'une autre liste, et un coût déjà compté. Une erreur porte la dépense faite.
-        Des sorties incomplètes (le budget a coupé le rejeu) s'arrêtent avant le juge, coût journalisé."""
+        Des sorties incomplètes (le budget a coupé le rejeu) s'arrêtent avant le juge, coût journalisé.
+
+        Section « Enquête » : non branchée. enquete.py lit sa liste en dur (ses bras sont fixes, sans argument de liste) et
+        ne rend pas de score par liste ; rien n'est lancé ici, et aucun appel ne part."""
+        if section != SECTION_CODE:
+            raise Souci("mesure de la liste d'enquête non branchée : enquete.py ne prend pas de liste candidate en "
+                        "argument ; rien n'est lancé, rien n'est compté", reelle=True)
         dossier = banc.DONNEES / "listes-boucle"
         dossier.mkdir(parents=True, exist_ok=True)
         fichier = dossier / f"{bras}.md"
@@ -514,8 +528,13 @@ class Dependances:
         except (OSError, ValueError, KeyError, TypeError) as e:
             raise Souci(f"jugement illisible pour {bras} : {une_ligne(e)}", cout=cout)
 
-    def candidats(self) -> list[Candidat]:
-        """Remarques retenues par Opus seul (la chaîne les a manquées), regroupées par catégorie (voir regrouper)."""
+    def candidats(self, section: str = SECTION_CODE) -> list[Candidat]:
+        """« Code » : remarques retenues par Opus seul (la chaîne les a manquées), regroupées par catégorie (voir regrouper).
+
+        « Enquête » : la source prévue est les lignes « découverte — trouvable au plan » des clôtures de plan. Aucun fichier
+        ne les reçoit encore : la source n'est pas branchée, la section n'a donc aucun candidat et ne dépense rien."""
+        if section != SECTION_CODE:
+            return []
         remarques = []
         for f in sorted((banc.DONNEES / "ombres").glob("retenues-*.json")):
             d = json.loads(f.read_text())
@@ -552,12 +571,17 @@ class Dependances:
         except OSError:
             pass
 
-    def ouvrir_pr(self, candidat: Candidat, iso: str) -> str:
+    def ouvrir_pr(self, candidat: Candidat, iso: str, section: str = SECTION_CODE) -> str:
         """Une PR prête qui ajoute la ligne, dans son propre worktree depuis origin/main, retiré à la fin.
 
         Ordre : garde du chemin, worktree, ligne, bump, copie du journal, garde Doc et sélection des évals (en local,
         comme la CI), commit, garde de veille (en local, comme la CI), puis push, `gh pr create` (sans --draft : la CI
-        merge au vert). Une garde qui refuse arrête avant push."""
+        merge au vert). Une garde qui refuse arrête avant push.
+
+        Section « Enquête » : non branchée. Cette fonction insère dans la liste de relecture ; une PR d'enquête ne part
+        pas d'ici, et rien n'est poussé."""
+        if section != SECTION_CODE:
+            raise Souci("PR d'une case d'enquête non branchée : rien n'est poussé", reelle=True)
         chemin = self.racine / f"boucle-liste-pr-{iso}"
         if chemin_interdit(chemin, DEPOT):
             raise Souci(f"worktree de PR refusé : {chemin} recouvre le dépôt de lancement ; rien n'est effacé",
@@ -631,22 +655,24 @@ def _budget_insuffisant(reste: float, seuil: float) -> Resultat:
                                    f"({seuil:.2f}) : rien n'est lancé"])
 
 
-def _a_mesurer(etat: dict, deps) -> list[Candidat]:
-    """Les candidats à mesurer : ni déjà traités, ni sans catégorie (pas de lettre où les insérer)."""
+def _a_mesurer(etat: dict, candidats: list[Candidat], section: str = SECTION_CODE) -> list[Candidat]:
+    """Les candidats à mesurer : ni déjà traités. Pour « Code », ni sans catégorie (pas de lettre où les insérer) ; la
+    liste d'enquête n'a pas de lettres, et ses candidats n'en ont pas besoin."""
     deja = traites(etat)
-    return [c for c in deps.candidats() if c.categorie in list(LETTRES) and c.ligne not in deja]
+    return [c for c in candidats if c.ligne not in deja and (section != SECTION_CODE or c.categorie in list(LETTRES))]
 
 
 def executer(section, deps, aujourdhui, plafond=PLAFOND_MOIS, dry_run=False) -> Resultat:
     texte = deps.lire_journal()
-    bilan = bilan_q2(texte)
-    if bilan is None or bilan > aujourdhui.isoformat():
-        return Resultat(CODE_BILAN, ["bilan de Q2 pas encore passé : la ligne « Bilan de Q2 : AAAA-MM-JJ » "
-                                     "manque au journal"], silencieux=True)
+    if section == SECTION_CODE:  # la garde du bilan de Q2 ne vaut que pour la liste de relecture
+        bilan = bilan_q2(texte)
+        if bilan is None or bilan > aujourdhui.isoformat():
+            return Resultat(CODE_BILAN, ["bilan de Q2 pas encore passé : la ligne « Bilan de Q2 : AAAA-MM-JJ » "
+                                         "manque au journal"], silencieux=True)
     sec = lignes_section(texte, section)
     if sec is None:
         return Resultat(CODE_ERREUR, [f"section « {section} » absente du journal"], reelle=True)
-    if not deps.jeu_present():
+    if section == SECTION_CODE and not deps.jeu_present():
         return Resultat(CODE_ERREUR, ["jeu de validation absent (ref-validation.json ou "
                                       "cas-ref-validation.json dans BANC_DONNEES)"], reelle=True)
     cout = cout_du_mois(deps.etats_tous(), aujourdhui.strftime("%Y-%m"))
@@ -655,7 +681,7 @@ def executer(section, deps, aujourdhui, plafond=PLAFOND_MOIS, dry_run=False) -> 
     if dry_run:
         etat = importer_journal(sec, deps.lire_etat(section))
         return Resultat(CODE_OK, [f"dry-run : aucune mesure, aucune PR ; candidats à mesurer : "
-                                  f"{len(_a_mesurer(etat, deps))}"])
+                                  f"{len(_a_mesurer(etat, deps.candidats(section), section))}"])
     try:
         return _boucle(section, deps, aujourdhui, plafond)
     except QuotaAtteint as q:
@@ -678,8 +704,8 @@ def _boucle(section, deps, aujourdhui, plafond) -> Resultat:
     iso, mois = aujourdhui.isoformat(), aujourdhui.strftime("%Y-%m")
     texte = deps.lire_journal()
     sec = lignes_section(texte, section)
-    liste = deps.liste_texte()
-    sha = deps.liste_sha()
+    liste = deps.liste_texte(section)
+    sha = deps.liste_sha(section)
     deps.ecrire_etat(section, importer_journal(sec, deps.lire_etat(section)))
 
     def changer_etat(fn):
@@ -714,7 +740,7 @@ def _boucle(section, deps, aujourdhui, plafond) -> Resultat:
             e = deps.lire_etat(section)["mesures"][bras]
             return Mesure(rappel=float(e["rappel"]), bruit=float(e["bruit"]), cout=float(e.get("cout", 0.0)))
         try:
-            m = deps.mesurer(liste_, bras, plafond - cout_courant())
+            m = deps.mesurer(liste_, bras, plafond - cout_courant(), section)
         except Souci as s:
             changer_etat(lambda e: ajouter_cout(e, mois, s.cout))
             ecrire(f"{titre} en échec", [f"- Souci : {une_ligne(s)[:200]}", f"- Coût : {s.cout:.3f} dollars"])
@@ -725,7 +751,7 @@ def _boucle(section, deps, aujourdhui, plafond) -> Resultat:
     def ouvrir(c):
         """Ouvre la PR d'une ligne retenue ; un échec est noté (la ligne reste réessayable) puis remonté."""
         try:
-            url = deps.ouvrir_pr(c, iso)
+            url = deps.ouvrir_pr(c, iso, section)
         except Souci as s:
             changer_etat(lambda e: definir_candidat(e, c.ligne, statut="retenue", categorie=c.categorie, liste=sha))
             ecrire("PR non ouverte", [f"- Ligne candidate : {c.ligne}", f"- Catégorie : {c.categorie}",
@@ -757,6 +783,10 @@ def _boucle(section, deps, aujourdhui, plafond) -> Resultat:
     for ligne, rec in retenues_en_attente(deps.lire_etat(section), sha):
         return ouvrir(Candidat(categorie=rec["categorie"], ligne=ligne))
 
+    # Enquête sans case à mesurer : rien n'est mesuré, pas même la base, et le passage reste silencieux.
+    if section != SECTION_CODE and not _a_mesurer(deps.lire_etat(section), deps.candidats(section), section):
+        return Resultat(CODE_OK, [], silencieux=True)
+
     # 3. La base : deux relectures identiques, mesurées une fois par liste ; le bruit A/A en vient.
     base = base_connue(deps.lire_etat(section), sec, sha)
     if base is None:
@@ -784,10 +814,10 @@ def _boucle(section, deps, aujourdhui, plafond) -> Resultat:
     rappel_base, bruit_base, bruit_aa = base
 
     # 4. Les candidats, un à un : chacun contre la base, dans le budget.
-    for c in _a_mesurer(deps.lire_etat(section), deps):
+    for c in _a_mesurer(deps.lire_etat(section), deps.candidats(section), section):
         if (r := arret()) is not None:
             return r
-        liste_c = deps.liste_avec(c)
+        liste_c = deps.liste_avec(c, section)
         m = mesurer(liste_c, f"cand-{_sha8(liste_c)}", f"candidat « {c.ligne[:60]} »")
         gain, hausse = m.rappel - rappel_base, m.bruit - bruit_base
         retenue = gain > 0 and hausse <= bruit_aa
@@ -805,7 +835,8 @@ def _boucle(section, deps, aujourdhui, plafond) -> Resultat:
 def main(argv=None, *, deps=None, aujourdhui=None) -> int:
     ap = argparse.ArgumentParser(description="Boucle d'amélioration de la liste de relecture : une ligne mesurée, "
                                              "ajoutée par PR seulement si elle passe.")
-    ap.add_argument("--section", required=True, help="section du journal (« Code » pour la liste de relecture)")
+    ap.add_argument("--section", required=True,
+                    help="section du journal : « Code » (liste de relecture) ou « Enquête » (liste d'enquête)")
     ap.add_argument("--plafond-mois", type=float, default=PLAFOND_MOIS,
                     help="dépense maximale par mois, toutes sections confondues (défaut 5)")
     ap.add_argument("--dry-run", action="store_true",
