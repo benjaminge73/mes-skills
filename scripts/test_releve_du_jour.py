@@ -253,6 +253,22 @@ class ReleveDuJour(unittest.TestCase):
         self.assertIn("jjjjjjjjjjjj", lignes[0])
         self.assertNotIn("illisible", r.stdout)
 
+    def test_HERMES_HOME_sur_un_profil_lit_la_racine_et_non_le_profil(self):
+        # Panne visée : une session de profil Hermes pose HERMES_HOME=<racine>/profiles/<profil> ; le relevé prend ce
+        # dossier de profil pour la racine et sort « illisible » partout (cœur absent). Le cron vivant absent du miroir
+        # de la racine doit sortir, et rien ne doit être lu comme illisible.
+        foyer = faux_foyer(self)
+        ecrire(foyer.racine / "cron" / "jobs.json", jobs(CRON_SAIN, "cccccccccccc"))
+        profil = foyer.racine / "profiles" / "franz-kafkai"
+
+        r = relever(home=foyer.home, bin_=foyer.bin, extra={"HERMES_HOME": str(profil)})
+
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertNotIn("illisible", r.stdout)
+        lignes = constats_de(r.stdout, "R9")
+        self.assertEqual(len(lignes), 1, r.stdout)
+        self.assertIn("cccccccccccc", lignes[0])
+
     def test_hors_VPS_rend_la_ligne_sans_erreur(self):
         # Panne visée : sur un poste sans ~/.hermes, le relevé plante ou prétend avoir relevé quelque chose.
         tmp = tempfile.TemporaryDirectory()
