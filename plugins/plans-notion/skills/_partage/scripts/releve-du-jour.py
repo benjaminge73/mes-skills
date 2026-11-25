@@ -17,8 +17,8 @@ Racines lues, surchargeables pour les tests :
 
 Constats, préfixés par leur détecteur (« R6 · … ») :
   R6   fichiers non commités dans le cœur Hermes (hermes-agent)
-  R8   unités systemd en échec (portées utilisateur et système) ; dans state/unites-degradees.json, seules les
-       unités en panne (règle de unite_degradee_autorepair.py), avec ActiveState, SubState et Result
+  R8   unités systemd en échec (portées utilisateur et système) ; dans state/unites-degradees.json, les unités
+       « en panne » ou « en redémarrage automatique » (approximation de diagnostiquer, voir diagnostic_unite)
   R9   crons vivants contre leur miroir versionné : le défaut, puis profil par profil ; un cron « completed »
        absent du miroir ne sort pas (job terminé)
   R10  passerelle démarrée avant le dernier commit du cœur
@@ -105,22 +105,30 @@ def constats_coeur(racine: Path) -> list[Constat]:
     return [("R6", f"cœur Hermes (hermes-agent) : {n} fichier(s) non commité(s)")] if n else []
 
 
-def cause_de_panne(etat: object) -> str | None:
-    """La cause courte d'une unité en panne, ou None si elle est saine.
+def diagnostic_unite(etat: object) -> tuple[str, str] | None:
+    """(libellé, détail) d'une unité de state/unites-degradees.json, ou None si elle n'a rien à signaler.
 
-    Même règle que `diagnostiquer` de ~/.hermes/patches/scripts/unite_degradee_autorepair.py : sort une unité
-    `failed`, une unité en `auto-restart`, ou une unité dont Result n'est ni vide, ni `success`, ni `exec-condition`.
-    Une unité absente de ce poste (LoadState=not-found) n'est pas en panne. Les mots systemd (ActiveState, SubState,
-    Result) sortent tels quels : ce sont des états, pas des valeurs."""
+    APPROXIMATION de `diagnostiquer` (~/.hermes/patches/scripts/unite_degradee_autorepair.py, 183-201) :
+    - ActiveState failed : « en panne » ;
+    - SubState auto-restart : « en redémarrage automatique », à part, jamais « en panne ». Une photo unique ne fait
+      pas une boucle : la boucle se mesure d'un passage à l'autre, sur les compteurs, ce que ce relevé ne fait pas ;
+    - ActiveState inactive et Result hors de (vide, success, exec-condition) : « en panne ». diagnostiquer ne retient
+      ce Result que pour un oneshot ou un timer. Le fichier ne porte pas Type : ce relevé le retient pour toute unité
+      inactive, donc il peut sortir à tort un service inactif dont le Result est en échec.
+    Une unité active au Result en échec ne sort pas. Une unité LoadState=not-found (absente de ce poste) non plus.
+    Les mots systemd sortent tels quels : ce sont des états, pas des valeurs."""
     if not isinstance(etat, dict):
-        return "entrée illisible"
+        return ("illisible", "entrée non lisible")
     if etat.get("LoadState") == "not-found":
         return None
-    actif = str(etat.get("ActiveState", ""))
-    sous = str(etat.get("SubState", ""))
-    resultat = str(etat.get("Result", ""))
-    if actif == "failed" or sous == "auto-restart" or resultat not in ("", "success", "exec-condition"):
-        return f"ActiveState={actif}, SubState={sous}, Result={resultat}"
+    actif, sous, resultat = (str(etat.get(cle, "")) for cle in ("ActiveState", "SubState", "Result"))
+    detail = f"ActiveState={actif}, SubState={sous}, Result={resultat}"
+    if actif == "failed":
+        return ("en panne", detail)
+    if sous == "auto-restart":
+        return ("en redémarrage automatique", detail)
+    if actif == "inactive" and resultat not in ("", "success", "exec-condition"):
+        return ("en panne", detail)
     return None
 
 
@@ -157,9 +165,10 @@ def constats_unites(racine: Path) -> list[Constat]:
             if isinstance(donnees, dict):
                 # Le fichier porte toutes les unités surveillées, saines comprises : seules sortent les unités en panne.
                 for nom in sorted(donnees):
-                    cause = cause_de_panne(donnees[nom])
-                    if cause:
-                        out.append(("R8", f"unité en panne (state/unites-degradees.json) : {nom}, {cause}"))
+                    diag = diagnostic_unite(donnees[nom])
+                    if diag:
+                        libelle, detail = diag
+                        out.append(("R8", f"unité {libelle} (state/unites-degradees.json) : {nom}, {detail}"))
             else:
                 out.append(("R8", "illisible : state/unites-degradees.json n'est pas un objet"))
     return out
