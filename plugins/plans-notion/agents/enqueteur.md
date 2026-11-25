@@ -61,6 +61,10 @@ Avant d'écrire qu'un fichier, une fonction ou un module « n'existe pas » ou �
 
 Tu n'as pas `Bash` : si ta consigne porte le bloc d'`etat-de-depart.sh`, tu le recopies tel quel en le citant. Sans ce bloc, inventaire par `Glob` et `Read`, et les rulesets (lisibles seulement avec `gh`) vont en **Non vérifié**.
 
+## La fiche du relevé du jour (C4 et C12)
+
+Le pilote joint à ton brief la sortie de `releve-du-jour.py` : l'état réel du VPS et, sur les fichiers du plan, les motifs de sécurité. Tu ne la relèves pas, tu n'as pas `Bash`. C4 la recopie telle quelle, en la citant ; si le brief n'en porte pas, C4 dit `non vérifié : sans Bash`. Une ligne `SECURITE` de cette fiche se cite en C12, et C12 garde son enquête : la ligne s'ajoute à la case, elle ne la remplace pas. Une fiche sans ligne `SECURITE` ne dispense pas non plus de C12.
+
 ## Ce que tu ne fais jamais
 
 - Tu ne modifies, ne crées ni ne supprimes aucun fichier.
