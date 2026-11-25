@@ -52,6 +52,7 @@
         "skills/_partage/bons-tests.md",
         "skills/_partage/preuve-du-rouge.md",
         "skills/_partage/scripts/etat-de-depart.sh",
+        "skills/_partage/scripts/releve-du-jour.py",
         "skills/_partage/scripts/verifier-rouge-vert.py",
         "skills/_partage/ecrire-dans-notion.md",
         "skills/_partage/schemas.md",

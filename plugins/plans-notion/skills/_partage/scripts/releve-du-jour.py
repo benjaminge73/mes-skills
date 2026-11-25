@@ -17,8 +17,10 @@ Racines lues, surchargeables pour les tests :
 
 Constats, préfixés par leur détecteur (« R6 · … ») :
   R6   fichiers non commités dans le cœur Hermes (hermes-agent)
-  R8   unités systemd en échec (portées utilisateur et système) ; clés de state/unites-degradees.json
-  R9   crons vivants contre leur miroir versionné : le défaut, puis profil par profil
+  R8   unités systemd en échec (portées utilisateur et système) ; dans state/unites-degradees.json, seules les
+       unités en panne (règle de unite_degradee_autorepair.py), avec ActiveState, SubState et Result
+  R9   crons vivants contre leur miroir versionné : le défaut, puis profil par profil ; un cron « completed »
+       absent du miroir ne sort pas (job terminé)
   R10  passerelle démarrée avant le dernier commit du cœur
   R11  modules de test absents du venv Hermes
   SECURITE  un motif de la liste fermée (MOTIFS_SECURITE) dans un fichier touché (--objets) : « chemin:ligne · motif »,
@@ -103,6 +105,25 @@ def constats_coeur(racine: Path) -> list[Constat]:
     return [("R6", f"cœur Hermes (hermes-agent) : {n} fichier(s) non commité(s)")] if n else []
 
 
+def cause_de_panne(etat: object) -> str | None:
+    """La cause courte d'une unité en panne, ou None si elle est saine.
+
+    Même règle que `diagnostiquer` de ~/.hermes/patches/scripts/unite_degradee_autorepair.py : sort une unité
+    `failed`, une unité en `auto-restart`, ou une unité dont Result n'est ni vide, ni `success`, ni `exec-condition`.
+    Une unité absente de ce poste (LoadState=not-found) n'est pas en panne. Les mots systemd (ActiveState, SubState,
+    Result) sortent tels quels : ce sont des états, pas des valeurs."""
+    if not isinstance(etat, dict):
+        return "entrée illisible"
+    if etat.get("LoadState") == "not-found":
+        return None
+    actif = str(etat.get("ActiveState", ""))
+    sous = str(etat.get("SubState", ""))
+    resultat = str(etat.get("Result", ""))
+    if actif == "failed" or sous == "auto-restart" or resultat not in ("", "success", "exec-condition"):
+        return f"ActiveState={actif}, SubState={sous}, Result={resultat}"
+    return None
+
+
 def constats_unites(racine: Path) -> list[Constat]:
     """R8 : les unités systemd en échec, puis les unités que Hermes tient pour dégradées."""
     out: list[Constat] = []
@@ -134,14 +155,19 @@ def constats_unites(racine: Path) -> list[Constat]:
             out.append(("R8", "illisible : state/unites-degradees.json ne se lit pas"))
         else:
             if isinstance(donnees, dict):
-                out += [("R8", f"unité dégradée (state/unites-degradees.json) : {nom}") for nom in sorted(donnees)]
+                # Le fichier porte toutes les unités surveillées, saines comprises : seules sortent les unités en panne.
+                for nom in sorted(donnees):
+                    cause = cause_de_panne(donnees[nom])
+                    if cause:
+                        out.append(("R8", f"unité en panne (state/unites-degradees.json) : {nom}, {cause}"))
             else:
                 out.append(("R8", "illisible : state/unites-degradees.json n'est pas un objet"))
     return out
 
 
-def ids_de_crons(fichier: Path) -> set[str] | None:
-    """Les identifiants des crons d'un jobs.json. None s'il n'existe pas ; ValueError s'il ne se lit pas."""
+def jobs_de_crons(fichier: Path) -> dict[str, str] | None:
+    """Les crons d'un jobs.json : {identifiant: state}, state vide s'il n'est pas noté. None s'il n'existe pas ;
+    ValueError s'il ne se lit pas."""
     if not fichier.is_file():
         return None
     try:
@@ -151,7 +177,7 @@ def ids_de_crons(fichier: Path) -> set[str] | None:
     jobs = donnees.get("jobs") if isinstance(donnees, dict) else None
     if not isinstance(jobs, list) or not all(isinstance(j, dict) and "id" in j for j in jobs):
         raise ValueError("pas de liste « jobs » aux entrées identifiées")
-    return {str(j["id"]) for j in jobs}
+    return {str(j["id"]): str(j.get("state", "")) for j in jobs}
 
 
 def comparer_crons(libelle: str, vivant: Path, miroir: Path, obligatoire: bool) -> list[Constat]:
@@ -160,11 +186,11 @@ def comparer_crons(libelle: str, vivant: Path, miroir: Path, obligatoire: bool) 
     Pour le défaut (obligatoire), un jobs.json ou un miroir absent est une panne de lecture. Pour un profil, l'absence
     des deux vaut « rien » : c'est un profil sans cron, ou sans copie versionnée."""
     try:
-        vivants = ids_de_crons(vivant)
+        vivants = jobs_de_crons(vivant)
     except ValueError:
         return [("R9", f"illisible : {libelle}, cron/jobs.json vivant")]
     try:
-        copie = ids_de_crons(miroir)
+        copie = jobs_de_crons(miroir)
     except ValueError:
         return [("R9", f"illisible : {libelle}, miroir versionné")]
     if obligatoire:
@@ -174,8 +200,11 @@ def comparer_crons(libelle: str, vivant: Path, miroir: Path, obligatoire: bool) 
             return [("R9", f"illisible : {libelle}, miroir versionné absent")]
     elif vivants is None or copie is None:
         return []
-    out = [("R9", f"{libelle} : cron {i} vivant absent du miroir") for i in sorted(vivants - copie)]
-    out += [("R9", f"{libelle} : cron {i} du miroir absent des crons vivants") for i in sorted(copie - vivants)]
+    ids_copie = set(copie)
+    # Un cron vivant « completed » est un job terminé, pas une dérive : il ne sort pas.
+    out = [("R9", f"{libelle} : cron {i} vivant absent du miroir")
+           for i in sorted(vivants) if i not in ids_copie and vivants[i] != "completed"]
+    out += [("R9", f"{libelle} : cron {i} du miroir absent des crons vivants") for i in sorted(ids_copie - set(vivants))]
     return out
 
 
