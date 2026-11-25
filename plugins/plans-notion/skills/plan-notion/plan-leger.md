@@ -108,6 +108,5 @@ coder.
 ## 6. Voisin : le mode plan natif
 
 Une session en mode plan natif (sans page Notion) suit `_partage/avant-le-plan.md`, qui a ses
-propres temps (plan [Une veille qui lit Anthropic, et des sessions en mode plan natif guidées par
-la checklist](https://app.notion.com/p/421b8cc8aa1d813d8db9d4f8f4e104f0), hermes-custom). Ce
-fichier ne le change pas.
+propres temps (plan « Une veille qui lit Anthropic, et des sessions en mode plan natif guidées
+par la checklist », hermes-custom). Ce fichier ne le change pas.
