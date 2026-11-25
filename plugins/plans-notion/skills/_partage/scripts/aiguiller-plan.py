@@ -72,7 +72,8 @@ SECRETS = (
     ("clé sk-", re.compile(r"(?<![A-Za-z0-9])sk-[A-Za-z0-9_\-]{20,}")),
     ("jeton Slack", re.compile(r"xox[bp]-")),
     ("clé AWS", re.compile(r"AKIA[0-9A-Z]{16}")),
-    ("secret affecté", re.compile(r"(?i)(?:password|token|secret|api_key)[=:]\S{8,}")),
+    ("secret affecté", re.compile(r"(?i)(?:password|token|secret|api_key)[ \t]*[=:][ \t]*\S{8,}")),
+    ("jeton Bearer", re.compile(r"(?i)bearer[ \t]+\S{8,}")),
 )
 
 CODE_LEGER = 0
