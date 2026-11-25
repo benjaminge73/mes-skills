@@ -21,6 +21,8 @@ Constats, préfixés par leur détecteur (« R6 · … ») :
   R9   crons vivants contre leur miroir versionné : le défaut, puis profil par profil
   R10  passerelle démarrée avant le dernier commit du cœur
   R11  modules de test absents du venv Hermes
+  SECURITE  un motif de la liste fermée (MOTIFS_SECURITE) dans un fichier touché (--objets) : « chemin:ligne · motif »,
+            à sa première occurrence, sans la ligne ni la valeur. Une question d'office, pas une enquête.
 La numérotation saute R1 à R5 et R7 : ce sont les détecteurs par objet du prototype, abandonnés (relevé par objet
 jugé NO-GO) ; on garde les numéros du prototype pour que les renvois restent lisibles.
 
@@ -38,6 +40,7 @@ import argparse
 import datetime
 import json
 import os
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -45,6 +48,25 @@ from pathlib import Path
 OK, USAGE = 0, 2
 UTC = datetime.timezone.utc
 MODULES_TEST = ("xdist", "pytest_timeout", "hypothesis")
+
+# Liste fermée des motifs de sécurité, sans casse. Un motif trouvé dans un fichier touché donne une question d'office
+# à Benjamin dans la page du plan : elle ne donne pas lieu à une enquête. Le nom affiché est celui de la première colonne.
+MOTIFS_SECURITE = (
+    ("sudo", r"sudo"),
+    ("NOPASSWD", r"NOPASSWD"),
+    ("ufw", r"\bufw\b"),
+    ("chmod", r"chmod"),
+    ("chown", r"chown"),
+    ("setcap", r"setcap"),
+    ("--system", r"--system"),
+    ("0.0.0.0", r"0\.0\.0\.0"),
+    ("api_key", r"api[_-]?key"),
+    ("token", r"token"),
+    ("secret", r"secret"),
+    ("password", r"password"),
+    ("identifiant Slack", r"\bU0[A-Z0-9]{7,}\b"),
+)
+MOTIFS_COMPILES = [(nom, re.compile(motif, re.IGNORECASE)) for nom, motif in MOTIFS_SECURITE]
 
 # Un constat : (détecteur, texte). Le détecteur est vide pour une ligne hors détecteur (« hors VPS »).
 Constat = tuple[str, str]
@@ -215,6 +237,33 @@ def constats_vps(racine: Path) -> list[Constat]:
             + constats_passerelle(racine) + constats_modules(racine))
 
 
+def constats_securite(objets: list[str]) -> list[Constat]:
+    """SECURITE : pour chaque fichier touché, un constat par motif de la liste, à sa première occurrence.
+
+    Seul le contenu est lu. Sortent le chemin, le numéro de ligne et le nom du motif : jamais la ligne ni la valeur
+    trouvée. Un fichier absent, un dossier ou un binaire ne sort rien ; un fichier présent qui ne se lit pas sort
+    « illisible »."""
+    out: list[Constat] = []
+    for chemin in objets:
+        fichier = Path(chemin)
+        if not fichier.is_file():
+            continue
+        try:
+            octets = fichier.read_bytes()
+        except OSError:
+            out.append(("", f"illisible : {chemin} (lecture refusée)"))
+            continue
+        if b"\x00" in octets[:8192]:
+            continue
+        vus: set[str] = set()
+        for numero, ligne in enumerate(octets.decode("utf-8", errors="replace").splitlines(), 1):
+            for nom, motif in MOTIFS_COMPILES:
+                if nom not in vus and motif.search(ligne):
+                    vus.add(nom)
+                    out.append(("SECURITE", f"{chemin}:{numero} · {nom}"))
+    return out
+
+
 def rendre(constat: Constat) -> str:
     detecteur, texte = constat
     return f"{detecteur} · {texte}" if detecteur else texte
@@ -243,7 +292,7 @@ def construire_parseur() -> argparse.ArgumentParser:
 
 def main(argv: list[str] | None = None) -> int:
     a = construire_parseur().parse_args(argv)
-    constats = constats_vps(racine_hermes())
+    constats = constats_vps(racine_hermes()) + constats_securite(a.objets)
     if a.comparer:
         connues = lignes_de_fiche(a.comparer)
         if connues is None:
