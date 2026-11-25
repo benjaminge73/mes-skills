@@ -1,8 +1,8 @@
 # Liste d'aiguillage : plan léger ou plan complet
 
-Qui la joue : un juge modèle appelé par `_partage/scripts/aiguiller-plan.py`, deux fois, sur la demande et les fichiers pressentis, avant de proposer un plan léger (`plan-notion/plan-leger.md`). Le fichier se garde non coché. Le plan complet est le défaut : « léger » n'est rendu que si les deux passages répondent « non » à chaque case, preuve à l'appui ; Benjamin valide ensuite le passage en léger.
+Qui la joue : d'abord le juge Jev, appelé par `_partage/scripts/aiguiller-plan.py`, deux fois, sur la demande et les fichiers pressentis ; puis, s'il rend « léger », la session, qui recopie la liste et prouve chaque case avant de proposer le plan léger (`plan-notion/plan-leger.md`). Le fichier se garde non coché. Le plan complet est le défaut : « léger » n'est proposé que si le juge répond « non » à chaque case aux deux passages **et** que la session écrit une preuve à chaque case ; Benjamin valide ensuite.
 
-Une case répond `non` (la demande ne touche pas ceci, et la preuve le montre), `oui` (elle le touche) ou `doute` (rien dans la demande ni dans les fichiers ne permet de l'exclure). La trace routinière d'un plan (sa page, sa branche, sa PR, son entrée de changelog) ne compte dans aucune case.
+Le juge ne rend qu'une note par case, sans justification : la preuve de la forme demandée ci-dessous est écrite par la session. Dans sa copie, une case tenue se coche avec `— preuve : …` ; une case qu'elle ne peut pas prouver se laisse décochée avec `— non cochée : <raison>`, et le plan est alors complet. La trace routinière d'un plan (sa page, sa branche, sa PR, son entrée de changelog) ne compte dans aucune case.
 
 ## Les neuf cases
 
