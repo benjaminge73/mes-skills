@@ -9,19 +9,36 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
 import subprocess
 import sys
 import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 SCRIPT = (Path(__file__).resolve().parents[1] / "plugins" / "nommage-sessions"
           / "hooks" / "nommer_session.py")
 
 
+def racine_temporaire() -> Path:
+    """Racine des dépôts d'essai, jamais sous un dossier caché.
+
+    Le hook écarte comme projet tout dépôt enfoui sous un dossier caché : si TMPDIR
+    pointe vers un tel dossier, les tests dépendraient de l'environnement. On prend donc
+    ``gettempdir()`` si son chemin résolu n'a aucun dossier caché, sinon ``/tmp``.
+    """
+    for candidat in (tempfile.gettempdir(), "/tmp"):
+        chemin = Path(candidat).resolve()
+        if chemin.is_dir() and not any(part.startswith(".") for part in chemin.parts):
+            return chemin
+    raise RuntimeError("aucune racine temporaire sans dossier caché : ni gettempdir(), ni /tmp")
+
+
 class NommerSession(unittest.TestCase):
     def setUp(self):
-        self.tmp = Path(tempfile.mkdtemp())
+        self.tmp = Path(tempfile.mkdtemp(prefix="nommage-", dir=racine_temporaire()))
+        self.addCleanup(shutil.rmtree, self.tmp, ignore_errors=True)
         self.depot = self.tmp / "mon-projet"
         self.depot.mkdir()
         subprocess.run(["git", "init", "-q", str(self.depot)], check=True)
@@ -200,6 +217,23 @@ class NommerSession(unittest.TestCase):
                                    session_title="[Plugin de nommage - VPS]"), env_en_plus=env)
         self.assertEqual(self.titre_rendu(r), "[Mon-projet - VPS] Plugin de nommage")
 
+    def test_un_depot_enfoui_sous_un_dossier_cache_n_est_jamais_un_projet(self):
+        """Caractérisation (test de caractérisation : il passe dès l'écriture) : un dépôt au nom
+        non caché, enfoui sous ``.claude`` comme ``~/.claude/plugins/marketplaces/atelier``,
+        ne devient pas le projet de la session. Il attrape un hook qui ne regarderait que le nom
+        du dépôt et pas ses dossiers parents cachés."""
+        maison = self.tmp / "maison"
+        depot_cache = maison / ".claude" / "plugins" / "marketplaces" / "atelier"
+        depot_cache.mkdir(parents=True)
+        subprocess.run(["git", "init", "-q", str(depot_cache)], check=True)
+        env = {"HOME": str(maison)}
+        r = self.jouer(self.entree(cwd=str(maison)), env_en_plus=env)
+        self.assertEqual(self.titre_rendu(r), "[Plugin de nommage - VPS]")
+        self.jouer(self.outil(depot_cache / "a.md", cwd=depot_cache), env_en_plus=env)
+        r = self.jouer(self.entree(cwd=str(maison), prompt="suite",
+                                   session_title="[Plugin de nommage - VPS]"), env_en_plus=env)
+        self.assertIsNone(self.titre_rendu(r))
+
     def test_sans_autre_dossier_les_reglages_laissent_le_crochet_a_trois_mots(self):
         maison = self.tmp / "maison"
         (maison / ".claude").mkdir(parents=True)
@@ -234,6 +268,24 @@ class NommerSession(unittest.TestCase):
         r = self.jouer(self.entree(), env_en_plus={"NOMMAGE_SESSIONS_INTERNE": "1"})
         self.assertIsNone(self.titre_rendu(r))
         self.assertEqual(self.nb_appels(), 0)
+
+
+class SousUnDossierCache(unittest.TestCase):
+    """Régression : un TMPDIR sous un dossier caché ne doit pas rendre NommerSession rouge.
+
+    Sans correctif, ``tempfile.mkdtemp()`` pose les dépôts d'essai sous ce dossier caché,
+    et le hook les écarte comme projets. Le cas est forcé ici, sans dépendre de TMPDIR.
+    """
+
+    def test_un_test_de_nommage_passe_meme_si_tempdir_est_cache(self):
+        racine = Path(tempfile.mkdtemp(prefix="nommage-racine-"))
+        self.addCleanup(shutil.rmtree, racine, ignore_errors=True)
+        cache = racine / ".cache-essai"
+        cache.mkdir()
+        with mock.patch.object(tempfile, "tempdir", str(cache)):
+            resultat = unittest.TestResult()
+            NommerSession("test_un_titre_sans_prefixe_est_prefixe_du_nom_du_depot").run(resultat)
+        self.assertTrue(resultat.wasSuccessful(), resultat.failures + resultat.errors)
 
 
 if __name__ == "__main__":
