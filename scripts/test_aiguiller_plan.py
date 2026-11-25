@@ -311,6 +311,25 @@ class Aiguillage(unittest.TestCase):
         for requete in serveur.requetes:
             self.assertEqual(requete["entetes"].get("authorization"), "Bearer cle-du-fichier-98765")
 
+    # Attrape : un secret écrit avec des espaces autour du séparateur (ou sous la forme « Bearer <jeton> »)
+    # que le filtre ne voit pas, donc envoyé à Jev. Valeurs fausses, écrites ici seulement pour le test.
+    # Attendu : code 2, aucune requête reçue, la valeur absente de la sortie standard comme de la sortie d'erreur.
+    def test_secret_ecrit_avec_des_espaces_rend_code_2_sans_appel(self):
+        cas = {
+            "password: valeur": ("password: hunter2secret", "hunter2secret"),
+            "DB_PASSWORD = valeur": ("DB_PASSWORD = s3cr3tvalue12", "s3cr3tvalue12"),
+            "Authorization: Bearer": ("Authorization: Bearer abcdefghijklmnop", "abcdefghijklmnop"),
+        }
+        for nom, (demande, valeur) in cas.items():
+            with self.subTest(nom):
+                serveur = self.serveur(notes(lambda ident, numero: 0.1))
+                code, stdout, stderr = self.lancer(url=serveur.url, demande=demande + "\n")
+                sortie = self.assertImpossible(code, stdout)
+                self.assertIn("secret", sortie["erreur"])
+                self.assertEqual(serveur.requetes, [], "aucune requête ne doit partir")
+                for texte in (stdout, stderr):
+                    self.assertNotIn(valeur, texte, "la valeur du secret ne doit pas être recopiée")
+
 
 if __name__ == "__main__":
     unittest.main()
