@@ -159,7 +159,7 @@ qui est déjà su.** Six gisements, du moins cher au plus cher :
    comprises. Le pilote ne rejoue lui-même que ce que le sondeur n'a pas pu trancher, chacun avec
    sa preuve ; ce qui reste non vérifié va dans `Contraintes techniques vérifiées`.
 
-   **Les faits à décision.** Avant d'écrire les questions, le pilote confronte aux options chaque fait
+   **Les faits à décision.** Avant d'écrire les questions du plan, le pilote confronte aux options chaque fait
    coché en C1, C4, C8, C10, C11 ou C12 de la fiche : un fait qui change une option devient une
    question ou entre dans cette option. Une case que le contrôle de la fiche liste « preuve partielle : Cn »
    se confronte comme les autres, quel que soit son numéro ; le pilote ne joue lui-même la partie
