@@ -1112,5 +1112,141 @@ class RappelRevue(unittest.TestCase):
         self.assertPasse(self.jouer("noter", "pas du json {"))
 
 
+def entree_read(chemin, offset=None, limit=None, session="session-9", agent=None) -> dict:
+    """Appel PreToolUse de l'outil Read ; ``agent`` présent = un sous-agent le porte."""
+    entree_outil = {"file_path": str(chemin)}
+    if offset is not None:
+        entree_outil["offset"] = offset
+    if limit is not None:
+        entree_outil["limit"] = limit
+    entree = {"hook_event_name": "PreToolUse", "session_id": session,
+              "tool_name": "Read", "tool_input": entree_outil}
+    if agent is not None:
+        entree["agent_id"] = agent
+    return entree
+
+
+def entree_bash(commande, session="session-9", agent=None) -> dict:
+    """Appel PreToolUse de l'outil Bash ; ``agent`` présent = un sous-agent le porte."""
+    entree = {"hook_event_name": "PreToolUse", "session_id": session,
+              "tool_name": "Bash", "tool_input": {"command": commande}}
+    if agent is not None:
+        entree["agent_id"] = agent
+    return entree
+
+
+class RefuserRelectureRegles(unittest.TestCase):
+    """Hook PreToolUse (Read|Bash) : refuse la relecture exacte d'un fichier de règles du plugin.
+
+    Un fichier de règles est un fichier sous ``plans-notion/…/skills/``. Une relecture
+    exacte (même chemin et même plage, ou même commande Bash) d'un fichier inchangé
+    est refusée : décision ``deny`` sur stdout, code 0. Chaque test porte son témoin :
+    la même entrée, rendue refusée ailleurs, prouve que le silence n'est pas un hook mort.
+    """
+    SCRIPT = "refuser_relecture_regles.py"
+
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.racine = Path(tmp.name)
+        self.home = self.racine / "home"
+        self.home.mkdir()
+        self.etat = self.home / ".cache" / "plans-notion" / "lectures"
+        self.regle = self.racine / "plans-notion" / "0.82.0" / "skills" / "_partage" / "regle.md"
+        self.regle.parent.mkdir(parents=True)
+        self.regle.write_text("# Règle\n", encoding="utf-8")
+
+    def lancer(self, entree) -> subprocess.CompletedProcess:
+        # HOME redirigé : l'état du hook (~/.cache/plans-notion/lectures/) reste dans le temporaire.
+        env = dict(os.environ, HOME=str(self.home))
+        return subprocess.run([sys.executable, str(HOOKS / self.SCRIPT)],
+                              input=json.dumps(entree), capture_output=True, text=True,
+                              timeout=30, env=env)
+
+    def assertPasse(self, r):
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(r.stdout, "", f"le hook aurait dû laisser passer, il a rendu : {r.stdout}")
+
+    def assertRefuse(self, r) -> str:
+        self.assertEqual(r.returncode, 0, r.stderr)
+        decision = json.loads(r.stdout)["hookSpecificOutput"]
+        self.assertEqual(decision["hookEventName"], "PreToolUse")
+        self.assertEqual(decision["permissionDecision"], "deny")
+        return decision["permissionDecisionReason"]
+
+    def test_une_seconde_lecture_exacte_d_une_regle_inchangee_est_refusee(self):
+        for entree in (entree_read(self.regle), entree_bash(f"cat {self.regle}")):
+            with self.subTest(outil=entree["tool_name"]):
+                self.assertPasse(self.lancer(entree))  # première lecture : passe et s'inscrit
+                motif = self.assertRefuse(self.lancer(entree))
+                self.assertIn("déjà lu à l'appel", motif)
+                self.assertIn("inchangé : relis ton contexte", motif)
+
+    def test_une_regle_modifiee_depuis_la_lecture_passe_de_nouveau(self):
+        entree = entree_read(self.regle)
+        self.assertPasse(self.lancer(entree))
+        self.assertRefuse(self.lancer(entree))  # témoin : sans modification, la relecture est refusée
+        apres = self.regle.stat().st_mtime + 60
+        os.utime(self.regle, (apres, apres))  # la date de modification change, le contenu non
+        self.assertPasse(self.lancer(entree))
+
+    def test_une_autre_plage_du_meme_fichier_passe(self):
+        relu = entree_read(self.regle, offset=1, limit=10)
+        self.assertPasse(self.lancer(relu))
+        self.assertRefuse(self.lancer(relu))  # témoin : la même plage est refusée
+        self.assertPasse(self.lancer(entree_read(self.regle, offset=11, limit=10)))
+
+    def test_apres_un_pre_compact_la_relecture_passe(self):
+        entree = entree_read(self.regle)
+        self.assertPasse(self.lancer(entree))
+        self.assertRefuse(self.lancer(entree))  # témoin : refusée avant la compaction
+        r = self.lancer({"hook_event_name": "PreCompact", "session_id": "session-9"})
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertPasse(self.lancer(entree))
+
+    def test_un_sous_agent_n_est_jamais_refuse(self):
+        entree = entree_read(self.regle)
+        self.assertPasse(self.lancer(entree))
+        self.assertRefuse(self.lancer(entree))  # témoin : le pilote est refusé
+        for agent in ("agent-123", ""):
+            with self.subTest(agent_id=agent):
+                self.assertPasse(self.lancer(entree_read(self.regle, agent=agent)))
+
+    def test_un_fichier_hors_du_plugin_n_est_jamais_refuse(self):
+        hors = self.racine / "notes" / "skills" / "regle.md"
+        hors.parent.mkdir(parents=True)
+        hors.write_text("x\n", encoding="utf-8")
+        # Un fichier du plugin qui n'est pas sous skills/ n'est pas un fichier de règles.
+        readme = self.racine / "plans-notion" / "README.md"
+        readme.write_text("x\n", encoding="utf-8")
+        self.assertPasse(self.lancer(entree_read(self.regle)))  # témoin : une règle est refusée
+        self.assertRefuse(self.lancer(entree_read(self.regle)))
+        for chemin in (hors, readme):
+            with self.subTest(chemin=str(chemin)):
+                for _ in range(2):
+                    self.assertPasse(self.lancer(entree_read(chemin)))
+
+    # Extra (hors test attendu, justifié) : attrape un garde qui refuserait toute commande Bash
+    # citant un chemin du plugin, script compris (`python3 …/skills/_partage/scripts/x.py`).
+    def test_un_script_du_plugin_lance_en_bash_n_est_jamais_refuse(self):
+        script = self.regle.parent / "scripts" / "x.py"
+        script.parent.mkdir()
+        script.write_text("print('ok')\n", encoding="utf-8")
+        lecture = entree_bash(f"cat {script}")
+        self.assertPasse(self.lancer(lecture))
+        self.assertRefuse(self.lancer(lecture))  # témoin : la lecture Bash du même fichier est refusée
+        execution = entree_bash(f"python3 {script}")
+        self.assertPasse(self.lancer(execution))
+        self.assertPasse(self.lancer(execution))
+
+    # Extra (hors test attendu, justifié) : attrape un identifiant de session « ../… » qui
+    # écrirait l'état hors de ~/.cache/plans-notion/lectures/ (le nom doit être assaini).
+    def test_un_identifiant_de_session_ne_sort_pas_du_dossier_d_etat(self):
+        self.assertPasse(self.lancer(entree_read(self.regle, session="../../evasion")))
+        ecrits = [p for p in self.racine.rglob("*") if p.is_file() and p != self.regle]
+        self.assertTrue(ecrits, "témoin : une première lecture doit inscrire quelque chose")
+        self.assertEqual([p for p in ecrits if self.etat not in p.parents], [])
+
+
 if __name__ == "__main__":
     unittest.main()
