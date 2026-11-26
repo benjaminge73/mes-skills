@@ -1602,6 +1602,21 @@ class HooksBashCommandeNeutre(unittest.TestCase):
         self.assertEqual(len(decouverts), 1)
         self.assertEqual(violations, [])
 
+    def test_neutre_un_hook_qui_exige_session_id_fait_rougir_le_controle(self):
+        # Panne attrapée : la charge du contrôle n'avait ni session_id ni cwd. Un hook qui
+        # sort sans session_id (refuser_relecture_regles.py) restait muet, et le contrôle passait
+        # sans que le hook ait rien joué. Factice : muet sans session_id, bavard avec.
+        corps = ("import json, sys\n"
+                 "entree = json.loads(sys.stdin.read())\n"
+                 "if 'session_id' in entree:\n"
+                 "    print('bonjour')\n")
+        with tempfile.TemporaryDirectory() as tmp:
+            racine = Path(tmp)
+            self.poser_plugin(racine, "exigeant", self.hook_pretool_bash("exigeant.py"), "exigeant.py", corps)
+            violations = controle_hooks_neutres.controle_neutre(racine)
+        self.assertTrue(violations, "un hook qui répond dès que session_id est là doit faire rougir le contrôle")
+        self.assertIn("exigeant.py", violations[0])
+
     def test_neutre_un_hook_declare_dans_plugin_json_est_decouvert(self):
         # Panne attrapée : le contrôle ne lisait que hooks.json ; un hook Bash déclaré
         # dans la clé ``hooks`` de plugin.json restait invisible.

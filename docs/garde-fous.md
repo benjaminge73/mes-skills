@@ -236,8 +236,8 @@ n'est prévu (`bypass_actors` vide). Retour arrière :
 ## Les hooks sont tous de type command
 
 Décision Q14 (a), 2026-11-26 : les hooks des plugins sont tous de type command.
-Constat vérifié le même jour : les 16 hooks déclarés dans les deux `hooks.json`
-(14 dans `plans-notion`, 2 dans `nommage-sessions`) lancent un script local,
+Constat vérifié le même jour : les 20 entrées de hooks déclarées dans les deux `hooks.json`
+(18 dans `plans-notion`, 2 dans `nommage-sessions`) lancent 15 scripts locaux,
 et aucun `plugin.json` ne déclare de hook. Un hook de ce type ne fait donc aucun
 appel de modèle par lui-même. Le seul appel de modèle des hooks est celui que
 pose `plugins/nommage-sessions/hooks/nommer_session.py` : le titrage d'une session

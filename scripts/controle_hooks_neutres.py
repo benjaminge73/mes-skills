@@ -17,7 +17,16 @@ import re
 import subprocess
 from pathlib import Path
 
-COMMANDE_NEUTRE = json.dumps({"tool_name": "Bash", "tool_input": {"command": "ls"}})
+# Charge telle que Claude Code l'envoie à un hook PreToolUse : des hooks lisent aussi
+# session_id et cwd (refuser_relecture_regles.py sort sans session_id). « / » : un cwd existant,
+# hors de tout dépôt, pour qu'aucun hook ne lise l'état d'un projet.
+COMMANDE_NEUTRE = json.dumps({
+    "session_id": "controle-neutre",
+    "cwd": "/",
+    "hook_event_name": "PreToolUse",
+    "tool_name": "Bash",
+    "tool_input": {"command": "ls"},
+})
 DELAI_SECONDES = 30
 _SCRIPT = re.compile(r'\$\{CLAUDE_PLUGIN_ROOT\}/([^"\s]+)')
 
