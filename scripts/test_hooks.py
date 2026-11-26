@@ -1482,6 +1482,43 @@ class RefuserBalisesComposio(unittest.TestCase):
         # Doute (fichier absent pour une autre raison) : le hook laisse passer.
         self.permis("composio execute NOTION_UPDATE_PAGE_MARKDOWN -d @absent.json")
 
+    def refuse_fabriquee(self, commande: str):
+        # Charge produite dans la commande même : illisible au contrôle, donc refusée (code 2),
+        # avec le conseil de la construire dans un appel à part.
+        r = self.jouer(commande)
+        self.assertEqual(r.returncode, 2, f"aurait dû être refusée : {commande!r} {r.stderr}")
+        self.assertIn("appel à part", r.stderr)
+
+    def test_une_charge_nommee_et_ecrite_par_une_commande_avant_composio_est_refusee(self):
+        # Panne D1a : « python3 gen.py --out args.json » nomme le fichier et peut l'écrire ;
+        # le hook le prenait pour illisible et laissait passer.
+        self.refuse_fabriquee("python3 gen.py --out args.json && composio execute NOTION_UPDATE_PAGE_MARKDOWN -d @args.json")
+
+    def test_une_charge_absente_que_la_commande_precedente_peut_creer_est_refusee(self):
+        # Panne D1b : le fichier est introuvable au contrôle, une commande d'avant peut le produire.
+        self.refuse_fabriquee("python3 gen.py && composio execute NOTION_UPDATE_PAGE_MARKDOWN -d @args.json")
+
+    def test_un_stdin_produit_par_autre_chose_que_echo_ou_printf_est_refuse(self):
+        # Panne D1c : « python3 gen.py | composio … -d - » passait, le stdin n'étant ni echo ni printf.
+        self.refuse_fabriquee("python3 gen.py | composio execute NOTION_UPDATE_PAGE_MARKDOWN -d -")
+
+    def test_une_lecture_avant_composio_juge_le_fichier_sur_son_contenu(self):
+        # Un segment de simple lecture (cat) qui nomme le fichier ne l'exempte pas : son contenu est contrôlé.
+        self.fichier("args.json", self.charge(old_str="x", new_str="<b>gras</b>"))
+        self.refuse("cat args.json && composio execute NOTION_UPDATE_PAGE_MARKDOWN -d @args.json")
+
+    def test_une_lecture_avant_composio_laisse_passer_un_fichier_propre(self):
+        self.fichier("args.json", self.charge(old_str="x", new_str="**gras**"))
+        self.permis("cat args.json && composio execute NOTION_UPDATE_PAGE_MARKDOWN -d @args.json")
+
+    def test_un_fichier_propre_seul_passe(self):
+        self.fichier("args.json", self.charge(old_str="x", new_str="**gras**"))
+        self.permis("composio execute NOTION_UPDATE_PAGE_MARKDOWN -d @args.json")
+
+    def test_un_stdin_echo_propre_passe(self):
+        charge = json.dumps(self.charge(old_str="x", new_str="**gras**"), ensure_ascii=False)
+        self.permis(f"echo '{charge}' | composio execute NOTION_UPDATE_PAGE_MARKDOWN -d -")
+
     def test_une_commande_sans_composio_passe(self):
         self.permis('git commit -m "<b>x</b>" && echo \'<i>y</i>\' > notes.md')
 
