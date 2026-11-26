@@ -5,6 +5,8 @@ Notion (un outil de pages et de bases de données) où atterrit ce que le tri de
 plan ne peut pas régler tout de suite. Les noms ci-dessous sont exacts, accents et
 apostrophes droites compris : le garde de clôture et le plan Hermes les lisent tels quels.
 
+Sommaire : à quoi elle sert · où elle est · schéma · vues · règles.
+
 Sigles : **PR** (demande de fusion d'une branche dans `main`), **CI** (tests et
 déploiement automatiques sur GitHub), **Hal** (l'agent Hermes qui reprend les restes
 datés), **Hermes** (la couche d'agents du poste, sur le VPS, serveur privé virtuel).
@@ -41,13 +43,14 @@ remplace pas le tri : elle se branche dessus et recueille ce qu'il laisse dormir
 | `Plan d'origine` | relation vers « Plans Claude » | Le plan qui a laissé le reste. |
 | `Repris par` | relation vers « Plans Claude » | Le plan qui l'a repris. Pas de relation inverse. |
 | `Échéance` | date | Date butoir, si elle existe. |
-| `État` | select | `ouvert`, `repris`, `fait`, `caduc`, `écarté`. Une ligne neuve s'écrit à `ouvert`. |
+| `État` | select | `ouvert`, `repris`, `fait`, `caduc`, `écarté`, `en cours` (sens non documenté). Une ligne neuve s'écrit à `ouvert`. |
 | `Condition` | texte | La date ou le critère qui déclenche le reste. |
 | `Contexte` | texte | Ce qu'il faut savoir pour le reprendre. |
 | `Journal` | texte | Historique de la ligne, en texte libre. |
 
 Valeurs d'`État` : `ouvert` = à traiter ; `repris` = pris par un plan ; `fait` = terminé ;
-`caduc` = plus d'objet ; `écarté` = retiré par Benjamin.
+`caduc` = plus d'objet ; `écarté` = retiré par Benjamin. `en cours` est présente dans la base,
+sens non documenté : aucun script ne l'écrit.
 
 ## Vues
 
@@ -70,10 +73,26 @@ Valeurs d'`État` : `ouvert` = à traiter ; `repris` = pris par un plan ; `fait`
 6. **Rattrapage.** Les restes des 10 derniers plans clos sont versés (Q6).
 7. **Ouverture d'un plan.** Le chapitre `Restes repris`, en tête de page, cite chaque ligne
    `ouvert` des dépôts du plan (propriété `Repo` ; un plan à plusieurs dépôts les liste tous).
-   Un plan ne reprend que les lignes de **son sujet** : une décision de son sujet devient une
-   question ouverte. Les autres sont citées « laissée ouverte », avec leur raison, et restent
-   dans les vues de Benjamin ; une décision hors sujet ne devient pas une question du plan
-   (Q9). Benjamin retire une reprise : la ligne passe alors « laissée ouverte » (Q3).
+   Un plan reprend **par défaut** chaque ligne. Une ligne reprise devient une étape (geste ou
+   vérification), une question ouverte si c'est une décision, ou une puce de `La suite`
+   avec son déclencheur (suivi). Les décisions d'un même thème partagent une question (une
+   option par ligne, chaque ligne en lien) ; la clôture passe la ligne `fait` avec la réponse
+   à son `Journal`, ou la remet `ouvert` si Benjamin n'a pas répondu et a contesté la reco.
+   Une ligne n'est laissée ouverte que pour une des raisons suivantes,
+   citée à côté de la ligne par sa lettre, sous la forme `laissée ouverte (<lettre>) : <raison>` :
+   - **(a)** condition ou échéance pas encore atteinte. Confrontée à l'état réel (règle 5), elle
+     doit être réellement non atteinte : une `Condition` renseignée ne suffit pas ;
+   - **(b)** geste qui exige les comptes ou la main de Benjamin (connexion, paiement, appareil) ;
+   - **(c)** plus gros qu'une étape moyenne, ou travail dans un autre dépôt ;
+   - **(d)** contredit le sujet du plan : le faire défairait ce que le plan construit ;
+   - **(e)** déjà portée par un autre plan ouvert, nommé et lié.
+
+   Exemple : `- [titre en lien] — laissée ouverte (a) : échéance <date> non atteinte.`
+
+   Un plan reprend **au plus 10 lignes**, dont **au plus 5 questions** venues des restes, les
+   plus anciennes d'abord. Le surplus se laisse en **(p)** « au-delà du plafond » et reste
+   ouvert pour un plan suivant du même dépôt. Benjamin retire une reprise : la ligne passe
+   alors « laissée ouverte » (Q3), avec la lettre de son motif, (d) à défaut.
 8. **Qui agit.** À la clôture, le pilote propose `Pour`. Hal confirme, ou renvoie la ligne
    à Benjamin (Q5). Hal peut agir lui-même, déployer compris ; à la fin d'un plan, il
    ouvre une PR que la CI merge si elle est verte (décision de Benjamin, 2026-11-16).
@@ -84,8 +103,11 @@ Valeurs d'`État` : `ouvert` = à traiter ; `repris` = pris par un plan ; `fait`
     plan Hermes. D'ici là, rien ne rappelle un reste daté (Q4).
 11. **Garde.** Deux scripts, code 1 pour chacun. `restes-sans-ligne.py` compare le miroir
     local de la page et l'export des lignes du plan : code 1 refuse le passage à `a merger`
-    (Q12). `restes-repris.py` compare le chapitre `Restes repris` et les lignes `ouvert` des
-    dépôts du plan : code 1 bloque le passage à `en revue` (Q8). Les deux sont dans
+    (Q12). `restes-repris.py` vérifie le chapitre `Restes repris` contre les lignes `ouvert`
+    des dépôts du plan : chaque ligne doit être reprise, ou laissée ouverte avec une lettre de
+    la règle 7 et une raison non vide ; il rend aussi 1 au-delà de 10 reprises, et pour un (p)
+    posé sous ce plafond sur une ligne qui n'est pas une `décision`. Il ne compte pas les
+    questions (une question regroupe plusieurs lignes) : le plafond de 5 se relit. Code 1 bloque le passage à `en revue` (Q8). Les deux sont dans
     `_partage/scripts/`.
 12. **Schéma figé.** Le plan Hermes s'appuie sur ce schéma, tel qu'écrit ici, une fois ce
     plan passé à `valide` (Q14).
