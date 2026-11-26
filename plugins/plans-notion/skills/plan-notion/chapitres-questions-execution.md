@@ -78,7 +78,7 @@ choix cochée**, et sa ligne de preuve cite son message mot pour mot :
   `(reco appliquée par défaut)`, et le H3 passe à `✅ Q<n> — …` dans le même geste.
 
 **Les restes repris.** Chaque ligne `ouvert` de la base « Restes » des dépôts du plan, relevée
-à la création (`plan-maitre.md`, « Le deuxième plan d'un projet crée le maître », point 1), est
+à la création (`naissance-du-maitre.md`, « Le deuxième plan d'un projet crée le maître », point 1), est
 tranchée ici (`${CLAUDE_PLUGIN_ROOT}/skills/_partage/restes.md`, règle 7) :
 
 - une ligne **du sujet du plan** est reprise : un H2 `Restes repris` en tête de page, une puce
@@ -174,7 +174,7 @@ chaque étape. La colonne `Vague` est **proposée** ici : deux étapes vont
 dans la même vague si elles ne partagent aucun fichier, si aucune ne dépend
 de l'autre, et si aucun fichier partagé (config, README, `CLAUDE.md`, test de
 décompte) n'est touché par les deux. Mais c'est `executer-plan-notion` qui la
-**calcule** à l'ouverture de l'exécution : le plan **déclare**, il
+**calcule** à l'ouverture de l'exécution (`remise-a-jour-execution.md`) : le plan **déclare**, il
 n'**ordonnance** pas — calculer les vagues ici ferait mentir un plan qui
 change d'ordre en route sans que le tableau ne le sache.
 

@@ -21,7 +21,7 @@ Il ne stashe jamais, ne pousse jamais, et remet l'arbre comme il l'a trouvé qua
 | Moment | Geste |
 | --- | --- |
 | Écrire un plan, enquêter sur le code, dresser la carte de voisinage | relever, sans `--appliquer` sur un checkout qu'une autre session peut occuper ; `--appliquer` seulement si l'arbre est propre et que la branche est la principale. En retard et rien appliqué : le dire dans le plan (« enquête sur `main` à <sha>, en retard de N ») |
-| Ouvrir la branche du plan (`ouverture.md`) | `git fetch` puis `git worktree add … -b <branche> origin/<principale>` : la branche part de la tête distante, pas de la référence locale périmée |
+| Ouvrir la branche du plan (`remise-a-jour-execution.md`) | `git fetch` puis `git worktree add … -b <branche> origin/<principale>` : la branche part de la tête distante, pas de la référence locale périmée |
 | Reprendre un plan sur une branche ou un worktree existant (session suivante, `a merger` rouge) | `--appliquer` depuis le worktree avant de reprendre |
 | **Avant de pousser la branche du plan et d'ouvrir la PR** (`cloture.md`, point 4) | `--appliquer` depuis le worktree, **puis** rejouer la suite locale si des commits ont été repris : le vert d'hier n'est pas le vert de la nouvelle base |
 

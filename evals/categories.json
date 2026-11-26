@@ -110,9 +110,12 @@
         "skills/_partage/scripts/qualite-doc.py",
         "skills/_partage/grille-doc.md",
         "skills/_partage/changelog-et-doc.md",
+        "skills/_partage/doc-vivante-activation.md",
+        "skills/_partage/doc-sous-le-capot.md",
         "skills/_partage/scripts/controle-changelog.py",
         "skills/_partage/scripts/doc-de-cloture.py",
         "skills/_partage/scripts/verifier-ligne-doc.py",
+        "skills/_partage/scripts/balises-html.py",
         "skills/_partage/scripts/plan-en-cours.py",
         "hooks/garde_fin_de_tour.py",
         "hooks/retirer_worktrees_clos.py",
@@ -124,6 +127,7 @@
     "perimetre": {
       "exerce": [
         "skills/executer-plan-notion/",
+        "skills/executer-plan-notion/remise-a-jour-execution.md",
         "skills/_partage/cout-des-plans.md",
         "agents/executant.md",
         "skills/_partage/bons-tests.md",
@@ -146,7 +150,10 @@
         "skills/_partage/lecture-deleguee.md",
         "skills/_partage/scripts/depart-dans-le-lot.py",
         "skills/plan-notion/plan-maitre.md",
-        "skills/_partage/scripts/perimetre-etape.py"
+        "skills/plan-notion/naissance-du-maitre.md",
+        "skills/_partage/scripts/perimetre-etape.py",
+        "skills/executer-plan-notion/brief-du-sous-agent.md",
+        "skills/executer-plan-notion/apres-chaque-etape.md"
       ],
       "cas": ["no-verify", "rien-hors-plan", "maitre-depart-ordre", "maitre-au-deuxieme-plan", "icone-des-plans", "deux-executants"],
       "plancher": 0.20

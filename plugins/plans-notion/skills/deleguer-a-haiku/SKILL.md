@@ -39,7 +39,7 @@ lire ce skill depuis lui. Copie en retard : geste de `plan-notion`. Code 2 : lec
 
 ## 1. Envoyer les étapes
 
-- Brief : la forme de `${CLAUDE_PLUGIN_ROOT}/skills/executer-plan-notion/etapes.md` (champs de l'étape en puces),
+- Brief : la forme de `${CLAUDE_PLUGIN_ROOT}/skills/executer-plan-notion/brief-du-sous-agent.md` (champs en puces),
   sans recopier l'`executant` ni le code : chemin et la ligne.
 - **En parallèle** si les fichiers sont disjoints, sinon en séquence (`${CLAUDE_PLUGIN_ROOT}/skills/_partage/vagues.md`).
 

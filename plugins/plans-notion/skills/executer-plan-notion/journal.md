@@ -57,7 +57,7 @@ Sous ce titre, l'entrée d'une étape porte :
   par le pilote et qu'elle est verte ; `unverifiable — <raison>` si elle n'a
   pas pu être jouée sur ce poste. La raison est obligatoire : un
   `unverifiable` nu est refusé. Le verdict s'écrit au moment de l'étape
-  (`etapes.md`, « Après chaque étape »), jamais reconstruit à la clôture.
+  (`apres-chaque-etape.md`), jamais reconstruit à la clôture.
 - pour une étape qui **repose sur un POC** : l'**écart POC / exécution**, au
   format « POC : 8, exécuté : 39 » — ce que la mesure avait annoncé, ce que
   l'exécution a trouvé — avec un renvoi à

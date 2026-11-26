@@ -1112,5 +1112,446 @@ class RappelRevue(unittest.TestCase):
         self.assertPasse(self.jouer("noter", "pas du json {"))
 
 
+def entree_read(chemin, offset=None, limit=None, session="session-9", agent=None, cwd=None) -> dict:
+    """Appel de l'outil Read ; ``agent`` présent = un sous-agent le porte ; ``cwd`` = dossier du shell."""
+    entree_outil = {"file_path": str(chemin)}
+    if offset is not None:
+        entree_outil["offset"] = offset
+    if limit is not None:
+        entree_outil["limit"] = limit
+    entree = {"hook_event_name": "PreToolUse", "session_id": session,
+              "tool_name": "Read", "tool_input": entree_outil}
+    if agent is not None:
+        entree["agent_id"] = agent
+    if cwd is not None:
+        entree["cwd"] = str(cwd)
+    return entree
+
+
+def entree_bash(commande, session="session-9", agent=None, cwd=None) -> dict:
+    """Appel de l'outil Bash ; ``agent`` présent = un sous-agent le porte ; ``cwd`` = dossier du shell."""
+    entree = {"hook_event_name": "PreToolUse", "session_id": session,
+              "tool_name": "Bash", "tool_input": {"command": commande}}
+    if agent is not None:
+        entree["agent_id"] = agent
+    if cwd is not None:
+        entree["cwd"] = str(cwd)
+    return entree
+
+
+class RefuserRelectureRegles(unittest.TestCase):
+    """Hook PreToolUse et PostToolUse (Read|Bash), et PreCompact : refuse la relecture exacte d'une règle.
+
+    Un fichier de règles est un fichier sous ``plans-notion/…/skills/``. Le PostToolUse
+    inscrit une lecture qui a abouti ; le PreToolUse ne fait que consulter et refuser
+    la répétition exacte d'un fichier inchangé (décision ``deny``, code 0). Une entrée
+    n'est comptée que si chaque fichier qu'elle lit est une règle existante. Chaque test
+    porte son témoin : la même entrée, refusée ailleurs, prouve que le silence n'est
+    pas un hook mort.
+    """
+    SCRIPT = "refuser_relecture_regles.py"
+    ANCIEN = 1_700_000_000.0
+
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        self.racine = Path(tmp.name)
+        self.home = self.racine / "home"
+        self.home.mkdir()
+        self.etat = self.home / ".cache" / "plans-notion" / "lectures"
+        self.regle = self.racine / "plans-notion" / "0.82.0" / "skills" / "_partage" / "regle.md"
+        self.regle.parent.mkdir(parents=True)
+        self.regle.write_text("# Règle\n", encoding="utf-8")
+
+    def lancer(self, entree) -> subprocess.CompletedProcess:
+        # HOME redirigé : l'état du hook (~/.cache/plans-notion/lectures/) reste dans le temporaire.
+        env = dict(os.environ, HOME=str(self.home))
+        return subprocess.run([sys.executable, str(HOOKS / self.SCRIPT)],
+                              input=json.dumps(entree), capture_output=True, text=True,
+                              timeout=30, env=env)
+
+    def post(self, entree) -> subprocess.CompletedProcess:
+        """Le même appel une fois réussi : l'événement PostToolUse."""
+        return self.lancer(dict(entree, hook_event_name="PostToolUse", tool_response="ok"))
+
+    def lire_abouti(self, entree):
+        """Un outil réussi : PreToolUse (doit passer), puis PostToolUse (inscrit la lecture)."""
+        self.assertPasse(self.lancer(entree))
+        self.assertPasse(self.post(entree))
+
+    def assertPasse(self, r):
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(r.stdout, "", f"le hook aurait dû laisser passer, il a rendu : {r.stdout}")
+
+    def assertRefuse(self, r) -> str:
+        self.assertEqual(r.returncode, 0, r.stderr)
+        decision = json.loads(r.stdout)["hookSpecificOutput"]
+        self.assertEqual(decision["hookEventName"], "PreToolUse")
+        self.assertEqual(decision["permissionDecision"], "deny")
+        return decision["permissionDecisionReason"]
+
+    def test_une_seconde_lecture_exacte_d_une_regle_qui_a_abouti_est_refusee(self):
+        for entree in (entree_read(self.regle), entree_bash(f"cat {self.regle}")):
+            with self.subTest(outil=entree["tool_name"]):
+                self.lire_abouti(entree)
+                motif = self.assertRefuse(self.lancer(entree))
+                self.assertIn("déjà lu à l'appel", motif)
+                self.assertIn("inchangé : relis ton contexte", motif)
+
+    def test_une_lecture_qui_n_aboutit_pas_n_est_pas_inscrite(self):
+        # R3 : sans PostToolUse, l'outil n'a pas abouti (interruption, permission refusée) :
+        # la relecture ne doit pas être refusée.
+        for entree in (entree_read(self.regle), entree_bash(f"cat {self.regle}")):
+            with self.subTest(outil=entree["tool_name"]):
+                self.assertPasse(self.lancer(entree))
+                self.assertPasse(self.lancer(entree))
+                # Témoin : une fois aboutie, la même entrée est refusée.
+                self.lire_abouti(entree)
+                self.assertRefuse(self.lancer(entree))
+
+    def test_une_regle_modifiee_depuis_la_lecture_passe_de_nouveau(self):
+        entree = entree_read(self.regle)
+        self.lire_abouti(entree)
+        self.assertRefuse(self.lancer(entree))  # témoin : sans modification, la relecture est refusée
+        apres = self.regle.stat().st_mtime + 60
+        os.utime(self.regle, (apres, apres))  # la date de modification change, le contenu non
+        self.assertPasse(self.lancer(entree))
+
+    def test_une_autre_plage_du_meme_fichier_passe(self):
+        relu = entree_read(self.regle, offset=1, limit=10)
+        self.lire_abouti(relu)
+        self.assertRefuse(self.lancer(relu))  # témoin : la même plage est refusée
+        self.assertPasse(self.lancer(entree_read(self.regle, offset=11, limit=10)))
+
+    def test_le_refus_d_un_read_sans_plage_nomme_le_chemin_sans_none(self):
+        # Un Read sans offset ni limit : le refus nomme le chemin, sans « (plage None+None) ».
+        # Attrape un message qui formate la plage même absente.
+        entree = entree_read(self.regle)
+        self.lire_abouti(entree)
+        motif = self.assertRefuse(self.lancer(entree))
+        self.assertIn(str(self.regle), motif)
+        self.assertNotIn("None", motif)
+        self.assertNotIn("(plage", motif)
+        # Une plage partielle (offset seul) ne doit pas afficher « None » non plus.
+        partielle = entree_read(self.regle, offset=5)
+        self.lire_abouti(partielle)
+        motif = self.assertRefuse(self.lancer(partielle))
+        self.assertIn(str(self.regle), motif)
+        self.assertNotIn("None", motif)
+
+    def test_apres_un_pre_compact_la_relecture_passe(self):
+        entree = entree_read(self.regle)
+        self.lire_abouti(entree)
+        self.assertRefuse(self.lancer(entree))  # témoin : refusée avant la compaction
+        r = self.lancer({"hook_event_name": "PreCompact", "session_id": "session-9"})
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertPasse(self.lancer(entree))
+
+    def test_un_sous_agent_ne_refuse_jamais_et_n_inscrit_rien_pour_le_pilote(self):
+        # R4 : le sous-agent lit (PreToolUse puis PostToolUse) ; la première lecture du pilote
+        # doit passer, car la lecture du sous-agent n'a rien inscrit.
+        for agent in ("agent-123", ""):
+            with self.subTest(agent_id=agent):
+                session = f"session-{agent or 'vide'}"
+                lecture_agent = entree_read(self.regle, session=session, agent=agent)
+                self.assertPasse(self.lancer(lecture_agent))
+                self.assertPasse(self.post(lecture_agent))
+                self.assertPasse(self.lancer(lecture_agent))  # le sous-agent n'est jamais refusé
+                pilote = entree_read(self.regle, session=session)
+                self.assertPasse(self.lancer(pilote))  # première lecture du pilote : passe
+                self.assertPasse(self.post(pilote))
+                self.assertRefuse(self.lancer(pilote))  # témoin : la relecture du pilote est refusée
+
+    def test_un_fichier_hors_du_plugin_n_est_jamais_refuse(self):
+        hors = self.racine / "notes" / "skills" / "regle.md"
+        hors.parent.mkdir(parents=True)
+        hors.write_text("x\n", encoding="utf-8")
+        # Un fichier du plugin qui n'est pas sous skills/ n'est pas un fichier de règles.
+        readme = self.racine / "plans-notion" / "README.md"
+        readme.write_text("x\n", encoding="utf-8")
+        self.lire_abouti(entree_read(self.regle))  # témoin : une règle est refusée à la relecture
+        self.assertRefuse(self.lancer(entree_read(self.regle)))
+        for chemin in (hors, readme):
+            with self.subTest(chemin=str(chemin)):
+                for _ in range(2):
+                    self.lire_abouti(entree_read(chemin))
+
+    # R1 : une commande qui lit une règle ET un autre fichier n'est jamais comptée.
+    # Attrape un garde qui date la commande par la seule règle : il refuserait à tort
+    # quand le second fichier change.
+    def test_une_commande_qui_lit_aussi_un_fichier_hors_du_plugin_n_est_jamais_comptee(self):
+        hors = self.racine / "notes" / "motifs.txt"
+        hors.parent.mkdir(parents=True, exist_ok=True)
+        hors.write_text("motif\n", encoding="utf-8")
+        seule = entree_bash(f"cat {self.regle}")
+        self.lire_abouti(seule)
+        self.assertRefuse(self.lancer(seule))  # témoin : la règle seule est refusée
+        for commande in (f"cat {self.regle} {hors}", f"grep -f {hors} {self.regle}"):
+            with self.subTest(commande=commande):
+                mixte = entree_bash(commande)
+                self.lire_abouti(mixte)
+                hors.write_text("autre motif\n", encoding="utf-8")
+                apres = hors.stat().st_mtime + 60
+                os.utime(hors, (apres, apres))  # le second fichier change, la règle non
+                self.assertPasse(self.lancer(mixte))
+
+    # R1 : une commande avec une redirection d'entrée (`<`) n'est jamais comptée.
+    def test_une_commande_avec_chevron_passe_deux_fois(self):
+        sans = entree_bash(f"cat {self.regle}")
+        self.lire_abouti(sans)
+        self.assertRefuse(self.lancer(sans))  # témoin : sans `<`, la relecture est refusée
+        avec = entree_bash(f"cat < {self.regle}")
+        self.lire_abouti(avec)
+        self.assertPasse(self.lancer(avec))
+
+    # R2 : un chemin relatif se résout dans le dossier du shell (`cwd`), et ce dossier fait
+    # partie de la clé : la même commande relative, depuis un autre dossier, passe.
+    def test_une_commande_relative_est_comptee_dans_son_dossier(self):
+        rel = "plans-notion/0.82.0/skills/_partage/regle.md"
+        depart_a, depart_b = self.racine / "depart-a", self.racine / "depart-b"
+        for depart in (depart_a, depart_b):
+            fichier = depart / rel
+            fichier.parent.mkdir(parents=True)
+            fichier.write_text("# Règle\n", encoding="utf-8")
+            # Même date des deux côtés : seul le dossier de départ distingue les deux lectures.
+            os.utime(fichier, (self.ANCIEN, self.ANCIEN))
+        commande = f"cat {rel}"
+        depuis_a = entree_bash(commande, cwd=depart_a)
+        self.lire_abouti(depuis_a)
+        self.assertRefuse(self.lancer(depuis_a))  # témoin : depuis le même dossier, refusée
+        self.assertPasse(self.lancer(entree_bash(commande, cwd=depart_b)))  # autre dossier : passe
+        with self.subTest(cas="sans cwd"):
+            sans_cwd = entree_bash(commande)  # sans cwd, un chemin relatif n'est pas compté
+            self.assertPasse(self.lancer(sans_cwd))
+            self.assertPasse(self.lancer(sans_cwd))
+
+    # R5 : une commande dont un argument varie (glob, dossier, `~`, `$`), ou une grep récursive,
+    # lit un contenu que la commande ne désigne pas de façon fixe : elle n'est jamais comptée.
+    # Attrape un garde qui date la commande par la seule règle : il la refuserait à tort quand
+    # l'autre contenu change.
+    def test_une_commande_qui_lit_un_contenu_variable_n_est_jamais_comptee(self):
+        autre = self.racine / "autre"
+        autre.mkdir()
+        (autre / "x.py").write_text("x = 1\n", encoding="utf-8")
+        notes = self.home / "notes.md"
+        notes.write_text("notes\n", encoding="utf-8")
+        regle = self.regle
+        cas = (
+            (f"grep -n motif {regle} {autre}/*.py", autre / "x.py"),  # glob
+            (f"cat {regle} {autre}", autre / "x.py"),  # dossier
+            (f"grep -rn motif {regle}", autre / "x.py"),  # grep récursif
+            (f"cat {regle} ~/notes.md", notes),  # tilde
+            (f"cat {regle} $HOME/notes.md", notes),  # variable
+        )
+        self.lire_abouti(entree_bash(f"cat {regle}", cwd=self.racine))
+        self.assertRefuse(self.lancer(entree_bash(f"cat {regle}", cwd=self.racine)))  # témoin
+        for commande, modifie in cas:
+            with self.subTest(commande=commande):
+                entree = entree_bash(commande, cwd=self.racine)
+                self.lire_abouti(entree)
+                modifie.write_text("autre contenu\n", encoding="utf-8")
+                apres = modifie.stat().st_mtime + 60
+                os.utime(modifie, (apres, apres))  # le contenu variable change, la règle non
+                self.assertPasse(self.lancer(entree))
+
+    # Extra (hors test attendu, justifié) : attrape un garde qui refuserait toute commande Bash
+    # citant un chemin du plugin, script compris (`python3 …/skills/_partage/scripts/x.py`).
+    def test_un_script_du_plugin_lance_en_bash_n_est_jamais_refuse(self):
+        script = self.regle.parent / "scripts" / "x.py"
+        script.parent.mkdir()
+        script.write_text("print('ok')\n", encoding="utf-8")
+        lecture = entree_bash(f"cat {script}")
+        self.lire_abouti(lecture)
+        self.assertRefuse(self.lancer(lecture))  # témoin : la lecture Bash du même fichier est refusée
+        execution = entree_bash(f"python3 {script}")
+        self.assertPasse(self.lancer(execution))
+        self.assertPasse(self.lancer(execution))
+
+    # Extra (hors test attendu, justifié) : attrape un `session_id` « ../… » qui écrirait
+    # l'état hors de ~/.cache/plans-notion/lectures/ (le nom doit être assaini).
+    def test_un_identifiant_de_session_ne_sort_pas_du_dossier_d_etat(self):
+        self.lire_abouti(entree_read(self.regle, session="../../evasion"))
+        ecrits = [p for p in self.racine.rglob("*") if p.is_file() and p != self.regle]
+        self.assertTrue(ecrits, "témoin : une lecture qui a abouti doit inscrire quelque chose")
+        self.assertEqual([p for p in ecrits if self.etat not in p.parents], [])
+
+
+class RefuserBalisesComposio(unittest.TestCase):
+    """Hook PreToolUse Bash : pas d'écriture ``composio`` Notion avec des balises HTML en texte neuf.
+
+    Lancé en sous-processus, dans un dossier temporaire qui sert de ``cwd`` au hook.
+    Un hook absent fait échouer ``setUp`` : sans cela, le code 2 que Python rend pour un
+    fichier introuvable aurait l'air d'un refus réussi.
+    """
+    SCRIPT = "refuser_balises_composio.py"
+    PAGE = "3a1f5c2e-8b7d-4e6a-9f10-2c3d4e5f6a7b"
+
+    def setUp(self):
+        self.assertTrue((HOOKS / self.SCRIPT).is_file(), f"hook absent : {HOOKS / self.SCRIPT}")
+        temporaire = tempfile.TemporaryDirectory()
+        self.addCleanup(temporaire.cleanup)
+        self.racine = Path(temporaire.name)
+
+    def jouer(self, commande: str, cwd: Path | None = None) -> subprocess.CompletedProcess:
+        entree = {"tool_name": "Bash", "tool_input": {"command": commande},
+                  "cwd": str(cwd or self.racine)}
+        return subprocess.run([sys.executable, str(HOOKS / self.SCRIPT)],
+                              input=json.dumps(entree), capture_output=True, text=True, timeout=30)
+
+    def refuse(self, commande: str, cwd: Path | None = None):
+        r = self.jouer(commande, cwd)
+        self.assertEqual(r.returncode, 2, f"aurait dû être refusée : {commande!r} {r.stderr}")
+        self.assertIn("balises-html.py nettoyer", r.stderr)
+
+    def permis(self, commande: str, cwd: Path | None = None):
+        r = self.jouer(commande, cwd)
+        self.assertEqual(r.returncode, 0, f"aurait dû passer : {commande!r} {r.stderr}")
+        self.assertEqual(r.stdout + r.stderr, "")
+
+    def charge(self, **champs):
+        return {"page_id": self.PAGE, "type": "update_content",
+                "update_content": {"content_updates": [champs]}}
+
+    def composio(self, slug: str, charge) -> str:
+        return f"composio execute {slug} -d '{json.dumps(charge, ensure_ascii=False)}'"
+
+    def fichier(self, nom: str, charge, dossier: Path | None = None) -> Path:
+        chemin = (dossier or self.racine) / nom
+        chemin.parent.mkdir(parents=True, exist_ok=True)
+        chemin.write_text(json.dumps(charge, ensure_ascii=False), encoding="utf-8")
+        return chemin
+
+    def test_une_balise_en_ligne_dans_une_ecriture_composio_est_refusee(self):
+        self.refuse(self.composio("NOTION_UPDATE_PAGE_MARKDOWN",
+                                  self.charge(old_str="Statut", new_str="<b>gras</b>")))
+
+    def test_une_balise_dans_un_fichier_de_charge_est_refusee(self):
+        chemin = self.fichier("args.json", self.charge(old_str="x", new_str="<code>y</code>"))
+        self.refuse(f"composio execute NOTION_UPDATE_PAGE_MARKDOWN -d @{chemin}")
+
+    def test_une_balise_echappee_dans_une_ecriture_composio_est_refusee(self):
+        # Forme réelle relevée : « \<b\> » dans le texte neuf, en ligne et en fichier.
+        charge = self.charge(old_str="x", new_str=r"\<b\>gras\</b\>")
+        with self.subTest("en ligne"):
+            self.refuse(self.composio("NOTION_UPDATE_PAGE_MARKDOWN", charge))
+        with self.subTest("par fichier"):
+            chemin = self.fichier("echappe.json", charge)
+            self.refuse(f"composio execute NOTION_UPDATE_PAGE_MARKDOWN -d @{chemin}")
+
+    def test_une_balise_passee_par_stdin_construit_dans_la_commande_est_refusee(self):
+        charge = json.dumps(self.charge(old_str="x", new_str="<b>gras</b>"), ensure_ascii=False)
+        self.refuse(f"echo '{charge}' | composio execute NOTION_UPDATE_PAGE_MARKDOWN -d -")
+
+    def test_une_charge_relative_se_resout_contre_le_cd_de_la_commande(self):
+        sous = self.racine / "sous"
+        self.fichier("args.json", self.charge(old_str="x", new_str="<i>y</i>"), dossier=sous)
+        self.refuse("cd sous && composio execute NOTION_UPDATE_PAGE_MARKDOWN -d @args.json")
+
+    def test_le_meme_texte_en_markdown_passe(self):
+        self.permis(self.composio("NOTION_UPDATE_PAGE_MARKDOWN",
+                                  self.charge(old_str="x", new_str="**gras** et `<b>code</b>`")))
+
+    def test_old_str_avec_balise_et_new_str_propre_passe(self):
+        # old_str doit pouvoir viser le texte fautif : seule la forme neuve est contrôlée.
+        self.permis(self.composio("NOTION_UPDATE_PAGE_MARKDOWN",
+                                  self.charge(old_str="<b>gras</b>", new_str="**gras**")))
+
+    def test_une_lecture_composio_avec_balise_passe(self):
+        self.permis(self.composio("NOTION_GET_PAGE_MARKDOWN", {"page_id": self.PAGE, "new_str": "<b>x</b>"}))
+
+    def test_un_fichier_de_charge_cree_dans_la_meme_commande_est_refuse_meme_propre(self):
+        # Le hook ne peut pas lire un fichier qui naît dans la commande : on refuse, et on dit
+        # de le construire d'abord. Le texte, ici markdown pur, ne change rien à la règle.
+        charge = json.dumps(self.charge(old_str="x", new_str="**propre**"), ensure_ascii=False)
+        self.refuse(f"echo '{charge}' > args.json && composio execute NOTION_UPDATE_PAGE_MARKDOWN -d @args.json")
+
+    def test_le_refus_d_un_fichier_cree_dit_de_le_construire_dans_un_appel_a_part(self):
+        # Panne R1 (message) : le refus doit dire quoi faire, en une phrase, sans ambiguïté.
+        charge = json.dumps(self.charge(old_str="x", new_str="**propre**"), ensure_ascii=False)
+        r = self.jouer(f"echo '{charge}' > args.json && composio execute NOTION_UPDATE_PAGE_MARKDOWN -d @args.json")
+        self.assertEqual(r.returncode, 2, r.stderr)
+        self.assertIn("construis le fichier dans un appel à part, puis écris dans le suivant", r.stderr)
+
+    def test_un_fichier_de_charge_modifie_sur_place_avant_composio_laisse_passer(self):
+        # Panne R2 : le hook lisait l'ancien contenu (avec <b>) alors que sed le corrige avant
+        # composio. Un fichier nommé avant composio est illisible au contrôle : on laisse passer.
+        self.fichier("args.json", self.charge(old_str="x", new_str="<b>gras</b>"))
+        self.permis("sed -i 's/gras/cuit/' args.json && composio execute NOTION_UPDATE_PAGE_MARKDOWN -d @args.json")
+
+    def test_un_fichier_de_charge_introuvable_sans_creation_laisse_passer(self):
+        # Doute (fichier absent pour une autre raison) : le hook laisse passer.
+        self.permis("composio execute NOTION_UPDATE_PAGE_MARKDOWN -d @absent.json")
+
+    def refuse_fabriquee(self, commande: str):
+        # Charge produite dans la commande même : illisible au contrôle, donc refusée (code 2),
+        # avec le conseil de la construire dans un appel à part.
+        r = self.jouer(commande)
+        self.assertEqual(r.returncode, 2, f"aurait dû être refusée : {commande!r} {r.stderr}")
+        self.assertIn("appel à part", r.stderr)
+
+    def test_une_charge_nommee_et_ecrite_par_une_commande_avant_composio_est_refusee(self):
+        # Panne D1a : « python3 gen.py --out args.json » nomme le fichier et peut l'écrire ;
+        # le hook le prenait pour illisible et laissait passer. Un args.json propre est là
+        # d'abord : seule la branche (a) peut refuser, pas l'absence du fichier.
+        self.fichier("args.json", self.charge(old_str="x", new_str="**propre**"))
+        with self.subTest("nom simple"):
+            self.refuse_fabriquee("python3 gen.py --out args.json && composio execute NOTION_UPDATE_PAGE_MARKDOWN -d @args.json")
+        with self.subTest("chemin ./"):
+            self.refuse_fabriquee("python3 gen.py --out ./args.json && composio execute NOTION_UPDATE_PAGE_MARKDOWN -d @args.json")
+
+    def test_une_charge_nommee_sous_une_autre_forme_de_chemin_est_refusee(self):
+        # Panne R1 : le nom est comparé comme chaîne ; « ./args.json », « $PWD/args.json » et
+        # l'option collée « -oargs.json » désignent le même fichier et passaient. Propre, présent.
+        self.fichier("args.json", self.charge(old_str="x", new_str="**propre**"))
+        with self.subTest("./ dans --out"):
+            self.refuse_fabriquee("python3 gen.py --out ./args.json && composio execute NOTION_UPDATE_PAGE_MARKDOWN -d @args.json")
+        with self.subTest("$PWD dans --out"):
+            self.refuse_fabriquee('python3 gen.py --out "$PWD/args.json" && composio execute NOTION_UPDATE_PAGE_MARKDOWN -d @args.json')
+        with self.subTest("-o collé"):
+            self.refuse_fabriquee("python3 gen.py -oargs.json && composio execute NOTION_UPDATE_PAGE_MARKDOWN -d @args.json")
+
+    def test_une_redirection_vers_un_chemin_relatif_cree_la_charge_et_est_refusee(self):
+        # Panne R1 (création) : « > ./args.json » crée le fichier, la forme écrite ne l'égalait pas.
+        charge = json.dumps(self.charge(old_str="x", new_str="**propre**"), ensure_ascii=False)
+        self.refuse_fabriquee(f"echo '{charge}' > ./args.json && composio execute NOTION_UPDATE_PAGE_MARKDOWN -d @args.json")
+
+    def test_une_charge_redirigee_sur_stdin_est_jugee_comme_un_fichier(self):
+        # Panne R4 : « -d - < args.json » lit le fichier et passait sans contrôle.
+        self.fichier("args.json", self.charge(old_str="x", new_str="<b>gras</b>"))
+        self.refuse("composio execute NOTION_UPDATE_PAGE_MARKDOWN -d - < args.json")
+
+    def test_une_charge_propre_redirigee_sur_stdin_passe(self):
+        self.fichier("args.json", self.charge(old_str="x", new_str="**gras**"))
+        self.permis("composio execute NOTION_UPDATE_PAGE_MARKDOWN -d - < args.json")
+
+    def test_une_charge_absente_que_la_commande_precedente_peut_creer_est_refusee(self):
+        # Panne D1b : le fichier est introuvable au contrôle, une commande d'avant peut le produire.
+        self.refuse_fabriquee("python3 gen.py && composio execute NOTION_UPDATE_PAGE_MARKDOWN -d @args.json")
+
+    def test_un_stdin_produit_par_autre_chose_que_echo_ou_printf_est_refuse(self):
+        # Panne D1c : « python3 gen.py | composio … -d - » passait, le stdin n'étant ni echo ni printf.
+        self.refuse_fabriquee("python3 gen.py | composio execute NOTION_UPDATE_PAGE_MARKDOWN -d -")
+
+    def test_une_lecture_avant_composio_juge_le_fichier_sur_son_contenu(self):
+        # Un segment de simple lecture (cat) qui nomme le fichier ne l'exempte pas : son contenu est contrôlé.
+        self.fichier("args.json", self.charge(old_str="x", new_str="<b>gras</b>"))
+        self.refuse("cat args.json && composio execute NOTION_UPDATE_PAGE_MARKDOWN -d @args.json")
+
+    def test_une_lecture_avant_composio_laisse_passer_un_fichier_propre(self):
+        self.fichier("args.json", self.charge(old_str="x", new_str="**gras**"))
+        self.permis("cat args.json && composio execute NOTION_UPDATE_PAGE_MARKDOWN -d @args.json")
+
+    def test_un_fichier_propre_seul_passe(self):
+        self.fichier("args.json", self.charge(old_str="x", new_str="**gras**"))
+        self.permis("composio execute NOTION_UPDATE_PAGE_MARKDOWN -d @args.json")
+
+    def test_un_stdin_echo_propre_passe(self):
+        charge = json.dumps(self.charge(old_str="x", new_str="**gras**"), ensure_ascii=False)
+        self.permis(f"echo '{charge}' | composio execute NOTION_UPDATE_PAGE_MARKDOWN -d -")
+
+    def test_une_commande_sans_composio_passe(self):
+        self.permis('git commit -m "<b>x</b>" && echo \'<i>y</i>\' > notes.md')
+
+
 if __name__ == "__main__":
     unittest.main()

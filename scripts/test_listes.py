@@ -42,7 +42,7 @@ LECTEURS = {
     ],
     "rapport-executant.md": [
         "plugins/plans-notion/agents/executant.md",
-        "plugins/plans-notion/skills/executer-plan-notion/etapes.md",
+        "plugins/plans-notion/skills/executer-plan-notion/brief-du-sous-agent.md",
     ],
     "relecture-plan.md": [
         "plugins/plans-notion/skills/plan-notion/passer-la-main.md",
