@@ -71,6 +71,9 @@ moment de jouer.
 Un cas dont le témoin nul passe ne mesure rien : il est trop indulgent. Un cas
 dont l'oracle échoue mesure autre chose que ce qu'on croit.
 
+**Ordre.** On écrit le cas, on vérifie son oracle et son témoin nul, avant la consigne longue.
+Un cas se relit dans une session qui n'a pas écrit la consigne : celle qui l'a écrite ne voit plus ce qui manque.
+
 Ensuite :
 
 - **Juger l'état final** — un fichier écrit, un commit fait, une commande
@@ -148,7 +151,7 @@ plus consigne), ou les deux.
   obtient 90 %, contre 95 % pour Opus ; l'effort `high` fait réfléchir 4 800 à
   7 800 jetons, contre 350 à 550 en `low`. Au passage de fumée, haiku n'a pas
   appelé l'outil `Skill` : il a écrit « à la manière » du skill, ce qui ne prouve
-  rien. Un petit modèle ne sert qu'à vérifier un format.
+  rien. Un petit modèle ne sert qu'à vérifier un format. Un skill délégué à un autre modèle se mesure aussi sur ce modèle (`EVALS_MODELE`), à la demande seulement.
 
 ## Mesurer le bruit avant de fixer un seuil
 
@@ -178,8 +181,8 @@ n'existe. L'intervalle de confiance à 95 % d'**une** moyenne vaut environ
 base et la tête, qui portent chacune leur bruit : leurs variances
 s'additionnent, et l'écart est `√2` fois plus incertain qu'une moyenne seule.
 `evals_ab.py` estime donc le bruit d'un écart à `√2/√(n·R)` en moyenne
-globale, et à `√2/√R` par cas. Avec 16 cas et 3 passages,
-`√2/√48 ≈ 0,20` : **± 20 points** sur la moyenne, et `√2/√3 ≈ 0,82` :
+globale, et à `√2/√R` par cas. Avec 18 cas et 3 passages,
+`√2/√54 ≈ 0,19` : **± 19 points** sur la moyenne, et `√2/√3 ≈ 0,82` :
 ± 82 points par cas. Un écart de 8 points entre deux versions ne prouve rien à
 cette taille ; prendre `1/√(n·R)` (≈ 0,14) ferait passer pour un signal ce
 qui n'est que du hasard.
@@ -191,13 +194,13 @@ des cas réels et non d'une formule.
 
 **Le seuil par cas est plus large que l'intervalle d'un cas**, et c'est voulu.
 Tester chaque cas à 95 % revient, sur `n` cas, à une probabilité
-`1 − 0,95ⁿ` qu'**au moins un** dépasse par pur hasard (≈ 56 % pour 16 cas) :
+`1 − 0,95ⁿ` qu'**au moins un** dépasse par pur hasard (≈ 60 % pour 18 cas) :
 la règle « un cas au-delà du bruit suffit » ferait échouer la CI une fois sur
 deux sans aucun changement (comparaisons multiples ; A/A réel du 2026-09-30,
 9 cas, où un cas a bougé de −10 pts alors que les deux jeux étaient
 identiques). `evals_ab.py` corrige donc le seuil par cas par Bonferroni :
-`z_n × rms`, avec `z_n = 1,96` pour un cas, ≈ 2,77 pour 9 cas, **≈ 2,95 pour
-16 cas** (rms de 0,0385 : ± 11 pts par cas au lieu de ± 7,5). Le seuil sur la
+`z_n × rms`, avec `z_n = 1,96` pour un cas, ≈ 2,77 pour 9 cas, **≈ 2,99 pour
+18 cas** (rms de 0,0390 : ± 12 pts par cas au lieu de ± 7,6). Le seuil sur la
 moyenne ne change pas : c'est une seule comparaison. Les `demi_largeur_ic95_*`
 du fichier de bruit restent des mesures brutes, pas les seuils appliqués.
 

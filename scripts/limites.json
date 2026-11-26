@@ -64,8 +64,13 @@
   },
   "invariants_en_tete": [
     "plugins/plans-notion/skills/plan-notion/SKILL.md",
-    "plugins/plans-notion/skills/executer-plan-notion/SKILL.md"
+    "plugins/plans-notion/skills/executer-plan-notion/SKILL.md",
+    "plugins/plans-notion/skills/deleguer-a-haiku/SKILL.md"
   ],
+  "sommaire": {
+    "_commentaire": "Règle (s) de check_skills.py : un fichier de référence (Markdown sous skills/, hors SKILL.md) de plus de 100 lignes porte un titre « ## Sommaire » ou une ligne « Sommaire : » dans ses 20 premières lignes. Exceptions datées, une par fichier. Depuis la base, la table ne fait que se vider : aucune exception ne s'y ajoute.",
+    "exceptions": {}
+  },
   "veille_jours_max": 30,
   "exceptions": []
 }

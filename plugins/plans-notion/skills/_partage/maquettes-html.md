@@ -5,6 +5,18 @@ Fichier référencé par `plan-notion` (§3 et §7), à lire dès que le chapitr
 s'affiche —, pour la produire et la poser dans la page. `executer-plan-notion`
 le lit aussi, pour la section « À l'exécution » en fin de fichier.
 
+Sommaire :
+
+- Ce qui a été mesuré, et sur quoi
+- Le geste, en deux appels
+- Remplacer la maquette à une passe suivante
+- Le poids
+- La mise en page
+- Le contenu
+- Ce qui ne s'embarque pas
+- À l'exécution : relire, puis comparer
+- Vercel, en repli seulement
+
 **La maquette vit dans la page, en bloc HTML.** Un fichier `.html` joint à la
 page, affiché par un bloc `<embed>` que Notion rend dans un iframe isolé. Ni
 Vercel, ni URL publique, ni projet à tenir : c'est la voie par défaut depuis le

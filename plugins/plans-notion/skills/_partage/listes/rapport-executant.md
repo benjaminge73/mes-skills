@@ -38,6 +38,21 @@ Preuve attendue selon le champ :
 Ces quatre champs ne deviennent pas des cases, et l'exécutant ne les coche pas : `Dépend de`,
 `Relecture`, `Taille`, `Blocs touchés`. Le pilote les tient dans le journal du plan.
 
+## Non joué
+
+Une vérification que l'exécutant n'a pas jouée se range ici, et nulle part ailleurs : une
+ligne par vérification, avec sa raison.
+
+```
+- <vérification non jouée> — raison : <pourquoi elle n'a pas été jouée>
+```
+
+Une vérification non jouée ne se coche jamais : sa case reste `- [ ]` ou disparaît (voir plus
+haut). Typiquement : une preuve lourde qu'on ne lance pas (navigateur, conteneur, plus de deux
+minutes, cf. `NEEDS_CONTEXT`), une commande qui manque d'outil, ou un test qu'on n'a pas pu
+faire tourner. Rien à signaler : écrire `aucune`, pour que le silence ne se lise pas comme un
+oubli.
+
 ## Le contrôle
 
 ```

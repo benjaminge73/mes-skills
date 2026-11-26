@@ -63,10 +63,10 @@ def claude(prompt: str, *, cwd: str | Path = "/tmp", modele: str = "claude-haiku
     `agent` : définition inline d'un sous-agent (consigne, modèle, effort) ; sinon modèle et outils directs.
     Les relecteurs lisent du code et des briefs venus d'autres dépôts : du contenu non fiable. Pas de
     `bypassPermissions` donc, mais une liste blanche en lecture seule (`LECTURE`) ; en mode `-p`, tout autre appel est
-    refusé d'office, sans question. Aucun outil d'écriture : Edit, Write et NotebookEdit sont toujours refusés."""
+    refusé d'office, sans question. Aucun outil d'écriture : Edit, MultiEdit, Write et NotebookEdit sont toujours refusés."""
     cmd = ["claude", "-p", "--setting-sources", "project", "--strict-mcp-config", "--output-format", "json",
            "--permission-mode", "default", "--allowedTools", ",".join(LECTURE),
-           "--disallowedTools", "Edit,Write,NotebookEdit,WebFetch,WebSearch", "--max-turns", str(tours)]
+           "--disallowedTools", "Edit,MultiEdit,Write,NotebookEdit,WebFetch,WebSearch", "--max-turns", str(tours)]
     if bash_enferme:
         cmd += ["--settings", json.dumps(BAC_A_SABLE)]
     if agent:

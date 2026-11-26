@@ -170,7 +170,25 @@ Le statut dit où en est le garde :
 | Une étape déjà validée dans le plan et confiée à Hal se transmet à Hal, sans « go » demandé à Benjamin | qu'une étape dont le coût, le plafond ou le périmètre est validé dans le plan parte à Hal par `demander_a_hal.py geste --valide --plafond`, et que Benjamin ne soit sollicité que pour un dépassement, la sécurité ou un secret | 2026-11-19, plan « Veille par articles » : étape 14 bloquée plusieurs heures sur un « dis-moi go » alors que 20 $ étaient validés (plans-notion 0.68.0) | `scripts/test_go_deja_valide.py`, cas d'éval `go-deja-valide` et `go-plafond-depasse` (écrits, non joués) | CI, job `validation` (tests des scripts de garde), via `scripts/ci_locale.sh` | en place |
 | Pas de relecture exacte d'une règle déjà lue dans la session | que le pilote ne relise pas à l'identique, dans la même session, un fichier de règles du plugin (sous `plans-notion/…/skills/`) resté inchangé : son contenu est déjà dans son contexte, et il le paie à chaque tour. Une autre plage, ou un fichier modifié, passe ; une lecture n'est inscrite qu'après un outil réussi ; un sous-agent n'inscrit rien et n'est jamais refusé ; la liste est vidée à la compaction (un `/rewind` la garde) | 2026-11-26, étape 9 du plan de la branche `feat/lecture-pilote-avant-ecrire` ; écartés : un rappel après coup (le contenu est déjà entré) et l'interdiction de toute relecture | `plugins/plans-notion/hooks/refuser_relecture_regles.py`, `scripts/test_hooks.py` (classe `RefuserRelectureRegles`) | hooks PreToolUse (consultation et refus seuls), PostToolUse (inscription après succès) et PreCompact du plugin plans-notion, pour le pilote seul (entrée sans `agent_id`) ; état par session sous `~/.cache/plans-notion/lectures/` ; une erreur ou un état illisible laisse passer ; Bash ne compte qu'une commande de lecture dont chaque fichier existant est une règle (pas de `>`, `<`, `tee`, ni `grep -f`), sans argument variable (glob, `~`, `$`, accolades), sans dossier lu, ni `grep -r` ; un chemin relatif se résout contre le dossier du shell | en place |
 | Pas de balise HTML en texte dans une page Notion écrite par `composio` | qu'une écriture `composio execute NOTION_…` n'enregistre `<b>`, `<i>`, `<code>` (brutes ou échappées `\<b\>`) comme texte littéral : le connecteur claude.ai les lit, `composio` non, et le plan s'affiche avec ses balises visibles | 2026-11-26, étape 12 du plan de la branche `feat/lecture-pilote-avant-ecrire` ; cause établie : deux dialectes markdown, le connecteur et l'API de `composio` ; écarté : une consigne de rédaction seule, qui ne tient pas | `plugins/plans-notion/hooks/refuser_balises_composio.py`, `plugins/plans-notion/skills/_partage/scripts/balises-html.py`, `scripts/test_balises_html.py`, `scripts/test_hooks.py` (classe `RefuserBalisesComposio`) | hook PreToolUse Bash du plugin plans-notion, à chaque appel Bash (sortie immédiate sans `composio`) ; refus (code 2) sur une charge en ligne, par fichier, par stdin `echo`/`printf` ; refus (code 2, « appel à part ») d'une charge fabriquée dans la même commande : fichier créé (`> f`, `tee f`), fichier nommé et écrit par une commande d'avant (`python3 gen.py --out f && composio … -d @f`), fichier introuvable que la commande d'avant peut produire, stdin produit par autre chose qu'`echo`/`printf` (un `python3 gen.py` branché en tuyau sur `composio … -d -`) ; chemins comparés une fois résolus (`./f`, `$PWD/f`, `-of` collé) ; une redirection `-d - < f` se juge comme `-d @f` ; un segment de simple lecture (`cat f && composio …`) ne dispense pas du contrôle du contenu ; `old_str` non contrôlé ; passent sans contrôle : un stdin par heredoc, une erreur de lecture, un fichier introuvable sans commande d'avant qui le produise, un programme qui ne nomme pas le fichier et le réécrit (`python3 gen.py && composio … -d @f`, `f` déjà là : le hook lit l'ancien contenu), et un `sed -i` qui nomme le fichier (il le rend illisible : décision D1, voulue pour ne pas refuser la correction d'une charge déjà sale) | en place |
+| Un fichier de référence de plus de 100 lignes a son sommaire en tête | qu'un fichier Markdown sous `skills/` (hors `SKILL.md`) de plus de 100 lignes soit lu en route sans que le lecteur voie sa structure : un titre « ## Sommaire » ou une ligne « Sommaire : » doit tenir dans les 20 premières lignes. Passif daté dans `scripts/limites.json` (table `sommaire`, à cliquet, vide une fois le passif traité) | 2026-11-26, plan skills externes, étape 4 (sommaires) | `scripts/check_skills.py` (règle s), `scripts/test_check_skills.py` (classes `RegleS_SommaireDesReferences`, `CliquetDuSommaire`) | CI, job `validation` (step des gardes), via `scripts/ci_locale.sh`, et en local | en place |
+| Un hook Bash du plugin ne bavarde pas sur une commande neutre | qu'un hook `PreToolUse` couvrant Bash rende autre chose que 0 et une sortie vide sur `ls` : un hook qui écrit à chaque appel Bash pollue chaque session, et un hook qui rend autre chose qu'une sortie vide peut bloquer un appel anodin. Découvre les hooks dans `plugins/*/hooks/hooks.json` et dans la clé `hooks` de chaque `plugin.json` (un groupe sans `matcher` couvre tous les outils) ; aucune liste codée en dur | 2026-11-26, plan skills externes #4, étape 10 (décision Q12 a, « pérenne pour les prochains hooks ») | `scripts/controle_hooks_neutres.py`, `scripts/test_hooks.py` (classe `HooksBashCommandeNeutre`) | CI, job `validation` (tests des scripts de garde), via `scripts/ci_locale.sh`, et en local | en place |
 | Le hook de revue se ferme quand il plante | qu'un plantage, un délai dépassé ou un interpréteur introuvable de `refuser_revue_sans_avis.py` ne laisse pas passer une mise en revue sans avis de Hal (`Statut` = « en revue ») : `onFailure: "block"` sur ses deux entrées de `hooks.json` (matcher Notion et matcher Bash) ; aucun mécanisme natif ne remplace le hook | 2026-11-26, plan « Passif restes », étape 5 ; décision après enquête (Claude Code 2.1.295 ou plus) | `scripts/test_hooks.py` (classe `RefuserRevueSansAvis`, test `test_le_hook_de_revue_se_ferme_sur_ses_deux_entrees_quand_il_plante`) | CI, job `validation` (step « Tests des scripts de garde »), via `scripts/ci_locale.sh`, et en local | en place |
+
+## Aucun skill ne porte `disable-model-invocation`
+
+Le champ `disable-model-invocation: true` du frontmatter d'un skill interdit au
+modèle de lancer ce skill de lui-même. La CLI Claude Code 2.1.331 le reconnaît et
+le fait respecter (POC 4, plan skills externes #4, étape 9). Aucun `SKILL.md` du
+dépôt ne le porte, et c'est voulu : les skills à effets de bord (écriture dans
+Notion, publication, dépense) sont faits pour être lancés par le modèle dans un
+plan ou une session, et le champ les bloquerait. Hermes, qui pilote aussi ces
+skills, ne lit pas ce champ : il n'agirait que dans Claude Code, donc il ne
+protégerait rien de façon homogène.
+
+Décision Q10 (a), 2026-11-26 : pas de garde de forme sur ce champ, et pas de liste
+d'exceptions dans `scripts/check_skills.py`. Si un skill doit un jour être réservé
+au lancement par un humain, le champ se pose à ce moment-là, et la règle s'ajoute
+ici avec son garde.
 
 ## Le verrou de `main`
 
@@ -216,6 +234,19 @@ n'est prévu (`bypass_actors` vide). Retour arrière :
   ]
 }
 ```
+
+## Les hooks sont tous de type command
+
+Décision Q14 (a), 2026-11-26 : les hooks des plugins sont tous de type command.
+Constat vérifié le même jour : les 20 entrées de hooks déclarées dans les deux `hooks.json`
+(18 dans `plans-notion`, 2 dans `nommage-sessions`) lancent 15 scripts locaux,
+et aucun `plugin.json` ne déclare de hook. Un hook de ce type ne fait donc aucun
+appel de modèle par lui-même. Le seul appel de modèle des hooks est celui que
+pose `plugins/nommage-sessions/hooks/nommer_session.py` : le titrage d'une session
+passe par `claude -p --model haiku`, une seule tentative par session, avec un délai
+de 30 secondes, et ce titre reste un appel à `claude -p`, non un hook de modèle.
+Un hook d'un autre type (prompt, agent) changerait la règle, et sa ligne s'ajouterait
+ici avec son garde.
 
 ## Ajouter une ligne
 

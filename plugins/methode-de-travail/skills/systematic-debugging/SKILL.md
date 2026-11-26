@@ -7,9 +7,8 @@ description: Use when encountering any bug, test failure, or unexpected behavior
 
 ## Suis-je la bonne version ?
 
-Le 2026-09-08, une session a chargé `plan-notion` depuis une copie synchronisée périmée
-(`~/.claude/remote/plugins/<hash>/`, 0.3.0 au lieu de 0.7.0) et a travaillé tout un plan sur
-les mauvaises règles. Tout skill peut être chargé ainsi : il ne choisit pas d'où il vient, il peut seulement le constater.
+Une copie périmée a déjà fait travailler une session sur de mauvaises règles (incident et
+historique : `historique.md`). Tout skill peut être chargé ainsi : il ne choisit pas d'où il vient, il peut seulement le constater.
 
 À vérifier au chargement, en une commande :
 
@@ -38,6 +37,8 @@ NO FIXES WITHOUT ROOT CAUSE INVESTIGATION FIRST
 ```
 
 If you haven't completed Phase 1, you cannot propose fixes.
+
+**Ne jamais rien affirmer sur un code qu'on n'a pas ouvert** : une cause sur un fichier pas lu reste une hypothèse.
 
 ## When to Use
 
@@ -308,5 +309,5 @@ Available in this directory:
 ---
 
 *Adapté de [obra/superpowers](https://github.com/obra/superpowers) (MIT, Jesse Vincent / Prime
-Radiant). Récupéré le 2026-08-03. Modifications : renvois vers les skills non installées
-retirés, ajout du renvoi codebase-memory ; `mattpocock/skills` (MIT).*
+Radiant) ; `mattpocock/skills` (MIT). Provenance, modifications et date de récupération :
+[historique.md](historique.md).*

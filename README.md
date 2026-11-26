@@ -188,7 +188,7 @@ travail.
 l'instantané masque l'installée. Mesuré le 2026-09-22 : trois instantanés
 `plans-notion` **0.3.0** masquent la **0.11.0** installée — une version qui
 n'a jamais existé dans ce dépôt (il démarre le plugin à 0.7.0), héritée de
-l'historique de `hermes-custom` d'avant la scission (voir `CLAUDE.md`,
+l'historique de `hermes-custom` d'avant la scission (voir `docs/instantanes.md`,
 « D'où vient un instantané, et pourquoi rien ne le rattrape »).
 
 ### Le diagnostic en une commande

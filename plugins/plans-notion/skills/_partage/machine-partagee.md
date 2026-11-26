@@ -6,6 +6,15 @@ file) et par l'agent `executant`. Comme `vagues.md` et `revue.md`, il vit à un
 seul endroit pour que le skill garde sa taille : la règle ne se duplique pas,
 elle se référence.
 
+Sommaire :
+
+- Ce qui est lourd
+- Le geste
+- Le profil machine
+- Machine `chargée`
+- Machine `saturée`
+- Plusieurs plans
+
 Il part d'une mesure. Le POC du 2026-10-01 (VPS, 6 cœurs) a vu deux actions
 lourdes lancées ensemble faire tomber une e2e sur un timeout et allonger la
 suite de 32 %. Plusieurs sessions Claude Code partagent la même machine ;

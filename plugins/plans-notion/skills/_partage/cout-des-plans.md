@@ -4,6 +4,16 @@ Fichier partagé du plugin `plans-notion`. Il est lu par `plan-notion` (la ligne
 « Coût estimé » en tête du chapitre `Exécution`) et par `executer-plan-notion`
 (la ligne « Coût réel » à l'entrée `État final`, mesurée par `cout-plan.py`).
 
+Sommaire :
+
+- L'unité : des dollars d'équivalent API, rien d'autre
+- Conception et exécution : deux coûts, deux pilotes
+- Le barème mesuré le 2026-10-12
+- Ce que ces chiffres disent, et ce qu'ils ne disent pas
+- La remesure
+- Lire les deux lignes de coût
+- Où partent les tokens
+
 ## L'unité : des dollars d'équivalent API, rien d'autre
 
 Tout coût s'écrit en **dollars d'équivalent API** : ce que la session coûterait

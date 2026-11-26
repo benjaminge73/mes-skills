@@ -1,5 +1,19 @@
 # La relecture du plan par Hal
 
+Sommaire :
+
+- 1. Le cadrage, un rendez-vous avant les questions
+- 2. La pré-lecture, par l'agent lecteur
+- 3. La relecture
+- 4. Les deux tours
+- 5. Le repli : un second essai, puis « Avis non rendu »
+- 6. La section « Avis de Hal »
+- 7. Le bloc « Plans ouverts des mêmes dépôts »
+- 8. Le plan maître
+- 9. Ce que Hal apporte, ce qu'il ne fait pas
+- 10. Le registre et le hook
+- 11. Le Mac et Remote Control
+
 Hal est l'agent Hermes du VPS, qui a la mémoire de Benjamin (le `fact_store`, profil
 `jerome-kairviel`). Avant qu'une page de plan passe `en revue`, la session la fait relire
 par Hal, et son avis reste écrit dans la page. Ce fichier dit quand, comment, avec quoi,

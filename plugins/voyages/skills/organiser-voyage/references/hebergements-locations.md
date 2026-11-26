@@ -5,6 +5,15 @@
 voyageur, pas d'heure de début. La règle sur l'incertain reste la même : un champ
 incertain ne se devine pas.
 
+Sommaire :
+
+- Champs
+- Qualifier : seul le séjour confirmé compte
+- La pièce : oui ou non
+- Nommer et ranger (seulement avec une pièce)
+- Compte rendu : trois issues
+- Événement, sous-dossier OneDrive et rappels
+
 ## Champs
 
 | Type | Obligatoires | Facultatifs (défaut) |

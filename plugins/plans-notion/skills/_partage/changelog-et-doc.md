@@ -2,6 +2,18 @@
 
 Fichier **partagé**, lu par `plan-notion` (plan maître), `executer-plan-notion` (clôture) et `deleguer-a-haiku` (plan natif). Il dit **quoi** écrire à la clôture d'un plan, **où** le poser dans Notion, et **comment** le poser sans rien casser. Il se lit en entier avant toute écriture.
 
+Sommaire :
+
+- 1. Le hub : où la doc d'un projet vit
+- 2. L'entrée : format
+- 3. Le récap et le compte rendu du chat
+- 4. Les gestes d'écriture
+- 5. L'activation par projet
+- 6. La cascade d'écriture dans Notion
+- 7. Le condensé du plan maître
+- 8. Les plans natifs (`deleguer-a-haiku`)
+- 9. La couche « Sous le capot »
+
 Vocabulaire : **Notion** est le wiki où vivent les plans et la doc. Le **connecteur Notion** (un MCP : un branchement d'outil à la session) est l'accès direct de la session à Notion. **VPS** est le serveur privé où tourne Hermes, l'agent qui exécute les tâches planifiées. **PR** est une demande de fusion de code dans `main`. **CI** est le jeu de tests et de déploiement automatique sur GitHub.
 
 Les règles d'écriture détaillées (relevé des cases, pièges de l'API Notion) sont dans `${CLAUDE_PLUGIN_ROOT}/skills/_partage/ecrire-dans-notion.md`. Les schémas et leur code couleur sont dans `${CLAUDE_PLUGIN_ROOT}/skills/_partage/schemas.md`.

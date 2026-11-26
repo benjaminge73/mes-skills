@@ -3,6 +3,17 @@
 Vaut aussi pour les cousins du cron, un hook Claude Code et un workflow lancé par
 un événement (section « Les cousins du cron »).
 
+Sommaire :
+
+- Pourquoi cette règle
+- Au plan : inventorier, puis une étape `C<n>` par cron
+- Le lancement équivalent, par type de cron
+- Les cousins du cron : un hook, un workflow sur événement
+- La boucle : lancer, constater, corriger, trois tours au plus
+- Après le merge : le rejeu réel
+- Jamais « à la prochaine exécution »
+- Ce que le lancement à la main ne prouve pas
+
 Fichier référencé par `plan-notion` (filtre de §8, contrôle 13), par
 `executer-plan-notion` (étape `C<n>`, via `etapes.md`) et par
 `remontee-sur-main.md` (point 4 ter, le rejeu après le merge).

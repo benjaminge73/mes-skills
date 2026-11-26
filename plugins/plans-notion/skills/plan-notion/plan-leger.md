@@ -5,6 +5,15 @@ exception, ouverte seulement quand l'aiguillage la propose **et** que Benjamin l
 garde les questions fonctionnelles et les critères ; il laisse la découverte technique à
 l'exécution.
 
+Sommaire :
+
+- 1. L'aiguillage, avant tout
+- 2. Ce que garde la page
+- 3. Ce qu'elle saute, et ce qu'elle garde
+- 4. L'exécution nue
+- 5. Le modèle de l'exécution
+- 6. Voisin : le mode plan natif
+
 Pourquoi borné (mesure du 2026-11-24, entrée du 2026-11-25 de `docs/veille.md` du dépôt) : rejoués en léger, trois anciens plans
 coûtent 6 à 27 % du coût réel, mais aucun ne tient tous les critères, et 31 % des découvertes
 trouvables au plan auraient exigé une question à Benjamin.

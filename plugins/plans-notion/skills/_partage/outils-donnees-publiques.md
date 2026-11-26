@@ -2,6 +2,18 @@
 
 Fiches du registre `outils-et-quotas.md` (fichier d'entrée : règles générales et index des fiches). Ce fichier porte les API de données publiques (lieux, géocodage, photos, actualités) et les sources de marché crypto (DexScreener, RPC Solana, GeckoTerminal, PumpPortal). Il se lit quand un plan touche l'une de ces sources ; les règles générales sont dans `outils-et-quotas.md`.
 
+Sommaire :
+
+- Fiche — Google Places
+- Fiche — Nominatim, Photon et Overpass
+- Fiche — Jev
+- Fiche — Wikimedia Commons (photos téléchargées pour un usage hors ligne)
+- Fiche — DexScreener
+- Fiche — RPC public Solana
+- Fiche — GeckoTerminal
+- Fiche — PumpPortal
+- Fiche — GDELT
+
 ## Fiche — Google Places
 
 **Quota ou coût** (relevé au 2026-09-29, d'après les incidents datés
