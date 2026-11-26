@@ -155,7 +155,7 @@
         "skills/executer-plan-notion/brief-du-sous-agent.md",
         "skills/executer-plan-notion/apres-chaque-etape.md"
       ],
-      "cas": ["no-verify", "rien-hors-plan", "maitre-depart-ordre", "maitre-au-deuxieme-plan", "icone-des-plans", "deux-executants"],
+      "cas": ["no-verify", "rien-hors-plan", "maitre-depart-ordre", "maitre-au-deuxieme-plan", "icone-des-plans", "deux-executants", "hook-du-plugin"],
       "plancher": 0.20
     },
     "delegation": {
