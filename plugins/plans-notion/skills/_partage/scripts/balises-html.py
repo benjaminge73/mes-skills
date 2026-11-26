@@ -31,6 +31,8 @@ SPAN_CODE = re.compile(r"`[^`\n]*`")
 CLOTURE_DE_BLOC = re.compile(r"^\s*```")
 # Deux gras (ou italiques) séparés seulement par des balises de code ou des blancs : un seul.
 FUSION = re.compile(r"</(b|i)>((?:\s|</?code>)*)<\1>")
+# Deux codes collés (« </code><code> ») forment un seul span : sans cela, `a``b`, deux spans cassés.
+FUSION_CODE = re.compile(r"</code><code>")
 CODE_HTML = re.compile(r"<code>(.*?)</code>")
 LIEN_AUTOMATIQUE = re.compile(r"\[([^\]\n]+)\]\((?:https?://)?\1\)")
 
@@ -96,7 +98,7 @@ def _convertir_ligne(ligne: str) -> str:
     texte = SPAN_CODE.sub(mettre_de_cote, ligne)
     texte = BALISE.sub(_nom_canonique, texte)
     while True:
-        fusionne = FUSION.sub(r"\2", texte)
+        fusionne = FUSION_CODE.sub("", FUSION.sub(r"\2", texte))
         if fusionne == texte:
             break
         texte = fusionne

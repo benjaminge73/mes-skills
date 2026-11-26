@@ -134,6 +134,10 @@ def _charge_brute(mots: list[str], i: int, repertoire: Path):
         chemin = brut[1:]
         if _cree_dans_la_commande(mots, chemin):
             return ("cree", chemin)
+        if chemin in mots[:i]:
+            # Nommé avant composio : la commande peut le modifier sur place (sed -i…) avant
+            # l'appel. Le contenu lu ici serait l'ancien : illisible au contrôle, on laisse passer.
+            return None
         fichier = Path(os.path.expanduser(chemin))
         if not fichier.is_absolute():
             fichier = repertoire / fichier
@@ -171,9 +175,9 @@ def _refus_balises(occurrences) -> str:
 
 def _refus_cree(chemin: str) -> str:
     return (f"Refusé : le fichier de charge `{chemin}` est créé dans cette même commande, "
-            "donc il ne peut pas être lu avant l'écriture. Le construire dans un appel à part, "
-            "le contrôler avec `balises-html.py controler <fichier>`, le corriger avec "
-            "`balises-html.py nettoyer <fichier>` si besoin, puis lancer `composio`.")
+            "donc illisible au contrôle : construis le fichier dans un appel à part, puis écris "
+            "dans le suivant avec `composio`. Contrôle-le avant avec `balises-html.py controler "
+            "<fichier>` et corrige-le avec `balises-html.py nettoyer <fichier>` si besoin.")
 
 
 def main() -> int:
