@@ -689,3 +689,10 @@ Une entrée par passe, la plus récente en dernier. Le titre est
 - **Ce qui a changé** : rien de neuf à ce jour au-delà de cette passe reprise. `python3 scripts/veille_faits.py` rejoué maintenant : « 23 fait(s) vérifié(s) : 0 citation(s) à signaler, 0 page(s) injoignable(s). » (sortie relue, code 0).
 - **Faits porteurs** : aucun ajout ni retrait au tableau de la partie 2.
 - **Ce qu'on en fait** : rien ne change pour la PR. La veille de 30 jours (`scripts/check_veille.py`) est respectée par cette entrée.
+
+### 2026-11-26 — passe avant la PR « ce que le pilote lit avant d'écrire un plan » (plans-notion 0.83.0)
+
+- **Sources lues** : changelog Claude Code (dernière version : 2.1.332), page hooks, claude.dev, anthropic.com/engineering, doc Notion « enhanced markdown » et « Notion-flavored Markdown » (developers.notion.com/guides/data-apis/). Lectures par l'agent `chercheur`, extraits passés par un modèle intermédiaire.
+- **Ce qui a changé** : rien après la 2.1.332 au changelog ; un billet d'ingénierie du 25 novembre sans rapport avec hooks ni skills. Côté Notion : la version `v1` du markdown de l'API (encore le défaut) est dépréciée ; la `v2` accepte `<b>`, `<i>`, `<s>`, `<u>` et enregistre en texte les autres balises.
+- **Faits porteurs** : aucun changé au tableau. Confirmés sur la page hooks, dont dépendent les deux hooks neufs : refus par `permissionDecision: "deny"` ou par le code 2 ; `PostToolUse` seulement après une réussite ; `PreCompact` ; `agent_id` dans l'entrée d'un appel de sous-agent.
+- **Ce qu'on en fait** : rien ne change pour la PR. À surveiller : quand la `v2` du markdown Notion devient le défaut de la commande `composio`, le hook `refuser_balises_composio.py` refuserait des `<b>` devenus valides : le revoir à ce moment.
