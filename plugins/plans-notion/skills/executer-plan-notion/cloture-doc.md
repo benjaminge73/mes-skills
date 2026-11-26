@@ -238,8 +238,8 @@ Ordre de la clôture (qui suit qui) : `cloture-reste-et-suite.md` (tri, avant le
      **à l'ouverture en brouillon, ou au plus tard avant** `gh pr ready` : sur un
      brouillon il ne coûte rien, et le run de la sortie de brouillon le porte déjà. Si une ligne fausse
      a rougi `doc`, éditer la description suffit : le workflow `doc-relance.yml`
-     (déclencheur `edited`) le relance dès que la ligne est valide, run fini. Le job refuse une raison qui n'en est pas une (règle globale
-     `doc-vivante.md`) : la page projet non lue, ou l'absence de job CI, n'en sont pas.
+     (déclencheur `edited`) le relance dès que la ligne est valide, run fini. Le job refuse une raison qui n'en est pas une (skill
+     `methode-de-travail:doc-vivante`) : la page projet non lue, ou l'absence de job CI, n'en sont pas.
      **Avant de poser `a merger`**, dans un dépôt où la PR s'est ouverte en brouillon
      (point 5) : relire `gh pr view <n> --json isDraft`, `false` exigé. Un `true` veut
      dire que la PR n'est pas passée prête : la ligne `Doc :` écrite, on la passe

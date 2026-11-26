@@ -152,6 +152,7 @@
         "skills/plan-notion/plan-maitre.md",
         "skills/plan-notion/naissance-du-maitre.md",
         "skills/_partage/scripts/perimetre-etape.py",
+        "skills/_partage/scripts/socle-contexte.py",
         "skills/executer-plan-notion/brief-du-sous-agent.md",
         "skills/executer-plan-notion/apres-chaque-etape.md"
       ],
