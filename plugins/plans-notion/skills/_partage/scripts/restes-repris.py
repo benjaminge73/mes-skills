@@ -5,9 +5,9 @@ Pourquoi un script : à l'ouverture d'un plan, les lignes ouvertes de la base «
 ses dépôts doivent être relevées et tranchées (`_partage/restes.md`, règle 7). Une ligne
 oubliée dort, et « laissée ouverte » sans raison ressemble à une décision. Le passage à
 `en revue` est bloqué tant que le chapitre `Restes repris` ne cite pas chaque ligne. Un
-plan ne reprend que les lignes de son sujet (Q9) : les autres sont citées « laissée
-ouverte » avec leur raison. Le script ne juge pas le sujet, il vérifie que chaque ligne a
-été jugée.
+plan reprend chaque ligne par défaut : les autres sont citées « laissée ouverte » avec une
+lettre de la liste fermée et une raison. Le script ne juge pas la raison, il vérifie que
+chaque ligne a été jugée.
 
 Usage : restes-repris.py <page.md> --lignes <export> [--depots owner/repo,...]
 

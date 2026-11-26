@@ -92,7 +92,8 @@ sens non documenté : aucun script ne l'écrit.
 
    Un plan reprend **au plus 10 lignes**, dont **au plus 5 questions** venues des restes, les
    plus anciennes d'abord. Le surplus se laisse en **(p)** « au-delà du plafond » et reste
-   ouvert pour un plan suivant du même dépôt. Benjamin retire une reprise : la ligne passe
+   ouvert pour un plan suivant du même dépôt. Sous 10 reprises, `(p)` ne vaut que pour une
+   ligne `décision` (la sixième question). Benjamin retire une reprise : la ligne passe
    alors « laissée ouverte » (Q3), avec la lettre de son motif ; à défaut
    `(a) : retirée par Benjamin, attend sa demande`.
 8. **Qui agit.** À la clôture, le pilote propose `Pour`. Hal confirme, ou renvoie la ligne
@@ -108,7 +109,8 @@ sens non documenté : aucun script ne l'écrit.
     (Q12). `restes-repris.py` vérifie le chapitre `Restes repris` contre les lignes `ouvert`
     des dépôts du plan : chaque ligne doit être reprise, ou laissée ouverte avec une lettre de
     la règle 7 et une raison non vide ; il rend aussi 1 au-delà de 10 reprises, et pour un (p)
-    posé sous ce plafond sur une ligne qui n'est pas une `décision`. Il ne compte pas les
+    posé sous ce plafond sur une ligne qui n'est pas une `décision` ; les reprises se comptent
+    sur les puces du chapitre. Il ne compte pas les
     questions (une question regroupe plusieurs lignes) : le plafond de 5 se relit. Code 1 bloque le passage à `en revue` (Q8). Les deux sont dans
     `_partage/scripts/`.
 12. **Schéma figé.** Le plan Hermes s'appuie sur ce schéma, tel qu'écrit ici, une fois ce

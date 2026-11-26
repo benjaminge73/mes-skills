@@ -30,8 +30,8 @@ lire, rien à déléguer, aucune enquête (celle-ci viendra à la préparation, 
    **Relever aussi les restes** : une seconde requête, sur la base « Restes »
    (`collection://41ab8cc8-aa1d-81cf-b83c-000b76701db9`), filtrée `Repo` = `benjaminge73/<repo>`
    et `État` = `ouvert`, sans lecture de page : la ligne se lit par ses propriétés. Règle
-   d'ouverture : `_partage/restes.md`, règle 7 (le plan reprend les lignes de son sujet, cite
-   les autres « laissée ouverte ») ; ce qu'elle rend s'écrit dans la page du plan
+   d'ouverture : `_partage/restes.md`, règle 7 (le plan reprend chaque ligne par défaut, et
+   cite « laissée ouverte (<lettre>) : <raison> » celles qu'une raison de la liste fermée retient) ; ce qu'elle rend s'écrit dans la page du plan
    (`chapitres-questions-execution.md`, « Les restes repris »).
 2. **Trier**, premier cas qui s'applique :
    - **un maître ouvert** (`${CLAUDE_PLUGIN_ROOT}/skills/plan-notion/plan-maitre.md`, « Le statut du plan maître et son lot ») couvre ce projet : le
