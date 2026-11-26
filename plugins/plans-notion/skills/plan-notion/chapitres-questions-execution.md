@@ -90,10 +90,7 @@ tranchée ici (`${CLAUDE_PLUGIN_ROOT}/skills/_partage/restes.md`, règle 7) :
   (e) : sa puce, dans le même H2, porte le titre en lien et la mention `laissée ouverte (<lettre>) :
   <raison>` (par exemple « — laissée ouverte (d) : contredit le sujet, Benjamin tranche »). Lettre
   absente, hors liste ou raison vide : `restes-repris.py` refuse le passage à `en revue` ;
-- **plafond** : un plan reprend au plus 10 lignes, dont au plus 5 questions, les plus anciennes
-  d'abord. Le surplus s'écrit en `(p)` « au-delà du plafond » et reste ouvert pour un plan suivant
-  du même dépôt. Tant que le plan compte moins de 10 reprises, `(p)` n'est accepté que sur une
-  ligne `décision` ; une fois 10 reprises atteintes, il passe sur n'importe quelle ligne ;
+- **plafond** et surplus en `(p)` : règle 7 de `restes.md`, seule source ;
 - un plan qui touche plusieurs dépôts groupe le H2 par dépôt (un H3 `owner/repo` par dépôt).
 
 **À la création de la page, et pas avant**, la propriété `Repris par` de chaque ligne **reprise**

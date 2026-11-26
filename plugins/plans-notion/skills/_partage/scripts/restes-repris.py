@@ -22,7 +22,7 @@ Usage : restes-repris.py <page.md> --lignes <export> [--depots owner/repo,...]
   sa page) ou son titre exact (texte visible). Une citation hors du chapitre ne compte pas.
   Un bloc qui dit « laissée ouverte » ne reprend pas la ligne : il doit porter, juste après
   la mention, la lettre de sa raison dans la liste fermée de `restes.md` (règle 7) : (a) à
-  (e), ou (p), puis la raison (« — laissée ouverte (d) : hors sujet, Benjamin tranche »).
+  (e), ou (p), puis la raison (« — laissée ouverte (d) : contredit le sujet, Benjamin tranche »).
   Lettre absente, hors liste, ou raison vide : la ligne est oubliée (« raison hors liste »).
   Plafond : plus de 10 puces reprises rendent 1. Un (p) ne passe sous ce plafond que sur une
   ligne dont le champ facultatif ``Type`` de l'export vaut ``décision`` ; une fois le plafond
