@@ -85,6 +85,12 @@ première réponse qui s'applique décide :
    - **une étape au plus**, réversible et hors sécurité → étape `D<n>`
      (`decouvertes.md` § 2), faite avant la clôture : le plan reste `en cours`
      jusque-là, et la suite complète finale la couvre ;
+   - **un petit reste** : un geste ou une vérification dans le dépôt du plan, sans les
+     comptes de Benjamin, réversible et hors sécurité, estimé à 15 minutes ou moins, se
+     fait sur place en `D<n>` avant `a merger`, au lieu de devenir une ligne « Restes »
+     ou de partir au plan de suite. L'estimation s'écrit à côté du reste (« ≈ 10 min ») :
+     sans elle, il n'est pas petit. La mesure vaut pour chaque reste, qui ne compte pas
+     dans le total d'une étape : c'est la seule exception à « on ne coupe pas le reste » ;
    - **plus d'une étape**, ou un élément qui ne tient pas dans une étape (il
      revient sur une décision tranchée, coûte, touche la sécurité, est
      irréversible : mesure de `decouvertes.md` § 1) → **la suite proposée se montre

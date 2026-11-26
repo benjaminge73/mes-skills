@@ -124,7 +124,7 @@ Ordre de la clôture (qui suit qui) : `cloture-reste-et-suite.md` (tri, avant le
   `AskUserQuestion`, avant `a merger` ; du travail qui reste tient en une étape
   `D<n>` faite maintenant, ou — au-delà d'**une étape au total** — se **propose dans
   la session** (créer le plan de suite, §7 ; le faire maintenant en étapes `D<n>` si
-  c'est réversible et hors sécurité ; l'écarter). Ce qui n'a pas de réponse dans la
+  c'est réversible et hors sécurité ; l'écarter). Un petit reste (un geste ou une vérification dans le dépôt, hors comptes de Benjamin, 15 minutes au plus, estimé à côté : « ≈ 10 min ») se fait sur place en `D<n>` avant `a merger`, sans être versé (`plan-de-suite.md`, « Le tri », point 2). Ce qui n'a pas de réponse dans la
   session devient une ligne de la base « Restes »
   (`${CLAUDE_PLUGIN_ROOT}/skills/_partage/restes.md`) : une décision sans réponse
   (`Type` `décision`), un geste que seul Benjamin peut poser (`geste`), un événement

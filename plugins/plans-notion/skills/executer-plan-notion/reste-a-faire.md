@@ -5,7 +5,7 @@ Détail du § 7 (« Le reste à faire, et le plan de suite ») de `executer-plan
 Benjamin ne relit pas un plan terminé : **aucun reste à faire ne dort seul dans sa
 page.** La suite se montre dans la session avant de s'écrire. Avant `a merger`, chaque ligne se trie — une décision qu'on attend de lui se
 pose dans la session (`AskUserQuestion`) ; une étape au plus se fait en `D<n>` ;
-au-delà (plus d'une étape de travail), la session **propose** : **plan de suite** (le défaut : titre suffixé, `Reprise du plan #N-1`, `Branche`, liens), ou les faire maintenant en `D<n>`, ou les écarter ; ce qui attend un événement ou un geste de Benjamin, et une décision restée sans réponse, devient une ligne de la base « Restes » (`${CLAUDE_PLUGIN_ROOT}/skills/_partage/restes.md`), que le Récap cite :
+un petit reste (geste ou vérification dans le dépôt, hors comptes de Benjamin, 15 minutes au plus, estimé à côté : « ≈ 10 min ») se fait sur place en `D<n>` avant `a merger` ; au-delà (plus d'une étape de travail), la session **propose** : **plan de suite** (le défaut : titre suffixé, `Reprise du plan #N-1`, `Branche`, liens), ou les faire maintenant en `D<n>`, ou les écarter ; ce qui attend un événement ou un geste de Benjamin, et une décision restée sans réponse, devient une ligne de la base « Restes » (`${CLAUDE_PLUGIN_ROOT}/skills/_partage/restes.md`), que le Récap cite :
 
 📄 `${CLAUDE_PLUGIN_ROOT}/skills/_partage/plan-de-suite.md`
 
