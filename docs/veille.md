@@ -728,7 +728,7 @@ Ce n'est pas une passe de veille. Le titre ne commence pas par une date `AAAA-MM
 
 ### 2026-11-26 — passe avant la PR « reprise des restes : règle, garde restes-repris.py et seuil du petit reste » (plans-notion 0.86.0)
 
-- **Sources lues** : changelog Claude Code (dernière version : 2.1.332, du 25 novembre), pages hooks et sub-agents. Passe déjà jouée le jour même (entrée « Adoption de skills externes » ci-dessus) : aucun appel de l'agent `chercheur` ni nouvelle lecture du web pour cette PR.
+- **Sources lues** : changelog Claude Code (dernière version : 2.1.332, du 25 novembre), pages hooks et sub-agents. Lectures par l'agent `chercheur`, lancé pour cette PR ; les trois citations du tableau relues sur le texte brut des pages.
 - **Ce qui a changé** : rien depuis la 2.1.332.
 - **Faits porteurs** : trois faits remis au tableau de la partie 2, parce que l'entrée du 2026-11-19 (« Adoption de skills externes #3 ») disait les contrôles `refuser_git_stash.py` et la règle (p) de `check_skills.py` fondés sur des faits « au tableau » qui n'y figuraient pas : un hook `PreToolUse` peut bloquer un appel ; sans `tools`, un sous-agent hérite de tout ; `disallowedTools` s'applique avant `tools`. Verdict de `scripts/veille_faits.py` : « 26 fait(s) vérifié(s) : 0 citation(s) à signaler, 0 page(s) injoignable(s) », les trois nouveaux compris.
 - **Ce qu'on en fait** : rien à appliquer à la PR. Le reste repris « veille.md » est tenu par l'ajout des trois lignes. `preparation-prete.py`, signalé comme échouant sur un `notion-fetch` brut, a été corrigé par la PR #189 (commit `18d1b92`, présent dans `origin/main`) : à ne pas rouvrir.
