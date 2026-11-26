@@ -1398,8 +1398,8 @@ class FichierLuEnRoute(Depot):
     Pannes attrapées : un fichier lu de 30 000 octets qui passe sans que personne le voie, un
     seuil mesuré en caractères (14 000 « é » font 28 000 octets), une exception qui laisse grossir
     le fichier, une exception qui survit au passage sous le seuil, une exception sans ``levee_par``,
-    une exception qui n'est pas retirée avec ``--sans-exceptions``, et un fichier non Markdown ou
-    non désigné jugé à tort.
+    une exception qui n'est pas retirée avec ``--sans-exceptions``, un fichier non Markdown ou
+    non désigné jugé à tort, et un renvoi en backticks sans « 📄 » qui n'est pas mesuré.
     """
     LU = "plugins/p/skills/s/lu.md"
     RENVOI = "📄 `${CLAUDE_PLUGIN_ROOT}/skills/s/lu.md` : à lire à la première étape.\n"
@@ -1423,6 +1423,16 @@ class FichierLuEnRoute(Depot):
 
     def test_un_fichier_lu_de_30000_octets_sans_exception_est_refuse_et_nomme(self):
         self.lu_de(30_000)
+        refus = self.refus_lu()
+        self.assertEqual([a.cible for a in refus], [self.LU])
+        self.assertIn("25 000", refus[0].message)
+
+    def test_un_renvoi_en_backticks_sans_piece_jointe_est_mesure_et_nomme(self):
+        # Rouge sur le code d'aujourd'hui : seul le renvoi « 📄 » est lu. Un SKILL.md qui désigne
+        # le même fichier en backticks, sans 📄, le fait lire en route sans que la règle le voie.
+        _manifeste(self.racine, "p")
+        _skill(self.racine, "p", "s", corps="Lire `${CLAUDE_PLUGIN_ROOT}/skills/s/lu.md` d'abord.\n")
+        _ecrire(self.racine / self.LU, "x" * 30_000)
         refus = self.refus_lu()
         self.assertEqual([a.cible for a in refus], [self.LU])
         self.assertIn("25 000", refus[0].message)
