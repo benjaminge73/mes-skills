@@ -60,15 +60,16 @@ def page(chapitre=None, repo=DEPOT):
 
 
 def reprises(n):
-    """``n`` lignes ouvertes de DEPOT, chacune reprise par sa puce (lien vers sa page)."""
-    lignes, puces = [], []
+    """``n`` puces de reprise, chacune avec le lien de sa page, pour des lignes qui ne sont
+    plus dans l'export : à la création d'un plan, une ligne reprise passe ``repris``, et
+    ``restes_lignes.py lire`` n'exporte que ``ouvert``. Le plafond se compte sur ces puces."""
+    puces = []
     for k in range(1, n + 1):
         id_ = f"00000000-0000-4000-8000-{k:012d}"
         titre = f"Reste numéro {k:02d} du plan de test"
         url = "https://app.notion.com/p/" + id_.replace("-", "")
-        lignes.append(ligne(titre, id_=id_))
         puces.append(f"- [{titre}]({url}) — reprise.")
-    return lignes, puces
+    return puces
 
 
 class _Dossier(unittest.TestCase):
@@ -202,9 +203,9 @@ class RestesRepris(_Dossier):
     def test_onze_reprises_rend_1_plafond_depasse(self):
         # Panne : un plan qui reprend plus de 10 lignes passe le garde : le plafond de la règle 7
         # n'est jamais contrôlé.
-        lignes, puces = reprises(11)
-        p = self.ecrire("page.md", page(chapitre=puces))
-        code, sortie, _ = self.jouer(p, self.ecrire_export(lignes))
+        # Export réel : aucune ligne ouverte (« [] »), les onze reprises ne figurent plus dans l'export.
+        p = self.ecrire("page.md", page(chapitre=reprises(11)))
+        code, sortie, _ = self.jouer(p, self.ecrire("ouvert.json", "[]"))
         self.assertEqual(code, 1, sortie)
         self.assertIn("plafond dépassé", sortie)
         self.assertIn("11 reprises", sortie)
@@ -221,21 +222,30 @@ class RestesRepris(_Dossier):
     def test_p_au_dela_du_plafond_rend_0(self):
         # Panne : une ligne (p) posée une fois les 10 reprises atteintes est refusée. Le plafond
         # est atteint : le surplus reste ouvert pour un plan suivant, c'est la règle.
-        lignes, puces = reprises(10)
-        lignes.append(ligne(TITRE_B, id_=ID_B))
+        # Export réel : seule la ligne (p) est ouverte ; les dix reprises n'y figurent plus.
+        puces = reprises(10)
         puces.append(f"- [{TITRE_B}]({URL_B}) — laissée ouverte (p) : au-delà du plafond.")
         p = self.ecrire("page.md", page(chapitre=puces))
-        code, sortie, _ = self.jouer(p, self.ecrire_export(lignes))
+        code, sortie, _ = self.jouer(p, self.ecrire_export([ligne(TITRE_B, id_=ID_B)]))
         self.assertEqual(code, 0, sortie)
 
     def test_p_sur_une_decision_sous_plafond_rend_0(self):
         # Panne : une décision posée en (p) sous le plafond est refusée alors que la règle
         # l'accepte : seule une ligne de Type « décision » peut porter (p) sous 10 reprises.
+        # La reprise A n'est plus dans l'export ; seule la décision B y est ouverte.
         decision = dict(ligne(TITRE_B, id_=ID_B), Type="décision")
         p = self.ecrire("page.md", page(chapitre=[
             f"- [{TITRE_A}]({URL_A}) — reprise.",
             f"- [{TITRE_B}]({URL_B}) — laissée ouverte (p) : au-delà du plafond."]))
-        code, sortie, _ = self.jouer(p, self.ecrire_export([ligne(TITRE_A), decision]))
+        code, sortie, _ = self.jouer(p, self.ecrire_export([decision]))
+        self.assertEqual(code, 0, sortie)
+
+    def test_on_laisse_ouverte_la_variante_est_une_reprise_rend_0(self):
+        # Panne : le présent « on laisse ouverte la variante » passe pour une ligne laissée
+        # ouverte (le motif accepte « laisse ouverte »), alors que la puce reprend la ligne.
+        p = self.ecrire("page.md", page(chapitre=[
+            f"- [{TITRE_A}]({URL_A}) — on laisse ouverte la variante, reprise."]))
+        code, sortie, _ = self.jouer(p, self.ecrire_export([ligne(TITRE_A)]))
         self.assertEqual(code, 0, sortie)
 
     def test_export_illisible_rend_2(self):
