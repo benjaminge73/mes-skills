@@ -711,3 +711,11 @@ Ce n'est pas une passe de veille. Le titre ne commence pas par une date `AAAA-MM
 - **État au moment de l'écriture** : essai **en cours**. Commits poussés pendant la surveillance : non relevés. Coût (quota avant et après) : non mesuré au démarrage ; Hal le relèvera depuis le transcript à l'arrêt.
 - **Arrêt programmé** : cron `verif-essai-steward-1129-stop` (`cac6b43ad0db`), le 2026-11-27 à 13:20 (Paris) : `/steward stop`, puis relevé des commits.
 - **Ce qu'on en fait** : la fin d'essai s'ajoute à cette entrée quand Hal la rapporte (étape 17 du plan : une petite PR de doc à part si la PR du plan est déjà mergée). Aucun écart avec le plan à ce stade.
+
+### 2026-11-26 — passe avant la PR « Adoption de skills externes » (plans-notion 0.84.0)
+
+- **Sources lues** : changelog Claude Code (dernière version : 2.1.332), pages sub-agents, tools-reference, hooks, skills et plugin-evals, claude.dev, anthropic.com/engineering, dépôt `anthropics/skills`. Une partie des pages n'a été lue que tronquée ou par résumé.
+- **Ce qui a changé** : rien après la 2.1.332.
+- **Faits porteurs** : aucun changé au tableau.
+- **Relevé qui touche la PR** : `MultiEdit` ne figure pas dans la liste de `tools-reference.md`, et la doc ne dit pas ce que fait un nom inconnu dans `disallowedTools`. Un hook de commande qui plante ne bloque pas l'appel sauf `onFailure: block` (2.1.295 et plus).
+- **Ce qu'on en fait** : l'ajout de `MultiEdit` au relecteur (décision du plan) reste : il est au pire sans effet, `Edit` et `Write` étant déjà retirés. Restent à vérifier une autre fois : l'entrée du 2026-11-19 dit la règle (p) fondée sur des faits « au tableau » qui n'y sont pas.
