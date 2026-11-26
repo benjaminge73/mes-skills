@@ -8,5 +8,6 @@ Le reste à faire est trié, rien ne dort seul dans le plan terminé :
 VERIFICATIONS:
 - les cinq restes de l'`État final` ont chacun un propriétaire -> oui, plan.md
 - plus d'une étape de travail reste (SQLite, pagination, index) -> plan de suite, pas d'étape D
+- le sixième reste (vérifier que le README cite chaque commande, ≈ 5 min) est un petit reste -> fait sur place en D1, avant `a merger`
 DECOUVERTES:
 - aucune
