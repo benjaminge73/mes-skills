@@ -11,7 +11,7 @@ Sommaire :
 - Remettre le chapitre `Exécution` à jour — toujours (dans `remise-a-jour-execution.md`)
 - La porte des preuves, avant — chaque étape a sa preuve de fin (dans `remise-a-jour-execution.md`)
 - Puis, dans le même tour : maquette, questions orange, worktree, relevé de la
-  CI, vagues, pilote (dans `remise-a-jour-execution.md`)
+  CI, vagues (dans `remise-a-jour-execution.md`)
 - Les prérequis : tout ce qu'il faut hors du dépôt, vérifié avant `pret`
 - La porte du `pret` : l'entrée `Ouverture`, le script, puis `en cours`
 - La fiche du plan, la sonnette et le courrier de Hal (à `en cours`)
@@ -200,8 +200,9 @@ Ce que chaque puce porte :
 - **Prérequis** : l'inventaire de « Les prérequis » ci-dessus, chaque élément avec l'étape qui
   l'exige et son état vérifié ; `preparation-prete.py` refuse la puce qui nomme un élément
   manquant, indisponible ou à fournir.
-- **Maquette**, **CI**, **Pilote**, **Branche** : le résultat des puces
-  correspondantes ci-dessus.
+- **Maquette**, **CI**, **Branche** : le résultat des puces correspondantes de
+  `${CLAUDE_PLUGIN_ROOT}/skills/executer-plan-notion/remise-a-jour-execution.md` ;
+  **Pilote** : le résultat de la puce « Le réglage du pilote » ci-dessus.
 
 **2. Jouer la porte :**
 
