@@ -105,6 +105,13 @@ Les règles, et le fait de doc qui fonde chacune (voir ``docs/veille.md``) :
     25 000 **octets** (``len(texte.encode())``), sauf exception datée
     (``taille_fichier_lu`` de ``scripts/limites.json``, plafond = taille du jour).
     Le texte lu en route se paie à chaque passage d'une exécution, d'où ce seuil.
+(s) Un fichier de référence (un ``.md`` sous ``skills/`` autre que ``SKILL.md``, ``_partage/``
+    compris) de plus de 100 lignes porte un sommaire dans ses 20 premières lignes : un titre
+    « ## Sommaire » (tout niveau de titre) ou une ligne « Sommaire : ». Sans lui, un lecteur
+    qui ouvre le fichier pour une section ne sait pas ce qu'il contient d'autre. Une exception
+    datée (``sommaire`` de ``scripts/limites.json``, une par fichier) couvre le fichier sans
+    sommaire ; elle est périmée si le fichier tient sous le seuil, porte son sommaire, ou n'est
+    plus une référence.
 
 Exceptions datées
 -----------------
