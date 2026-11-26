@@ -1,21 +1,30 @@
 #!/usr/bin/env python3
-"""Hook PreToolUse (Read, Bash) et PreCompact : refuse la relecture exacte d'une règle déjà lue.
+"""Hooks PreToolUse, PostToolUse (Read, Bash) et PreCompact : refuse la relecture exacte d'une règle.
 
 Un fichier de règles est un fichier du plugin sous ``plans-notion/…/skills/``. Le
 pilote qui le relit à l'identique, dans la même session, ne gagne rien : le contenu
-est déjà dans son contexte, et il le paie à chaque tour. Le hook garde, par session,
-les lectures déjà faites et refuse la répétition exacte d'un fichier inchangé.
+est déjà dans son contexte, et il le paie à chaque tour.
 
-- Clé d'une lecture : pour Read, le chemin et la plage (``offset``, ``limit``) ; pour
-  Bash, la commande exacte. Le fichier est pris à sa date de modification : une
-  lecture passe et s'inscrit si la clé est nouvelle ou si le fichier a changé.
-- Bash ne compte que les commandes qui lisent (``cat``, ``sed`` sans ``-i``, ``head``,
-  ``tail``, ``awk``, ``grep``, ``less``, ``nl``, ``rtk read``) sans écriture (pas de
-  ``>``, pas de ``tee``). Une commande qui exécute un script, ou qui fait autre chose,
-  n'est jamais refusée.
-- Le pilote se reconnaît à l'absence de ``agent_id`` : un sous-agent n'est jamais refusé.
+- PostToolUse inscrit une lecture, et seulement une lecture qui a abouti (l'événement
+  ne vient que sur un outil réussi). Une lecture interrompue, refusée par une
+  permission ou par un autre hook, n'est donc jamais inscrite.
+- PreToolUse ne fait que consulter : il refuse la répétition exacte d'un fichier
+  inchangé (décision ``deny`` sur stdout, code 0). Il n'écrit rien.
+- Clé d'une lecture : pour Read, le chemin absolu et la plage (``offset``, ``limit``) ;
+  pour Bash, le dossier du shell (``cwd``) et la commande exacte. Le fichier est pris à
+  sa date de modification : une lecture passe si la clé est nouvelle ou si le fichier a changé.
+- Un chemin relatif se résout contre ``cwd``. Sans ``cwd``, un chemin relatif n'est
+  pas compté : au moindre doute, le hook laisse passer.
+- Bash ne compte qu'une commande de lecture (``cat``, ``sed`` sans ``-i``, ``head``,
+  ``tail``, ``awk``, ``grep``, ``less``, ``nl``, ``rtk read``) sans écriture ni entrée
+  redirigée (pas de ``>``, ``<``, backtick, ``$(``, ni ``tee``), sans option qui lit un
+  autre fichier (``grep -f``, ``sed -f``, ``awk -f``), et dont chaque fichier existant
+  lu est une règle. Une commande qui lit aussi un autre fichier, qui exécute un script,
+  ou qui fait autre chose n'est jamais refusée.
+- Le pilote se reconnaît à l'absence de ``agent_id`` : un sous-agent n'inscrit rien et
+  n'est jamais refusé.
 - ``PreCompact`` vide la liste de la session : après une compaction, la relecture passe.
-- Refus : décision ``deny`` sur stdout, code 0. Permis : code 0, sans sortie.
+- Limite acceptée : un ``/rewind`` garde la liste (les lectures annulées restent inscrites).
 - État : ``~/.cache/plans-notion/lectures/<session>.json``, ``{"<clé>": {"appel": n,
   "mtime": t}}``. ``appel`` est le rang de la lecture inscrite dans la session (1, 2…),
   pas le numéro d'appel d'outil. ``session_id`` est assaini : il ne sort pas du dossier.
@@ -35,17 +44,27 @@ LECTURES_BASH = {"cat", "sed", "head", "tail", "awk", "grep", "less", "nl"}
 SEPARATEURS = re.compile(r"&&|\|\||[;|\n]")
 AFFECTATION = re.compile(r"[A-Za-z_][A-Za-z0-9_]*=")
 OPTION_D_ECRITURE = re.compile(r"^-[A-Za-z]*i|^--in-place")  # sed -i, sed -ni, awk -i inplace
+OPTION_DE_FICHIER = re.compile(r"^-[A-Za-z]*f|^--file")  # grep -f, sed -f, awk -f : lit un autre fichier
 
 
-def _est_regle(chemin: str) -> bool:
+def _est_regle(chemin: Path) -> bool:
     """Vrai pour un chemin sous ``plans-notion/…/skills/`` : un fichier de règles du plugin."""
     parties = PurePosixPath(chemin).parts
     return any(p == "plans-notion" and "skills" in parties[i + 1:] for i, p in enumerate(parties))
 
 
+def _absolu(chemin: str, cwd) -> Path | None:
+    """Chemin absolu normalisé ; un relatif se résout contre ``cwd``, sans ``cwd`` il n'est pas résolu."""
+    if os.path.isabs(chemin):
+        return Path(os.path.normpath(chemin))
+    if cwd:
+        return Path(os.path.normpath(os.path.join(cwd, chemin)))
+    return None
+
+
 def _est_lecture(commande: str) -> bool:
     """Vrai si chaque segment de la commande ne fait que lire. Au moindre doute, faux."""
-    if any(signe in commande for signe in (">", "`", "$(")):
+    if any(signe in commande for signe in (">", "<", "`", "$(")):
         return False
     for segment in SEPARATEURS.split(commande):
         try:
@@ -64,7 +83,45 @@ def _est_lecture(commande: str) -> bool:
             return False
         if programme in ("sed", "awk") and any(OPTION_D_ECRITURE.match(m) or m == "inplace" for m in mots):
             return False
+        if programme in ("grep", "sed", "awk") and any(OPTION_DE_FICHIER.match(m) for m in mots):
+            return False
     return True
+
+
+def _arguments(commande: str) -> list[str] | None:
+    """Arguments de chaque segment de la commande : sans affectation, sans programme, sans ``read`` de rtk."""
+    arguments = []
+    for segment in SEPARATEURS.split(commande):
+        try:
+            mots = shlex.split(segment)
+        except ValueError:
+            return None
+        while mots and AFFECTATION.match(mots[0]):
+            mots.pop(0)
+        if not mots:
+            continue
+        programme, reste = mots[0], mots[1:]
+        if programme == "rtk" and reste[:1] == ["read"]:
+            reste = reste[1:]
+        arguments.extend(reste)
+    return arguments
+
+
+def _fichiers_existants(commande: str, cwd) -> list[Path] | None:
+    """Fichiers existants que la commande désigne (arguments non-options), ou ``None`` si doute."""
+    arguments = _arguments(commande)
+    if arguments is None:
+        return None
+    existants = []
+    for mot in arguments:
+        if mot.startswith("-"):
+            continue
+        chemin = _absolu(mot, cwd)
+        if chemin is None:  # argument relatif sans dossier de départ : on ne sait pas ce qu'il désigne
+            return None
+        if chemin.is_file():
+            existants.append(chemin)
+    return existants
 
 
 def _inspection(donnees: dict):
@@ -74,23 +131,24 @@ def _inspection(donnees: dict):
     """
     outil = donnees.get("tool_name")
     entree = donnees.get("tool_input") or {}
+    cwd = donnees.get("cwd") if isinstance(donnees.get("cwd"), str) else None
     if outil == "Read":
-        chemin = entree.get("file_path")
-        if not isinstance(chemin, str) or not _est_regle(chemin):
+        brut = entree.get("file_path")
+        chemin = _absolu(brut, cwd) if isinstance(brut, str) else None
+        if chemin is None or not _est_regle(chemin):
             return None
         plage = f"{chemin} (plage {entree.get('offset')}+{entree.get('limit')})"
-        cle = "Read " + json.dumps([chemin, entree.get("offset"), entree.get("limit")])
-        return cle, plage, [Path(chemin)]
+        cle = "Read " + json.dumps([str(chemin), entree.get("offset"), entree.get("limit")])
+        return cle, plage, [chemin]
     if outil == "Bash":
         commande = entree.get("command")
         if not isinstance(commande, str) or not _est_lecture(commande):
             return None
-        try:
-            mots = shlex.split(commande)
-        except ValueError:
+        fichiers = _fichiers_existants(commande, cwd)
+        if not fichiers or not all(_est_regle(p) for p in fichiers):
             return None
-        chemins = [Path(m) for m in mots if _est_regle(m)]
-        return ("Bash " + commande, f"la commande `{commande}`", chemins) if chemins else None
+        cle = "Bash " + json.dumps([cwd, commande])
+        return cle, f"la commande `{commande}`", fichiers
     return None
 
 
@@ -131,10 +189,13 @@ def main() -> int:
         if not isinstance(session, str) or not session:
             return 0
         fichier = _fichier_d_etat(session)
-        if donnees.get("hook_event_name") == "PreCompact":
+        evenement = donnees.get("hook_event_name")
+        if evenement == "PreCompact":
             fichier.unlink(missing_ok=True)
             return 0
-        if "agent_id" in donnees:  # un sous-agent porte la clé : jamais refusé
+        if "agent_id" in donnees:  # un sous-agent porte la clé : il n'inscrit rien, il n'est jamais refusé
+            return 0
+        if evenement not in ("PreToolUse", "PostToolUse"):
             return 0
         inspection = _inspection(donnees)
         if inspection is None:
@@ -144,10 +205,12 @@ def main() -> int:
             return 0
         mtime = max(p.stat().st_mtime for p in chemins)
         etat = _lire_etat(fichier)
-        deja = etat.get(cle)
-        if isinstance(deja, dict) and deja.get("mtime") == mtime:
-            print(json.dumps(_refus(cible, deja.get("appel")), ensure_ascii=False))
+        if evenement == "PreToolUse":
+            deja = etat.get(cle)
+            if isinstance(deja, dict) and deja.get("mtime") == mtime:
+                print(json.dumps(_refus(cible, deja.get("appel")), ensure_ascii=False))
             return 0
+        # PostToolUse : l'outil a abouti, la lecture s'inscrit.
         rang = max((v.get("appel", 0) for v in etat.values() if isinstance(v, dict)), default=0) + 1
         etat[cle] = {"appel": rang, "mtime": mtime}
         _ecrire_etat(fichier, etat)
