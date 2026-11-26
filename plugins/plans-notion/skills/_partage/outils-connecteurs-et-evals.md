@@ -90,7 +90,7 @@ lecture.
    contenu : `composio execute NOTION_UPDATE_PAGE_MARKDOWN -d @args.json`, et
    d'une propriété : `NOTION_UPDATE_PAGE`. Le texte passe par un fichier, jamais
    recopié à la main ; `old_str` se construit par script, et les cases se
-   recomptent après chaque écriture (`connecteurs-timeout-hook.md`). L'outil
+   recomptent après chaque écriture (skill `methode-de-travail:connecteurs-timeout`). L'outil
    Composio de la session ne compte pas comme palier : il passe par le même
    relais que Notion et tombe avec lui.
 3. **Hermes, au pilote seulement.** `hermes chat --query-file <consigne>`, avec

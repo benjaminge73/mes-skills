@@ -5,6 +5,14 @@
       "lignes": 256,
       "octets": 14000
     },
+    "plugins/methode-de-travail/skills/connecteurs-timeout/SKILL.md": {
+      "lignes": 71,
+      "octets": 4043
+    },
+    "plugins/methode-de-travail/skills/doc-vivante/SKILL.md": {
+      "lignes": 107,
+      "octets": 7318
+    },
     "plugins/methode-de-travail/skills/systematic-debugging/SKILL.md": {
       "lignes": 317,
       "octets": 11340
@@ -33,6 +41,12 @@
   "longueur_description": {
     "plugins/methode-de-travail/skills/brainstorming/SKILL.md": {
       "caracteres": 390
+    },
+    "plugins/methode-de-travail/skills/connecteurs-timeout/SKILL.md": {
+      "caracteres": 524
+    },
+    "plugins/methode-de-travail/skills/doc-vivante/SKILL.md": {
+      "caracteres": 437
     },
     "plugins/methode-de-travail/skills/systematic-debugging/SKILL.md": {
       "caracteres": 91
