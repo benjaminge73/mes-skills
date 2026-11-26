@@ -60,14 +60,7 @@
   "taille_fichier_lu": {
     "_commentaire": "Règle (q), extension : un fichier Markdown de plugin qu'un SKILL.md désigne comme à lire (renvoi 📄) tient sous plafond_octets (25 000 octets, payés à chaque passage d'une exécution). Exceptions datées, une par fichier, avec son plafond en octets = taille du jour (cliquet) : elles se lèvent en découpant le fichier dans un plan suivant.",
     "plafond_octets": 25000,
-    "exceptions": {
-      "plugins/plans-notion/skills/executer-plan-notion/ouverture.md": {
-        "plafond": 31662,
-        "date": "2026-11-23",
-        "raison": "lu en route, à découper dans un plan suivant",
-        "levee_par": "plan de découpage, à ouvrir"
-      }
-    }
+    "exceptions": {}
   },
   "invariants_en_tete": [
     "plugins/plans-notion/skills/plan-notion/SKILL.md",

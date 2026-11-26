@@ -124,6 +124,7 @@
     "perimetre": {
       "exerce": [
         "skills/executer-plan-notion/",
+        "skills/executer-plan-notion/remise-a-jour-execution.md",
         "skills/_partage/cout-des-plans.md",
         "agents/executant.md",
         "skills/_partage/bons-tests.md",
