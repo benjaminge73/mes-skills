@@ -38,6 +38,8 @@ NO FIXES WITHOUT ROOT CAUSE INVESTIGATION FIRST
 
 If you haven't completed Phase 1, you cannot propose fixes.
 
+**Ne jamais rien affirmer sur un code qu'on n'a pas ouvert** : une cause sur un fichier pas lu reste une hypothèse.
+
 ## When to Use
 
 Use for ANY technical issue:

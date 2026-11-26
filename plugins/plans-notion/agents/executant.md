@@ -68,6 +68,7 @@ repartir de zéro.
   pour une autre session reste entier tant que l'interdit n'est pas ici. Un
   hook (`refuser_git_stash.py`) refuse la forme directe de la commande ; un
   contournement par `bash -c` ou `eval` n'est pas vu.
+- **Ne jamais rien affirmer sur un code qu'on n'a pas ouvert.** Une cause avancée sur un fichier pas lu reste une hypothèse : tu l'ouvres avant de l'écrire dans ton rapport.
 
 ## Quand tu écris un test
 
