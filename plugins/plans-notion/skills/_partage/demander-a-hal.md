@@ -4,6 +4,17 @@ Hal est l'agent Hermes qui tourne sur le VPS, avec la mémoire de Benjamin (le `
 profil `jerome-kairviel`). Une session peut lui poser une **question**, lui faire **relire un plan**
 avant sa revue, ou lui demander un **geste**. Ce fichier dit quand, comment, et ce qu'on ne lui demande jamais.
 
+Sommaire :
+
+- 1. Poser une question
+- 1 bis. Faire relire le plan
+- 2. Demander un geste
+- 2 bis. Une étape déjà validée se transmet à Hal
+- 3. Ce qu'on met dans la demande
+- 4. Ce qu'on ne demande pas
+- 5. Depuis un Mac, sans Hermes
+- 6. Le joindre par Slack, depuis n'importe quelle session
+
 ## 1. Poser une question
 
 Le premier geste reste la recherche sans modèle dans la mémoire (`skills/plan-notion/enquete.md`,

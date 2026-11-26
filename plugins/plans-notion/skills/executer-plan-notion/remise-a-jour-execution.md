@@ -4,6 +4,16 @@ Geste du pilote, ou du `preparateur` quand il le délègue (« Qui prépare », 
 ce fichier se lit en entier avant la première étape, à la suite de `ouverture.md`. Les `§N`
 renvoient à `SKILL.md`, comme dans `ouverture.md`.
 
+Sommaire :
+
+- Le chapitre en retard d'un tour : le remettre à jour
+- Une découverte faite à l'ouverture
+- La porte des preuves, avant (codes 0, 1, 2)
+- Vérifier le chapitre `Maquette`
+- Les questions restées orange passent au vert
+- Relever ce qui déclenche la CI du dépôt
+- Calculer les vagues
+
 **Le chapitre `Exécution` est presque toujours en retard d'un tour.** Benjamin
 répond aux questions dans la page, coche des cases, écrit après
 `Autre / complément →`, laisse un commentaire, passe `Statut` à `valide` et

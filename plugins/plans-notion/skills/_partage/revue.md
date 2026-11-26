@@ -6,6 +6,18 @@ l'agent `relecteur`. Comme `vagues.md` et `preuve-du-rouge.md`, il vit à un
 seul endroit pour que le skill garde sa taille : la règle ne se duplique pas,
 elle se référence.
 
+Sommaire :
+
+- Quand
+- Comment l'appeler
+- La boucle
+- Garde-fou
+- Les preuves après correctif
+- Journal
+- Coût assumé
+- L'ombre de relecture
+- Les étapes sans code
+
 Il ne dit pas *ce que* le relecteur cherche — ça vit dans
 `${CLAUDE_PLUGIN_ROOT}/agents/relecteur.md`, les quatre catégories et le
 format de remarque. Il dit *quand* l'appeler, *comment* le brief, et *comment*

@@ -6,6 +6,17 @@ schémas pour vérifier qu'ils sont à jour. Comme `ecrire-dans-notion.md`, il v
 un seul endroit pour que les deux skills gardent leur taille : la règle ne se
 duplique pas, elle se référence.
 
+Sommaire :
+
+- Pourquoi des schémas
+- Les trois schémas, et quand chacun se justifie
+- La ligne « Blocs touchés »
+- Le code couleur
+- Mettre à jour à chaque passe
+- Les pièges Notion, propres aux schémas
+- Exemple : le plan en un schéma
+- Le schéma de processus (doc fonctionnelle)
+
 Il ne dit pas *comment* écrire dans Notion sans rien casser — ça, c'est
 `ecrire-dans-notion.md`. Il dit *quels* schémas poser, *quand*, et avec *quel*
 code couleur.

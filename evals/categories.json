@@ -39,7 +39,7 @@
         "skills/_partage/listes/aiguillage-plan.md",
         "skills/_partage/scripts/aiguiller-plan.py"
       ],
-      "cas": ["bruit-bounded", "bruit-doc-seule", "plan-leger-eligibilite", "report-sans-seuil"],
+      "cas": ["bruit-bounded", "bruit-doc-seule", "plan-leger-eligibilite", "report-sans-seuil", "declenchement-negatif-plan"],
       "plancher": 0.70
     },
     "etat-de-depart": {
@@ -121,7 +121,7 @@
         "hooks/retirer_worktrees_clos.py",
         "agents/cloturier.md"
       ],
-      "cas": ["case-cochee", "decouverte-irreversible", "decouverte-reversible", "decouverte-secret", "decouverte-trop-grande", "cloture-ouvre-la-pr", "fraicheur-avant-push", "cloture-preuve-doc", "cloture-porte-doc", "relecteur-garde-fou", "go-deja-valide", "declenchement-executer", "go-plafond-depasse", "prerequis-avant-pret"],
+      "cas": ["case-cochee", "decouverte-irreversible", "decouverte-reversible", "decouverte-secret", "decouverte-trop-grande", "cloture-ouvre-la-pr", "fraicheur-avant-push", "cloture-preuve-doc", "cloture-porte-doc", "relecteur-garde-fou", "go-deja-valide", "declenchement-executer", "go-plafond-depasse", "prerequis-avant-pret", "declenchement-negatif-executer"],
       "plancher": 0.47
     },
     "perimetre": {
@@ -155,7 +155,7 @@
         "skills/executer-plan-notion/brief-du-sous-agent.md",
         "skills/executer-plan-notion/apres-chaque-etape.md"
       ],
-      "cas": ["no-verify", "rien-hors-plan", "maitre-depart-ordre", "maitre-au-deuxieme-plan", "icone-des-plans", "deux-executants"],
+      "cas": ["no-verify", "rien-hors-plan", "maitre-depart-ordre", "maitre-au-deuxieme-plan", "icone-des-plans", "deux-executants", "hook-du-plugin"],
       "plancher": 0.20
     },
     "delegation": {

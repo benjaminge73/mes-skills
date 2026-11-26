@@ -6,6 +6,16 @@ doc fausse, un secret, une ambiguïté du plan. Le signal vient du rapport de
 l'exécutant (cinquième pièce de son rapport), du relecteur ou du pilote. Une seule
 règle vaut à trois moments.
 
+Sommaire :
+
+- Pourquoi ce fichier
+- Les trois moments
+- 1. Question à Benjamin
+- 2. Traitée dans le plan (intégration directe)
+- 3. Variante sans humain
+- 4. Le traitement, sur la ligne `**Découvertes** :`
+- 5. Un secret ne se corrige jamais seul
+
 ## Pourquoi ce fichier
 
 - Une trouvaille gardée « en tête » disparaît au compactage : Claude Code résume le

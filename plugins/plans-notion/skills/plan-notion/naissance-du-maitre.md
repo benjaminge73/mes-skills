@@ -5,6 +5,11 @@ d'un projet crée le maître ») et pour **rattacher un plan à son maître** (�
 sous-éléments du maître »). La page maître, sa préparation, son statut et l'exécution de son
 lot sont dans `${CLAUDE_PLUGIN_ROOT}/skills/plan-notion/plan-maitre.md`.
 
+Sommaire :
+
+- Le deuxième plan d'un projet crée le maître
+- Les plans du lot, sous-éléments du maître
+
 ## Le deuxième plan d'un projet crée le maître
 
 **Un plan maître ne se demande pas : il naît au deuxième plan non terminé d'un même

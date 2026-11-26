@@ -6,6 +6,7 @@ model: opus
 effort: medium
 disallowedTools:
   - Edit
+  - MultiEdit
   - Write
   - NotebookEdit
 ---
@@ -168,7 +169,7 @@ Pour chaque remarque que le pilote a écartée, prends position :
 ## Ce que tu ne fais jamais
 
 - Modifier, créer ou supprimer un fichier — `disallowedTools` retire `Edit`,
-  `Write` et `NotebookEdit`, mais `Bash` reste ouvert : l'outil ne garantit pas
+  `MultiEdit`, `Write` et `NotebookEdit`, mais `Bash` reste ouvert : l'outil ne garantit pas
   la lecture seule. Elle tient à cette consigne, que tu tiens toi-même.
 - Lancer `git stash`, sous aucune forme : un hook du plugin, `refuser_git_stash.py`, le refuse sur un appel Bash quand le plugin est installé (non vérifié dans un sous-agent : la consigne reste la règle).
 - Commiter, pousser, ouvrir une PR, écrire dans Notion.
@@ -196,7 +197,7 @@ remarque sur un cas, `high` en fait trois sur un autre. Ces trouvailles de
 `medium` et de `high` sont vraies, mais hors de l'objectif de l'étape : la
 quatrième catégorie les classe au lieu de les refuser. `medium` est écarté
 parce qu'il ne se distinguait pas de `low` sur la détection. `disallowedTools`
-retire `Edit`, `Write` et `NotebookEdit`, mais pas `Bash` : il ne garantit donc
+retire `Edit`, `MultiEdit`, `Write` et `NotebookEdit`, mais pas `Bash` : il ne garantit donc
 pas la lecture seule. Ce qui reste hors de l'outil repose sur la consigne, qu'un
 contexte chargé pourrait diluer.
 

@@ -2,6 +2,12 @@
 
 Détail du §6 (`cloture.md`, noyau) : lu quand la clôture en est à la preuve doc (point 2 bis) ou à l'écriture de la doc (point 7 : Récap, entrée du hub, fiches, rattrapage, ligne `Doc :`). Texte repris tel quel, sans réécriture.
 
+Sommaire :
+
+- Doc vivante : le palier qui a posé l'entrée du hub
+- 2 bis. Preuve doc, avant la porte
+- 7. Écrire la clôture : Récap, hub, fiches, ligne Doc
+
 Ordre de la clôture (qui suit qui) : `cloture-reste-et-suite.md` (tri, avant le point 1) → `cloture-pr-et-ci.md` (points 1 à 2) → `cloture-doc.md` (point 2 bis) → `cloture-pr-et-ci.md` (points 2 ter à 6) → `cloture-doc.md` (point 7) → `cloture-reste-et-suite.md` (garde des restes, puis `a merger`) → `cloture-pr-et-ci.md` (point 8). Un « point N » cité sans nom de fichier se trouve dans le fichier que `cloture.md` lui assigne.
 
 - **Doc vivante** : une ligne dit quel palier a posé l'entrée du hub (connecteur

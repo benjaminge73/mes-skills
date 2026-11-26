@@ -2,6 +2,12 @@
 
 Fiches du registre `outils-et-quotas.md` (fichier d'entrée : règles générales et index des fiches). Ce fichier porte la chaîne de repli des connecteurs Notion et Composio, et les deux bancs d'évaluation (`claude plugin eval`, `inspect_ai`). Il se lit quand un appel de connecteur échoue ou quand un plan chiffre le coût d'un banc ; les règles générales sont dans `outils-et-quotas.md`.
 
+Sommaire :
+
+- Fiche — Connecteurs MCP d'une session Claude Code (Notion, Composio)
+- Fiche — claude plugin eval
+- Fiche — inspect_ai (banc d'évaluation Python)
+
 ## Fiche — Connecteurs MCP d'une session Claude Code (Notion, Composio)
 
 **Quota ou coût** : aucun quota rencontré au 2026-10-08. Le repli par Hermes
@@ -151,16 +157,16 @@ commune pour comparer les postes.
 | Catégorie | Cas au 2026-11-25 | Cas mesurés le 2026-09-30 | Un bras, 3 passages | Un passage |
 |---|---|---|---|---|
 | `existant` | 3 | 2 | 6,43 $ | 2,14 $ |
-| `bruit` | 4 | 3 | 4,81 $ | 1,60 $ |
+| `bruit` | 5 | 3 | 4,81 $ | 1,60 $ |
 | `etat-de-depart` | 7 | 4 | 7,13 $ | 2,38 $ |
 | `maquette` | 1 | 1 | 1,61 $ | 0,54 $ |
-| `decouvertes` | 14 | 4 | 4,98 $ | 1,66 $ |
-| `perimetre` | 6 | 2 | 2,56 $ | 0,85 $ |
+| `decouvertes` | 15 | 4 | 4,98 $ | 1,66 $ |
+| `perimetre` | 7 | 2 | 2,56 $ | 0,85 $ |
 | `delegation` | 1 | — | non mesuré | non mesuré |
 | `preuves` | 14 | — | non mesuré | non mesuré |
 | `revue-hors-plan` | 5 | — | non mesuré | non mesuré |
 | `escalade-bornee` | 1 | — | non mesuré | non mesuré |
-| **tout le banc** | 56 | 16 | 27,53 $ | ≈ 9,2 $ |
+| **tout le banc** | 59 | 16 | 27,53 $ | ≈ 9,2 $ |
 
 Les coûts datent du 2026-09-30 et ne sont extrapolés à aucune catégorie. Les
 catégories `existant` et `decouvertes` ont gagné des cas depuis : elles coûtent

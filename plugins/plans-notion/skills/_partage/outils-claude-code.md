@@ -2,6 +2,17 @@
 
 Fiches du registre `outils-et-quotas.md` (fichier d'entrée : règles générales et index des fiches). Ce fichier porte les fiches de Claude Code, de l'abonnement, de la lecture des sessions, des sous-agents et de la forme des réponses. Il se lit quand un plan touche un de ces outils ; la forme d'une fiche, la règle de publication et le choix entre CLI et serveur MCP sont dans `outils-et-quotas.md`.
 
+Sommaire :
+
+- Fiche — Sessions Claude
+- Fiche — Abonnement Claude Max
+- Fiche — ccusage (lecture des journaux de session)
+- Fiche — Claude Code (CLI `claude`) sur un serveur à plusieurs comptes
+- Fiche — maxTurns (limite de tours d'un sous-agent)
+- Fiche — Claude Code Review (service hébergé)
+- Fiche — i-have-adhd (règles de forme des réponses, skill)
+- Fiche — /advisor (conseiller d'un autre modèle, Claude Code)
+
 ## Fiche — Sessions Claude
 
 **Quota ou coût** (relevé au 2026-09-29) :

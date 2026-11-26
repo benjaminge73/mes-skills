@@ -2,6 +2,13 @@
 
 Détail du §6 (`cloture.md`, noyau) : lu quand la clôture écrit l'`État final` du journal, trie le reste à faire (« Avant le point 1 »), joue le garde des restes du point 7 ou rédige le compte rendu du chat. Texte repris tel quel, sans réécriture.
 
+Sommaire :
+
+- L'entrée `État final` du journal
+- Le compte rendu du chat, qui sert de récap
+- Le côté technique, le bloc replié
+- Avant le point 1 : trier le reste à faire
+
 Ordre de la clôture (qui suit qui) : `cloture-reste-et-suite.md` (tri, avant le point 1) → `cloture-pr-et-ci.md` (points 1 à 2) → `cloture-doc.md` (point 2 bis) → `cloture-pr-et-ci.md` (points 2 ter à 6) → `cloture-doc.md` (point 7) → `cloture-reste-et-suite.md` (garde des restes, puis `a merger`) → `cloture-pr-et-ci.md` (point 8). Un « point N » cité sans nom de fichier se trouve dans le fichier que `cloture.md` lui assigne.
 
 - `Journal d'exécution` clos par une entrée `État final` (H3, comme les autres,

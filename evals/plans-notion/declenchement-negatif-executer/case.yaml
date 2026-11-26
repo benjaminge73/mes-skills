@@ -1,0 +1,26 @@
+schema_version: "1.1"
+name: declenchement-negatif-executer
+description: >
+  Cas négatif : une question de lecture sur un fichier, sans plan ni feu vert. executer-plan-notion
+  ne doit pas se charger : il ne couvre pas une tâche sans plan. Sa panne nommée : la session
+  charge l'exécution sur une simple lecture, ou répond sans ouvrir le fichier.
+tags: [declenchement]
+expected_outcome: "Aucun appel Skill ; la réponse finale donne le contenu de hello.txt, « bonjour le monde »."
+execution:
+  max_turns: 30
+  timeout_seconds: 600
+  allowed_tools: [Read, Glob, Grep, Skill, Write, Edit]
+context:
+  scaffold_script: fixture.sh
+# Négatif : le juge skill-non-appele passe sur le vide par nature. Le témoin nul est tenu par
+# contenu-donne : une réponse vide ne cite pas le contenu du fichier, il échoue.
+graders:
+  - name: skill-non-appele
+    type: tool_used
+    tool: Skill
+    min: 0
+    max: 0
+  - name: contenu-donne
+    type: regex
+    pattern: 'bonjour le monde'
+    flags: i

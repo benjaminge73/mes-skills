@@ -6,6 +6,19 @@ commit sur la branche du plan, prouvé en local ») et par `executant` (règle
 `vagues.md` et `schemas.md`, il vit à un seul endroit pour que le skill garde
 sa taille : la règle ne se duplique pas, elle se référence.
 
+Sommaire :
+
+- Pourquoi ce fichier
+- Le brief : deux messages de commit, une liste de fichiers de test
+- Deux exécutants : le second ne touche pas au test
+- Le contrôle du vert, par script
+- Le geste du pilote : rejouer les tests sur le commit rouge
+- Trois issues
+- La ligne de journal
+- Avec une vague, avec un regroupement
+- Une preuve d'idempotence compare le contenu, pas les compteurs
+- Exceptions : pas de commit rouge
+
 Il ne dit pas *comment* rejouer la suite complète (§6 du skill) ni *quand*
 paralléliser (`vagues.md`). Il dit *comment* prouver qu'un test a mordu avant
 de le faire passer, et *comment* vérifier que le code qui le fait passer ne

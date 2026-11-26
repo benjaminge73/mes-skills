@@ -15,6 +15,10 @@ import tempfile
 import unittest
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+import controle_hooks_neutres  # noqa: E402
+
 HOOKS = Path(__file__).resolve().parents[1] / "plugins" / "plans-notion" / "hooks"
 OUTIL_UPDATE = "mcp__claude_ai_Notion__notion-update-page"
 OUTIL_CREATE = "mcp__claude_ai_Notion__notion-create-pages"
@@ -1551,6 +1555,109 @@ class RefuserBalisesComposio(unittest.TestCase):
 
     def test_une_commande_sans_composio_passe(self):
         self.permis('git commit -m "<b>x</b>" && echo \'<i>y</i>\' > notes.md')
+
+
+class HooksBashCommandeNeutre(unittest.TestCase):
+    """Contrôle : chaque hook PreToolUse qui couvre Bash rend 0 et muet sur ``ls``.
+
+    La découverte lit ``plugins/*/hooks/hooks.json`` et la clé ``hooks`` de chaque
+    ``plugin.json`` : aucune liste codée en dur. Les hooks factices vivent dans un
+    dossier temporaire du test ; ils prouvent que le contrôle voit ce qu'il doit voir.
+    """
+    RACINE = Path(__file__).resolve().parents[1]
+
+    def hook_pretool_bash(self, script: str) -> dict:
+        commande = f'python3 "${{CLAUDE_PLUGIN_ROOT}}/hooks/{script}"'
+        return {"hooks": {"PreToolUse": [{"matcher": "Bash", "hooks": [
+            {"type": "command", "command": commande}]}]}}
+
+    def poser_plugin(self, racine: Path, nom: str, hooks_json: dict, script: str, corps: str) -> None:
+        plugin = racine / "plugins" / nom
+        (plugin / "hooks").mkdir(parents=True)
+        (plugin / "hooks" / "hooks.json").write_text(json.dumps(hooks_json), encoding="utf-8")
+        (plugin / "hooks" / script).write_text(corps, encoding="utf-8")
+
+    def test_neutre_les_hooks_bash_reels_rendent_zero_muet_sur_ls(self):
+        decouverts = controle_hooks_neutres.decouvrir(self.RACINE)
+        self.assertTrue(decouverts, "aucun hook PreToolUse Bash découvert : le contrôle serait vide")
+        self.assertEqual(controle_hooks_neutres.controle_neutre(self.RACINE), [])
+
+    def test_neutre_un_hook_factice_qui_repond_a_ls_fait_rougir_le_controle(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            racine = Path(tmp)
+            self.poser_plugin(racine, "fantome", self.hook_pretool_bash("bavard.py"), "bavard.py",
+                              "import sys\nsys.stdin.read()\nprint('bonjour')\n")
+            violations = controle_hooks_neutres.controle_neutre(racine)
+        self.assertTrue(violations, "un hook qui répond à ls doit faire rougir le contrôle")
+        self.assertIn("bavard.py", violations[0])
+
+    def test_neutre_un_hook_factice_muet_sur_ls_passe_le_controle(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            racine = Path(tmp)
+            self.poser_plugin(racine, "muet", self.hook_pretool_bash("silencieux.py"), "silencieux.py",
+                              "import sys\nsys.stdin.read()\n")
+            decouverts = controle_hooks_neutres.decouvrir(racine)
+            violations = controle_hooks_neutres.controle_neutre(racine)
+        # Garde : le hook muet doit être découvert, sinon « aucune violation » ne prouve rien.
+        self.assertEqual(len(decouverts), 1)
+        self.assertEqual(violations, [])
+
+    def test_neutre_un_hook_qui_exige_session_id_fait_rougir_le_controle(self):
+        # Panne attrapée : la charge du contrôle n'avait ni session_id ni cwd. Un hook qui
+        # sort sans session_id (refuser_relecture_regles.py) restait muet, et le contrôle passait
+        # sans que le hook ait rien joué. Factice : muet sans session_id, bavard avec.
+        corps = ("import json, sys\n"
+                 "entree = json.loads(sys.stdin.read())\n"
+                 "if 'session_id' in entree:\n"
+                 "    print('bonjour')\n")
+        with tempfile.TemporaryDirectory() as tmp:
+            racine = Path(tmp)
+            self.poser_plugin(racine, "exigeant", self.hook_pretool_bash("exigeant.py"), "exigeant.py", corps)
+            violations = controle_hooks_neutres.controle_neutre(racine)
+        self.assertTrue(violations, "un hook qui répond dès que session_id est là doit faire rougir le contrôle")
+        self.assertIn("exigeant.py", violations[0])
+
+    def test_neutre_un_hook_declare_dans_plugin_json_est_decouvert(self):
+        # Panne attrapée : le contrôle ne lisait que hooks.json ; un hook Bash déclaré
+        # dans la clé ``hooks`` de plugin.json restait invisible.
+        with tempfile.TemporaryDirectory() as tmp:
+            racine = Path(tmp)
+            plugin = racine / "plugins" / "inline"
+            (plugin / ".claude-plugin").mkdir(parents=True)
+            (plugin / "hooks").mkdir()
+            (plugin / "hooks" / "inline.py").write_text("import sys\nsys.stdin.read()\n", encoding="utf-8")
+            manifeste = {"name": "inline", "hooks": self.hook_pretool_bash("inline.py")["hooks"]}
+            (plugin / ".claude-plugin" / "plugin.json").write_text(json.dumps(manifeste), encoding="utf-8")
+            decouverts = controle_hooks_neutres.decouvrir(racine)
+        self.assertEqual(len(decouverts), 1)
+
+    def test_neutre_un_hook_sans_matcher_couvre_bash_et_est_decouvert(self):
+        # Panne attrapée : un groupe sans ``matcher`` (donc tous les outils, Bash compris)
+        # était ignoré par la découverte.
+        hooks_json = {"hooks": {"PreToolUse": [{"hooks": [
+            {"type": "command", "command": 'python3 "${CLAUDE_PLUGIN_ROOT}/hooks/tout.py"'}]}]}}
+        with tempfile.TemporaryDirectory() as tmp:
+            racine = Path(tmp)
+            self.poser_plugin(racine, "sansmatcher", hooks_json, "tout.py",
+                              "import sys\nsys.stdin.read()\n")
+            decouverts = controle_hooks_neutres.decouvrir(racine)
+        self.assertEqual(len(decouverts), 1)
+
+    def test_neutre_un_hook_declare_sous_deux_groupes_couvrant_bash_n_est_decouvert_qu_une_fois(self):
+        # Panne attrapée : le dédoublonnage de decouvrir() est le seul garde de ce cas.
+        # Sans lui, un hook déclaré sous un groupe « matcher Bash » et sous un groupe sans
+        # matcher (tous les outils) serait joué deux fois par le contrôle.
+        commande = 'python3 "${CLAUDE_PLUGIN_ROOT}/hooks/double.py"'
+        hooks_json = {"hooks": {"PreToolUse": [
+            {"matcher": "Bash", "hooks": [{"type": "command", "command": commande}]},
+            {"hooks": [{"type": "command", "command": commande}]},
+        ]}}
+        with tempfile.TemporaryDirectory() as tmp:
+            racine = Path(tmp)
+            self.poser_plugin(racine, "double", hooks_json, "double.py",
+                              "import sys\nsys.stdin.read()\n")
+            decouverts = controle_hooks_neutres.decouvrir(racine)
+        self.assertEqual(len(decouverts), 1)
 
 
 if __name__ == "__main__":

@@ -6,6 +6,18 @@ puce **Test attendu**). Comme `preuve-du-rouge.md`, il vit à un seul endroit
 pour que les deux skills gardent leur taille : la règle ne se duplique pas,
 elle se référence.
 
+Sommaire :
+
+- Pourquoi ce fichier
+- 1. Nommer la panne
+- 2. Attendu dérivé indépendamment du code
+- 3. Pas de « change detector »
+- 4. Pas d'assertion miroir
+- 5. Tester le contrat, pas l'implémentation
+- 6. Ni prose, ni compte, ni recopie
+- 7. Un test par panne nommée
+- 8. Ne contourne pas un garde-fou pour passer
+
 Il ne dit pas *comment* prouver qu'un test a mordu avant de le faire passer
 (`preuve-du-rouge.md`) — il dit ce qui fait qu'un test, une fois rouge, vaut
 la peine d'exister. **Le rouge ne suffit pas** : un test à assertion miroir

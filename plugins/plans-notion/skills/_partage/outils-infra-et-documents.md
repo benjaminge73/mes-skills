@@ -2,6 +2,15 @@
 
 Fiches du registre `outils-et-quotas.md` (fichier d'entrée : règles générales et index des fiches). Ce fichier porte les outils locaux ou auto-hébergés du VPS (Hermes, FileBrowser, Cloudflare, Chromium, PyMuPDF) et la vision de DeepSeek. Il se lit quand un plan touche l'un de ces outils ; les règles générales sont dans `outils-et-quotas.md`.
 
+Sommaire :
+
+- Fiche — DeepSeek vision
+- Fiche — FileBrowser Quantum
+- Fiche — Cloudflare Zero Trust (tunnel et Access)
+- Fiche — Hermes Agent (cron, hub de skills, rendu Slack)
+- Fiche — Chromium (snap) et Chrome headless
+- Fiche — PyMuPDF
+
 ## Fiche — DeepSeek vision
 
 **Quota ou coût** (relevé au 2026-08-26, mesure sur un guide réel) :
