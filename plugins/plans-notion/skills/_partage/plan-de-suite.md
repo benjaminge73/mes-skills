@@ -85,6 +85,12 @@ première réponse qui s'applique décide :
    - **une étape au plus**, réversible et hors sécurité → étape `D<n>`
      (`decouvertes.md` § 2), faite avant la clôture : le plan reste `en cours`
      jusque-là, et la suite complète finale la couvre ;
+   - **un petit reste** : un geste ou une vérification dans le dépôt du plan, sans les
+     comptes de Benjamin, réversible et hors sécurité, estimé à 15 minutes ou moins, se
+     fait sur place en `D<n>` avant `a merger`, au lieu de devenir une ligne « Restes »
+     ou de partir au plan de suite. L'estimation s'écrit à côté du reste (« ≈ 10 min ») :
+     sans elle, il n'est pas petit. La mesure vaut pour chaque reste, qui ne compte pas
+     dans le total d'une étape : c'est la seule exception à « on ne coupe pas le reste » ;
    - **plus d'une étape**, ou un élément qui ne tient pas dans une étape (il
      revient sur une décision tranchée, coûte, touche la sécurité, est
      irréversible : mesure de `decouvertes.md` § 1) → **la suite proposée se montre
@@ -108,7 +114,9 @@ première réponse qui s'applique décide :
    Le seuil d'une étape est un total, pas une mesure par élément comme pour les
    découvertes en route (`decouvertes.md` § 2, sans plafond) : à la clôture, empiler
    des `D<n>` de sa propre initiative ferait ne jamais clore. Seul l'accord de
-   Benjamin, donné dans la session, lève ce seuil.
+   Benjamin, donné dans la session, lève ce seuil. Seul le petit reste ci-dessus se
+   mesure par élément : la liste s'arrête au tri, et un reste né en le faisant n'est
+   plus « petit », il suit le seuil d'une étape.
 3. **C'est un geste que seul Benjamin peut poser** (une option à activer dans
    l'interface, une action sur un compte qu'aucun outil de la session n'atteint) →
    rien à décider, donc pas de question : la session le **dit dans son message**, avec

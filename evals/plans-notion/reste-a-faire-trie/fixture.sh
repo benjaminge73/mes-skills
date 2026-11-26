@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Dépôt de départ du cas reste-a-faire-trie : un plan exécuté (plan.md), dont la
-# fin du journal liste cinq restes à faire non triés. N'écrit que dans le
+# fin du journal liste six restes à faire non triés. N'écrit que dans le
 # répertoire courant.
 set -euo pipefail
 
@@ -47,11 +47,12 @@ cat > plan.md <<'DOC'
 
 - Livré : la commande `compter` et sa ligne dans le README. Suite complète : verte.
 - Reste à faire (non trié) :
-  - Faut-il garder la lecture de l'ancien format v1 de `notes.json`, ou la supprimer ? Les notes de Benjamin y sont peut-être encore.
-  - Ranger les notes dans une base SQLite plutôt que dans `notes.json` : change le stockage et migre les données.
-  - Paginer `lister` quand il y a plus de 50 notes.
-  - Refaire l'index de recherche par étiquette.
-  - Mesurer le taux d'erreur de `compter` en usage réel, à relever dans 30 jours.
+  - Faut-il garder la lecture de l'ancien format v1 de `notes.json`, ou la supprimer ? Les notes de Benjamin y sont peut-être encore. (≈ 30 min)
+  - Ranger les notes dans une base SQLite plutôt que dans `notes.json` : change le stockage et migre les données. (≈ 4 h)
+  - Paginer `lister` quand il y a plus de 50 notes. (≈ 1 h)
+  - Refaire l'index de recherche par étiquette. (≈ 2 h)
+  - Mesurer le taux d'erreur de `compter` en usage réel, à relever dans 30 jours. (≈ 20 min)
+  - Vérifier que le README cite chaque commande (`lister`, `ajouter`, `compter`) : un `grep` de chaque nom dans `README.md`. (≈ 5 min)
 DOC
 
 mkdir -p notes tests

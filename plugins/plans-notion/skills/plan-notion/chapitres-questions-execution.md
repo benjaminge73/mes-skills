@@ -81,12 +81,16 @@ choix cochée**, et sa ligne de preuve cite son message mot pour mot :
 à la création (`naissance-du-maitre.md`, « Le deuxième plan d'un projet crée le maître », point 1), est
 tranchée ici (`${CLAUDE_PLUGIN_ROOT}/skills/_partage/restes.md`, règle 7) :
 
-- une ligne **du sujet du plan** est reprise : un H2 `Restes repris` en tête de page, une puce
-  par ligne, son titre en lien, puis `Pour` et `Condition`. Une ligne `décision` du sujet
-  devient en plus une question ouverte de ce chapitre, avec le lien de la ligne dans son encadré ;
-- une ligne **hors sujet** n'est pas reprise et ne devient pas une question : elle est citée dans
-  le même H2, en puce « laissée ouverte » avec sa raison (« — laissée ouverte : hors sujet, reste
-  dans la vue de Benjamin »). Sans raison, `restes-repris.py` refuse le passage à `en revue` ;
+- **par défaut, la ligne est reprise** : un H2 `Restes repris` en tête de page porte **une puce de
+  premier niveau par ligne**, son titre en lien, puis `Pour` et `Condition`. Pas de puce
+  d'introduction portant un lien dans ce chapitre : la garde compte les reprises sur ces puces.
+  Une ligne `décision` reprise devient en plus une question ouverte de ce chapitre, avec le lien
+  de la ligne dans son encadré ;
+- **une ligne n'est laissée ouverte** que pour une raison de la liste fermée de la règle 7, (a) à
+  (e) : sa puce, dans le même H2, porte le titre en lien et la mention `laissée ouverte (<lettre>) :
+  <raison>` (par exemple « — laissée ouverte (d) : contredit le sujet, Benjamin tranche »). Lettre
+  absente, hors liste ou raison vide : `restes-repris.py` refuse le passage à `en revue` ;
+- **plafond** et surplus en `(p)` : règle 7 de `restes.md`, seule source ;
 - un plan qui touche plusieurs dépôts groupe le H2 par dépôt (un H3 `owner/repo` par dépôt).
 
 **À la création de la page, et pas avant**, la propriété `Repris par` de chaque ligne **reprise**

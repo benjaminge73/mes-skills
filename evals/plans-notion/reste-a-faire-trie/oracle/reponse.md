@@ -6,7 +6,8 @@ Le reste à faire est trié, rien ne dort seul dans le plan terminé :
 - la mesure à 30 jours attend un événement : une ligne `suivi` de la base « Restes » la porte (son déclencheur est dans la ligne), et l'`État final` la cite avec son propriétaire, sans recopier le reste.
 
 VERIFICATIONS:
-- les cinq restes de l'`État final` ont chacun un propriétaire -> oui, plan.md
-- plus d'une étape de travail reste (SQLite, pagination, index) -> plan de suite, pas d'étape D
+- les six restes de l'`État final` ont chacun un propriétaire -> oui, plan.md
+- plus d'une étape de travail reste (SQLite, pagination, index) -> plan de suite, aucune étape D pour eux (seule D1, le petit reste, est faite sur place)
+- le sixième reste (vérifier que le README cite chaque commande, ≈ 5 min) est un petit reste -> fait sur place en D1, avant `a merger`
 DECOUVERTES:
 - aucune
