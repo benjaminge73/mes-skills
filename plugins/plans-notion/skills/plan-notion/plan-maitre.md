@@ -229,8 +229,7 @@ lot tel qu'il est, à sa nouvelle fermeture. Les plans du lot n'en écrivent pas
 chacun : leur récap reste en tête de leur propre page (`## Récap · …`), et le
 `Récap du lot` de la page maître reste le condensé. L'entrée part à la clôture du
 lot, comme une entrée de plan part à sa clôture, avant le merge : « Reste à faire »
-dit ce qui attend. Format et règles : `_partage/changelog-et-doc.md` (§ 2.4, et § 5
-pour un projet non activé, où le hub n'est pas touché).
+dit ce qui attend. Format et règles : `_partage/changelog-et-doc.md` (§ 2.4, et `_partage/doc-vivante-activation.md` pour un projet non activé, où le hub n'est pas touché).
 
 **Ajouter un plan en route** : sa préparation se joue seule, jusqu'à `pret`
 (`lecteur`, `enqueteur`, `sondeur` sur ce plan, plus les étapes ci-dessous), puis

@@ -8,13 +8,9 @@ description: >-
 
 ## Invariants — ce qui tient même après un compactage
 
-Un compactage du contexte ne recolle que le début de ce fichier : ce qui ne
-doit jamais se perdre est donc ici, une ligne chacun, avec la section qui le
-détaille.
+Un compactage ne recolle que le début de ce fichier : ce qui ne doit jamais se perdre est donc ici, une ligne chacun, avec sa section.
 
-- **Après un compactage, ré-invoquer ce skill** (outil `Skill`) avant
-  d'écrire dans Notion ou de lancer une étape — le compactage ne garde que le
-  début du skill.
+- **Après un compactage, ré-invoquer ce skill** (outil `Skill`) avant d'écrire dans Notion ou de lancer une étape.
 - **Rien avant `valide`, aucune étape avant `pret`** : lire le `Statut` de la
   page avant toute ligne de code ; `valide` → préparation complète (§2) puis
   `pret` ; `en cours` ne se pose que sur une page `pret` (« La porte d'entrée »).
@@ -57,9 +53,7 @@ puis lire ce `SKILL.md` et `_partage/` depuis l'`installPath` d'`installed_plugi
 (plugin `plans-notion@atelier`), pas depuis la copie chargée. Pour charger la
 plus récente : `claude plugin update plans-notion@atelier` (redémarrage
 requis) ; en session cloud, le setup script pose déjà la dernière version
-publiée — jamais plus loin que ce que `main` du dépôt porte. Ce que cette
-garde ne règle pas : une copie qui ne l'embarque pas ne préviendra jamais — elle
-protège à partir de la version qui la porte. (Historique : `docs/retex/executer-plan-notion.md`.)
+publiée — jamais plus loin que ce que `main` du dépôt porte. Limite : une copie qui ne l'embarque pas ne préviendra jamais ; la garde protège à partir de la version qui la porte. (Historique : `docs/retex/executer-plan-notion.md`.)
 
 ## La porte d'entrée
 
@@ -99,14 +93,11 @@ protège à partir de la version qui la porte. (Historique : `docs/retex/execute
   financier ou irréversible non validé par Benjamin, et le lui pose (Benjamin, 2026-10-16 :
   « sauf choix de sécu majeur, financier ou irréversible que je n'aurais pas déjà validé »).
 
-⚠️ Les valeurs de `Statut` sont **sans accents** : `brouillon`, `en revue`,
-`valide`, `pret`, `en cours`, `a merger`, `execute`. Écrire `exécuté`
-ou `prêt` fait échouer l'appel (le hook du plugin refuse aussi).
+⚠️ Valeurs de `Statut` **sans accents** (liste des invariants) : écrire `exécuté` ou `prêt` fait échouer l'appel (le hook du plugin refuse aussi).
 
 Le connecteur **Notion** est indispensable. S'il manque, le dire immédiatement
 plutôt que de contourner : exécuter sans pouvoir écrire le journal produit un
-travail dont il ne reste aucune trace hors du fil de discussion, et le fil
-disparaît au compactage du contexte.
+travail dont il ne reste aucune trace hors du fil de discussion, et le fil disparaît au compactage.
 
 ## Quand charger ce skill
 
@@ -340,5 +331,5 @@ Les refus principaux : ne pas concevoir le plan (`plan-notion`), ne pas coder sa
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/bons-tests.md`, `${CLAUDE_PLUGIN_ROOT}/skills/_partage/poc.md`,
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/machine-partagee.md`, `${CLAUDE_PLUGIN_ROOT}/skills/_partage/cron-a-la-main.md`,
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/cout-des-plans.md`, `${CLAUDE_PLUGIN_ROOT}/skills/_partage/ranger-claude-md.md`, `${CLAUDE_PLUGIN_ROOT}/skills/_partage/fraicheur-du-depot.md`,
-  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/changelog-et-doc.md`, `${CLAUDE_PLUGIN_ROOT}/skills/_partage/pilotable-par-hal.md`,
+  `${CLAUDE_PLUGIN_ROOT}/skills/_partage/changelog-et-doc.md`, `${CLAUDE_PLUGIN_ROOT}/skills/_partage/doc-vivante-activation.md`, `${CLAUDE_PLUGIN_ROOT}/skills/_partage/doc-sous-le-capot.md`, `${CLAUDE_PLUGIN_ROOT}/skills/_partage/pilotable-par-hal.md`,
   `${CLAUDE_PLUGIN_ROOT}/skills/_partage/outils-et-quotas.md`, `${CLAUDE_PLUGIN_ROOT}/skills/_partage/outils-claude-code.md`, `${CLAUDE_PLUGIN_ROOT}/skills/_partage/outils-connecteurs-et-evals.md`, `${CLAUDE_PLUGIN_ROOT}/skills/_partage/outils-code-et-securite.md`, `${CLAUDE_PLUGIN_ROOT}/skills/_partage/outils-infra-et-documents.md`, `${CLAUDE_PLUGIN_ROOT}/skills/_partage/outils-donnees-publiques.md`, livrés par le plugin `plans-notion` — pas par le dépôt de travail, quel qu'il soit.

@@ -7,7 +7,7 @@ Ordre de la clôture (qui suit qui) : `cloture-reste-et-suite.md` (tri, avant le
 - **Doc vivante** : une ligne dit quel palier a posé l'entrée du hub (connecteur
   Notion, `composio`, ou fichier confié à Hermes : point 7, cascade), ou que le
   projet est désactivé, ou pose la question « Doc vivante : à activer pour
-  <projet> ? » quand l'encadré manque (`changelog-et-doc.md` § 5). L'entrée
+  <projet> ? » quand l'encadré manque (`doc-vivante-activation.md`). L'entrée
   `État final` du journal reste telle quelle, comme trace complète.
 
   2 bis. **Preuve doc, après l'allègement et avant la porte.** Un passage `.md`
@@ -105,7 +105,7 @@ Ordre de la clôture (qui suit qui) : `cloture-reste-et-suite.md` (tri, avant le
        chaque clôture de plan, et la page maître n'est pas le hub. Relever la page maître
        fraîche, et écrire par la cascade du point (a).
        Relever la page `Projet` fraîche et lire son encadré d'activation
-       (`changelog-et-doc.md` § 5) :
+       (`doc-vivante-activation.md`) :
        - `📘 Doc vivante : activée` : créer la sous-page `📰 Changelog` (icône comprise)
          sous la page `Projet` si elle manque, et, sauf plan couvert par un plan maître,
          poser l'entrée **en tête**, ancrée après la fin complète du dernier bloc qui
@@ -122,9 +122,9 @@ Ordre de la clôture (qui suit qui) : `cloture-reste-et-suite.md` (tri, avant le
        - **La page mère.** Lire d'abord la ligne `📘 Rétro-doc : faite` de l'encadré
          d'activation (point (c)). Si elle est absente, l'encadré `🚧 Doc partielle —
          rétro-doc pas encore faite` se pose ; si elle est présente, la rétro-doc est faite
-         et l'encadré ne se pose pas (`changelog-et-doc.md` § 5). Si la page mère manque, elle
+         et l'encadré ne se pose pas (`doc-vivante-activation.md`). Si la page mère manque, elle
          se crée vide de vue d'ensemble, avec ou sans cet encadré selon cette même ligne
-         (§ 5, cas sans page mère) ; elle ne déplace jamais une page existante. Si la page
+         (`doc-vivante-activation.md`, cas sans page mère) ; elle ne déplace jamais une page existante. Si la page
          mère existe sans encadré « Doc partielle », et la ligne est absente, l'ajouter en
          tête de la page mère ; s'il existe, le laisser en place. Un encadré resté sur la
          page `Projet` par l'ancienne règle n'est pas déplacé : le dire dans le compte rendu.
@@ -133,16 +133,16 @@ Ordre de la clôture (qui suit qui) : `cloture-reste-et-suite.md` (tri, avant le
          sous la page mère, icône et phrase comprises.
        - **La fiche.** Une fiche par fonctionnalité que le plan touche, et seulement celles-là,
          créée si elle manque, avec son icône et ses cinq titres à emoji, dans l'ordre et
-         l'orthographe du § 9.2 de `changelog-et-doc.md`. Une fiche existante reçoit une ligne en tête
+         l'orthographe du § 9.2 de `doc-sous-le-capot.md`. Une fiche existante reçoit une ligne en tête
          de son `🕰️ Historique`, au format du § 4, point 4, par `update_content`. Une fiche
          déjà là hors de sa famille (ancienne place) n'est jamais déplacée : elle reçoit sa
          ligne d'historique, et son emplacement se signale dans le compte rendu. Une fiche
          créée a sa ligne au tableau `🧩 Fonctionnalités` de la page mère, s'il existe :
-         `changelog-et-doc.md` § 5.
+         `doc-vivante-activation.md`.
        La vue d'ensemble et les processus clés ne se mettent à jour que s'ils existent et
        que le diff du plan les touche : jamais créés, jamais réécrits au jugé (c'est le rôle
-       de la rétro-doc, `changelog-et-doc.md` § 5). Les lignes « Sous le capot » des briques
-       que le diff touche se mettent à jour à partir du diff (§ 9), jamais de mémoire.
+       de la rétro-doc, `doc-vivante-activation.md`). Les lignes « Sous le capot » des briques
+       que le diff touche se mettent à jour à partir du diff (`doc-sous-le-capot.md`), jamais de mémoire.
      - **(e) Le rattrapage des PR sans entrée.** Projet à encadré `📘 Doc vivante : activée`
        seulement. Relever les PR mergées du dépôt, à la racine du dépôt du plan :
        `gh pr list --state merged --limit 200 --json number,title,mergedAt,author,labels > <scratchpad>/prs.json`.
@@ -150,7 +150,7 @@ Ordre de la clôture (qui suit qui) : `cloture-reste-et-suite.md` (tri, avant le
        `python3 ${CLAUDE_PLUGIN_ROOT}/skills/_partage/scripts/doc-de-cloture.py --trous --changelog <miroir-changelog> --prs <scratchpad>/prs.json --projet <miroir-page-projet> [--sauf <N de ce plan>]`.
        - `--projet` : le miroir frais de la page projet. La date d'activation s'y lit, sur la
          ligne `📘 Activée le AAAA-MM-JJ` de l'encadré `📘 Doc vivante : activée`
-         (`changelog-et-doc.md` § 5). `--depuis <date>` reste possible à sa place, et l'emporte
+         (`doc-vivante-activation.md`). `--depuis <date>` reste possible à sa place, et l'emporte
          (`--projet` n'est alors pas requis). Si la ligne manque (code 2), on ne devine pas la
          date : on ne joue pas `--trous`, et on le dit à Benjamin.
        - `--sauf` : la PR de ce plan, si son entrée n'est pas encore au hub (plan couvert par

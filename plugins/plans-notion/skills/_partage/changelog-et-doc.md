@@ -13,18 +13,18 @@ Le **hub** est la page `Projet`, sous `Clients / Projets`, et tout ce qui est de
 La forme est la même pour chaque projet :
 
 ```
-Projet                       encadré d'activation (§ 5), lien vers la page mère
+Projet                       encadré d'activation (doc-vivante-activation.md), lien vers la page mère
 ├── 📰 Changelog             sous-page DIRECTE du projet, pas de la page mère
-└── 📚 Documentation         page mère (§ 9.1)
+└── 📚 Documentation         page mère (doc-sous-le-capot.md, § 9.1)
     ├── 📱 <famille>         une phrase ; de 3 à 10 familles par projet
-    │   ├── <fiche>          une fiche par fonctionnalité (§ 9.2)
+    │   ├── <fiche>          une fiche par fonctionnalité (doc-sous-le-capot.md, § 9.2)
     │   └── <fiche>
     └── 🏭 <famille>
         └── <fiche>
 ```
 
 - La page `Projet` ne porte que son encadré d'activation, un lien vers la page mère et la sous-page `📰 Changelog`.
-- La page mère `📚 Documentation`, sous-page du projet, porte la vue d'ensemble, les processus clés et le tableau des fonctionnalités (§ 9.1).
+- La page mère `📚 Documentation`, sous-page du projet, porte la vue d'ensemble, les processus clés et le tableau des fonctionnalités (`doc-sous-le-capot.md`, § 9.1).
 - Sous la page mère, une sous-page par **famille**. Une famille a son emoji et une phrase qui dit ce qui s'y range. Sous chaque famille, ses fiches. Une fiche nouvelle se range dans sa famille, ou en crée une si aucune ne convient.
 - Chaque page a une icône emoji : la page mère, chaque famille, chaque fiche et le `📰 Changelog` compris. Elle se pose par le paramètre `icon` de `create-pages` ou `update-page`.
 
@@ -89,7 +89,7 @@ La lecture d'une page par `composio` (§ 6, point 2) rend ce bloc sous la forme 
 
 - **Lot de plan maître** : une seule entrée consolidée au `Changelog`, titre `## AAAA-MM-JJ · Lot <titre du plan maître>`. Le condensé de la page maître (§ 7) reprend chaque plan du lot avec son lien.
 - **Plan natif** : le titre porte `(plan natif)`, et la ligne d'en-tête dit `PR : aucune (plan natif)`. Le cas complet est au § 8.
-- **Projet désactivé ou sans décision** : le récap de la page du plan s'écrit quand même ; le hub, lui, reste intact (§ 5).
+- **Projet désactivé ou sans décision** : le récap de la page du plan s'écrit quand même ; le hub, lui, reste intact (`doc-vivante-activation.md`).
 
 ### 2.5 Ce qui compte comme documentation d'une PR
 
@@ -161,24 +161,7 @@ Les règles de `ecrire-dans-notion.md` s'appliquent : relevé avant écriture, �
 
 ## 5. L'activation par projet
 
-La doc vivante est **activée projet par projet**. Un encadré en tête de la page `Projet` le dit :
-
-- `📘 Doc vivante : activée`, ou
-- `📘 Doc vivante : désactivée`.
-
-L'encadré d'activation peut porter une seconde ligne, sous `📘 Doc vivante : activée` : `📘 Rétro-doc : faite AAAA-MM-JJ`. Elle s'écrit dans l'encadré d'activation de la page `Projet`, et c'est le plan de rétro-doc qui la pose à sa fin, en retirant dans le même geste l'encadré « 🚧 Doc partielle » de la page mère. Sans cette ligne, retirer l'encadré ne laisserait aucune trace : la clôture suivante le reposerait. Si la page mère n'a pas d'encadré mais que la ligne est présente, la clôture ne le pose pas.
-
-L'encadré d'activation porte aussi, à l'activation, une ligne `📘 Activée le AAAA-MM-JJ` : la date du jour où l'encadré `📘 Doc vivante : activée` est posé. C'est elle que `doc-de-cloture.py --trous --projet` lit pour borner le rattrapage (`cloture.md`, point (e)) ; le script la cherche comme le motif `Activée le AAAA-MM-JJ`, insensible au gras ou à l'emoji qui l'entoure. Sans elle, `--trous` sans `--depuis` refuse (code 2) : la date ne se devine pas à partir du premier Changelog. Un projet activé avant l'existence de cette ligne ne la porte pas ; Benjamin l'ajoute à la main, avec la date d'activation.
-
-Trois cas :
-
-- **Encadré absent** (projet sans décision, ou nouveau projet) : la clôture **n'écrit rien dans le hub** (ni `Changelog`, ni fiche, ni vue d'ensemble). Elle garde l'entrée prête dans le récap de la page du plan, et pose la question dans son compte rendu : « Doc vivante : à activer pour <projet> ? ». La question est posée à chaque clôture tant que l'encadré n'existe pas.
-- **Réponse de Benjamin** : le pilote pose l'encadré (`activée` ou `désactivée`). S'il active, il y ajoute la ligne `📘 Activée le <date du jour>`, puis pose l'entrée, comme un projet activé.
-- **Projet activé** : la clôture crée la sous-page `📰 Changelog` si elle manque, et y pose l'entrée. Elle crée **une fiche par fonctionnalité que le plan touche**, et seulement celles-là, rangée dans sa famille (§ 1) ; si aucune famille ne convient, elle en crée une. Chaque fiche créée ajoute une ligne au tableau `🧩 Fonctionnalités` de la page mère (§ 9.1) — son nom, sa famille, une phrase, un lien vers la fiche — **si ce tableau existe**. S'il n'existe pas, la clôture ne le crée pas et n'en invente pas : c'est le rôle de la rétro-doc, comme pour la vue d'ensemble. Une fiche déjà là ne reçoit qu'une ligne d'historique, jamais de ligne de tableau. L'encadré « Doc partielle » vit sur la page mère, plus sur la page `Projet` : si la page mère n'en a pas encore, elle en ajoute un en tête, `🚧 Doc partielle — rétro-doc pas encore faite`, et le laisse en place s'il existe déjà. Elle ne le pose que si la ligne `📘 Rétro-doc : faite` manque dans l'encadré d'activation (ci-dessus) : si elle est là, la rétro-doc est faite et l'encadré n'est pas posé. Un encadré « Doc partielle » déjà posé sur la page `Projet` par l'ancienne règle n'est pas déplacé (la clôture ne déplace jamais une page existante) : elle le signale dans son compte rendu. Elle n'écrit **jamais** de vue d'ensemble ni de processus au jugé : c'est le rôle de la rétro-doc, plan dédié par projet.
-
-**Projet activé, pas de page mère** (décision Q3) : la clôture crée la page mère « 📚 Documentation » vide de vue d'ensemble, avec, si la ligne « 📘 Rétro-doc : faite » manque dans l'encadré d'activation, l'encadré « 🚧 Doc partielle — rétro-doc pas encore faite » (sinon la page naît sans encadré), puis la famille et la fiche ; cette page neuve n'a pas de tableau `🧩 Fonctionnalités`, donc la fiche n'y a pas de ligne (règle du § 5, puce « Projet activé »). Elle ne déplace JAMAIS une page existante, et signale dans son compte rendu les fiches restées à l'ancienne place.
-
-Le récap de la page du plan s'écrit **dans tous les cas**. L'activation ne concerne que le hub.
+📄 `${CLAUDE_PLUGIN_ROOT}/skills/_partage/doc-vivante-activation.md` : l'encadré d'activation, la ligne « Activée le », les trois cas (encadré absent, réponse de Benjamin, projet activé) et la page mère neuve. Lu quand la clôture touche le hub d'un projet.
 
 ## 6. La cascade d'écriture dans Notion
 
@@ -214,39 +197,8 @@ Pour un lot, le condensé liste chaque plan du lot avec son lien ; le `Changelog
 - Le hub d'un plan natif suit le § 1.
 - Le compte rendu natif porte une **cinquième rubrique `Changelog`**, toujours présente. Ses mentions possibles, et ce que chacune veut dire, sont celles de `${CLAUDE_PLUGIN_ROOT}/skills/_partage/compte-rendu-natif.md`, rubrique « Changelog ». Cette rubrique en est la seule source : ce fichier n'en recopie aucune mention.
 - Le skill **n'échoue pas** parce que Notion manque, et il ne cherche aucun contournement en dehors de la chaîne du § 6.
-- Projet désactivé (§ 5) : rien n'est tenté dans Notion, et la mention qui le dit est celle de `compte-rendu-natif.md`.
+- Projet désactivé (`doc-vivante-activation.md`) : rien n'est tenté dans Notion, et la mention qui le dit est celle de `compte-rendu-natif.md`.
 
 ## 9. La couche « Sous le capot »
 
-Sous chaque étape d'un processus de `🗺️ Processus clés` (§ 9.1), et dans chaque fiche, un tableau dit comment c'est fait :
-
-| Sous-étape | Mécanisme | Où | Modèle | effort | Déclencheur |
-|---|---|---|---|---|---|
-| <ce que fait l'étape> | ⚙️ ou 🤖 ou ⏰ ou 🔁 | <chemin, skill, job ou unité> | <valeur lue> | <valeur lue> | <ce qui la lance> |
-
-- **Mécanisme** : ⚙️ script déterministe ; 🤖 agent (sous-agent ou skill qui raisonne) ; ⏰ cron (tâche planifiée, Hermes) ; 🔁 CI (jeu de tests et déploiement sur GitHub).
-- **Où** : un chemin de fichier, un nom de skill, de job ou d'unité. Pas de formule vague.
-- **Modèle et effort** se lisent dans la définition, **jamais de mémoire** : les clés `model` et `effort` du frontmatter d'un agent ou d'un skill, ou la configuration du job Hermes pour un cron. Si le frontmatter ne porte pas `model`, écrire `hérité de la session`, pas un nom deviné. Pour un script, `—`.
-- **Déclencheur** : ce qui lance l'étape (clôture d'un plan, merge sur `main`, heure du cron).
-- Un plan qui change une brique met à jour sa ligne **à partir de son diff**, pas de mémoire.
-
-### 9.1 Page mère : vue d'ensemble, processus, fonctionnalités
-
-La page mère `📚 Documentation` porte, dans cet ordre, la vue d'ensemble, puis trois parties sous leur titre :
-
-- **Vue d'ensemble** : un paragraphe sur ce que fait le projet et pour qui. Elle ouvre la page mère, sans titre.
-- **🗺️ Processus clés** : d'abord une vue courte en Mermaid (le langage de schéma de Notion), 5 à 7 étapes métier, une boîte par étape. Les classes de couleur sont celles de `${CLAUDE_PLUGIN_ROOT}/skills/_partage/schemas.md` (`color:#000` obligatoire). Un libellé à caractères spéciaux se met entre guillemets doubles. Puis une **frise** de blocs dépliables, un par étape : son titre, ses champs et leur ordre sont ceux de `schemas.md`, section « La frise », seule source. Sous chaque étape, son tableau « Sous le capot ».
-- **🧩 Fonctionnalités** : le tableau des fonctionnalités, une ligne par fiche : son nom, sa famille, une phrase, et un lien vers la fiche.
-- **🚧 Ce qui n'existe pas encore** : ce que le projet ne fait pas encore, une puce par manque, avec où cela atterrit (même règle que « Reste à faire », § 2.1). « rien » s'il n'y en a pas.
-
-### 9.2 Fiche par fonctionnalité
-
-Une fiche porte cinq parties, dans cet ordre, chacune sous son titre :
-
-- **🎯 À quoi ça sert** : la description côté utilisateur, sans obligation de source.
-- **🧭 Comment l'utiliser** : la marche à suivre côté utilisateur.
-- **🔩 Sous le capot** : le tableau du § 9.
-- **⚠️ Limites connues** : ce que la fonctionnalité ne fait pas encore, ou fait mal. « rien » s'il n'y en a pas.
-- **🕰️ Historique** : une liste, la plus récente en tête, au format du point 4 du § 4.
-
-Une fiche n'est créée que pour une fonctionnalité que le plan touche, et seulement dans un projet activé (§ 5). Elle se range dans sa famille (§ 1).
+📄 `${CLAUDE_PLUGIN_ROOT}/skills/_partage/doc-sous-le-capot.md` : le tableau « Sous le capot » de chaque étape, la page mère (vue d'ensemble, processus clés, fonctionnalités, ce qui n'existe pas encore) et la fiche par fonctionnalité. Lu quand la clôture pose ou met à jour une fiche ou une ligne « Sous le capot ».

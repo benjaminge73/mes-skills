@@ -74,7 +74,7 @@ H2 = re.compile(r"^##\s")
 ENTREE = re.compile(r"^##\s+(?:\d{4}-\d{2}-\d{2}\b|récap)", re.IGNORECASE)
 DATE_ISO = re.compile(r"^\d{4}-\d{2}-\d{2}")
 DATE_ARG = re.compile(r"\d{4}-\d{2}-\d{2}")
-# La date d'activation, dans le miroir de la page projet (changelog-et-doc.md § 5).
+# La date d'activation, dans le miroir de la page projet (doc-vivante-activation.md).
 ACTIVATION = re.compile(r"Activée le (\d{4}-\d{2}-\d{2})")
 TITRE = re.compile(r"^#{1,6}\s")
 ZONE_MAX = 5

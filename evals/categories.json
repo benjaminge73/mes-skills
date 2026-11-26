@@ -110,6 +110,8 @@
         "skills/_partage/scripts/qualite-doc.py",
         "skills/_partage/grille-doc.md",
         "skills/_partage/changelog-et-doc.md",
+        "skills/_partage/doc-vivante-activation.md",
+        "skills/_partage/doc-sous-le-capot.md",
         "skills/_partage/scripts/controle-changelog.py",
         "skills/_partage/scripts/doc-de-cloture.py",
         "skills/_partage/scripts/verifier-ligne-doc.py",
