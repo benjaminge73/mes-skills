@@ -196,6 +196,11 @@ Il ne s'active que si `~/.hermes/scripts/demander_a_hal.py` existe et déclare
 pas `NOTION_UPDATE_PAGE_MARKDOWN`) quand sa charge, en ligne ou dans `-d @fichier`, pose
 `Statut` = `en revue` ; une charge illisible laisse passer.
 
+Si le script plante, dépasse son délai ou ne démarre pas, l'appel est bloqué (`onFailure: "block"`
+dans `hooks.json`, Claude Code 2.1.295 ou plus) : une panne du hook ne laisse pas passer une mise en
+revue sans avis. Le même hook tourne sur toute commande Bash, donc une panne bloque aussi les autres
+commandes Bash, jusqu'à son correctif.
+
 ## 11. Le Mac et Remote Control
 
 Une session ouverte depuis le Mac par Remote Control (ou par l'app de bureau) tourne sur le VPS :

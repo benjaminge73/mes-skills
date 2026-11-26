@@ -6,6 +6,8 @@ comme ``test_preuves_des_etapes.py``, et l'on observe sa sortie et son code reto
 """
 from __future__ import annotations
 
+import importlib.util
+import re
 import subprocess
 import sys
 import tempfile
@@ -256,6 +258,35 @@ class ParalleliserLesEtapes(unittest.TestCase):
         code, sortie, _ = jouer(page(execution=sans_tableau))
         self.assertEqual(code, 1)
         self.assertIn("vagues :", sortie)
+
+
+class LectureDuMiroir(unittest.TestCase):
+    def test_puces_de_l_ouverture_en_balises_b_sont_lues_comme_du_gras(self):
+        # Panne : le connecteur de l'app écrit le gras en <b>…</b> ; les puces de l'entrée
+        # « Ouverture » n'étaient pas reconnues, et une préparation complète rendait « absente ».
+        balisee = re.sub(r"\*\*([^*]+)\*\*", r"<b>\1</b>", ouverture())
+        code, sortie, _ = jouer(page(journal=balisee))
+        self.assertEqual(code, 0, sortie)
+
+    def test_une_etape_C_sans_puce_de_preuve_bloque(self):
+        # Panne : « ### Étape C1 » n'entrait pas dans la lecture (seul D<n> était reconnu) ;
+        # sa puce « Preuve de l'étape C1 » n'était jamais exigée, et la page passait prête.
+        execution = EXECUTION + (
+            "### Étape C1 — Un contrôle\n\n- **Critère de succès** : `pytest c -q` → tout vert\n\n")
+        code, sortie, _ = jouer(page(execution=execution))
+        self.assertEqual(code, 1, sortie)
+        self.assertIn("Ouverture : puce **Preuve de l'étape C1** absente", sortie)
+
+    def test_un_sous_script_muet_en_code_1_est_un_defaut_illisible(self):
+        # Panne : un sous-script qui sort en code 1 sans rien écrire rendait aucun défaut ;
+        # la préparation passait prête alors que le contrôle n'avait rien dit.
+        spec = importlib.util.spec_from_file_location("preparation_prete", SCRIPT)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        muet = subprocess.CompletedProcess(args=[], returncode=1, stdout="", stderr="")
+        defauts = module.defauts_script("vagues", muet, "vagues.py --comparer")
+        self.assertEqual(len(defauts), 1, defauts)
+        self.assertIn("vagues : vagues.py --comparer illisible", defauts[0])
 
 
 class OrchestrationEntrePlans(unittest.TestCase):

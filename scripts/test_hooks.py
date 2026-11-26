@@ -1041,6 +1041,27 @@ class RefuserRevueSansAvis(unittest.TestCase):
         with self.subTest("id nu"):
             self.permis(self.mise_a_jour("en revue", page=self.IDENT))
 
+    def test_le_hook_de_revue_se_ferme_sur_ses_deux_entrees_quand_il_plante(self):
+        # Panne nommée : le hook plante, dépasse son délai ou ne démarre pas, et sans
+        # `onFailure: "block"` l'appel passe (Claude Code 2.1.295 ou plus lit ce champ).
+        # Le réglage vit dans hooks.json : on le lit, faute de pouvoir faire planter
+        # Claude Code dans un test unitaire. Les deux entrées sont celles du matcher
+        # Notion et du matcher Bash, toutes deux citant le script.
+        declaration = json.loads((HOOKS / "hooks.json").read_text(encoding="utf-8"))
+        entrees = [
+            (groupe["matcher"], entree)
+            for groupe in declaration["hooks"]["PreToolUse"]
+            for entree in groupe["hooks"]
+            if self.SCRIPT in entree.get("command", "")
+        ]
+        self.assertEqual(len(entrees), 2,
+                         f"le hook de revue doit être déclaré sur deux matchers, trouvé : {len(entrees)}")
+        for matcher, entree in entrees:
+            with self.subTest(matcher=matcher):
+                self.assertEqual(entree.get("onFailure"), "block",
+                                 f"entrée sans onFailure: block (matcher {matcher!r}) : "
+                                 "un plantage laisserait passer une mise en revue sans avis")
+
 class RappelRevue(unittest.TestCase):
     """``rappeler_revue.py`` : une page de plan écrite et laissée ``brouillon`` retient la fin de tour, une fois."""
     SESSION = "6f1c1a52-8a0e-4c1e-9d63-0a1b2c3d4e5f"
