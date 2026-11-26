@@ -128,14 +128,14 @@ class DepartDansLeLot(unittest.TestCase):
                 self.assertIn("Le maître se revérifie aussi quand le contenu d'un plan change", texte)
 
     def test_les_plans_du_lot_sont_des_sous_elements_et_jamais_deplaces(self):
-        texte = " ".join((SKILLS / "plan-notion" / "plan-maitre.md").read_text(encoding="utf-8").split())
+        texte = " ".join((SKILLS / "plan-notion" / "naissance-du-maitre.md").read_text(encoding="utf-8").split())
         self.assertIn("## Les plans du lot, sous-éléments du maître", texte)
         self.assertIn("Jamais `notion-move-pages` sous la page maître", texte)
 
     def test_le_rattachement_se_relit_des_deux_cotes_et_jamais_par_la_page(self):
         # Vu le 2026-10-22 : un plan glissé dans le corps du maître quitte la base, et une relation
         # à sens unique ne l'affiche pas sous lui. Le garde tient les deux phrases de la règle.
-        texte = " ".join((SKILLS / "plan-notion" / "plan-maitre.md").read_text(encoding="utf-8").split())
+        texte = " ".join((SKILLS / "plan-notion" / "naissance-du-maitre.md").read_text(encoding="utf-8").split())
         self.assertIn("devient une simple sous-page hors de la base", texte)
         self.assertIn("Relire les deux côtés, dans le même tour", texte)
         self.assertIn("avec la liste complète de ses enfants", texte)
@@ -145,7 +145,7 @@ class DepartDansLeLot(unittest.TestCase):
         # trois plans. Le garde tient la règle à ses trois endroits et la coquille qui la rend sûre
         # (`à définir` est une coquille pour preparation-prete.py : aucun plan du lot ne passe `pret`
         # avant que le Croisement soit écrit), pas l'usage par une session.
-        maitre = " ".join((SKILLS / "plan-notion" / "plan-maitre.md").read_text(encoding="utf-8").split())
+        maitre = " ".join((SKILLS / "plan-notion" / "naissance-du-maitre.md").read_text(encoding="utf-8").split())
         self.assertIn("## Le deuxième plan d'un projet crée le maître", maitre)
         self.assertIn("à chaque création d'une page de plan", maitre)
         self.assertIn("même si les deux ne sont pas créés le même jour", maitre)

@@ -146,6 +146,7 @@
         "skills/_partage/lecture-deleguee.md",
         "skills/_partage/scripts/depart-dans-le-lot.py",
         "skills/plan-notion/plan-maitre.md",
+        "skills/plan-notion/naissance-du-maitre.md",
         "skills/_partage/scripts/perimetre-etape.py"
       ],
       "cas": ["no-verify", "rien-hors-plan", "maitre-depart-ordre", "maitre-au-deuxieme-plan", "icone-des-plans", "deux-executants"],
