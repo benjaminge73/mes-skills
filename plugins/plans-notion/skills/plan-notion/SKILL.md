@@ -200,7 +200,7 @@ choisir. La doc vivante de `hermes-custom`, elle, va toujours au hub Hermes (`_p
 - **Le deuxième plan d'un projet crée le maître**, sans qu'on le demande. À chaque
   création de page de plan (suite comprise) : maître ouvert du même `Repo` et `Projet` →
   il le rejoint ; sinon un autre plan non terminé → le maître naît ; sinon plan seul.
-  Les gestes : `plan-maitre.md`, section du même nom.
+  Les gestes : `naissance-du-maitre.md`, section du même nom.
 - **Une page par sujet, tant que le sujet est vivant.** Les passes suivantes
   modifient cette page ; on n'en crée pas une nouvelle, sinon les fils de
   commentaires restent ancrés sur une page que personne ne rouvre.

@@ -78,7 +78,7 @@ choix cochée**, et sa ligne de preuve cite son message mot pour mot :
   `(reco appliquée par défaut)`, et le H3 passe à `✅ Q<n> — …` dans le même geste.
 
 **Les restes repris.** Chaque ligne `ouvert` de la base « Restes » des dépôts du plan, relevée
-à la création (`plan-maitre.md`, « Le deuxième plan d'un projet crée le maître », point 1), est
+à la création (`naissance-du-maitre.md`, « Le deuxième plan d'un projet crée le maître », point 1), est
 tranchée ici (`${CLAUDE_PLUGIN_ROOT}/skills/_partage/restes.md`, règle 7) :
 
 - une ligne **du sujet du plan** est reprise : un H2 `Restes repris` en tête de page, une puce
