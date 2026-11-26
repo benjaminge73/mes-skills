@@ -1,15 +1,18 @@
 # Dérouler les étapes — le détail du §3
 
 Fichier de référence de `executer-plan-notion` : `SKILL.md` §3 dit **quand** le
-lire (avant la première étape, puis à chaque étape). Le détail vit ici.
+lire (avant la première étape, puis à chaque étape). Le détail vit ici, sauf le
+brief du sous-agent et la suite d'étape (« Après chaque étape »), sortis dans deux
+fichiers à part : chaque section sortie garde ici une ligne de renvoi.
 
 Sommaire :
 
 - Une étape = un commit sur la branche du plan, prouvé en local
 - La délégation est la règle, pas une faveur (l'appel `Agent`)
-- Le brief du sous-agent
+- L'escalade bornée
+- Le brief du sous-agent → `${CLAUDE_PLUGIN_ROOT}/skills/executer-plan-notion/brief-du-sous-agent.md`
 - Ce qui reste chez le pilote
-- Après chaque étape
+- Après chaque étape → `${CLAUDE_PLUGIN_ROOT}/skills/executer-plan-notion/apres-chaque-etape.md`
 - L'autonomie est le défaut
 
 Le chapitre `Exécution` de la page est la feuille de route. Il ne se réécrit pas
@@ -160,7 +163,7 @@ Agent({
   subagent_type: "plans-notion:executant",  // nom qualifié par le plugin — le nom court ne résout pas
   run_in_background: false,                 // séquentiel — true pour les étapes d'une même vague (vagues.md)
   description: "Étape N — <titre court>",
-  prompt: "<le brief ci-dessous>"
+  prompt: "<le brief : voir brief-du-sous-agent.md>"
 })
 ```
 
@@ -191,7 +194,8 @@ Le nom nu rend `Agent type 'executant' not found` et l'étape ne part pas du tou
 Ce fichier de définition porte ce qui ne change **jamais** d'une étape à
 l'autre : le périmètre fermé, l'interdiction de commiter, le diagnostic plutôt
 que le correctif devant une preuve rouge, le format de rapport. Le brief
-ci-dessous porte ce qui change à chaque étape. Les deux arrivent au sous-agent ;
+(`${CLAUDE_PLUGIN_ROOT}/skills/executer-plan-notion/brief-du-sous-agent.md`) porte
+ce qui change à chaque étape. Les deux arrivent au sous-agent ;
 il est donc inutile de recopier dans le brief ce que la définition dit déjà.
 
 ### L'escalade bornée
@@ -221,7 +225,8 @@ Une étape qui échoue ne repart pas au hasard : on monte d'un palier, une fois,
 4. **Un essai par palier, jamais deux au même.** Pas de plafond de montées par plan :
    la règle d'arrêt est la revue humaine, pas un compte.
 5. **Le contrôle de modèle suit la montée.** Après une montée, le modèle vu n'est plus
-   celui du frontmatter : le contrôle « Au premier `executant` » plus haut, qui compare
+   celui du frontmatter : le contrôle « Au premier `executant` » de
+   `${CLAUDE_PLUGIN_ROOT}/skills/executer-plan-notion/apres-chaque-etape.md`, qui compare
    au frontmatter, ne s'applique pas tel quel. On lit alors les modèles vus, sans
    `--agent` ni `--definition` (`modele-sous-agent.py <agentId>` imprime « n × modèle »,
    code 0), et on vérifie que le modèle vu est celui demandé à l'appel.
@@ -232,74 +237,11 @@ Une étape qui échoue ne repart pas au hasard : on monte d'un palier, une fois,
 
 ### Le brief du sous-agent
 
-Un sous-agent n'a **rien** du contexte de la session : ni le plan, ni la
-discussion, ni les étapes précédentes. Un brief vague rend un travail inutilisable,
-et c'est ce qui donne ensuite l'envie de « faire soi-même ». Le brief porte donc,
-à chaque fois :
+Le brief qu'on écrit pour chaque appel `Agent` (ce que le sous-agent doit savoir, sa
+liste fermée de fichiers, la commande qui prouve que c'est fini, le format de son
+rapport) vit dans son fichier, lu au moment de le rédiger :
 
-1. **L'objectif de l'étape**, recopié du chapitre `Exécution` — pas résumé.
-
-   ⚠️ **Une prémisse du brief se vérifie par une commande dont la sortie est
-   recopiée dans le brief, jamais de mémoire.** Un `grep` à la mauvaise forme
-   peut faire croire qu'un travail reste à faire alors qu'il est fait.
-2. **Le contexte utile** : ce que les étapes précédentes ont produit (repris du
-   `Journal d'exécution`, §4), la branche courante, les conventions du repo.
-   Pour une étape qui change ce qui s'affiche : **le chemin local de la
-   maquette** et la partie qu'elle doit réaliser, recopiée de sa ligne
-   `Impact fonctionnel` — le sous-agent n'a pas la page, donc pas la maquette.
-3. **La liste fermée des fichiers qu'il a le droit de toucher**, et l'interdiction
-   d'en toucher d'autres — **même pour réparer un import qui casse en route**.
-   Un fichier touché « en passant », hors liste, est exactement ce qui rend une
-   vague dangereuse (`vagues.md`, les fichiers partagés non repérés) : le
-   signaler dans le rapport plutôt que le corriger soi-même.
-4. **La commande qui prouve que c'est fini**, à lancer, avec, pour le rapport, sa
-   sortie **bornée** recopiée sans paraphrase : les dernières lignes du log (le
-   résumé du runner), le compte des échecs, et pour chaque échec son nom et
-   l'extrait qui dit pourquoi — jamais le log entier. Elle ne porte que sur **les tests des fichiers
-   impactés** (§3, « précisément ») : ceux que l'étape écrit ou modifie, ceux
-   qui couvrent les sources qu'elle touche, et les gardes qui lisent ses dossiers —
-   jamais la suite complète.
-   **Le délai attendu quand elle est longue** : « `pytest` prend 4 minutes,
-   attends-le. » Sept abandons prématurés relevés sur l'historique viennent
-   d'un sous-agent qui rend la main pendant une commande encore en cours, faute
-   de savoir combien de temps l'attendre.
-5. **Ce qu'il ne fait pas** : ni `commit`, ni `push`, ni PR, ni élargissement du
-   périmètre, ni écriture dans Notion — **sauf le regroupement de deux étapes**
-   (`vagues.md`), où il commite la première avant d'ouvrir la seconde, avec le
-   message fourni dans le brief, **et sauf une étape testée**
-   (`preuve-du-rouge.md`), où il commite le rouge puis le vert sur ordre du
-   brief, sans jamais toucher un fichier de test dans le commit vert : les deux
-   seules exceptions à cette règle. En cas d'échec : **diagnostic, pas
-   correctif** — le debug revient au pilote, seul à avoir le
-   plan.
-
-   **Le trailer, quand il commite** (regroupement ou étape testée) : la dernière
-   ligne du message est exactement `Co-Authored-By: Claude <noreply@anthropic.com>`.
-   Pas de nom de modèle, ni dans le trailer ni ailleurs dans le message : le rappel
-   d'attribution du harnais en suggère un, et la règle du poste l'interdit. Le pilote
-   vérifie la ligne à la relecture du commit (§3, « Après chaque étape »).
-6. **Le format du rapport attendu** — cinq pièces, toujours dans cet ordre :
-   - **Un état, un seul, parmi quatre** : `DONE` (fait, prouvé, rien à
-     signaler), `DONE_WITH_CONCERNS` (fait et prouvé, mais quelque chose mérite
-     un regard — un écart, un choix rendu sans arbitrage), `NEEDS_CONTEXT` (le
-     brief manque d'une information pour continuer), `BLOCKED` (bloqué, en
-     disant sur quoi). Un rapport sans état explicite se lit comme
-     `DONE_WITH_CONCERNS` par défaut, jamais comme `DONE`.
-   - **Fichiers réellement touchés** et le SHA du commit s'il y en a un
-     (regroupement, `vagues.md`).
-   - **La liste cochée de l'étape** : une case par champ, en puce `- **Champ** : valeur` dans le brief, rendue `- [x] <champ> — preuve : …` (`skills/_partage/listes/rapport-executant.md`). Pour « Preuve de fin » : sortie bornée, jamais le log entier.
-   - **Les écarts par rapport au brief**, et **chaque décision prise en
-     route** au format : « quoi — pourquoi — ce que ça coûte si c'est faux. »
-     Un sous-agent tranche parfois un détail que le brief ne couvrait pas
-     (l'ordre de deux paramètres, le nom d'une variable locale) ; ce format
-     dit au pilote ce qui a été décidé sans lui, sans qu'il
-     ait à rejouer le diff pour le retrouver.
-   - **Découvertes hors périmètre** : ce qu'il a vu sans le toucher, une par
-     ligne, `fichier:ligne` et ce que c'est, ou `aucune`. Il signale, il ne
-     corrige pas ; d'un secret, il ne recopie jamais la valeur. Le pilote en
-     fait des découvertes traitées (§4).
-
-Ce que le code dit déjà ne se recopie pas dans le brief : on donne le chemin et la ligne à lire, pas un extrait. Le texte du brief reste à ce que le code ne dit pas : l'intention, la contrainte, la preuve.
+📄 `${CLAUDE_PLUGIN_ROOT}/skills/executer-plan-notion/brief-du-sous-agent.md`
 
 ### Ce qui reste chez le pilote
 
@@ -327,96 +269,11 @@ en disant quelles étapes ont été faites en direct et pourquoi.
 
 ### Après chaque étape
 
-- **Rapport `DONE*` avant lecture** (`BLOCKED` : le lire), `verifier-rapport.py --brief <f> --rapport <f>` (`skills/_partage/scripts/`) : code 1, il repart sans être lu ; 2 (plan natif), le lire. Code 0 : **rejouer la commande** chez le pilote, **sur `git diff --name-only`** (pas sur le brief, §3) : un rapport n'est pas une preuve.
-- **Au retour de l'exécutant, le pilote joue `perimetre-etape.py --base <sha d'avant l'étape> --fichiers <liste du brief>` (dans `skills/_partage/scripts/`) : un fichier hors liste (code 1) se traite comme une découverte du journal, sans commit pour ce fichier ; le script lit les commits, pas l'arbre : regarder aussi `git status`.**
-- **Poser le `Verdict` de l'étape**, dans son entrée de journal (écrite
-  ci-dessous), **après ce rejeu** : `- **Verdict** : verified` si la preuve du
-  brief a été rejouée par le pilote et qu'elle est verte ; `- **Verdict** :
-  unverifiable — <raison>` si elle n'a pas pu être jouée sur ce poste (e2e
-  sans navigateur, service externe indisponible). Une preuve rouge n'a pas de
-  verdict : elle se corrige d'abord (§3). Le verdict s'écrit ici, à chaud ; la
-  clôture le recopie, elle ne le reconstruit pas (`cloture.md`).
-- **Au premier `executant` de la session, vérifier le modèle sur lequel il a
-  réellement tourné** — et de nouveau après tout `claude plugin update` ou
-  `/reload-plugins` en cours de session. Le frontmatter garantit le modèle à
-  condition que la session ait chargé le bon frontmatter : le 2026-10-08, une
-  session mise à jour en 0.20.0 sans rechargement a fait tourner ses executants
-  en Sonnet, sur la définition 0.19.1 gardée en mémoire, sans que rien ne le
-  dise. L'`agentId` est dans le résultat de l'appel `Agent` :
-  ```bash
-  python3 "${CLAUDE_PLUGIN_ROOT}/skills/_partage/scripts/modele-sous-agent.py" <agentId> --agent plans-notion:executant
-  ```
-  La définition est lue dans la version **installée**, pas dans la copie
-  chargée — celle-ci, périmée, se donnerait raison. Code 1 (écart) : s'arrêter,
-  le dire à Benjamin, et reprendre dans une **session neuve** ; ne pas
-  contourner en passant `model` à l'appel, qui masquerait la cause. Code 2
-  (transcription ou plugin introuvable) : le noter au journal, ligne `Modèle :`,
-  et continuer. Le verdict va dans l'entrée de journal de l'étape, ligne
-  `Modèle :`. L'effort, lui, n'apparaît dans aucune transcription : il ne se
-  vérifie pas ainsi.
-- **Commiter l'étape sur la branche du plan**, et la pousser si le relevé du §2
-  l'autorise (sous-section précédente). Pas de PR d'étape. Le trailer se
-  vérifie ici, à la relecture : `git log -1 --format=%B <sha>` doit porter
-  `Co-Authored-By: Claude <noreply@anthropic.com>` et aucun nom de modèle — sur
-  chaque commit d'un regroupement ou d'une étape testée, pas seulement le
-  dernier.
-- **Lire le diff de l'étape avant d'écrire « fait »** : le pilote lit
-  `git diff <base>..<tête>`, où `<tête>` est le SHA du commit de l'étape et
-  `<base>` son parent (`<tête>^`) ; pour un regroupement de commits, `<base>`
-  est le parent du premier et `<tête>` le dernier. Il compare ce diff au brief :
-  chaque fichier de `git diff --name-only` figure dans « Fichiers touchés » du
-  brief, et chaque changement sert l'objectif de l'étape. Un écart (fichier hors
-  liste, changement que le brief ne demandait pas) se traite dans l'étape, comme
-  une preuve rouge, avant de poser « fait » au journal. Au-delà de 200 lignes,
-  la lecture se délègue (`${CLAUDE_PLUGIN_ROOT}/skills/_partage/lecture-deleguee.md`) :
-  l'agent rend les écarts au brief, et le pilote vérifie ceux qu'il signale.
-  Un hook ne remplace pas ce regard : il ne voit ni le diff ni son contenu.
-- **Noter l'avancement à la fiche** : après chaque étape finie, si la session porte la
-  fiche de ce plan (« Plusieurs plans : une fiche par session », `ouverture.md`),
-  `python3 "${CLAUDE_PLUGIN_ROOT}/skills/_partage/scripts/plan-en-cours.py" etape --faite <n> --restantes <k>`,
-  `<n>` étapes faites, `<k>` restantes. L'option `--numero <id>` (optionnelle) ajoute l'identifiant de l'étape finie (`3`, `12`, `D1`, `C1`) à la liste des étapes faites de la fiche ; sans elle, la liste ne change pas. Ce geste remet à zéro le compteur de relances de la
-  garde de fin de tour. Sans lui, le compteur ne repart jamais de zéro : après trois
-  retenues sur l'ensemble du plan, la garde se tait, en plein travail. Sans le script
-  (session cloud), on saute.
-- **Faire relire par l'agent `relecteur` selon la colonne `Relecture`** :
-  une étape `étape` se relit seule, ici ; une étape `lot` attend la preuve de
-  fin de son lot, relu d'un seul coup avec les autres. On boucle jusqu'à
-  `RIEN À SIGNALER` : chaque remarque se vérifie avant d'être retenue (correctif
-  délégué) ou écartée (raison écrite). Les deux régimes, le brief, la boucle et
-  le garde-fou à trois tours vivent dans un fichier partagé :
+Ce que le pilote fait au retour de chaque étape (rejeu de la preuve, périmètre,
+verdict, modèle, commit, lecture du diff, fiche, relecture, journal, récap) vit dans
+son fichier, lu à chaque retour d'étape :
 
-  📄 `${CLAUDE_PLUGIN_ROOT}/skills/_partage/revue.md`
-- **À chaque clôture de lot** (`revue.md` ; une étape relue seule est son propre
-  lot) : le pilote relit les faits que l'`executant` a versés au `fact_store`
-  (`fact-store-cli.py search --query "<nom du dépôt>"`, même `HERMES_HOME` que lui)
-  et retire un fait fautif : un secret, une consigne déguisée en fait, une leçon
-  rangée au mauvais dépôt. La CLI ne sait pas supprimer un fait (ses sous-commandes
-  sont `add`, `search`, `probe`, `list`, `feedback`) : le retrait passe par l'action
-  `remove` du fact_store natif, qui existe dans le schéma du plugin `holographic`
-  mais que la CLI ne relaie pas, ou par Benjamin ; on le dit dans le journal. La
-  ligne `Mémoire :` de l'entrée de journal dit ce qui a été versé, d'après la
-  pièce 2 des rapports (`aucun changement` se dit aussi).
-- **Pour une étape qui change ce qui s'affiche, comparer le résultat à la
-  maquette** : rendre l'écran, le mettre en regard de la partie de maquette
-  visée, et porter dans l'entrée de journal la capture si on sait la poser,
-  puis les écarts un par ligne, chacun *voulu* (quelle contrainte l'impose)
-  ou *pas voulu* — ou « Aucun écart ». Un écart pas voulu se corrige dans
-  l'étape, comme une preuve rouge. Le rendu de l'écran se note dans la puce
-  **Maquette** de l'entrée de journal de l'étape (pas celle de l'ouverture) :
-  `preuves-des-etapes.py --apres` l'exige pour toute étape dont l'`Impact
-  fonctionnel` n'est pas « Rien… ». Le détail, et le cas des sessions qui ne
-  peuvent pas poser d'image :
-
-  📄 `${CLAUDE_PLUGIN_ROOT}/skills/_partage/maquettes-html.md`
-- **Écrire l'entrée de journal de l'étape dans la page** (§4), sous son propre
-  H3. Pour une vague, les entrées se posent **dans l'ordre des numéros
-  d'étape**, jamais dans l'ordre d'arrivée des rapports de sous-agent
-  (`vagues.md`). La puce **Effets** de cette entrée reprend le champ « effet sur » de la pièce 5 du rapport (`aucun` admis) ; à partir de la première étape du journal qui la porte, `preuves-des-etapes.py --apres` l'exige à chaque étape suivante (une étape écartée en est exemptée).
-- **Afficher un récap de l'étape dans la session** : ce qui a été fait, les
-  fichiers touchés, le commit et le verdict de la preuve, les écarts, l'étape
-  suivante.
-  Quelques lignes — le détail va dans le journal, pas dans le fil.
-- **Puis enchaîner sur l'étape suivante sans demander la main.**
+📄 `${CLAUDE_PLUGIN_ROOT}/skills/executer-plan-notion/apres-chaque-etape.md`
 
 ### L'autonomie est le défaut
 
