@@ -1,0 +1,37 @@
+schema_version: "1.1"
+name: declenchement-negatif-plan
+description: >
+  Cas négatif : une retouche précise (renommer une fonction, appel compris), sans demande
+  de plan, d'approche ni de découpe. plan-notion ne doit pas se charger : la session fait la
+  retouche elle-même. Sa panne nommée : la description de plan-notion se déclenche sur une
+  tâche qui n'en demande pas, et la session écrit un plan au lieu de renommer.
+tags: [declenchement]
+expected_outcome: "Aucun appel Skill ; salut.py renommé (définition et appel) ; la réponse finale le dit."
+execution:
+  max_turns: 30
+  timeout_seconds: 600
+  allowed_tools: [Read, Glob, Grep, Skill, Write, Edit]
+context:
+  scaffold_script: fixture.sh
+# Négatif : le juge skill-non-appele passe sur le vide par nature (il ne compte que les appels).
+# Ce qui distingue un bon passage d'un passage nul, ce sont les trois juges de fichier : sur un
+# état vide, la définition et l'appel renommés manquent, et l'ancien nom est encore là.
+graders:
+  - name: skill-non-appele
+    type: tool_used
+    tool: Skill
+    min: 0
+    max: 0
+  - name: definition-renommee
+    type: regex
+    pattern: 'def dire_bonjour\('
+    target: {source: file, path: "salut.py"}
+  - name: appel-mis-a-jour
+    type: regex
+    pattern: 'print\(dire_bonjour\("Benjamin"\)\)'
+    target: {source: file, path: "salut.py"}
+  - name: ancien-nom-retire
+    type: regex
+    pattern: 'saluer\('
+    match: not_contains
+    target: {source: file, path: "salut.py"}
