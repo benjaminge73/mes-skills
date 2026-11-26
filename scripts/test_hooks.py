@@ -1309,6 +1309,35 @@ class RefuserRelectureRegles(unittest.TestCase):
             self.assertPasse(self.lancer(sans_cwd))
             self.assertPasse(self.lancer(sans_cwd))
 
+    # R5 : une commande dont un argument varie (glob, dossier, `~`, `$`), ou une grep récursive,
+    # lit un contenu que la commande ne désigne pas de façon fixe : elle n'est jamais comptée.
+    # Attrape un garde qui date la commande par la seule règle : il la refuserait à tort quand
+    # l'autre contenu change.
+    def test_une_commande_qui_lit_un_contenu_variable_n_est_jamais_comptee(self):
+        autre = self.racine / "autre"
+        autre.mkdir()
+        (autre / "x.py").write_text("x = 1\n", encoding="utf-8")
+        notes = self.home / "notes.md"
+        notes.write_text("notes\n", encoding="utf-8")
+        regle = self.regle
+        cas = (
+            (f"grep -n motif {regle} {autre}/*.py", autre / "x.py"),  # glob
+            (f"cat {regle} {autre}", autre / "x.py"),  # dossier
+            (f"grep -rn motif {regle}", autre / "x.py"),  # grep récursif
+            (f"cat {regle} ~/notes.md", notes),  # tilde
+            (f"cat {regle} $HOME/notes.md", notes),  # variable
+        )
+        self.lire_abouti(entree_bash(f"cat {regle}", cwd=self.racine))
+        self.assertRefuse(self.lancer(entree_bash(f"cat {regle}", cwd=self.racine)))  # témoin
+        for commande, modifie in cas:
+            with self.subTest(commande=commande):
+                entree = entree_bash(commande, cwd=self.racine)
+                self.lire_abouti(entree)
+                modifie.write_text("autre contenu\n", encoding="utf-8")
+                apres = modifie.stat().st_mtime + 60
+                os.utime(modifie, (apres, apres))  # le contenu variable change, la règle non
+                self.assertPasse(self.lancer(entree))
+
     # Extra (hors test attendu, justifié) : attrape un garde qui refuserait toute commande Bash
     # citant un chemin du plugin, script compris (`python3 …/skills/_partage/scripts/x.py`).
     def test_un_script_du_plugin_lance_en_bash_n_est_jamais_refuse(self):
