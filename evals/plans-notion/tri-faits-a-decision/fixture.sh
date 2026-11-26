@@ -15,16 +15,16 @@ cat > fiche-enquete.md <<'EOF'
 - [x] C0 Objets touchés — preuve : `scripts/rapport_veille.py` (script qui produit le rapport) ; l'objectif ne nomme aucun autre objet.
 - [x] C1 Consommateurs — preuve : `Grep "rapport_veille" .` → `scripts/rapport_veille.py:1`, seul.
 - [x] C2 Docs et consignes qui le citent — preuve : `README.md:3` (« le rapport part chaque matin dans #veille »).
-- [x] C3 Gardes, CI et règles — preuve : `Glob .github/**` → 0 fichier ; pas de `CONTRIBUTING.md`.
+- [x] C3 Gardes, CI et règles du dépôt — preuve : `Glob .github/**` → 0 fichier ; pas de `CONTRIBUTING.md`.
 - [x] C4 L'état vivant — preuve : relevé du jour, `hermes cron list` (sortie bornée) : job `rapport-veille-quotidien` (id `f3a9c1`), planification `0 7 * * *`, état `active`, livraison `slack:#veille`, commande `scripts/rapport_veille.py`.
 - [x] C5 Le brief contre le code — preuve : `scripts/rapport_veille.py:1-8` lu en entier : le canal se passe en argument, rien ne planifie le script.
 - [ ] C6 Contrat d'un outil externe — sans objet : le changement n'appelle aucun outil externe nouveau.
-- [x] C7 Historique — preuve : `git log --oneline -3 -- scripts/rapport_veille.py` → deux commits, aucun ne mentionne un second job.
+- [x] C7 Une valeur à plusieurs endroits — preuve : le canal `#veille` : `Grep "#veille" .` → `README.md:3` (la doc) ; hors dépôt, le job `rapport-veille-quotidien` livre dans `slack:#veille` (relevé C4) ; le script ne porte pas le canal, il le reçoit en argument (`scripts/rapport_veille.py:1-8`).
 - [x] C8 Tests existants — preuve : `tests/` absent ; aucun test ne couvre `scripts/rapport_veille.py`.
-- [x] C9 Dépendances — preuve : `requirements.txt` ne liste que `requests`.
-- [ ] C10 Chiffres — sans objet : le plan n'entre aucun chiffre.
-- [x] C11 Sécurité des fichiers touchés — preuve : relevé du jour, aucun motif `SECURITE` sur `scripts/rapport_veille.py`.
-- [x] C12 Questions de sécurité — preuve : relevé du jour, aucune ligne `SECURITE` pour ce plan.
+- [x] C9 Défauts voisins — preuve : aucun défaut vu dans `scripts/rapport_veille.py:1-8` (lu en entier pour C5).
+- [ ] C10 Données réelles — sans objet : le plan ne dépend d'aucun volume, compte ni taille à mesurer.
+- [x] C11 Historique et décisions antérieures — preuve : `git log --oneline -3 -- scripts/rapport_veille.py` → deux commits, aucun ne mentionne un second job.
+- [x] C12 Sécurité — preuve : rien de touché ; relevé du jour, aucun motif `SECURITE` sur `scripts/rapport_veille.py`, aucune ligne `SECURITE` pour ce plan.
 
 # Couverture
 
