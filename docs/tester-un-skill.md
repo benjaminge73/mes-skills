@@ -366,7 +366,7 @@ cas qu'elle regroupe et les fichiers qu'elle exerce. Pour `plans-notion` :
 | `bruit` | `skills/plan-notion/` |
 | `etat-de-depart` | `skills/plan-notion/`, `agents/enqueteur.md`, `agents/lecteur.md` |
 | `maquette` | `skills/plan-notion/` |
-| `decouvertes` | `skills/executer-plan-notion/`, `agents/executant.md`, `agents/relecteur.md` |
+| `decouvertes` | `skills/executer-plan-notion/`, `agents/executant.md`, `agents/relecteur.md`, `agents/cloturier.md` |
 | `perimetre` | `skills/executer-plan-notion/`, `agents/executant.md` |
 | `revue-hors-plan` | `skills/executer-plan-notion/`, `agents/relecteur.md` |
 | `escalade-bornee` | `skills/executer-plan-notion/`, `agents/executant.md`, `skills/deleguer-a-haiku/` |
@@ -672,7 +672,7 @@ moins 0,10 (15 tirages sains sur Sonnet et Opus, 2026-10-01 ; `decouvertes` reme
 | `bruit` | 0,80 – 0,92 | 0,70 |
 | `etat-de-depart` | 0,92 – 1,00 | 0,82 |
 | `maquette` | 1,00 – 1,00 | 0,90 |
-| `decouvertes` | 0,58 – 0,70 | 0,47 |
+| `decouvertes` | 0,58 – 0,70 | 0,47, `agents/cloturier.md` |
 | `perimetre` | 0,31 – 0,45 | 0,20 |
 | `delegation` | 1,00 – 1,00 | 0,90 |
 | `billet` (plugin `voyages`) | 1,00 – 1,00 | 0,90 |
@@ -717,7 +717,7 @@ donne 0,77 (0,65 avant).
 
 Pour rejouer cette mesure, un fichier du banc (par exemple `evals/bruit-plans-notion.json`)
 doit changer dans la PR, pour que la portée de la CI déclenche le plugin ; la ligne
-`Evals: decouvertes — …` limite alors la sélection aux 8 cas. Toucher `evals/categories.json`
+`Evals: decouvertes — …` limite alors la sélection aux cas de `decouvertes` (15 au 2026-11-26). Toucher `evals/categories.json`
 ou `evals/plans-notion/` forcerait tout le banc.
 
 Ces valeurs sont l'origine des planchers ; ceux que la CI applique sont dans son
