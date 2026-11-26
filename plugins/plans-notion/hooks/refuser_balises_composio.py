@@ -15,11 +15,20 @@ Périmètre :
 - tout autre texte neuf de la charge est contrôlé par ``balises-html.py`` (``balises_hors_code``) :
   une balise hors backticks et hors bloc de code refuse la commande (code 2, motif sur stderr,
   qui cite ``balises-html.py nettoyer``) ;
-- un fichier de charge créé dans la même commande (``> fichier``, ``tee fichier``) refuse
-  aussi : le hook ne peut pas le lire. Il faut le construire dans un appel à part.
+- une charge fabriquée dans la même commande refuse aussi (code 2, « appel à part ») : le hook
+  ne peut pas la lire avant l'envoi. Trois formes : un fichier créé par ``> fichier`` ou
+  ``tee fichier`` ; un fichier nommé par une commande d'avant qui peut l'écrire (``python3
+  gen.py --out args.json && composio … -d @args.json``) ; un fichier introuvable au contrôle
+  alors qu'une commande d'avant peut le produire (``python3 gen.py && composio … -d @args.json``),
+  et un stdin produit par autre chose qu'``echo`` ou ``printf`` (``python3 gen.py | composio … -d -``).
+  Il faut construire la charge dans un appel à part ;
+- un segment d'avant de simple lecture (``cat``, ``head``, ``ls``, ``test``, ``wc``, ``grep``…)
+  qui nomme le fichier ne l'exempte pas : le contenu du fichier est contrôlé comme les autres.
 
 Limites : un stdin construit autrement que par ``echo`` ou ``printf`` (heredoc, fonction
-du shell) passe sans contrôle ; un fichier introuvable pour une autre raison aussi.
+du shell) passe sans contrôle ; un ``sed -i`` qui nomme le fichier le rend illisible, donc il
+passe (une retouche qui ajoute une balise passe aussi : décision D1, voulue pour ne pas refuser
+la correction d'une charge déjà sale) ; un fichier introuvable sans commande d'avant qui le produise passe.
 En cas d'erreur du hook ou de doute : code 0, un mot sur stderr. Entrée sans ``composio`` : code 0 tout de suite.
 """
 from __future__ import annotations
@@ -75,6 +84,44 @@ def _cree_dans_la_commande(mots: list[str], chemin: str) -> bool:
     return False
 
 
+LECTURES_COMMANDE = ("cat", "head", "tail", "ls", "test", "[", "wc", "grep", "stat", "file",
+                     "diff", "cmp", "md5sum", "sha256sum", "jq", "less", "more")
+NON_ECRIVAINS = ("cd", "echo", "printf", "true", ":")
+
+
+def _segments_avant(mots: list[str], i: int) -> list[list[str]]:
+    """Les segments de commande complets qui précèdent le ``composio`` en ``mots[i]``."""
+    segments, courant = [], []
+    for mot in mots[:i]:
+        if mot in SEPARATEURS:
+            segments.append(courant)
+            courant = []
+        else:
+            courant.append(mot)
+    return segments
+
+
+def _programme(segment: list[str]) -> str:
+    """Le nom du programme d'un segment (``rtk`` ignoré), ou chaîne vide."""
+    mots = list(segment[1:] if segment[:1] == ["rtk"] else segment)
+    return os.path.basename(mots[0]) if mots else ""
+
+
+def _nomme(segment: list[str], chemin: str) -> bool:
+    """Le segment cite le fichier : argument seul, ``--out=…``, ou redirection collée."""
+    return any(m == chemin or m.lstrip(">") == chemin or m.endswith("=" + chemin) for m in segment)
+
+
+def _ecrit(segment: list[str]) -> bool:
+    """Le segment peut produire un fichier : tout programme sauf lecture ou non-écrivain."""
+    prog = _programme(segment)
+    return bool(prog) and prog not in LECTURES_COMMANDE and prog not in NON_ECRIVAINS
+
+
+def _sed_en_place(segment: list[str]) -> bool:
+    return _programme(segment) == "sed" and any(m == "-i" or m.startswith("-i") for m in segment)
+
+
 def _charge_stdin(mots: list[str], i: int):
     """La charge passée par ``| composio … -d -``, si elle est un ``echo`` ou un ``printf`` lisible."""
     if i < 1 or mots[i - 1] != "|":
@@ -94,7 +141,8 @@ def _charge_stdin(mots: list[str], i: int):
     elif producteur[0] == "printf" and len(producteur) == 2:
         texte = producteur[1]
     else:
-        return None
+        return ("fabrique", f"stdin produit par `{_programme(producteur)}` dans la même commande, "
+                            "qui n'est pas un `echo '…'` ou un `printf '…'` simple")
     try:
         return json.loads(texte)
     except ValueError:
@@ -112,7 +160,7 @@ def _charge(mots: list[str], i: int, repertoire: Path):
 
 
 def _charge_brute(mots: list[str], i: int, repertoire: Path):
-    """La charge JSON, ``("cree", chemin)`` si la commande crée son fichier de charge, ou None."""
+    """La charge JSON ; ``("cree", chemin)`` ou ``("fabrique", raison)`` si la charge est fabriquée dans la commande ; None si illisible."""
     fin = next((k for k in range(i + 3, len(mots)) if mots[k] in SEPARATEURS), len(mots))
     segment = mots[i + 3:fin]
     brut = None
@@ -134,16 +182,26 @@ def _charge_brute(mots: list[str], i: int, repertoire: Path):
         chemin = brut[1:]
         if _cree_dans_la_commande(mots, chemin):
             return ("cree", chemin)
-        if chemin in mots[:i]:
-            # Nommé avant composio : la commande peut le modifier sur place (sed -i…) avant
-            # l'appel. Le contenu lu ici serait l'ancien : illisible au contrôle, on laisse passer.
+        precedents = _segments_avant(mots, i)
+        nommes = [s for s in precedents if _nomme(s, chemin)]
+        if any(_ecrit(s) and not _sed_en_place(s) for s in nommes):
+            return ("fabrique", f"`{chemin}` est écrit par une commande d'avant")
+        if any(_sed_en_place(s) for s in nommes):
+            # sed -i nommé avant composio : il modifie le fichier sur place avant l'appel. Le contenu
+            # lu ici serait l'ancien : illisible au contrôle, on laisse passer (décision D1).
             return None
+        # Un segment de simple lecture qui le nomme (cat, head…) ne l'exempte pas : on lit le contenu.
         fichier = Path(os.path.expanduser(chemin))
         if not fichier.is_absolute():
             fichier = repertoire / fichier
         try:
             return json.loads(fichier.read_text(encoding="utf-8"))
-        except (OSError, ValueError):
+        except OSError:
+            if not fichier.exists() and any(_ecrit(s) for s in precedents):
+                return ("fabrique", f"`{chemin}` est introuvable au contrôle, et une commande d'avant "
+                                    "peut le produire")
+            return None
+        except ValueError:
             return None
     try:
         return json.loads(brut)
@@ -180,6 +238,13 @@ def _refus_cree(chemin: str) -> str:
             "<fichier>` et corrige-le avec `balises-html.py nettoyer <fichier>` si besoin.")
 
 
+def _refus_fabriquee(raison: str) -> str:
+    return (f"Refusé : la charge de `composio` est fabriquée dans cette même commande ({raison}), "
+            "donc illisible au contrôle : construis-la dans un appel à part, puis écris-la dans le "
+            "suivant avec `composio`. Contrôle-la avant avec `balises-html.py controler <fichier>` "
+            "(ou écris-la directement en markdown), puis rejoue la commande.")
+
+
 def main() -> int:
     try:
         donnees = json.load(sys.stdin)
@@ -196,6 +261,9 @@ def main() -> int:
             statut, valeur = _charge(mots, i, repertoire)
             if statut == "cree":
                 print(_refus_cree(valeur), file=sys.stderr)
+                return 2
+            if statut == "fabrique":
+                print(_refus_fabriquee(valeur), file=sys.stderr)
                 return 2
             if statut != "charge":
                 continue
