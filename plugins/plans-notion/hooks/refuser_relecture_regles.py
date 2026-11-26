@@ -146,9 +146,14 @@ def _inspection(donnees: dict):
         chemin = _absolu(brut, cwd) if isinstance(brut, str) else None
         if chemin is None or not _est_regle(chemin):
             return None
-        plage = f"{chemin} (plage {entree.get('offset')}+{entree.get('limit')})"
+        bornes = []
+        if entree.get("offset") is not None:
+            bornes.append(f"à partir de la ligne {entree['offset']}")
+        if entree.get("limit") is not None:
+            bornes.append(f"{entree['limit']} lignes")
+        cible = f"{chemin} ({', '.join(bornes)})" if bornes else str(chemin)
         cle = "Read " + json.dumps([str(chemin), entree.get("offset"), entree.get("limit")])
-        return cle, plage, [chemin]
+        return cle, cible, [chemin]
     if outil == "Bash":
         commande = entree.get("command")
         if not isinstance(commande, str) or not _est_lecture(commande):
