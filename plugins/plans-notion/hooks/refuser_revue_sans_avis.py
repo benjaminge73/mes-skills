@@ -15,7 +15,10 @@ Le hook ne s'active que si le script de Hal (``PLANS_NOTION_DEMANDER_A_HAL``, d�
 ``~/.hermes/scripts/demander_a_hal.py``) existe et déclare ``RELECTURE_DISPONIBLE = True`` ;
 sinon il se tait (poste sans Hermes).
 Refus : code 2, motif sur stderr, qui cite la commande ``relire``. Permis : code 0, sans sortie.
-Entrée illisible : code 0 avec un mot sur stderr (un garde-fou cassé ne bloque rien).
+Entrée illisible : code 0 (cas prévu) avec un mot sur stderr. Un plantage, un délai dépassé ou un
+interpréteur introuvable bloquent l'appel, par ``onFailure: "block"`` dans hooks.json (Claude Code
+2.1.295 ou plus) ; l'entrée Bash étant sur toute commande Bash, une panne du script bloquerait
+toute commande Bash.
 """
 from __future__ import annotations
 
