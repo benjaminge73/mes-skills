@@ -23,7 +23,7 @@ Les lignes des autres dépôts sont présentes pour que la requête soit complè
 | Reste | Repo | Type | Pour | Condition | État | url |
 | --- | --- | --- | --- | --- | --- | --- |
 | Faut-il garder la lecture de l'ancien format v1 de `notes.json`, ou la supprimer ? | exemple/notes | décision | Benjamin | — | ouvert | https://example.invalid/restes/l1 |
-| Mesurer le taux d'erreur de `compter` en usage réel | exemple/notes | suivi | Benjamin | relevé à 30 jours après la mise en service de `compter` | ouvert | https://example.invalid/restes/l2 |
+| Mesurer le taux d'erreur de `compter` en usage réel | exemple/notes | suivi | Benjamin | relevé à 30 jours après la mise en service de `compter` (pas encore faite) | ouvert | https://example.invalid/restes/l2 |
 | Activer l'auto-fix dans la barre de la PR | exemple/notes | geste | Benjamin | — | ouvert | https://example.invalid/restes/l3 |
 | Nettoyer les exports de démonstration | exemple/notes | geste | Hal | déclencheur : la sortie de la version 0.4 | repris | https://example.invalid/restes/l4 |
 | Fermer la vieille branche de test | exemple/notes | geste | Benjamin | — | fait | https://example.invalid/restes/l5 |
