@@ -19,7 +19,8 @@ est déjà dans son contexte, et il le paie à chaque tour.
   ``tail``, ``awk``, ``grep``, ``less``, ``nl``, ``rtk read``) sans écriture ni entrée
   redirigée (pas de ``>``, ``<``, backtick, ``$(``, ni ``tee``), sans option qui lit un
   autre fichier (``grep -f``, ``sed -f``, ``awk -f``), et dont chaque fichier existant
-  lu est une règle. Une commande qui lit aussi un autre fichier, qui exécute un script,
+  lu est une règle, sans argument variable (glob, tilde, ``$``, accolades), sans dossier
+  lu, et sans ``grep`` récursif (``-r``). Une commande qui lit aussi un autre fichier, qui exécute un script,
   ou qui fait autre chose n'est jamais refusée.
 - Le pilote se reconnaît à l'absence de ``agent_id`` : un sous-agent n'inscrit rien et
   n'est jamais refusé.
@@ -45,6 +46,8 @@ SEPARATEURS = re.compile(r"&&|\|\||[;|\n]")
 AFFECTATION = re.compile(r"[A-Za-z_][A-Za-z0-9_]*=")
 OPTION_D_ECRITURE = re.compile(r"^-[A-Za-z]*i|^--in-place")  # sed -i, sed -ni, awk -i inplace
 OPTION_DE_FICHIER = re.compile(r"^-[A-Za-z]*f|^--file")  # grep -f, sed -f, awk -f : lit un autre fichier
+OPTION_RECURSIVE = re.compile(r"^-[A-Za-z]*[rR]|^--recursive|^--dereference-recursive")  # grep -r : lit un arbre
+MOTIF_VARIABLE = re.compile(r"[*?\[{~$]")  # glob, accolades, tilde, variable : le contenu lu n'est pas fixe
 
 
 def _est_regle(chemin: Path) -> bool:
@@ -85,6 +88,8 @@ def _est_lecture(commande: str) -> bool:
             return False
         if programme in ("grep", "sed", "awk") and any(OPTION_DE_FICHIER.match(m) for m in mots):
             return False
+        if programme == "grep" and any(OPTION_RECURSIVE.match(m) for m in mots):
+            return False
     return True
 
 
@@ -114,10 +119,14 @@ def _fichiers_existants(commande: str, cwd) -> list[Path] | None:
         return None
     existants = []
     for mot in arguments:
+        if MOTIF_VARIABLE.search(mot):  # glob, tilde, variable : ce qui est lu n'est pas fixe
+            return None
         if mot.startswith("-"):
             continue
         chemin = _absolu(mot, cwd)
         if chemin is None:  # argument relatif sans dossier de départ : on ne sait pas ce qu'il désigne
+            return None
+        if chemin.is_dir():  # un dossier lu entraîne tout son contenu
             return None
         if chemin.is_file():
             existants.append(chemin)
