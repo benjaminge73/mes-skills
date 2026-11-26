@@ -15,20 +15,25 @@ Périmètre :
 - tout autre texte neuf de la charge est contrôlé par ``balises-html.py`` (``balises_hors_code``) :
   une balise hors backticks et hors bloc de code refuse la commande (code 2, motif sur stderr,
   qui cite ``balises-html.py nettoyer``) ;
+- une redirection d'entrée ``-d - < fichier`` se juge comme ``-d @fichier`` ;
 - une charge fabriquée dans la même commande refuse aussi (code 2, « appel à part ») : le hook
   ne peut pas la lire avant l'envoi. Trois formes : un fichier créé par ``> fichier`` ou
   ``tee fichier`` ; un fichier nommé par une commande d'avant qui peut l'écrire (``python3
   gen.py --out args.json && composio … -d @args.json``) ; un fichier introuvable au contrôle
   alors qu'une commande d'avant peut le produire (``python3 gen.py && composio … -d @args.json``),
-  et un stdin produit par autre chose qu'``echo`` ou ``printf`` (``python3 gen.py | composio … -d -``).
-  Il faut construire la charge dans un appel à part ;
+  et un stdin produit par autre chose qu'``echo`` ou ``printf`` (un ``python3 gen.py`` branché
+  en tuyau sur ``composio … -d -``). Il faut construire la charge dans un appel à part ;
+- un chemin se compare une fois résolu (``./args.json``, ``$PWD/args.json``, l'option collée
+  ``-oargs.json`` désignent le même fichier) ;
 - un segment d'avant de simple lecture (``cat``, ``head``, ``ls``, ``test``, ``wc``, ``grep``…)
   qui nomme le fichier ne l'exempte pas : le contenu du fichier est contrôlé comme les autres.
 
-Limites : un stdin construit autrement que par ``echo`` ou ``printf`` (heredoc, fonction
-du shell) passe sans contrôle ; un ``sed -i`` qui nomme le fichier le rend illisible, donc il
-passe (une retouche qui ajoute une balise passe aussi : décision D1, voulue pour ne pas refuser
-la correction d'une charge déjà sale) ; un fichier introuvable sans commande d'avant qui le produise passe.
+Limites : un stdin construit par heredoc (``<<``) passe sans contrôle ; un ``sed -i`` qui nomme
+le fichier le rend illisible, donc il passe (une retouche qui ajoute une balise passe aussi :
+décision D1, voulue pour ne pas refuser la correction d'une charge déjà sale) ; un fichier
+introuvable sans commande d'avant qui le produise passe ; un programme qui ne nomme pas le
+fichier et le réécrit (``python3 gen.py && composio … -d @args.json``, ``args.json`` déjà là)
+passe : le hook ne voit pas ce qu'il écrit, et le contenu lu est l'ancien.
 En cas d'erreur du hook ou de doute : code 0, un mot sur stderr. Entrée sans ``composio`` : code 0 tout de suite.
 """
 from __future__ import annotations
@@ -72,14 +77,31 @@ def _textes_neufs(valeur, cle=None):
         yield valeur
 
 
-def _cree_dans_la_commande(mots: list[str], chemin: str) -> bool:
-    """Vrai si la commande écrit le fichier ``chemin`` (redirection ou ``tee``)."""
+def _chemin_absolu(texte: str, repertoire: Path) -> Path:
+    """Le fichier désigné par ``texte`` depuis ``repertoire`` : ``~``, ``$PWD`` et relatif résolus."""
+    brut = texte.replace("${PWD}", str(repertoire)).replace("$PWD", str(repertoire))
+    chemin = Path(os.path.expanduser(brut))
+    if not chemin.is_absolute():
+        chemin = repertoire / chemin
+    return chemin.resolve()
+
+
+def _designe(texte: str, cible: Path, repertoire: Path) -> bool:
+    """Vrai si ``texte``, lu comme chemin depuis ``repertoire``, désigne le fichier ``cible`` (résolu)."""
+    try:
+        return _chemin_absolu(texte, repertoire) == cible
+    except (OSError, RuntimeError, ValueError):
+        return False
+
+
+def _cree_dans_la_commande(mots: list[str], cible: Path, repertoire: Path) -> bool:
+    """Vrai si la commande écrit le fichier ``cible`` (redirection ou ``tee``), chemins comparés résolus."""
     for k, mot in enumerate(mots):
-        if mot in (">", ">>") and k + 1 < len(mots) and mots[k + 1] == chemin:
+        if mot in (">", ">>") and k + 1 < len(mots) and _designe(mots[k + 1], cible, repertoire):
             return True
-        if mot.startswith(">") and mot.lstrip(">") == chemin:
+        if mot.startswith(">") and _designe(mot.lstrip(">"), cible, repertoire):
             return True
-        if mot == "tee" and chemin in mots[k + 1:]:
+        if mot == "tee" and any(_designe(m, cible, repertoire) for m in mots[k + 1:]):
             return True
     return False
 
@@ -107,9 +129,19 @@ def _programme(segment: list[str]) -> str:
     return os.path.basename(mots[0]) if mots else ""
 
 
-def _nomme(segment: list[str], chemin: str) -> bool:
-    """Le segment cite le fichier : argument seul, ``--out=…``, ou redirection collée."""
-    return any(m == chemin or m.lstrip(">") == chemin or m.endswith("=" + chemin) for m in segment)
+def _candidats(mot: str):
+    """Les lectures possibles d'un mot comme chemin : le mot, sa redirection, sa valeur après ``=``, son option ``-oX`` collée."""
+    yield mot
+    yield mot.lstrip("<>")
+    if "=" in mot:
+        yield mot.split("=", 1)[1]
+    if mot.startswith("-") and len(mot) > 2 and mot[1].isalpha():
+        yield mot[2:]
+
+
+def _nomme(segment: list[str], cible: Path, repertoire: Path) -> bool:
+    """Le segment désigne le fichier ``cible``, sous une de ses formes (chemin résolu)."""
+    return any(_designe(c, cible, repertoire) for m in segment for c in _candidats(m))
 
 
 def _ecrit(segment: list[str]) -> bool:
@@ -123,7 +155,8 @@ def _sed_en_place(segment: list[str]) -> bool:
 
 
 def _charge_stdin(mots: list[str], i: int):
-    """La charge passée par ``| composio … -d -``, si elle est un ``echo`` ou un ``printf`` lisible."""
+    """La charge passée par ``| composio … -d -`` : le dict si c'est un ``echo`` ou un ``printf`` lisible ;
+    ``("fabrique", raison)`` si le stdin est produit par autre chose ; None si illisible."""
     if i < 1 or mots[i - 1] != "|":
         return None
     producteur = []
@@ -150,7 +183,8 @@ def _charge_stdin(mots: list[str], i: int):
 
 
 def _charge(mots: list[str], i: int, repertoire: Path):
-    """``("charge", dict)``, ``("cree", chemin)`` ou ``("illisible", None)`` pour le ``composio`` en ``mots[i]``."""
+    """``("charge", valeur)``, ``("cree", chemin)``, ``("fabrique", raison)`` ou ``("illisible", None)``
+    pour le ``composio`` en ``mots[i]``."""
     valeur = _charge_brute(mots, i, repertoire)
     if isinstance(valeur, tuple):
         return valeur
@@ -177,34 +211,49 @@ def _charge_brute(mots: list[str], i: int, repertoire: Path):
     if brut is None:
         return None
     if brut == "-":
+        redirige = _redirection_stdin(segment)
+        if redirige is not None:
+            return _charge_fichier(mots, i, repertoire, redirige)
         return _charge_stdin(mots, i)
     if brut.startswith("@"):
-        chemin = brut[1:]
-        if _cree_dans_la_commande(mots, chemin):
-            return ("cree", chemin)
-        precedents = _segments_avant(mots, i)
-        nommes = [s for s in precedents if _nomme(s, chemin)]
-        if any(_ecrit(s) and not _sed_en_place(s) for s in nommes):
-            return ("fabrique", f"`{chemin}` est écrit par une commande d'avant")
-        if any(_sed_en_place(s) for s in nommes):
-            # sed -i nommé avant composio : il modifie le fichier sur place avant l'appel. Le contenu
-            # lu ici serait l'ancien : illisible au contrôle, on laisse passer (décision D1).
-            return None
-        # Un segment de simple lecture qui le nomme (cat, head…) ne l'exempte pas : on lit le contenu.
-        fichier = Path(os.path.expanduser(chemin))
-        if not fichier.is_absolute():
-            fichier = repertoire / fichier
-        try:
-            return json.loads(fichier.read_text(encoding="utf-8"))
-        except OSError:
-            if not fichier.exists() and any(_ecrit(s) for s in precedents):
-                return ("fabrique", f"`{chemin}` est introuvable au contrôle, et une commande d'avant "
-                                    "peut le produire")
-            return None
-        except ValueError:
-            return None
+        return _charge_fichier(mots, i, repertoire, brut[1:])
     try:
         return json.loads(brut)
+    except ValueError:
+        return None
+
+
+def _redirection_stdin(segment: list[str]):
+    """Le fichier de ``composio … -d - < fichier`` (``<`` séparé ou collé), ou None. Heredoc (``<<``) exclu."""
+    for k, mot in enumerate(segment):
+        if mot == "<" and k + 1 < len(segment):
+            return segment[k + 1]
+        if mot.startswith("<") and not mot.startswith("<<") and len(mot) > 1:
+            return mot[1:]
+    return None
+
+
+def _charge_fichier(mots: list[str], i: int, repertoire: Path, chemin: str):
+    """La charge lue dans ``chemin`` (``-d @chemin`` ou ``< chemin``), ou ce que la commande en fait."""
+    cible = _chemin_absolu(chemin, repertoire)
+    if _cree_dans_la_commande(mots, cible, repertoire):
+        return ("cree", chemin)
+    precedents = _segments_avant(mots, i)
+    nommes = [s for s in precedents if _nomme(s, cible, repertoire)]
+    if any(_ecrit(s) and not _sed_en_place(s) for s in nommes):
+        return ("fabrique", f"`{chemin}` est écrit par une commande d'avant")
+    if any(_sed_en_place(s) for s in nommes):
+        # sed -i nommé avant composio : il modifie le fichier sur place avant l'appel. Le contenu
+        # lu ici serait l'ancien : illisible au contrôle, on laisse passer (décision D1).
+        return None
+    # Un segment de simple lecture qui le nomme (cat, head…) ne l'exempte pas : on lit le contenu.
+    try:
+        return json.loads(cible.read_text(encoding="utf-8"))
+    except OSError:
+        if not cible.exists() and any(_ecrit(s) for s in precedents):
+            return ("fabrique", f"`{chemin}` est introuvable au contrôle, et une commande d'avant "
+                                "peut le produire")
+        return None
     except ValueError:
         return None
 
