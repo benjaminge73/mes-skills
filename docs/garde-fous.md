@@ -233,6 +233,19 @@ n'est prévu (`bypass_actors` vide). Retour arrière :
 }
 ```
 
+## Les hooks sont tous de type command
+
+Décision Q14 (a), 2026-11-26 : les hooks des plugins sont tous de type command.
+Constat vérifié le même jour : les 16 hooks déclarés dans les deux `hooks.json`
+(14 dans `plans-notion`, 2 dans `nommage-sessions`) lancent un script local,
+et aucun `plugin.json` ne déclare de hook. Un hook de ce type ne fait donc aucun
+appel de modèle par lui-même. Le seul appel de modèle des hooks est celui que
+pose `plugins/nommage-sessions/hooks/nommer_session.py` : le titrage d'une session
+passe par `claude -p --model haiku`, une seule tentative par session, avec un délai
+de 30 secondes, et ce titre reste un appel à `claude -p`, non un hook de modèle.
+Un hook d'un autre type (prompt, agent) changerait la règle, et sa ligne s'ajouterait
+ici avec son garde.
+
 ## Ajouter une ligne
 
 1. Une règle, une ligne. Dire ce qu'elle protège **avec la panne qu'elle évite**,
