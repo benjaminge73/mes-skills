@@ -155,6 +155,12 @@ PLAFOND_OCTETS_FICHIER_LU = 25_000
 CHAMPS_D_UNE_EXCEPTION_LU = ("date", "raison", "levee_par")
 # Renvoi à lire : « 📄 » devant, ou la désignation nue en backticks (les deux sont lus en route).
 _RENVOI_LU = re.compile(r"(?:📄 )?`\$\{CLAUDE_PLUGIN_ROOT\}/([^`\s]+)`")
+SEUIL_LIGNES_REFERENCE = 100
+FENETRE_SOMMAIRE = 20
+CHAMPS_D_UNE_EXCEPTION_SOMMAIRE = ("date", "raison", "levee_par")
+# Un titre « ## Sommaire » (tout niveau de titre) ou une ligne « Sommaire : » ; un mot « sommaire »
+# dans une phrase ne compte pas.
+_SOMMAIRE = re.compile(r"^(#{1,6}\s+Sommaire\s*$|Sommaire\s*:)")
 
 
 class BaseIndisponible(RuntimeError):
@@ -973,6 +979,78 @@ def _regle_q_lus(racine: Path, limites: dict,
 
 
 # --------------------------------------------------------------------------
+# Sommaire des fichiers de référence (règle s)
+# --------------------------------------------------------------------------
+
+def _references(racine: Path) -> list[Path]:
+    """Les fichiers Markdown sous ``skills/`` de chaque plugin, ``SKILL.md`` écartés."""
+    trouves: list[Path] = []
+    for plugin in _plugins(racine):
+        trouves += [f for f in sorted(plugin.glob("skills/**/*.md"))
+                    if f.name != "SKILL.md" and f.is_file()]
+    return trouves
+
+
+def _a_un_sommaire(texte: str) -> bool:
+    """Un sommaire dans les ``FENETRE_SOMMAIRE`` premières lignes (la dernière incluse)."""
+    return any(_SOMMAIRE.match(ligne.strip())
+               for ligne in texte.splitlines()[:FENETRE_SOMMAIRE])
+
+
+def _regle_s(racine: Path, limites: dict,
+             sans_exceptions: bool = False) -> tuple[list[Anomalie], list[tuple[Anomalie, dict]]]:
+    """Sommaire des références (règle s) : rend ``(refus, excusees)``.
+
+    Un fichier de référence de plus de ``SEUIL_LIGNES_REFERENCE`` lignes porte un sommaire dans
+    ses premières lignes. Une exception datée (``sommaire`` de ``scripts/limites.json``, une par
+    fichier) couvre le fichier sans sommaire. Elle est périmée si le fichier tient sous le seuil,
+    porte son sommaire, ou n'est plus une référence. ``sans_exceptions`` ignore la table.
+    """
+    exceptions: dict = ({} if sans_exceptions
+                        else limites.get("sommaire", {}).get("exceptions", {}))
+    refus: list[Anomalie] = []
+    excusees: list[tuple[Anomalie, dict]] = []
+    vues: set[str] = set()
+
+    for chemin in _references(racine):
+        cible = _rel(racine, chemin)
+        vues.add(cible)
+        texte = chemin.read_text(encoding="utf-8")
+        lignes = len(texte.splitlines())
+        exc = exceptions.get(cible)
+        if exc is not None:
+            manquants = [c for c in CHAMPS_D_UNE_EXCEPTION_SOMMAIRE if not exc.get(c)]
+            if manquants:
+                refus.append(Anomalie("s", cible, (
+                    "exception incomplète dans scripts/limites.json (`sommaire`) : il manque "
+                    + ", ".join(manquants) + ". Une exception dit sa date, sa raison et l'étape "
+                    "qui la lève.")))
+                continue  # une seule anomalie par fichier : l'exception incomplète ne couvre rien
+        if lignes <= SEUIL_LIGNES_REFERENCE or _a_un_sommaire(texte):
+            if exc is not None:
+                refus.append(Anomalie("s", cible, (
+                    f"exception datée périmée : le fichier n'a plus besoin d'exception ({lignes} "
+                    f"lignes ; ou sommaire dans les {FENETRE_SOMMAIRE} premières lignes). La "
+                    "retirer de scripts/limites.json (`sommaire`).")))
+            continue
+        if exc is None:
+            refus.append(Anomalie("s", cible, (
+                f"{lignes} lignes, au-dessus de {SEUIL_LIGNES_REFERENCE} sans sommaire dans les "
+                f"{FENETRE_SOMMAIRE} premières lignes : ajouter un titre « ## Sommaire » (ou une "
+                "ligne « Sommaire : ») en tête. Une exception datée dans scripts/limites.json "
+                "(`sommaire`) ne sert que de passif connu.")))
+        else:
+            excusees.append((Anomalie("s", cible, (
+                f"{lignes} lignes, sans sommaire en tête : couvert par l'exception datée.")), exc))
+
+    for cible in sorted(set(exceptions) - vues):
+        refus.append(Anomalie("s", cible, (
+            "exception datée périmée : ce fichier n'est plus une référence sous skills/ (absent, "
+            "ou hors skills/). La retirer de scripts/limites.json (`sommaire`).")))
+    return refus, excusees
+
+
+# --------------------------------------------------------------------------
 # Contrôle d'ensemble, exceptions, cliquet, registre
 # --------------------------------------------------------------------------
 
@@ -1041,6 +1119,9 @@ def controler(racine: Path, limites: dict, sans_exceptions: bool = False) -> Res
     lus_refus, lus_excusees = _regle_q_lus(racine, limites, sans_exceptions)
     resultat.refus += lus_refus
     resultat.excusees += lus_excusees
+    sommaire_refus, sommaire_excusees = _regle_s(racine, limites, sans_exceptions)
+    resultat.refus += sommaire_refus
+    resultat.excusees += sommaire_excusees
     return resultat
 
 
@@ -1130,6 +1211,24 @@ def verifier_cliquet(limites: dict, limites_base: dict | None) -> list[Anomalie]
                         f"plafond d'exception relevé de {anciennes[fichier].get('plafond')} à "
                         f"{nouvelle.get('plafond')} octets dans limites.json : un plafond ne peut "
                         "que baisser. Découper le fichier au lieu de relever le plafond.")))
+    # Table de la règle (s), même patron que budget_caracteres : absente de la base, elle entre
+    # avec cette PR ; présente, elle ne fait que se vider (une exception neuve est refusée).
+    sommaire_base = limites_base.get("sommaire")
+    if sommaire_base is not None:
+        sommaire = limites.get("sommaire")
+        if sommaire is None:
+            anomalies.append(Anomalie("s", "scripts/limites.json", (
+                "la clé `sommaire` a disparu de scripts/limites.json alors que la base la porte : "
+                "retirer la table revient à l'effacer sans la vider. La remettre, avec "
+                "`exceptions` à `{}` si elle est vide.")))
+        else:
+            anciennes = sommaire_base.get("exceptions", {})
+            for fichier in sommaire.get("exceptions", {}):
+                if fichier not in anciennes:
+                    anomalies.append(Anomalie("s", fichier, (
+                        "exception nouvelle dans scripts/limites.json (`sommaire`) : depuis la base, "
+                        "cette table ne fait que se vider. Ajouter le sommaire au fichier au lieu "
+                        "de l'exempter.")))
     ancien = limites_base.get("veille_jours_max")
     nouveau = limites.get("veille_jours_max")
     if ancien is not None and (nouveau is None or nouveau > ancien):
