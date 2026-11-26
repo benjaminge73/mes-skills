@@ -136,6 +136,9 @@ cite un fichier de `scripts/`, `evals/` ou `.github/`, jamais une consigne en pr
 | Sur Opus 5.5 et Sonnet 5.5, une lecture de cache coûte 0,05 × le prix d'entrée (0,20 $ et 0,10 $) | « Cache hits and refreshes on Claude Opus 5.5 and Claude Sonnet 5.5 are priced at 0.05x the base input price. » | https://platform.claude.com/docs/en/about-claude/pricing.md | 2026-11-16 | `scripts/test_cout_plan.py` (classe `GrilleReelle`, lit `plugins/plans-notion/skills/_partage/scripts/grille-tarifs.json`) |
 | `maxTurns` arrête un sous-agent et marque sa sortie partielle | « Maximum number of agentic turns before the subagent stops. » | https://code.claude.com/docs/en/sub-agents.md | 2026-10-16 | `evals/plans-notion/escalade-bornee/case.yaml` (le cas qui joue l'escalade après l'arrêt d'un exécutant ; `maxTurns: 90` est posé dans `plugins/plans-notion/agents/executant.md`, `scripts/check_skills.py` (règle k) exige qu'il soit fixé) |
 | Les skills réattachés après compaction se partagent 25 000 jetons | « Re-attached skills share a combined budget of 25,000 tokens. » | https://code.claude.com/docs/en/skills.md | 2026-10-16 | `scripts/check_skills.py` règle c (contrôle partiel : seul le plafond des jetons d'invariants, `JETONS_INVARIANTS`, est vérifié, pas le budget partagé ; c'est la raison de « ré-invoquer le skill après un compactage ») |
+| Un hook PreToolUse peut bloquer un appel | « a `PreToolUse` hook blocks the tool call » | https://code.claude.com/docs/en/hooks.md | 2026-11-26 | `scripts/test_hooks.py` (classe du hook `plugins/plans-notion/hooks/refuser_git_stash.py`) |
+| Sans `tools`, un sous-agent hérite de tout | « Inherits every tool available to subagents if omitted. » | https://code.claude.com/docs/en/sub-agents.md | 2026-11-26 | `scripts/check_skills.py` règle p |
+| `disallowedTools` s'applique avant `tools` | « If both are set, `disallowedTools` is applied first, then `tools` is resolved against the remaining pool. » | https://code.claude.com/docs/en/sub-agents.md | 2026-11-26 | `scripts/check_skills.py` règle p |
 
 ## 3. Le journal des passes
 
@@ -722,3 +725,10 @@ Ce n'est pas une passe de veille. Le titre ne commence pas par une date `AAAA-MM
 - **Faits porteurs** : aucun changé au tableau.
 - **Relevé qui touche la PR** : `MultiEdit` ne figure pas dans la liste de `tools-reference.md`, et la doc ne dit pas ce que fait un nom inconnu dans `disallowedTools`. Un hook de commande qui plante ne bloque pas l'appel sauf `onFailure: block` (2.1.295 et plus).
 - **Ce qu'on en fait** : l'ajout de `MultiEdit` au relecteur (décision du plan) reste : il est au pire sans effet, `Edit` et `Write` étant déjà retirés. Restent à vérifier une autre fois : l'entrée du 2026-11-19 dit la règle (p) fondée sur des faits « au tableau » qui n'y sont pas.
+
+### 2026-11-26 — passe avant la PR « reprise des restes : règle, garde restes-repris.py et seuil du petit reste » (plans-notion 0.86.0)
+
+- **Sources lues** : changelog Claude Code (dernière version : 2.1.332, du 25 novembre), pages hooks et sub-agents. Passe déjà jouée le jour même (entrée « Adoption de skills externes » ci-dessus) : aucun appel de l'agent `chercheur` ni nouvelle lecture du web pour cette PR.
+- **Ce qui a changé** : rien depuis la 2.1.332.
+- **Faits porteurs** : trois faits remis au tableau de la partie 2, parce que l'entrée du 2026-11-19 (« Adoption de skills externes #3 ») disait les contrôles `refuser_git_stash.py` et la règle (p) de `check_skills.py` fondés sur des faits « au tableau » qui n'y figuraient pas : un hook `PreToolUse` peut bloquer un appel ; sans `tools`, un sous-agent hérite de tout ; `disallowedTools` s'applique avant `tools`. Verdict de `scripts/veille_faits.py` : « 26 fait(s) vérifié(s) : 0 citation(s) à signaler, 0 page(s) injoignable(s) », les trois nouveaux compris.
+- **Ce qu'on en fait** : rien à appliquer à la PR. Le reste repris « veille.md » est tenu par l'ajout des trois lignes. `preparation-prete.py`, signalé comme échouant sur un `notion-fetch` brut, a été corrigé par la PR #189 (commit `18d1b92`, présent dans `origin/main`) : à ne pas rouvrir.
