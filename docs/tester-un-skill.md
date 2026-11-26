@@ -71,6 +71,9 @@ moment de jouer.
 Un cas dont le témoin nul passe ne mesure rien : il est trop indulgent. Un cas
 dont l'oracle échoue mesure autre chose que ce qu'on croit.
 
+**Ordre.** On écrit le cas, on vérifie son oracle et son témoin nul, avant la consigne longue.
+Un cas se relit dans une session qui n'a pas écrit la consigne : celle qui l'a écrite ne voit plus ce qui manque.
+
 Ensuite :
 
 - **Juger l'état final** — un fichier écrit, un commit fait, une commande
@@ -148,7 +151,7 @@ plus consigne), ou les deux.
   obtient 90 %, contre 95 % pour Opus ; l'effort `high` fait réfléchir 4 800 à
   7 800 jetons, contre 350 à 550 en `low`. Au passage de fumée, haiku n'a pas
   appelé l'outil `Skill` : il a écrit « à la manière » du skill, ce qui ne prouve
-  rien. Un petit modèle ne sert qu'à vérifier un format.
+  rien. Un petit modèle ne sert qu'à vérifier un format. Un skill délégué à un autre modèle se mesure aussi sur ce modèle (`EVALS_MODELE`), à la demande seulement.
 
 ## Mesurer le bruit avant de fixer un seuil
 
