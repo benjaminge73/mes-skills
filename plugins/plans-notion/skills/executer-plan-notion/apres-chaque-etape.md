@@ -32,7 +32,7 @@ qui garde le renvoi.
   `Modèle :`. L'effort, lui, n'apparaît dans aucune transcription : il ne se
   vérifie pas ainsi.
 - **Commiter l'étape sur la branche du plan**, et la pousser si le relevé du §2
-  l'autorise (sous-section précédente). Pas de PR d'étape. Le trailer se
+  l'autorise (`${CLAUDE_PLUGIN_ROOT}/skills/executer-plan-notion/etapes.md`, « Pousser la branche après le commit »). Pas de PR d'étape. Le trailer se
   vérifie ici, à la relecture : `git log -1 --format=%B <sha>` doit porter
   `Co-Authored-By: Claude <noreply@anthropic.com>` et aucun nom de modèle — sur
   chaque commit d'un regroupement ou d'une étape testée, pas seulement le
