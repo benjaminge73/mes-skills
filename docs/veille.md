@@ -697,7 +697,7 @@ Une entrée par passe, la plus récente en dernier. Le titre est
 - **Faits porteurs** : aucun changé au tableau. Confirmés sur la page hooks, dont dépendent les deux hooks neufs : refus par `permissionDecision: "deny"` ou par le code 2 ; `PostToolUse` seulement après une réussite ; `PreCompact` ; `agent_id` dans l'entrée d'un appel de sous-agent.
 - **Ce qu'on en fait** : rien ne change pour la PR. À surveiller : quand la `v2` du markdown Notion devient le défaut de la commande `composio`, le hook `refuser_balises_composio.py` refuserait des `<b>` devenus valides : le revoir à ce moment.
 
-### Essai de `/steward` — 2026-11-26 (en cours au moment de l'écriture)
+### Essai de `/steward` — 2026-11-26 (terminé)
 
 Ce n'est pas une passe de veille. Le titre ne commence pas par une date `AAAA-MM-JJ` exprès : `scripts/check_veille.py` ne lit que les entrées datées de ce type, et une entrée d'essai ne doit pas repousser la date de la dernière passe.
 
@@ -706,11 +706,14 @@ Ce n'est pas une passe de veille. Le titre ne commence pas par une date `AAAA-MM
   - 1er essai, `/steward` passé comme objectif au lancement (12:22 UTC) : « Nothing started. /steward starts only from a line that you type, not from claude -p or a program. »
   - 2e essai, ligne tapée : « /steward didn't start. I can't watch pull request #1129 here: remote control is on in this session, and Claude Code can't tell messages sent through it from yours (to turn it off, run /rc and pick Disconnect this session). »
   - 3e essai, tapé à 12:24 UTC, après `/rc` → Disconnect this session : « Le premier passage de surveillance de la PR #1129 démarre dans une minute environ ; /steward stop arrête la surveillance. »
-- **Ce que ça apprend** : `/steward` exige une ligne tapée (ni objectif initial, ni `claude -p`) et une session sans Remote Control. Le troisième message annonce le démarrage ; il ne prouve pas à lui seul qu'un passage a eu lieu. Les commits et le quota le diront à l'arrêt.
+- **Ce que ça apprend** : `/steward` exige trois conditions : une ligne tapée (ni objectif initial, ni `claude -p`), une session sans Remote Control, et un clone à part. Le troisième message annonçait le démarrage ; la surveillance s'est arrêtée au premier passage.
+- **Arrêt du 1er démarrage** (12:26 UTC) : « the watch of pull request #1129 has ended — git's configuration changed after /steward started ». Cause vérifiée par Hal : le `.git/config` du clone hermes-custom, partagé par tous ses worktrees, a été modifié à 12:25:59 par une autre session (branche créée ou supprimée). D'où la 3e condition : jamais depuis un worktree d'un clone partagé.
+- **2e démarrage** (12:31 UTC), dans un clone à part, session `48caa0b4`, Remote Control déconnecté :
+  - passage 1 (12:33) : « La PR #1129 est bloquée par le seul job doc : sa description est vide, sans la ligne Doc : exigée [...] Je ne peux pas corriger ce point, car cette surveillance m'interdit de modifier la description d'une PR. » La ligne `Doc :` a été ajoutée hors de `/steward`, puis la CI a mergé la PR à 12:45 UTC ;
+  - passage 2 (12:47) : « Stopped watching pull request #1129, because it's merged. »
 - **PR écartée** : #1116 était d'abord prévue, puis écartée : c'est la branche du robot d'instantané, poussée en force chaque nuit.
-- **État au moment de l'écriture** : essai **en cours**. Commits poussés pendant la surveillance : non relevés. Coût (quota avant et après) : non mesuré au démarrage ; Hal le relèvera depuis le transcript à l'arrêt.
-- **Arrêt programmé** : cron `verif-essai-steward-1129-stop` (`cac6b43ad0db`), le 2026-11-27 à 13:20 (Paris) : `/steward stop`, puis relevé des commits.
-- **Ce qu'on en fait** : la fin d'essai s'ajoute à cette entrée quand Hal la rapporte (étape 17 du plan : une petite PR de doc à part si la PR du plan est déjà mergée). Aucun écart avec le plan à ce stade.
+- **Résultat** : 0 commit poussé par `/steward`, 0 commentaire. Coût d'après Hal : environ 0,8 $ en équivalent API (12 appels Sonnet, 1,29 M jetons lus en cache) ; quota avant et après : non relevé. Le clone d'essai et le cron d'arrêt `cac6b43ad0db` ont été retirés par Hal.
+- **Ce qu'on en fait** : la surveillance démarre sous les trois conditions, mais n'a rien corrigé ici, car modifier la description d'une PR lui est interdit. Le modèle `steward` de hermes-custom porte ces conditions et cette limite.
 
 ### 2026-11-26 — passe avant la PR « Adoption de skills externes » (plans-notion 0.84.0)
 
