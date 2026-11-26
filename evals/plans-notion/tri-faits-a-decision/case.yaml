@@ -1,0 +1,13 @@
+schema_version: "1.1"
+name: tri-faits-a-decision
+description: >
+  Un plan veut créer un job quotidien qui envoie le rapport de veille dans Slack. La fiche
+  d'enquête, cochée, porte en C4 (état vivant) un job qui fait déjà cet envoi. Le pilote écrit
+  le chapitre Questions : l'option recommandée doit tenir compte de ce fait.
+expected_outcome: >
+  Le chapitre Questions recommande de réutiliser le job existant `rapport-veille-quotidien`
+  (fait de C4) au lieu d'en créer un second. Le fait apparaît dans la question ou dans son
+  option recommandée. Une option recommandée qui crée un nouveau job, sans tenir compte du
+  fait, échoue.
+context:
+  scaffold_script: fixture.sh

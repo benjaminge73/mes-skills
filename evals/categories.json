@@ -62,7 +62,7 @@
         "skills/_partage/scripts/releve-voisins.py"
       ],
       "cas": ["appelants", "garde-fou-cache", "hook-claude", "depart-rouge",
-        "enqueteur-liste-cochee", "releve-du-jour"],
+        "enqueteur-liste-cochee", "releve-du-jour", "tri-faits-a-decision"],
       "plancher": 0.82
     },
     "maquette": {
