@@ -45,6 +45,7 @@ Bibliothèque standard uniquement.
 from __future__ import annotations
 
 import argparse
+import importlib.util
 import re
 import subprocess
 import sys
@@ -55,7 +56,11 @@ CLES = ("Relecture", "Questions", "Preuves", "Répétition", "Maquette", "CI", "
 SECTIONS_MAITRE = (("plans", "Plans"), ("croisement", "Croisement"), ("ordre de merge", "Ordre de merge"),
                    ("file des actions lourdes", "File des actions lourdes"))
 # Les <span> ouvrants (titre retouché en bleu, ecrire-dans-notion.md) sont tolérés entre ### et le mot.
-ETAPE = re.compile(r"^###[ \t]+(?:<span[^>]*>[ \t]*)*étape[ \t]+(D?\d+)", re.IGNORECASE)
+# « C<n> » : étape de contrôle (cron-a-la-main.md), lue comme dans preuves-des-etapes.py.
+ETAPE = re.compile(r"^###[ \t]+(?:<span[^>]*>[ \t]*)*étape[ \t]+([CD]?\d+)", re.IGNORECASE)
+# Le connecteur de l'app rend un lien de page en <mention-page url="…">titre</mention-page> :
+# ramené en markdown [titre](url), comme restes-sans-ligne.py (sa fonction normaliser).
+MENTION_HTML = re.compile(r'<mention-page\s+url="([^"]*)"\s*>(.*?)</mention-page>', re.S)
 PUCE = re.compile(r"^[ \t]*[-*][ \t]+\*\*([^*]+?)\*\*[ \t]*(?:\([^)]*\)[ \t]*)?:[ \t]*(.*)$")
 OUVERTURE = re.compile(r"^###[ \t]+(?:<span[^>]*>[ \t]*)*ouverture\b", re.IGNORECASE)
 QUESTION_OUVERTE = re.compile(r"^###[ \t]+.*🧭.*\bQ\d+\b")
@@ -71,8 +76,24 @@ PREREQUIS_MANQUANT = re.compile(
 SCRIPTS = Path(__file__).parent
 
 
+def _charger_balises():
+    """``balises-html.py`` a un tiret dans son nom : on le charge par son chemin, comme un module."""
+    spec = importlib.util.spec_from_file_location("balises_html", SCRIPTS / "balises-html.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+BALISES = _charger_balises()
+
+
 class Illisible(Exception):
     """Entrée qui ne permet pas de contrôler (code 2)."""
+
+
+def lire_miroir(texte: str) -> str:
+    """Miroir du connecteur -> markdown : balises converties (``nettoyer_texte``), liens de page ramenés."""
+    return MENTION_HTML.sub(lambda m: f"[{m.group(2)}]({m.group(1)})", BALISES.nettoyer_texte(texte))
 
 
 def _titre(ligne: str) -> str:
@@ -205,11 +226,16 @@ def sous_script(nom: str, *args: str) -> subprocess.CompletedProcess:
 
 
 def defauts_script(etiquette: str, r: subprocess.CompletedProcess, nom: str) -> list[str]:
-    """Défauts d'un sous-script de contrôle : code 0 conforme, 1 une ligne par écart, autre = illisible."""
+    """Défauts d'un sous-script de contrôle : code 0 conforme, 1 une ligne par écart, autre = illisible.
+
+    Un code 1 qui n'écrit aucune ligne n'est pas un écart connu : c'est un contrôle muet, illisible.
+    """
     if r.returncode == 0:
         return []
     if r.returncode == 1:
-        return [f"{etiquette} : {l}" for l in r.stdout.splitlines() if l.strip()]
+        lignes = [l for l in r.stdout.splitlines() if l.strip()]
+        if lignes:
+            return [f"{etiquette} : {l}" for l in lignes]
     return [f"{etiquette} : {nom} illisible (code {r.returncode}) {r.stderr.strip()}".rstrip()]
 
 
@@ -223,7 +249,7 @@ def main(argv: list[str] | None = None) -> int:
     except SystemExit:
         return 2
     try:
-        texte = Path(a.page).read_text(encoding="utf-8")
+        texte = lire_miroir(Path(a.page).read_text(encoding="utf-8"))
         numeros = etapes(texte)
         defauts = [f"question ouverte : {t}" for t in questions_ouvertes(texte)]
         defauts += defauts_script("preuves", sous_script("preuves-des-etapes.py", a.page, "--avant"),
@@ -233,7 +259,7 @@ def main(argv: list[str] | None = None) -> int:
         defauts += defauts_script("vagues", sous_script("vagues.py", a.page, "--comparer"),
                                   "vagues.py --comparer")
         entree = derniere_ouverture(texte)
-        maitre = Path(a.maitre).read_text(encoding="utf-8") if a.maitre else None
+        maitre = lire_miroir(Path(a.maitre).read_text(encoding="utf-8")) if a.maitre else None
     except (Illisible, OSError) as erreur:
         print(f"illisible : {erreur}", file=sys.stderr)
         return 2
