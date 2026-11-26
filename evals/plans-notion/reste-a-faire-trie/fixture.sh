@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Dépôt de départ du cas reste-a-faire-trie : un plan exécuté (plan.md), dont la
-# fin du journal liste cinq restes à faire non triés. N'écrit que dans le
+# fin du journal liste six restes à faire non triés. N'écrit que dans le
 # répertoire courant.
 set -euo pipefail
 
