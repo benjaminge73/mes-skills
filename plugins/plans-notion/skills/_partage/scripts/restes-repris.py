@@ -24,16 +24,23 @@ Usage : restes-repris.py <page.md> --lignes <export> [--depots owner/repo,...]
   la mention, la lettre de sa raison dans la liste fermée de `restes.md` (règle 7) : (a) à
   (e), ou (p), puis la raison (« — laissée ouverte (d) : hors sujet, Benjamin tranche »).
   Lettre absente, hors liste, ou raison vide : la ligne est oubliée (« raison hors liste »).
-  Plafond : plus de 10 lignes reprises rendent 1. Un (p) ne passe sous ce plafond que sur une
+  Plafond : plus de 10 puces reprises rendent 1. Un (p) ne passe sous ce plafond que sur une
   ligne dont le champ facultatif ``Type`` de l'export vaut ``décision`` ; une fois le plafond
   atteint (10 reprises), (p) passe sur n'importe quelle ligne.
 
 <export> : sortie de ``restes_lignes.py lire`` : une ligne JSON par reste (JSON-lines), ou un
   tableau JSON. Clés lues, toutes en texte : ``Reste`` (titre), ``Repo`` (``owner/repo``),
-  ``État``, ``id`` (identifiant de la page, tirets ou non). Seules les lignes ``État`` =
-  ``ouvert`` dont ``Repo`` est un dépôt du plan sont contrôlées. Un fichier vide est
-  illisible : une base sans ligne ouverte s'écrit ``[]``, pour distinguer un export vide
-  d'une sortie de commande cassée.
+  ``État``, ``id`` (identifiant de la page, tirets ou non), et ``Type`` (facultatif : ``geste``,
+  ``vérification``, ``décision``, ``suivi`` ; absent ou autre, la ligne n'est pas une décision).
+  Seules les lignes ``État`` = ``ouvert`` dont ``Repo`` est un dépôt du plan sont contrôlées. Un
+  fichier vide est illisible : une base sans ligne ouverte s'écrit ``[]``, pour distinguer un
+  export vide d'une sortie de commande cassée.
+
+  Comptage des reprises : une puce de premier niveau du chapitre compte comme une reprise si
+  elle ne dit pas « laissée ouverte » et qu'elle porte un lien (http, mention de page comprise)
+  ou cite le titre ou l'id d'une ligne ouverte de l'export. Le compte ne se fait pas sur
+  l'export seul : à la création d'un plan, une ligne reprise passe ``repris`` et n'y figure
+  plus. Ce compte sert au plafond et à l'acceptation de (p).
 
 Codes : 0 chaque ligne ouverte des dépôts du plan est reprise, ou laissée ouverte avec une
 lettre de la liste fermée et une raison, et le plafond tient ; 1 au moins un défaut, une ligne
@@ -71,7 +78,9 @@ PUCE = re.compile(r"^(?P<indent>[ \t]*)[-*][ \t]+")
 REPO_LIGNE = re.compile(r"^[ \t]*(?:[-*|][ \t]*)?\**Repo\**[ \t]*[:|][ \t]*(?P<valeur>.*)$")
 DEPOT = re.compile(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+")
 # « laissée ouverte » ou, au masculin, « laissé ouvert » ; la lettre suit la mention.
-LAISSEE = re.compile(r"laiss[eé]e?\s+ouverte?", re.IGNORECASE)
+# Le participe seul : « laissée » / « laissé » / « laissee » ouvert(e). Le présent « laisse
+# ouverte » (« on laisse ouverte la variante ») n'est pas la mention, c'est une reprise.
+LAISSEE = re.compile(r"laiss(?:ée?|ee)\s+ouverte?", re.IGNORECASE)
 LETTRE = re.compile(r"\s*\(([a-z])\)")
 # Liste fermée des raisons de laisser une ligne ouverte (règle 7 de restes.md).
 LETTRES = frozenset("abcdep")
@@ -215,6 +224,17 @@ def _statut(blocs: list[str], identifiant: str, titre: str) -> tuple[str, str]:
     return "defaut", "raison_hors_liste"
 
 
+def _reprend(bloc: str, ouvertes: list[tuple[str, str]]) -> bool:
+    """Une puce de premier niveau compte comme une reprise : elle ne dit pas « laissée ouverte »,
+    et elle porte un lien (http, mention de page comprise) ou cite le titre ou l'id d'une ligne
+    ouverte (``ouvertes`` : couples (id sans tirets, titre normalisé))."""
+    if LAISSEE.search(bloc):
+        return False
+    if URL.search(bloc):
+        return True
+    return any(_citee(bloc, identifiant, titre) for identifiant, titre in ouvertes)
+
+
 def lire_lignes(chemin: str) -> list[dict]:
     try:
         texte = Path(chemin).read_text(encoding="utf-8")
@@ -256,8 +276,11 @@ def controler(texte: str, lignes: list[dict], depots: list[str]) -> tuple[list[s
     voulus = {d.casefold() for d in depots}
     blocs = chapitre_repris(texte)
     ouvertes = [l for l in lignes if l["État"] == "ouvert" and l["Repo"].casefold() in voulus]
+    refs = [(l["id"].replace("-", "").lower(), _cle(l["Reste"])) for l in ouvertes]
+    # Le compte des reprises se fait sur les puces, pas sur l'export : une ligne reprise passe
+    # « repris » à la création de la page et n'est plus exportée.
+    reprises = sum(1 for bloc in blocs if _reprend(bloc, refs))
     defauts = []
-    reprises = 0
     laissees = []
     for ligne in ouvertes:
         titre = _cle(ligne["Reste"])
@@ -266,7 +289,7 @@ def controler(texte: str, lignes: list[dict], depots: list[str]) -> tuple[list[s
         nom = " ".join(ligne["Reste"].split())
         ou = f"({ligne['Repo']}, id {ligne['id']})"
         if statut == "reprise":
-            reprises += 1
+            pass  # couverte ; comptée sur les puces plus haut
         elif statut == "laissee":
             laissees.append((ligne, precision))
         elif precision == "non_cite":
