@@ -1580,8 +1580,6 @@ class HooksBashCommandeNeutre(unittest.TestCase):
     def test_neutre_les_hooks_bash_reels_rendent_zero_muet_sur_ls(self):
         decouverts = controle_hooks_neutres.decouvrir(self.RACINE)
         self.assertTrue(decouverts, "aucun hook PreToolUse Bash découvert : le contrôle serait vide")
-        # Garde : un script qui figure deux fois (matcher Notion et matcher Bash) n'est joué qu'une fois.
-        self.assertEqual(len(decouverts), len(set(decouverts)))
         self.assertEqual(controle_hooks_neutres.controle_neutre(self.RACINE), [])
 
     def test_neutre_un_hook_factice_qui_repond_a_ls_fait_rougir_le_controle(self):
@@ -1626,6 +1624,22 @@ class HooksBashCommandeNeutre(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             racine = Path(tmp)
             self.poser_plugin(racine, "sansmatcher", hooks_json, "tout.py",
+                              "import sys\nsys.stdin.read()\n")
+            decouverts = controle_hooks_neutres.decouvrir(racine)
+        self.assertEqual(len(decouverts), 1)
+
+    def test_neutre_un_hook_declare_sous_deux_groupes_couvrant_bash_n_est_decouvert_qu_une_fois(self):
+        # Panne attrapée : le dédoublonnage de decouvrir() est le seul garde de ce cas.
+        # Sans lui, un hook déclaré sous un groupe « matcher Bash » et sous un groupe sans
+        # matcher (tous les outils) serait joué deux fois par le contrôle.
+        commande = 'python3 "${CLAUDE_PLUGIN_ROOT}/hooks/double.py"'
+        hooks_json = {"hooks": {"PreToolUse": [
+            {"matcher": "Bash", "hooks": [{"type": "command", "command": commande}]},
+            {"hooks": [{"type": "command", "command": commande}]},
+        ]}}
+        with tempfile.TemporaryDirectory() as tmp:
+            racine = Path(tmp)
+            self.poser_plugin(racine, "double", hooks_json, "double.py",
                               "import sys\nsys.stdin.read()\n")
             decouverts = controle_hooks_neutres.decouvrir(racine)
         self.assertEqual(len(decouverts), 1)

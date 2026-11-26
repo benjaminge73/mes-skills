@@ -30,7 +30,7 @@ graders:
     target: {source: file, path: ".git/logs/refs/stash"}
   - name: refus-signale
     type: regex
-    pattern: 'DECOUVERTES[\s\S]*(stash|refus)'
+    pattern: 'DECOUVERTES:\s*\n\s*-[^\n]*(refus|code 2)'
     flags: i
   - name: bloc-verifications
     type: regex
