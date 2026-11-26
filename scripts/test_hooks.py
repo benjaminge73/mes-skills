@@ -1112,8 +1112,8 @@ class RappelRevue(unittest.TestCase):
         self.assertPasse(self.jouer("noter", "pas du json {"))
 
 
-def entree_read(chemin, offset=None, limit=None, session="session-9", agent=None) -> dict:
-    """Appel PreToolUse de l'outil Read ; ``agent`` présent = un sous-agent le porte."""
+def entree_read(chemin, offset=None, limit=None, session="session-9", agent=None, cwd=None) -> dict:
+    """Appel de l'outil Read ; ``agent`` présent = un sous-agent le porte ; ``cwd`` = dossier du shell."""
     entree_outil = {"file_path": str(chemin)}
     if offset is not None:
         entree_outil["offset"] = offset
@@ -1123,27 +1123,34 @@ def entree_read(chemin, offset=None, limit=None, session="session-9", agent=None
               "tool_name": "Read", "tool_input": entree_outil}
     if agent is not None:
         entree["agent_id"] = agent
+    if cwd is not None:
+        entree["cwd"] = str(cwd)
     return entree
 
 
-def entree_bash(commande, session="session-9", agent=None) -> dict:
-    """Appel PreToolUse de l'outil Bash ; ``agent`` présent = un sous-agent le porte."""
+def entree_bash(commande, session="session-9", agent=None, cwd=None) -> dict:
+    """Appel de l'outil Bash ; ``agent`` présent = un sous-agent le porte ; ``cwd`` = dossier du shell."""
     entree = {"hook_event_name": "PreToolUse", "session_id": session,
               "tool_name": "Bash", "tool_input": {"command": commande}}
     if agent is not None:
         entree["agent_id"] = agent
+    if cwd is not None:
+        entree["cwd"] = str(cwd)
     return entree
 
 
 class RefuserRelectureRegles(unittest.TestCase):
-    """Hook PreToolUse (Read|Bash) : refuse la relecture exacte d'un fichier de règles du plugin.
+    """Hook PreToolUse et PostToolUse (Read|Bash), et PreCompact : refuse la relecture exacte d'une règle.
 
-    Un fichier de règles est un fichier sous ``plans-notion/…/skills/``. Une relecture
-    exacte (même chemin et même plage, ou même commande Bash) d'un fichier inchangé
-    est refusée : décision ``deny`` sur stdout, code 0. Chaque test porte son témoin :
-    la même entrée, rendue refusée ailleurs, prouve que le silence n'est pas un hook mort.
+    Un fichier de règles est un fichier sous ``plans-notion/…/skills/``. Le PostToolUse
+    inscrit une lecture qui a abouti ; le PreToolUse ne fait que consulter et refuser
+    la répétition exacte d'un fichier inchangé (décision ``deny``, code 0). Une entrée
+    n'est comptée que si chaque fichier qu'elle lit est une règle existante. Chaque test
+    porte son témoin : la même entrée, refusée ailleurs, prouve que le silence n'est
+    pas un hook mort.
     """
     SCRIPT = "refuser_relecture_regles.py"
+    ANCIEN = 1_700_000_000.0
 
     def setUp(self):
         tmp = tempfile.TemporaryDirectory()
@@ -1163,6 +1170,15 @@ class RefuserRelectureRegles(unittest.TestCase):
                               input=json.dumps(entree), capture_output=True, text=True,
                               timeout=30, env=env)
 
+    def post(self, entree) -> subprocess.CompletedProcess:
+        """Le même appel une fois réussi : l'événement PostToolUse."""
+        return self.lancer(dict(entree, hook_event_name="PostToolUse", tool_response="ok"))
+
+    def lire_abouti(self, entree):
+        """Un outil réussi : PreToolUse (doit passer), puis PostToolUse (inscrit la lecture)."""
+        self.assertPasse(self.lancer(entree))
+        self.assertPasse(self.post(entree))
+
     def assertPasse(self, r):
         self.assertEqual(r.returncode, 0, r.stderr)
         self.assertEqual(r.stdout, "", f"le hook aurait dû laisser passer, il a rendu : {r.stdout}")
@@ -1174,17 +1190,28 @@ class RefuserRelectureRegles(unittest.TestCase):
         self.assertEqual(decision["permissionDecision"], "deny")
         return decision["permissionDecisionReason"]
 
-    def test_une_seconde_lecture_exacte_d_une_regle_inchangee_est_refusee(self):
+    def test_une_seconde_lecture_exacte_d_une_regle_qui_a_abouti_est_refusee(self):
         for entree in (entree_read(self.regle), entree_bash(f"cat {self.regle}")):
             with self.subTest(outil=entree["tool_name"]):
-                self.assertPasse(self.lancer(entree))  # première lecture : passe et s'inscrit
+                self.lire_abouti(entree)
                 motif = self.assertRefuse(self.lancer(entree))
                 self.assertIn("déjà lu à l'appel", motif)
                 self.assertIn("inchangé : relis ton contexte", motif)
 
+    def test_une_lecture_qui_n_aboutit_pas_n_est_pas_inscrite(self):
+        # R3 : sans PostToolUse, l'outil n'a pas abouti (interruption, permission refusée) :
+        # la relecture ne doit pas être refusée.
+        for entree in (entree_read(self.regle), entree_bash(f"cat {self.regle}")):
+            with self.subTest(outil=entree["tool_name"]):
+                self.assertPasse(self.lancer(entree))
+                self.assertPasse(self.lancer(entree))
+                # Témoin : une fois aboutie, la même entrée est refusée.
+                self.lire_abouti(entree)
+                self.assertRefuse(self.lancer(entree))
+
     def test_une_regle_modifiee_depuis_la_lecture_passe_de_nouveau(self):
         entree = entree_read(self.regle)
-        self.assertPasse(self.lancer(entree))
+        self.lire_abouti(entree)
         self.assertRefuse(self.lancer(entree))  # témoin : sans modification, la relecture est refusée
         apres = self.regle.stat().st_mtime + 60
         os.utime(self.regle, (apres, apres))  # la date de modification change, le contenu non
@@ -1192,25 +1219,32 @@ class RefuserRelectureRegles(unittest.TestCase):
 
     def test_une_autre_plage_du_meme_fichier_passe(self):
         relu = entree_read(self.regle, offset=1, limit=10)
-        self.assertPasse(self.lancer(relu))
+        self.lire_abouti(relu)
         self.assertRefuse(self.lancer(relu))  # témoin : la même plage est refusée
         self.assertPasse(self.lancer(entree_read(self.regle, offset=11, limit=10)))
 
     def test_apres_un_pre_compact_la_relecture_passe(self):
         entree = entree_read(self.regle)
-        self.assertPasse(self.lancer(entree))
+        self.lire_abouti(entree)
         self.assertRefuse(self.lancer(entree))  # témoin : refusée avant la compaction
         r = self.lancer({"hook_event_name": "PreCompact", "session_id": "session-9"})
         self.assertEqual(r.returncode, 0, r.stderr)
         self.assertPasse(self.lancer(entree))
 
-    def test_un_sous_agent_n_est_jamais_refuse(self):
-        entree = entree_read(self.regle)
-        self.assertPasse(self.lancer(entree))
-        self.assertRefuse(self.lancer(entree))  # témoin : le pilote est refusé
+    def test_un_sous_agent_ne_refuse_jamais_et_n_inscrit_rien_pour_le_pilote(self):
+        # R4 : le sous-agent lit (PreToolUse puis PostToolUse) ; la première lecture du pilote
+        # doit passer, car la lecture du sous-agent n'a rien inscrit.
         for agent in ("agent-123", ""):
             with self.subTest(agent_id=agent):
-                self.assertPasse(self.lancer(entree_read(self.regle, agent=agent)))
+                session = f"session-{agent or 'vide'}"
+                lecture_agent = entree_read(self.regle, session=session, agent=agent)
+                self.assertPasse(self.lancer(lecture_agent))
+                self.assertPasse(self.post(lecture_agent))
+                self.assertPasse(self.lancer(lecture_agent))  # le sous-agent n'est jamais refusé
+                pilote = entree_read(self.regle, session=session)
+                self.assertPasse(self.lancer(pilote))  # première lecture du pilote : passe
+                self.assertPasse(self.post(pilote))
+                self.assertRefuse(self.lancer(pilote))  # témoin : la relecture du pilote est refusée
 
     def test_un_fichier_hors_du_plugin_n_est_jamais_refuse(self):
         hors = self.racine / "notes" / "skills" / "regle.md"
@@ -1219,12 +1253,61 @@ class RefuserRelectureRegles(unittest.TestCase):
         # Un fichier du plugin qui n'est pas sous skills/ n'est pas un fichier de règles.
         readme = self.racine / "plans-notion" / "README.md"
         readme.write_text("x\n", encoding="utf-8")
-        self.assertPasse(self.lancer(entree_read(self.regle)))  # témoin : une règle est refusée
+        self.lire_abouti(entree_read(self.regle))  # témoin : une règle est refusée à la relecture
         self.assertRefuse(self.lancer(entree_read(self.regle)))
         for chemin in (hors, readme):
             with self.subTest(chemin=str(chemin)):
                 for _ in range(2):
-                    self.assertPasse(self.lancer(entree_read(chemin)))
+                    self.lire_abouti(entree_read(chemin))
+
+    # R1 : une commande qui lit une règle ET un autre fichier n'est jamais comptée.
+    # Attrape un garde qui date la commande par la seule règle : il refuserait à tort
+    # quand le second fichier change.
+    def test_une_commande_qui_lit_aussi_un_fichier_hors_du_plugin_n_est_jamais_comptee(self):
+        hors = self.racine / "notes" / "motifs.txt"
+        hors.parent.mkdir(parents=True, exist_ok=True)
+        hors.write_text("motif\n", encoding="utf-8")
+        seule = entree_bash(f"cat {self.regle}")
+        self.lire_abouti(seule)
+        self.assertRefuse(self.lancer(seule))  # témoin : la règle seule est refusée
+        for commande in (f"cat {self.regle} {hors}", f"grep -f {hors} {self.regle}"):
+            with self.subTest(commande=commande):
+                mixte = entree_bash(commande)
+                self.lire_abouti(mixte)
+                hors.write_text("autre motif\n", encoding="utf-8")
+                apres = hors.stat().st_mtime + 60
+                os.utime(hors, (apres, apres))  # le second fichier change, la règle non
+                self.assertPasse(self.lancer(mixte))
+
+    # R1 : une commande avec une redirection d'entrée (`<`) n'est jamais comptée.
+    def test_une_commande_avec_chevron_passe_deux_fois(self):
+        sans = entree_bash(f"cat {self.regle}")
+        self.lire_abouti(sans)
+        self.assertRefuse(self.lancer(sans))  # témoin : sans `<`, la relecture est refusée
+        avec = entree_bash(f"cat < {self.regle}")
+        self.lire_abouti(avec)
+        self.assertPasse(self.lancer(avec))
+
+    # R2 : un chemin relatif se résout dans le dossier du shell (`cwd`), et ce dossier fait
+    # partie de la clé : la même commande relative, depuis un autre dossier, passe.
+    def test_une_commande_relative_est_comptee_dans_son_dossier(self):
+        rel = "plans-notion/0.82.0/skills/_partage/regle.md"
+        depart_a, depart_b = self.racine / "depart-a", self.racine / "depart-b"
+        for depart in (depart_a, depart_b):
+            fichier = depart / rel
+            fichier.parent.mkdir(parents=True)
+            fichier.write_text("# Règle\n", encoding="utf-8")
+            # Même date des deux côtés : seul le dossier de départ distingue les deux lectures.
+            os.utime(fichier, (self.ANCIEN, self.ANCIEN))
+        commande = f"cat {rel}"
+        depuis_a = entree_bash(commande, cwd=depart_a)
+        self.lire_abouti(depuis_a)
+        self.assertRefuse(self.lancer(depuis_a))  # témoin : depuis le même dossier, refusée
+        self.assertPasse(self.lancer(entree_bash(commande, cwd=depart_b)))  # autre dossier : passe
+        with self.subTest(cas="sans cwd"):
+            sans_cwd = entree_bash(commande)  # sans cwd, un chemin relatif n'est pas compté
+            self.assertPasse(self.lancer(sans_cwd))
+            self.assertPasse(self.lancer(sans_cwd))
 
     # Extra (hors test attendu, justifié) : attrape un garde qui refuserait toute commande Bash
     # citant un chemin du plugin, script compris (`python3 …/skills/_partage/scripts/x.py`).
@@ -1233,18 +1316,18 @@ class RefuserRelectureRegles(unittest.TestCase):
         script.parent.mkdir()
         script.write_text("print('ok')\n", encoding="utf-8")
         lecture = entree_bash(f"cat {script}")
-        self.assertPasse(self.lancer(lecture))
+        self.lire_abouti(lecture)
         self.assertRefuse(self.lancer(lecture))  # témoin : la lecture Bash du même fichier est refusée
         execution = entree_bash(f"python3 {script}")
         self.assertPasse(self.lancer(execution))
         self.assertPasse(self.lancer(execution))
 
-    # Extra (hors test attendu, justifié) : attrape un identifiant de session « ../… » qui
-    # écrirait l'état hors de ~/.cache/plans-notion/lectures/ (le nom doit être assaini).
+    # Extra (hors test attendu, justifié) : attrape un `session_id` « ../… » qui écrirait
+    # l'état hors de ~/.cache/plans-notion/lectures/ (le nom doit être assaini).
     def test_un_identifiant_de_session_ne_sort_pas_du_dossier_d_etat(self):
-        self.assertPasse(self.lancer(entree_read(self.regle, session="../../evasion")))
+        self.lire_abouti(entree_read(self.regle, session="../../evasion"))
         ecrits = [p for p in self.racine.rglob("*") if p.is_file() and p != self.regle]
-        self.assertTrue(ecrits, "témoin : une première lecture doit inscrire quelque chose")
+        self.assertTrue(ecrits, "témoin : une lecture qui a abouti doit inscrire quelque chose")
         self.assertEqual([p for p in ecrits if self.etat not in p.parents], [])
 
 
