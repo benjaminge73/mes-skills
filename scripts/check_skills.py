@@ -100,7 +100,8 @@ Les règles, et le fait de doc qui fonde chacune (voir ``docs/veille.md``) :
     table ne peut que se vider. Une exception dont le fichier passe sous le seuil,
     ou n'est plus soumis, est périmée et refusée.
     Extension de la règle (q) : un fichier Markdown de plugin qu'un ``SKILL.md``
-    désigne comme à lire (renvoi ``📄 `${CLAUDE_PLUGIN_ROOT}/…` ``) tient sous
+    désigne comme à lire (renvoi ``📄 `${CLAUDE_PLUGIN_ROOT}/…` ``, ou la même
+    désignation en backticks sans « 📄 ») tient sous
     25 000 **octets** (``len(texte.encode())``), sauf exception datée
     (``taille_fichier_lu`` de ``scripts/limites.json``, plafond = taille du jour).
     Le texte lu en route se paie à chaque passage d'une exécution, d'où ce seuil.
@@ -152,7 +153,8 @@ PLAFOND_CARACTERES_PARTAGE = 30_000
 CHAMPS_D_UNE_EXCEPTION_BUDGET = ("date", "raison", "levee_par")
 PLAFOND_OCTETS_FICHIER_LU = 25_000
 CHAMPS_D_UNE_EXCEPTION_LU = ("date", "raison", "levee_par")
-_RENVOI_LU = re.compile(r"📄 `\$\{CLAUDE_PLUGIN_ROOT\}/([^`\s]+)`")
+# Renvoi à lire : « 📄 » devant, ou la désignation nue en backticks (les deux sont lus en route).
+_RENVOI_LU = re.compile(r"(?:📄 )?`\$\{CLAUDE_PLUGIN_ROOT\}/([^`\s]+)`")
 
 
 class BaseIndisponible(RuntimeError):
@@ -892,11 +894,13 @@ def _regle_q(racine: Path, limites: dict,
 # --------------------------------------------------------------------------
 
 def _fichiers_lus(racine: Path) -> list[Path]:
-    """Les fichiers Markdown de plugin qu'un ``SKILL.md`` désigne par un renvoi « 📄 ».
+    """Les fichiers Markdown de plugin qu'un ``SKILL.md`` désigne comme à lire.
 
-    Dédoublonnés, triés. Un renvoi vers un fichier absent n'est pas ici (le garde des
-    renvois, ``check_references.py``, le refuse). Un renvoi vers un ``.py`` ou un ``.sh``
-    n'est pas du texte lu en route : il est écarté.
+    Un renvoi « 📄 » et une désignation nue en backticks comptent pareil. Dédoublonnés, triés.
+    Un renvoi vers un fichier absent n'est pas ici (le garde des renvois,
+    ``check_references.py``, le refuse). Un renvoi vers un ``.py`` ou un ``.sh`` n'est pas du
+    texte lu en route : il est écarté. Un fichier désigné seulement par un autre fichier que
+    ``SKILL.md`` reste hors de cette mesure.
     """
     trouves: set[Path] = set()
     for plugin in _plugins(racine):
