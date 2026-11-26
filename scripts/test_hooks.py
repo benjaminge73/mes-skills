@@ -1223,6 +1223,22 @@ class RefuserRelectureRegles(unittest.TestCase):
         self.assertRefuse(self.lancer(relu))  # témoin : la même plage est refusée
         self.assertPasse(self.lancer(entree_read(self.regle, offset=11, limit=10)))
 
+    def test_le_refus_d_un_read_sans_plage_nomme_le_chemin_sans_none(self):
+        # Un Read sans offset ni limit : le refus nomme le chemin, sans « (plage None+None) ».
+        # Attrape un message qui formate la plage même absente.
+        entree = entree_read(self.regle)
+        self.lire_abouti(entree)
+        motif = self.assertRefuse(self.lancer(entree))
+        self.assertIn(str(self.regle), motif)
+        self.assertNotIn("None", motif)
+        self.assertNotIn("(plage", motif)
+        # Une plage partielle (offset seul) ne doit pas afficher « None » non plus.
+        partielle = entree_read(self.regle, offset=5)
+        self.lire_abouti(partielle)
+        motif = self.assertRefuse(self.lancer(partielle))
+        self.assertIn(str(self.regle), motif)
+        self.assertNotIn("None", motif)
+
     def test_apres_un_pre_compact_la_relecture_passe(self):
         entree = entree_read(self.regle)
         self.lire_abouti(entree)
