@@ -3,9 +3,10 @@
 Référence de `plan-notion`, lue **avant le premier geste** d'un plan maître :
 quand Benjamin demande de croiser, remettre à jour ou séquencer plusieurs plans,
 quand `executer-plan-notion` lance une session qui en porte plusieurs
-(« Plusieurs plans »), et à **chaque création de page de plan** (« Le deuxième plan
-d'un projet crée le maître », dans `${CLAUDE_PLUGIN_ROOT}/skills/plan-notion/naissance-du-maitre.md`). Les deux skills y renvoient, pour que la forme de la
-page et la façon de la préparer ne vivent qu'ici.
+(« Plusieurs plans »). À chaque création de page de plan, la naissance du maître
+(« Le deuxième plan d'un projet crée le maître ») se lit dans
+`${CLAUDE_PLUGIN_ROOT}/skills/plan-notion/naissance-du-maitre.md`. Les deux skills
+renvoient ici, pour que la forme de la page et la façon de la préparer ne vivent qu'ici.
 
 ## Sommaire
 

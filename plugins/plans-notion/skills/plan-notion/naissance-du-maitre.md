@@ -44,7 +44,7 @@ lire, rien à déléguer, aucune enquête (celle-ci viendra à la préparation, 
    - *Créer le maître* : une **coquille**, pas la préparation. Page `[Plan maître]
      Nom_du_projet - <ce que les plans ont en commun>`, propriétés `Projet`, `Repo`, `Date`
      et `Statut` (calculé par `statut-maitre.py` sur les `Statut` relevés, jamais de tête) ;
-     corps aux six H2 de « La page », `Récap du lot` en premier (`- rien encore`) ; tableau
+     corps aux six H2 de « La page » (`${CLAUDE_PLUGIN_ROOT}/skills/plan-notion/plan-maitre.md`), `Récap du lot` en premier (`- rien encore`) ; tableau
      `Plans` avec un identifiant `P1`, `P2`… par plan, dans l'ordre de leur date ;
      `Croisement`, `Ordre de merge` et `File des actions lourdes` portent la seule ligne
      `à définir` : `preparation-prete.py --maitre` la lit comme une coquille, donc aucun plan
