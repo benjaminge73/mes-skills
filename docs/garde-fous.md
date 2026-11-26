@@ -171,6 +171,22 @@ Le statut dit où en est le garde :
 | Pas de balise HTML en texte dans une page Notion écrite par `composio` | qu'une écriture `composio execute NOTION_…` n'enregistre `<b>`, `<i>`, `<code>` (brutes ou échappées `\<b\>`) comme texte littéral : le connecteur claude.ai les lit, `composio` non, et le plan s'affiche avec ses balises visibles | 2026-11-26, étape 12 du plan de la branche `feat/lecture-pilote-avant-ecrire` ; cause établie : deux dialectes markdown, le connecteur et l'API de `composio` ; écarté : une consigne de rédaction seule, qui ne tient pas | `plugins/plans-notion/hooks/refuser_balises_composio.py`, `plugins/plans-notion/skills/_partage/scripts/balises-html.py`, `scripts/test_balises_html.py`, `scripts/test_hooks.py` (classe `RefuserBalisesComposio`) | hook PreToolUse Bash du plugin plans-notion, à chaque appel Bash (sortie immédiate sans `composio`) ; refus (code 2) sur une charge en ligne, par fichier, par stdin `echo`/`printf` ; refus (code 2, « appel à part ») d'une charge fabriquée dans la même commande : fichier créé (`> f`, `tee f`), fichier nommé et écrit par une commande d'avant (`python3 gen.py --out f && composio … -d @f`), fichier introuvable que la commande d'avant peut produire, stdin produit par autre chose qu'`echo`/`printf` (un `python3 gen.py` branché en tuyau sur `composio … -d -`) ; chemins comparés une fois résolus (`./f`, `$PWD/f`, `-of` collé) ; une redirection `-d - < f` se juge comme `-d @f` ; un segment de simple lecture (`cat f && composio …`) ne dispense pas du contrôle du contenu ; `old_str` non contrôlé ; passent sans contrôle : un stdin par heredoc, une erreur de lecture, un fichier introuvable sans commande d'avant qui le produise, un programme qui ne nomme pas le fichier et le réécrit (`python3 gen.py && composio … -d @f`, `f` déjà là : le hook lit l'ancien contenu), et un `sed -i` qui nomme le fichier (il le rend illisible : décision D1, voulue pour ne pas refuser la correction d'une charge déjà sale) | en place |
 | Un fichier de référence de plus de 100 lignes a son sommaire en tête | qu'un fichier Markdown sous `skills/` (hors `SKILL.md`) de plus de 100 lignes soit lu en route sans que le lecteur voie sa structure : un titre « ## Sommaire » ou une ligne « Sommaire : » doit tenir dans les 20 premières lignes. Passif daté dans `scripts/limites.json` (table `sommaire`, à cliquet, vide une fois le passif traité) | 2026-11-26, plan skills externes, étape 4 (sommaires) | `scripts/check_skills.py` (règle s), `scripts/test_check_skills.py` (classes `RegleS_SommaireDesReferences`, `CliquetDuSommaire`) | CI, job `validation` (step des gardes), via `scripts/ci_locale.sh`, et en local | en place |
 
+## Aucun skill ne porte `disable-model-invocation`
+
+Le champ `disable-model-invocation: true` du frontmatter d'un skill interdit au
+modèle de lancer ce skill de lui-même. La CLI Claude Code 2.1.331 le reconnaît et
+le fait respecter (POC 4, plan skills externes #4, étape 9). Aucun `SKILL.md` du
+dépôt ne le porte, et c'est voulu : les skills à effets de bord (écriture dans
+Notion, publication, dépense) sont faits pour être lancés par le modèle dans un
+plan ou une session, et le champ les bloquerait. Hermes, qui pilote aussi ces
+skills, ne lit pas ce champ : il n'agirait que dans Claude Code, donc il ne
+protégerait rien de façon homogène.
+
+Décision Q10 (a), 2026-11-26 : pas de garde de forme sur ce champ, et pas de liste
+d'exceptions dans `scripts/check_skills.py`. Si un skill doit un jour être réservé
+au lancement par un humain, le champ se pose à ce moment-là, et la règle s'ajoute
+ici avec son garde.
+
 ## Le verrou de `main`
 
 Le ruleset `main-verrouillee` interdit de supprimer `main` ou d'y réécrire
