@@ -49,6 +49,9 @@ fermé) : l'appel n'est **jamais envoyé**. Bash, Agent et les outils locaux mar
   markdown, et lire la page par `NOTION_GET_PAGE_MARKDOWN` pour construire les `old_str`.
 - Construire `old_str` par script depuis la relecture, passer le texte par un fichier (pas par un
   agent qui recopie), **relire et recompter les cases** après chaque écriture.
+- ⚠️ Échapper le markdown d'un texte neuf **sans toucher aux cases** : `- [ ]` échappé en
+  `- \[ \]` devient une puce, plus une case (erreur du 2026-10-10). Contrôle :
+  `compter-cases.py <page.md> --releve <releve.json>` (plugin `plans-notion`).
 
 ## Sessions de plan lancées par Hermes
 
