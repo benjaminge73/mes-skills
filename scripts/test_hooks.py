@@ -1491,8 +1491,38 @@ class RefuserBalisesComposio(unittest.TestCase):
 
     def test_une_charge_nommee_et_ecrite_par_une_commande_avant_composio_est_refusee(self):
         # Panne D1a : « python3 gen.py --out args.json » nomme le fichier et peut l'écrire ;
-        # le hook le prenait pour illisible et laissait passer.
-        self.refuse_fabriquee("python3 gen.py --out args.json && composio execute NOTION_UPDATE_PAGE_MARKDOWN -d @args.json")
+        # le hook le prenait pour illisible et laissait passer. Un args.json propre est là
+        # d'abord : seule la branche (a) peut refuser, pas l'absence du fichier.
+        self.fichier("args.json", self.charge(old_str="x", new_str="**propre**"))
+        with self.subTest("nom simple"):
+            self.refuse_fabriquee("python3 gen.py --out args.json && composio execute NOTION_UPDATE_PAGE_MARKDOWN -d @args.json")
+        with self.subTest("chemin ./"):
+            self.refuse_fabriquee("python3 gen.py --out ./args.json && composio execute NOTION_UPDATE_PAGE_MARKDOWN -d @args.json")
+
+    def test_une_charge_nommee_sous_une_autre_forme_de_chemin_est_refusee(self):
+        # Panne R1 : le nom est comparé comme chaîne ; « ./args.json », « $PWD/args.json » et
+        # l'option collée « -oargs.json » désignent le même fichier et passaient. Propre, présent.
+        self.fichier("args.json", self.charge(old_str="x", new_str="**propre**"))
+        with self.subTest("./ dans --out"):
+            self.refuse_fabriquee("python3 gen.py --out ./args.json && composio execute NOTION_UPDATE_PAGE_MARKDOWN -d @args.json")
+        with self.subTest("$PWD dans --out"):
+            self.refuse_fabriquee('python3 gen.py --out "$PWD/args.json" && composio execute NOTION_UPDATE_PAGE_MARKDOWN -d @args.json')
+        with self.subTest("-o collé"):
+            self.refuse_fabriquee("python3 gen.py -oargs.json && composio execute NOTION_UPDATE_PAGE_MARKDOWN -d @args.json")
+
+    def test_une_redirection_vers_un_chemin_relatif_cree_la_charge_et_est_refusee(self):
+        # Panne R1 (création) : « > ./args.json » crée le fichier, la forme écrite ne l'égalait pas.
+        charge = json.dumps(self.charge(old_str="x", new_str="**propre**"), ensure_ascii=False)
+        self.refuse_fabriquee(f"echo '{charge}' > ./args.json && composio execute NOTION_UPDATE_PAGE_MARKDOWN -d @args.json")
+
+    def test_une_charge_redirigee_sur_stdin_est_jugee_comme_un_fichier(self):
+        # Panne R4 : « -d - < args.json » lit le fichier et passait sans contrôle.
+        self.fichier("args.json", self.charge(old_str="x", new_str="<b>gras</b>"))
+        self.refuse("composio execute NOTION_UPDATE_PAGE_MARKDOWN -d - < args.json")
+
+    def test_une_charge_propre_redirigee_sur_stdin_passe(self):
+        self.fichier("args.json", self.charge(old_str="x", new_str="**gras**"))
+        self.permis("composio execute NOTION_UPDATE_PAGE_MARKDOWN -d - < args.json")
 
     def test_une_charge_absente_que_la_commande_precedente_peut_creer_est_refusee(self):
         # Panne D1b : le fichier est introuvable au contrôle, une commande d'avant peut le produire.
