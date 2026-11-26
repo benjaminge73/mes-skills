@@ -43,7 +43,7 @@ Règle conservée : un plan = une branche, aucune PR sans demande de Benjamin. [
 Règle conservée : la preuve d'étape = les tests des fichiers impactés ; la suite
 complète et les e2e passent une fois, à la clôture.
 
-## Prémisse d'un brief (`etapes.md`, « Le brief du sous-agent »)
+## Prémisse d'un brief (`brief-du-sous-agent.md`)
 
 > Constaté le 2026-09-24 : un brief affirmait « aucun des trois guides n'a encore
 > ce champ » sur la foi d'un `grep` à la mauvaise forme (`^champ:` au lieu de

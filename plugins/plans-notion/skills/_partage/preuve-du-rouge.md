@@ -46,7 +46,7 @@ fichiers :
 - **La liste des fichiers de test** de l'étape — celle que le pilote vérifie
   ensuite au `git diff`.
 
-Les deux messages se terminent par le trailer exact `Co-Authored-By: Claude <noreply@anthropic.com>`, sans nom de modèle : règle détaillée dans `etapes.md`, au paragraphe « Le trailer, quand il commite ».
+Les deux messages se terminent par le trailer exact `Co-Authored-By: Claude <noreply@anthropic.com>`, sans nom de modèle : règle détaillée dans `brief-du-sous-agent.md`, au paragraphe « Le trailer, quand il commite ».
 
 L'exécutant commite **d'abord** les tests seuls, puis le code — deux commits,
 jamais un seul qui mélange les deux. C'est la seconde exception à la règle

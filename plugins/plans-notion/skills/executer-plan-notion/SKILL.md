@@ -222,14 +222,17 @@ pas pour raconter l'avancement, qui va dans `Journal d'exécution` (§4).
 - **Après chaque étape** : rejouer la preuve, vérifier au premier `executant`
   le modèle réellement servi (`modele-sous-agent.py`), commiter, faire relire par
   `relecteur` (`revue.md`), relire les faits que l'`executant` a versés au
-  `fact_store` à chaque clôture de lot (`etapes.md`), écrire l'entrée de journal, afficher un récap, puis
+  `fact_store` à chaque clôture de lot (`apres-chaque-etape.md`), écrire l'entrée de journal, afficher un récap, puis
   **enchaîner sans demander la main** : l'autonomie est le défaut, on ne
   s'arrête que sur ce qui rendrait la suite fausse ou irréversible.
 
 📄 `${CLAUDE_PLUGIN_ROOT}/skills/executer-plan-notion/etapes.md` — **à lire avant la première étape, puis à chaque étape** :
-le détail de la preuve locale et de la boucle rouge, l'appel `Agent` exact, le
-brief complet, ce qui reste chez le pilote, la liste « Après chaque
-étape » et les cas où l'on s'arrête.
+la preuve locale, la boucle rouge, l'appel `Agent`, ce qui reste chez le
+pilote et les cas d'arrêt.
+
+📄 `${CLAUDE_PLUGIN_ROOT}/skills/executer-plan-notion/brief-du-sous-agent.md` — **en écrivant un brief** : sa forme.
+
+📄 `${CLAUDE_PLUGIN_ROOT}/skills/executer-plan-notion/apres-chaque-etape.md` — **après chaque étape** : retour de l'exécutant.
 
 Étape testée : `${CLAUDE_PLUGIN_ROOT}/skills/_partage/preuve-du-rouge.md` ; vagues :
 `${CLAUDE_PLUGIN_ROOT}/skills/_partage/vagues.md` ; relecture :
@@ -237,7 +240,7 @@ brief complet, ce qui reste chez le pilote, la liste « Après chaque
 `${CLAUDE_PLUGIN_ROOT}/skills/_partage/maquettes-html.md` — les renvois à ces
 fichiers, et au jeton des actions lourdes
 (`${CLAUDE_PLUGIN_ROOT}/skills/_partage/machine-partagee.md`), sont dans
-`etapes.md` à l'endroit où ils servent. L'agent lui-même :
+`etapes.md` et ses deux fichiers neufs, là où ils servent. L'agent lui-même :
 `${CLAUDE_PLUGIN_ROOT}/agents/executant.md`.
 
 ## 4. Le journal, et les écarts
