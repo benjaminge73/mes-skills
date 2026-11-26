@@ -672,7 +672,7 @@ moins 0,10 (15 tirages sains sur Sonnet et Opus, 2026-10-01 ; `decouvertes` reme
 | `bruit` | 0,80 – 0,92 | 0,70 |
 | `etat-de-depart` | 0,92 – 1,00 | 0,82 |
 | `maquette` | 1,00 – 1,00 | 0,90 |
-| `decouvertes` | 0,58 – 0,70 | 0,47, `agents/cloturier.md` |
+| `decouvertes` | 0,58 – 0,70 | 0,47 |
 | `perimetre` | 0,31 – 0,45 | 0,20 |
 | `delegation` | 1,00 – 1,00 | 0,90 |
 | `billet` (plugin `voyages`) | 1,00 – 1,00 | 0,90 |
