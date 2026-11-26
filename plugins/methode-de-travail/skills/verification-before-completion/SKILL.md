@@ -7,11 +7,9 @@ description: Use when about to claim work is complete, fixed, or passing, before
 
 ## Suis-je la bonne version ?
 
-Le 2026-09-08, une session a chargé le skill `plan-notion` depuis une copie
-synchronisée périmée (`~/.claude/remote/plugins/<hash>/`, version 0.3.0 alors
-que 0.7.0 était installée) et a travaillé tout un plan sur les mauvaises
-règles. N'importe quel skill peut être chargé de la même façon : il ne
-choisit pas d'où il vient, il peut seulement le constater.
+Une copie périmée a déjà fait travailler une session sur de mauvaises règles
+(incident et historique : `historique.md`). N'importe quel skill peut être chargé
+de la même façon : il ne choisit pas d'où il vient, il peut seulement le constater.
 
 À vérifier au chargement, en une commande :
 
@@ -154,6 +152,4 @@ to an agent. Exact phrases, paraphrases and implications of success all count.
 ---
 
 *Adapté de [obra/superpowers](https://github.com/obra/superpowers) (MIT, Jesse Vincent / Prime
-Radiant). Récupéré le 2026-08-03. Modifications : ajout de la section « Suis-je la bonne
-version ? » en tête, 2026-09-22 ; ajout du motif « red-first proof » (test inchangé entre
-rouge et vert), 2026-09-23 ; ajout de la section « Un cron touché », 2026-10-28.*
+Radiant). Provenance, modifications et date de récupération : [historique.md](historique.md).*
