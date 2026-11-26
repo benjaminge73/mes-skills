@@ -150,7 +150,7 @@ l'approche est en cause, repasser par `plan-notion` et ne rien coder.
 **La porte des preuves, avant la première étape** : `preuves-des-etapes.py
 <page.md> --avant` rend 0 si chaque étape du chapitre porte une `Preuve de
 fin` ; sinon la remise à jour la pose, datée, et on ne code pas
-(`ouverture.md`).
+(`remise-a-jour-execution.md`).
 
 Puis, dans le même tour, avant la première étape :
 
@@ -159,7 +159,7 @@ Puis, dans le même tour, avant la première étape :
 - **Questions restées orange** → vert, `(reco appliquée par défaut)`.
 - **Créer la branche du plan dans un worktree**
   (`~/repos/worktrees/<repo>/<branche-kebab>`, depuis `origin/main` à jour),
-  jamais dans le checkout principal, jamais de travail sur `main`. `git fetch` d'abord (copie à jour de la principale distante : `_partage/fraicheur-du-depot.md`).
+  jamais dans le checkout principal, jamais de travail sur `main`. `git fetch` d'abord (`_partage/fraicheur-du-depot.md`).
 - **Relever ce qui déclenche la CI** (un `push` lance-t-il un run ? des e2e ?
   que fait le label `review-required` ? un job merge-t-il seul ?) et
   **calculer les vagues** (`vagues.py`) ; les deux relevés s'écrivent dans
@@ -172,22 +172,21 @@ Puis, dans le même tour, avant la première étape :
   réglage du pilote »). Seul Benjamin déroge,
   dans son message. La puce `**Pilote** : <modèle>, <effort>` de l'entrée `Ouverture`
   dit ce qui a servi (p.ex. `Sonnet 5.5, medium`), et `preparation-prete.py` refuse
-  `pret` sinon. Pourquoi Sonnet : c'est le modèle du banc d'évals (`EVALS_MODELE` de
-  `evals/outillage/lancer.sh`) ; `medium` n'y est pas mesuré (le banc joue `high`).
+  `pret` sinon. Pourquoi Sonnet : le modèle du banc d'évals (`EVALS_MODELE`), qui
+  joue `high` et non `medium`.
   La conception (`plan-notion`) reste en Opus.
 
-Un plan ne passe `pret` que si toutes ses étapes sont prouvées et rejouées à blanc, ses vagues calculées, et son orchestration écrite s'il a un plan maître ; `preparation-prete.py` tranche (code 0, sinon pas de `pret`, donc pas d'étape). Détail : `porte-du-pret.md`.
+Un plan ne passe `pret` que si toutes ses étapes sont prouvées et rejouées à blanc, ses vagues calculées, et son orchestration écrite s'il a un plan maître ; `preparation-prete.py` tranche (code 0, sinon pas de `pret`, donc pas d'étape).
 
-📄 `${CLAUDE_PLUGIN_ROOT}/skills/executer-plan-notion/porte-du-pret.md` — **à lire avant de poser `pret`** : les gestes qui laissent chacun une puce dans l'entrée `Ouverture`, et la commande de contrôle.
+📄 `${CLAUDE_PLUGIN_ROOT}/skills/executer-plan-notion/porte-du-pret.md` — **à lire avant de poser `pret`** : les gestes qui laissent une puce dans `Ouverture`, et la commande de contrôle.
 
 **Par défaut, un plan = une seule branche, sans PR d'étape** : les étapes sont
 des commits sur la branche du plan, et la PR du plan s'ouvre à la clôture,
 prête (§3, §6). Une autre organisation ne se fait que si Benjamin la demande.
 
-📄 `${CLAUDE_PLUGIN_ROOT}/skills/executer-plan-notion/ouverture.md` — **à lire en entier à l'ouverture**, avant la première
-étape : la procédure de remise à jour du chapitre, la vérification de la
-maquette, les commandes de relevé de la CI, le calcul des vagues et la
-raison de la règle « une branche, pas de PR d'étape ».
+📄 `${CLAUDE_PLUGIN_ROOT}/skills/executer-plan-notion/remise-a-jour-execution.md` — **à lire en entier avant la première étape**, à la suite d'`ouverture.md` : le détail des gestes ci-dessus.
+
+📄 `${CLAUDE_PLUGIN_ROOT}/skills/executer-plan-notion/ouverture.md` — **à lire en entier à l'ouverture**, avant la première étape : le réglage du pilote, les prérequis, la porte du `pret`, la fiche du plan et la raison de la règle « une branche, pas de PR d'étape ».
 
 Une session peut aussi porter **plusieurs plans** à la fois : tout ce qui
 précède vaut alors pour chacun, **sauf la fiche locale** (une seule, pour le

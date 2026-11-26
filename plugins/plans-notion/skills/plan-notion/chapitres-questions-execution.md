@@ -174,7 +174,7 @@ chaque étape. La colonne `Vague` est **proposée** ici : deux étapes vont
 dans la même vague si elles ne partagent aucun fichier, si aucune ne dépend
 de l'autre, et si aucun fichier partagé (config, README, `CLAUDE.md`, test de
 décompte) n'est touché par les deux. Mais c'est `executer-plan-notion` qui la
-**calcule** à l'ouverture de l'exécution : le plan **déclare**, il
+**calcule** à l'ouverture de l'exécution (`remise-a-jour-execution.md`) : le plan **déclare**, il
 n'**ordonnance** pas — calculer les vagues ici ferait mentir un plan qui
 change d'ordre en route sans que le tableau ne le sache.
 

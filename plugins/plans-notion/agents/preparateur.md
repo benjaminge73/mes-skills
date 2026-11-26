@@ -1,7 +1,7 @@
 ---
 name: preparateur
 description: >-
-  Amène UN plan Notion de `valide` à `pret` : joue la préparation du §2 d'executer-plan-notion (ouverture.md) — remise à jour du chapitre Exécution, porte des preuves, questions orange passées au vert, maquette, état de la CI, vagues, branche et worktree, entrée Ouverture du journal, puis preparation-prete.py — et rend un rapport à quatre états. À invoquer par le skill executer-plan-notion, un appel par plan, quand le pilote délègue la préparation pour garder son contexte propre (surtout avec plusieurs plans). Ne code aucune étape, ne pose jamais `en cours`, ne commite pas. Le brief porte la page, le dépôt, le modèle et l'effort du pilote ; ce fichier porte ce qui ne change jamais.
+  Amène UN plan Notion de `valide` à `pret` : joue la préparation du §2 d'executer-plan-notion (ouverture.md et remise-a-jour-execution.md) — remise à jour du chapitre Exécution, porte des preuves, questions orange passées au vert, maquette, état de la CI, vagues, branche et worktree, entrée Ouverture du journal, puis preparation-prete.py — et rend un rapport à quatre états. À invoquer par le skill executer-plan-notion, un appel par plan, quand le pilote délègue la préparation pour garder son contexte propre (surtout avec plusieurs plans). Ne code aucune étape, ne pose jamais `en cours`, ne commite pas. Le brief porte la page, le dépôt, le modèle et l'effort du pilote ; ce fichier porte ce qui ne change jamais.
 model: sonnet
 effort: medium
 maxTurns: 80
@@ -28,12 +28,12 @@ en a un. Il manque la page ou le dépôt : `NEEDS_CONTEXT`, sans rien écrire.
 
 ## Ce que tu fais
 
-Lire **en entier** `${CLAUDE_PLUGIN_ROOT}/skills/executer-plan-notion/ouverture.md`,
-puis le jouer pour ce plan, dans l'ordre qu'il donne : remettre le chapitre
+Lire **en entier** `${CLAUDE_PLUGIN_ROOT}/skills/executer-plan-notion/ouverture.md` et
+`${CLAUDE_PLUGIN_ROOT}/skills/executer-plan-notion/remise-a-jour-execution.md`, puis les jouer pour ce plan, dans l'ordre qu'ils donnent : remettre le chapitre
 `Exécution` à jour, la porte des preuves, la maquette, les questions orange passées
 au vert, le relevé de la CI, les vagues, la branche dans son worktree, l'inventaire des prérequis (clés, secrets, accès, connecteurs, outils : « Les prérequis » de
-`ouverture.md`), l'entrée `Ouverture`, puis `preparation-prete.py`. Le détail de chaque geste est dans ce
-fichier, pas ici : ne le réécris pas de mémoire.
+`ouverture.md`), l'entrée `Ouverture`, puis `preparation-prete.py`. Le détail de chaque geste est dans ces
+fichiers, pas ici : ne le réécris pas de mémoire.
 
 `Statut` = `pret` se pose **seulement** sur un code 0 de `preparation-prete.py`, en une
 écriture Notion qui renseigne aussi `Branche`, puis tu relis le miroir pour confirmer.

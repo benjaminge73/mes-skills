@@ -69,8 +69,8 @@ RELECTURE = re.compile(r"^[ \t]*[-*][ \t]+\*\*Relecture\*\*[ \t]*:[ \t]*(.*)$")
 # La puce « Impact fonctionnel » du chapitre (ce que l'utilisateur voit changer) : libellé en gras
 # ou non. Une valeur qui commence par « Rien » dispense l'étape du rendu de l'écran.
 IMPACT = re.compile(r"^[ \t]*[-*][ \t]+(?:\*\*)?Impact fonctionnel(?:\*\*)?[ \t]*:[ \t]*(.*)$")
-# La puce « Maquette » de l'entrée de journal d'une étape : le rendu de l'écran (etapes.md).
-# Ce n'est pas la puce « Maquette » de l'ouverture, qui ne vit pas dans une étape.
+# La puce « Maquette » de l'entrée de journal d'une étape : le rendu de l'écran (apres-chaque-etape.md).
+# Ce n'est pas la puce « Maquette » de l'entrée Ouverture (ouverture.md), qui ne vit pas dans une étape.
 MAQUETTE = re.compile(r"^[ \t]*[-*][ \t]+(?:\*\*)?Maquette(?:\*\*)?[ \t]*:")
 # La puce « Effets » de l'entrée de journal : ce que le changement touche ailleurs (pièce 5 du
 # rapport, « effet sur »). Présence seulement : « aucun » est une valeur admise.

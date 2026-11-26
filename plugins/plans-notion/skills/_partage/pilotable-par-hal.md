@@ -11,7 +11,7 @@ question (`AskUserQuestion`), et Hal n'aurait pas pu la débloquer en répondant
 Une case cochée par Benjamin dans une question du plan **est** sa réponse, **même si ce n'est pas
 la recommandation**. La session :
 
-- l'applique (remise à jour du chapitre `Exécution`, `ouverture.md`) et l'écrit, datée :
+- l'applique (remise à jour du chapitre `Exécution`, `remise-a-jour-execution.md`) et l'écrit, datée :
   `_maj <date> — Qn tranchée par Benjamin : <réponse>, contre la reco._` ;
 - **ne redemande pas** de confirmation, ni dans la session ni ailleurs ;
 - ne s'arrête que sur ce que `SKILL.md` prévoit déjà (sécurité majeure, financier ou irréversible
@@ -19,7 +19,7 @@ la recommandation**. La session :
   **contradiction** réelle entre deux réponses cochées, qu'elle dit en une ligne.
 
 Une réponse écrite après `Autre / complément →` vaut de même. Seule une question **restée sans
-réponse** reçoit la reco par défaut (`ouverture.md`, « questions restées orange »).
+réponse** reçoit la reco par défaut (`remise-a-jour-execution.md`, « questions restées orange »).
 
 ## 2. Pas de question qui bloque la session
 
