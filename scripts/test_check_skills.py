@@ -1545,6 +1545,135 @@ class CliquetFichierLu(unittest.TestCase):
             {"veille_jours_max": 30}, self.base())], ["q"])
 
 
+def _corps_de_lignes(n: int, en_ligne: dict[int, str] | None = None) -> str:
+    """``n`` lignes exactement ; ``en_ligne`` pose un texte à la ligne donnée (numérotée à 1)."""
+    lignes = [f"Ligne {i}." for i in range(1, n + 1)]
+    for numero, texte in (en_ligne or {}).items():
+        lignes[numero - 1] = texte
+    return "\n".join(lignes) + "\n"
+
+
+class RegleS_SommaireDesReferences(Depot):
+    """Règle (s) : un fichier de référence (Markdown sous ``skills/``, hors SKILL.md) de plus de
+    100 lignes porte un titre ``## Sommaire`` ou une ligne ``Sommaire :`` dans ses 20 premières
+    lignes. Une exception datée (``sommaire`` de ``scripts/limites.json``) couvre un fichier.
+
+    Pannes attrapées : un fichier long sans sommaire qui passe, la frontière des 100 lignes, un
+    sommaire à la ligne 21 qui passe (fenêtre trop large), un sommaire à la ligne 20 qui est
+    refusé (fenêtre trop étroite), la forme « Sommaire : » non reconnue, une phrase qui cite le
+    mot passée pour un sommaire, un SKILL.md soumis à tort, une exception incomplète qui couvre
+    quand même, une exception qui survit à l'ajout du sommaire, et ``--sans-exceptions`` ignoré.
+    """
+    REF = "plugins/p/skills/s/grand.md"
+
+    def reference(self, lignes: int, en_ligne: dict[int, str] | None = None) -> None:
+        _manifeste(self.racine, "p")
+        _skill(self.racine, "p", "s")
+        _ecrire(self.racine / self.REF, _corps_de_lignes(lignes, en_ligne))
+
+    def exception_sur(self) -> dict:
+        exc = {"date": "2026-11-26", "raison": "passif de sommaire", "levee_par": "étape 4b"}
+        return {"exceptions": {self.REF: exc}}
+
+    def refus_s(self, limites=None, **kw) -> list:
+        return [a for a in self.controler(limites, **kw).refus if a.regle == "s"]
+
+    def test_une_reference_de_101_lignes_sans_sommaire_est_refusee_et_nommee(self):
+        self.reference(101)
+        self.assertEqual([a.cible for a in self.refus_s()], [self.REF])
+
+    def test_une_reference_de_100_lignes_sans_sommaire_passe(self):
+        # Frontière du seuil : 100 lignes ne sont pas « plus de 100 ».
+        self.reference(100)
+        self.assertEqual(self.refus_s(), [])
+
+    def test_un_sommaire_en_titre_a_la_ligne_20_passe(self):
+        # La fenêtre est incluse : la ligne 20 compte.
+        self.reference(150, {20: "## Sommaire"})
+        self.assertEqual(self.refus_s(), [])
+
+    def test_un_sommaire_a_la_ligne_21_est_refuse(self):
+        # Sans ce test, une fenêtre élargie à 21 lignes laisse passer un sommaire trop bas.
+        self.reference(150, {21: "## Sommaire"})
+        self.assertEqual([a.cible for a in self.refus_s()], [self.REF])
+
+    def test_la_forme_sommaire_deux_points_en_tete_passe(self):
+        # Sans ce test, « Sommaire : » serait tenu pour absent et le fichier refusé à tort.
+        self.reference(150, {1: "Sommaire : 1. Mise en route, 2. Garde"})
+        self.assertEqual(self.refus_s(), [])
+
+    def test_une_phrase_qui_cite_le_mot_sommaire_ne_compte_pas(self):
+        # Sans ce test, une recherche du seul mot laisse passer un fichier sans sommaire.
+        self.reference(150, {5: "Le sommaire est plus bas, à la section 3."})
+        self.assertEqual([a.cible for a in self.refus_s()], [self.REF])
+
+    def test_un_skill_md_long_sans_sommaire_n_est_pas_soumis_a_la_regle(self):
+        # Les SKILL.md ont leur budget (règle q) ; la règle (s) ne les lit pas.
+        _manifeste(self.racine, "p")
+        _skill(self.racine, "p", "s", corps=_corps_de_lignes(150))
+        self.assertEqual(self.refus_s(), [])
+
+    def test_une_exception_datee_couvre_une_reference_sans_sommaire(self):
+        self.reference(150)
+        res = self.controler(_limites(self.racine, sommaire=self.exception_sur()))
+        self.assertEqual([a for a in res.refus if a.regle == "s"], [])
+        excusees = [a for a, _ in res.excusees if a.regle == "s"]
+        self.assertEqual([a.cible for a in excusees], [self.REF])
+
+    def test_une_exception_incomplete_ne_couvre_rien_sommaire(self):
+        # Sans levee_par, l'exception ne dit pas quelle étape la lèvera : elle ne couvre rien.
+        self.reference(150)
+        exc = self.exception_sur()
+        del exc["exceptions"][self.REF]["levee_par"]
+        refus = self.refus_s(_limites(self.racine, sommaire=exc))
+        self.assertEqual([a.cible for a in refus], [self.REF])
+
+    def test_une_exception_perimee_dont_le_fichier_a_son_sommaire_est_refusee(self):
+        self.reference(150, {3: "## Sommaire"})
+        refus = self.refus_s(_limites(self.racine, sommaire=self.exception_sur()))
+        self.assertEqual([a.cible for a in refus], [self.REF])
+        self.assertIn("périmée", refus[0].message)
+
+    def test_sans_exceptions_le_sommaire_redevient_bloquant(self):
+        self.reference(150)
+        refus = self.refus_s(_limites(self.racine, sommaire=self.exception_sur()),
+                             sans_exceptions=True)
+        self.assertEqual([a.cible for a in refus], [self.REF])
+
+
+class CliquetDuSommaire(unittest.TestCase):
+    """Le cliquet tient la table ``sommaire`` (règle s) comme la table ``budget_caracteres`` :
+    une exception neuve ne s'ajoute pas une fois la table en base, et la clé ne disparaît pas.
+    """
+    CHEMIN = "plugins/p/skills/s/grand.md"
+
+    def base(self, exceptions):
+        return {"sommaire": {"exceptions": exceptions}, "veille_jours_max": 30}
+
+    def exception(self):
+        return {"date": "2026-11-26", "raison": "passif", "levee_par": "étape 4b"}
+
+    def test_une_exception_sommaire_ajoutee_alors_que_la_base_a_la_table_est_refusee(self):
+        anomalies = check_skills.verifier_cliquet(
+            self.base({self.CHEMIN: self.exception()}), self.base({}))
+        self.assertEqual([a.regle for a in anomalies], ["s"])
+
+    def test_la_table_sommaire_introduite_par_la_pr_est_acceptee(self):
+        # Intérim : la base d'avant cette règle n'a pas la table, sa première version passe.
+        nouveau = self.base({self.CHEMIN: self.exception()})
+        self.assertEqual(check_skills.verifier_cliquet(nouveau, {"veille_jours_max": 30}), [])
+
+    def test_une_exception_sommaire_retiree_est_acceptee(self):
+        # Retirer une exception est le but : il ne doit jamais être refusé.
+        ancien = self.base({self.CHEMIN: self.exception()})
+        self.assertEqual(check_skills.verifier_cliquet(self.base({}), ancien), [])
+
+    def test_la_cle_sommaire_retiree_alors_que_la_base_la_porte_est_refusee(self):
+        # Sans ce test, une PR retire la clé, la suivante la réintroduit avec une exception neuve.
+        anomalies = check_skills.verifier_cliquet({"veille_jours_max": 30}, self.base({}))
+        self.assertEqual([a.regle for a in anomalies], ["s"])
+
+
 class LireFrontmatter(unittest.TestCase):
     def test_scalaire_liste_bloc_et_flux(self):
         texte = ("---\nname: a\ndescription: >-\n  premiere\n  seconde\n"
