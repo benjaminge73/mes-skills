@@ -115,6 +115,7 @@
         "skills/_partage/scripts/controle-changelog.py",
         "skills/_partage/scripts/doc-de-cloture.py",
         "skills/_partage/scripts/verifier-ligne-doc.py",
+        "skills/_partage/scripts/balises-html.py",
         "skills/_partage/scripts/plan-en-cours.py",
         "hooks/garde_fin_de_tour.py",
         "hooks/retirer_worktrees_clos.py",
