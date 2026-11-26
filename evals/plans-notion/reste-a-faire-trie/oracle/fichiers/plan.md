@@ -36,10 +36,17 @@
 - **Découvertes** : aucune
 - **Verdict** : verified
 
+### Étape D1 — Vérifier que le README cite chaque commande
+
+- **Preuve** : `grep -c` de `lister`, `ajouter`, `compter` dans `README.md` -> 3 lignes, chaque commande présente.
+- **Découvertes** : aucune
+- **Verdict** : verified
+
 ### État final
 
 - Livré : la commande `compter` et sa ligne dans le README. Suite complète : verte.
 - Reste à faire, trié (`plan-de-suite.md`, « Le tri ») :
+  - Vérifier que le README cite chaque commande : fait sur place (D1), petit reste estimé à 5 min.
   - Ancien format v1 : question posée à Benjamin dans la session (`question.md`), réponse notée ici quand elle arrive.
   - SQLite, pagination de `lister`, index de recherche : plus d'une étape au total, proposés à Benjamin dans la session (`question.md`, question 2) ; sans réponse, portés par le plan de suite `plan-suite.md` (#2).
   - Mesurer le taux d'erreur de `compter` en usage réel : attend un événement, le relevé à 30 jours ; propriétaire Benjamin. La ligne « Restes » qui la porte (type `suivi`) est citée ici ; son texte reste dans la base.

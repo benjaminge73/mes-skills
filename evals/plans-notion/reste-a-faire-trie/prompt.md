@@ -1,7 +1,7 @@
 ---
 schema_version: "1.1"
 name: reste-a-faire-trie
-description: "Clôture d'un plan dont le journal liste cinq restes : la décision attendue de Benjamin est posée en question, le travail de plus d'une étape est proposé dans la session puis, sans réponse, devient un plan de suite, l'événement attendu reste ; aucun reste ne dort sans propriétaire."
+description: "Clôture d'un plan dont le journal liste six restes : la décision attendue de Benjamin est posée en question, le travail de plus d'une étape est proposé dans la session puis, sans réponse, devient un plan de suite, l'événement attendu reste ; aucun reste ne dort sans propriétaire."
 tags: [execution]
 max_turns: 40
 timeout_seconds: 600

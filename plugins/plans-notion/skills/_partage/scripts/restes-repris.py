@@ -5,9 +5,9 @@ Pourquoi un script : à l'ouverture d'un plan, les lignes ouvertes de la base «
 ses dépôts doivent être relevées et tranchées (`_partage/restes.md`, règle 7). Une ligne
 oubliée dort, et « laissée ouverte » sans raison ressemble à une décision. Le passage à
 `en revue` est bloqué tant que le chapitre `Restes repris` ne cite pas chaque ligne. Un
-plan ne reprend que les lignes de son sujet (Q9) : les autres sont citées « laissée
-ouverte » avec leur raison. Le script ne juge pas le sujet, il vérifie que chaque ligne a
-été jugée.
+plan reprend chaque ligne par défaut : les autres sont citées « laissée ouverte » avec une
+lettre de la liste fermée et une raison. Le script ne juge pas la raison, il vérifie que
+chaque ligne a été jugée.
 
 Usage : restes-repris.py <page.md> --lignes <export> [--depots owner/repo,...]
 
@@ -20,20 +20,33 @@ Usage : restes-repris.py <page.md> --lignes <export> [--depots owner/repo,...]
   plusieurs). Chaque puce de premier niveau est un bloc avec ses lignes de suite. Une
   ligne ouverte est citée par un bloc qui porte son identifiant Notion (dans le lien vers
   sa page) ou son titre exact (texte visible). Une citation hors du chapitre ne compte pas.
-  Un bloc qui dit « laissée ouverte » ne reprend pas la ligne : il doit donner la raison
-  après la mention (« — laissée ouverte : hors sujet, Benjamin tranche »). Sans raison,
-  la ligne est oubliée.
+  Un bloc qui dit « laissée ouverte » ne reprend pas la ligne : il doit porter, juste après
+  la mention, la lettre de sa raison dans la liste fermée de `restes.md` (règle 7) : (a) à
+  (e), ou (p), puis la raison (« — laissée ouverte (d) : contredit le sujet, Benjamin tranche »).
+  Lettre absente, hors liste, ou raison vide : la ligne est oubliée (« raison hors liste »).
+  Plafond : plus de 10 puces reprises rendent 1. Un (p) ne passe sous ce plafond que sur une
+  ligne dont le champ facultatif ``Type`` de l'export vaut ``décision`` ; une fois le plafond
+  atteint (10 reprises), (p) passe sur n'importe quelle ligne.
 
 <export> : sortie de ``restes_lignes.py lire`` : une ligne JSON par reste (JSON-lines), ou un
   tableau JSON. Clés lues, toutes en texte : ``Reste`` (titre), ``Repo`` (``owner/repo``),
-  ``État``, ``id`` (identifiant de la page, tirets ou non). Seules les lignes ``État`` =
-  ``ouvert`` dont ``Repo`` est un dépôt du plan sont contrôlées. Un fichier vide est
-  illisible : une base sans ligne ouverte s'écrit ``[]``, pour distinguer un export vide
-  d'une sortie de commande cassée.
+  ``État``, ``id`` (identifiant de la page, tirets ou non), et ``Type`` (facultatif : ``geste``,
+  ``vérification``, ``décision``, ``suivi`` ; absent ou autre, la ligne n'est pas une décision).
+  Seules les lignes ``État`` = ``ouvert`` dont ``Repo`` est un dépôt du plan sont contrôlées. Un
+  fichier vide est illisible : une base sans ligne ouverte s'écrit ``[]``, pour distinguer un
+  export vide d'une sortie de commande cassée.
+
+  Comptage des reprises : une puce de premier niveau du chapitre compte comme une reprise si
+  elle ne dit pas « laissée ouverte » et qu'elle porte un lien (http, mention de page comprise)
+  ou cite le titre ou l'id d'une ligne ouverte de l'export. Le compte ne se fait pas sur
+  l'export seul : à la création d'un plan, une ligne reprise passe ``repris`` et n'y figure
+  plus. Ce compte sert au plafond et à l'acceptation de (p).
 
 Codes : 0 chaque ligne ouverte des dépôts du plan est reprise, ou laissée ouverte avec une
-raison ; 1 au moins une ligne oubliée, une ligne par oubli sur la sortie standard, avec le
-titre, le dépôt et l'identifiant ; 2 illisible (page ou export absent ou cassé, dépôts non
+lettre de la liste fermée et une raison, et le plafond tient ; 1 au moins un défaut, une ligne
+par défaut sur la sortie standard : ligne oubliée (avec le titre, le dépôt et l'identifiant),
+raison hors liste, plafond dépassé (« plafond dépassé : <n> reprises »), ou (p) refusé sous le
+plafond ; 2 illisible (page ou export absent ou cassé, dépôts non
 déterminés) : un message sur la sortie d'erreur.
 Bibliothèque standard uniquement.
 """
@@ -64,7 +77,14 @@ PUCE = re.compile(r"^(?P<indent>[ \t]*)[-*][ \t]+")
 # La propriété Repo, en puce, en clé gras ou en ligne de tableau.
 REPO_LIGNE = re.compile(r"^[ \t]*(?:[-*|][ \t]*)?\**Repo\**[ \t]*[:|][ \t]*(?P<valeur>.*)$")
 DEPOT = re.compile(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+")
-LAISSEE = re.compile(r"laiss[eé]e\s+ouverte", re.IGNORECASE)
+# « laissée ouverte » ou, au masculin, « laissé ouvert » ; la lettre suit la mention.
+# Le participe seul : « laissée » / « laissé » / « laissee » ouvert(e). Le présent « laisse
+# ouverte » (« on laisse ouverte la variante ») n'est pas la mention, c'est une reprise.
+LAISSEE = re.compile(r"laiss(?:ée?|ee)\s+ouverte?", re.IGNORECASE)
+LETTRE = re.compile(r"\s*\(([a-z])\)")
+# Liste fermée des raisons de laisser une ligne ouverte (règle 7 de restes.md).
+LETTRES = frozenset("abcdep")
+PLAFOND = 10
 CHAMPS_LIGNE = ("Reste", "Repo", "État", "id")
 
 
@@ -171,25 +191,48 @@ def _citee(bloc: str, identifiant: str, titre: str) -> bool:
     return bool(titre) and titre in _cle(bloc)
 
 
-def _laissee(bloc: str) -> tuple[bool, str]:
-    """(le bloc dit « laissée ouverte », la raison qui suit la mention)."""
+def _laissee(bloc: str) -> tuple[bool, str, str]:
+    """(le bloc dit « laissée ouverte », la lettre qui suit la mention, la raison après la
+    lettre). Lettre absente : chaîne vide. Sans lettre, la raison n'est pas lue."""
     m = LAISSEE.search(bloc)
     if not m:
-        return False, ""
-    return True, visible(bloc[m.end():]).strip(" :—–-.;,")
+        return False, "", ""
+    reste = visible(bloc[m.end():])
+    lettre = LETTRE.match(reste)
+    if not lettre:
+        return True, "", ""
+    return True, lettre.group(1), reste[lettre.end():].strip(" :—–-.;,")
 
 
-def _defaut(blocs: list[str], identifiant: str, titre: str) -> str | None:
-    """None si la ligne est reprise, ou laissée ouverte avec une raison ; sinon le motif :
-    ``non_cite`` (aucun bloc du chapitre ne la cite) ou ``sans_raison``."""
+def _statut(blocs: list[str], identifiant: str, titre: str) -> tuple[str, str]:
+    """(statut, précision) d'une ligne ouverte.
+
+    ``("reprise", "")`` : un bloc du chapitre la reprend. ``("laissee", lettre)`` : tous ses
+    blocs la laissent ouverte, et l'un porte une lettre de la liste fermée avec une raison.
+    ``("defaut", motif)`` : motif ``non_cite`` (aucun bloc ne la cite) ou ``raison_hors_liste``
+    (lettre absente, hors liste, ou raison vide).
+    """
     cites = [b for b in blocs if _citee(b, identifiant, titre)]
     if not cites:
-        return "non_cite"
+        return "defaut", "non_cite"
+    if any(not _laissee(b)[0] for b in cites):
+        return "reprise", ""
     for bloc in cites:
-        marquee, raison = _laissee(bloc)
-        if not marquee or raison:
-            return None
-    return "sans_raison"
+        _, lettre, raison = _laissee(bloc)
+        if lettre in LETTRES and raison:
+            return "laissee", lettre
+    return "defaut", "raison_hors_liste"
+
+
+def _reprend(bloc: str, ouvertes: list[tuple[str, str]]) -> bool:
+    """Une puce de premier niveau compte comme une reprise : elle ne dit pas « laissée ouverte »,
+    et elle porte un lien (http, mention de page comprise) ou cite le titre ou l'id d'une ligne
+    ouverte (``ouvertes`` : couples (id sans tirets, titre normalisé))."""
+    if LAISSEE.search(bloc):
+        return False
+    if URL.search(bloc):
+        return True
+    return any(_citee(bloc, identifiant, titre) for identifiant, titre in ouvertes)
 
 
 def lire_lignes(chemin: str) -> list[dict]:
@@ -228,23 +271,45 @@ def lire_lignes(chemin: str) -> list[dict]:
 
 
 def controler(texte: str, lignes: list[dict], depots: list[str]) -> tuple[list[str], int]:
-    """(défauts, nombre de lignes ouvertes contrôlées) ; un défaut par ligne oubliée."""
+    """(défauts, nombre de lignes ouvertes contrôlées) ; un défaut par ligne en faute, et un
+    défaut pour le plafond. Le (p) sous le plafond se refuse sauf sur une ligne ``décision``."""
     voulus = {d.casefold() for d in depots}
     blocs = chapitre_repris(texte)
     ouvertes = [l for l in lignes if l["État"] == "ouvert" and l["Repo"].casefold() in voulus]
+    refs = [(l["id"].replace("-", "").lower(), _cle(l["Reste"])) for l in ouvertes]
+    # Le compte des reprises se fait sur les puces, pas sur l'export : une ligne reprise passe
+    # « repris » à la création de la page et n'est plus exportée.
+    reprises = sum(1 for bloc in blocs if _reprend(bloc, refs))
     defauts = []
+    laissees = []
     for ligne in ouvertes:
         titre = _cle(ligne["Reste"])
         identifiant = ligne["id"].replace("-", "").lower()
-        motif = _defaut(blocs, identifiant, titre)
-        if motif is None:
+        statut, precision = _statut(blocs, identifiant, titre)
+        nom = " ".join(ligne["Reste"].split())
+        ou = f"({ligne['Repo']}, id {ligne['id']})"
+        if statut == "reprise":
+            pass  # couverte ; comptée sur les puces plus haut
+        elif statut == "laissee":
+            laissees.append((ligne, precision))
+        elif precision == "non_cite":
+            defauts.append(f"Reste ouvert non cité dans « Restes repris » : « {nom} » {ou}")
+        else:
+            defauts.append(f"raison hors liste : « {nom} » {ou} (lettre (a) à (e) ou (p), "
+                           "puis une raison)")
+    if reprises > PLAFOND:
+        defauts.append(f"plafond dépassé : {reprises} reprises (maximum {PLAFOND}) ; "
+                       "le surplus se laisse en (p)")
+    for ligne, lettre in laissees:
+        if lettre != "p" or reprises >= PLAFOND:
+            continue
+        tipe = ligne.get("Type")
+        if isinstance(tipe, str) and tipe.strip().casefold() == "décision":
             continue
         nom = " ".join(ligne["Reste"].split())
         ou = f"({ligne['Repo']}, id {ligne['id']})"
-        if motif == "non_cite":
-            defauts.append(f"Reste ouvert non cité dans « Restes repris » : « {nom} » {ou}")
-        else:
-            defauts.append(f"« laissée ouverte » sans raison : « {nom} » {ou}")
+        defauts.append(f"(p) refusé sous le plafond ({reprises} reprises, Type non « décision ») : "
+                       f"« {nom} » {ou}")
     return defauts, len(ouvertes)
 
 
