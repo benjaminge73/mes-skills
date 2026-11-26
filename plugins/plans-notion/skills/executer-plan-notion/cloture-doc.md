@@ -134,7 +134,7 @@ Ordre de la clôture (qui suit qui) : `cloture-reste-et-suite.md` (tri, avant le
        - **La fiche.** Une fiche par fonctionnalité que le plan touche, et seulement celles-là,
          créée si elle manque, avec son icône et ses cinq titres à emoji, dans l'ordre et
          l'orthographe du § 9.2 de `doc-sous-le-capot.md`. Une fiche existante reçoit une ligne en tête
-         de son `🕰️ Historique`, au format du § 4, point 4, par `update_content`. Une fiche
+         de son `🕰️ Historique`, au format du § 4, point 4, de `changelog-et-doc.md`, par `update_content`. Une fiche
          déjà là hors de sa famille (ancienne place) n'est jamais déplacée : elle reçoit sa
          ligne d'historique, et son emplacement se signale dans le compte rendu. Une fiche
          créée a sa ligne au tableau `🧩 Fonctionnalités` de la page mère, s'il existe :
