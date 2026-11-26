@@ -19,7 +19,9 @@ et ``cache_read_input_tokens``. Un appel est compté une fois, dédoublonné sur
 
 Règles :
 
-1. Les lignes ``isSidechain`` vraies (sous-agents) sont ignorées.
+1. Les lignes ``isSidechain`` vraies (sous-agents) sont ignorées, de même que les
+   messages synthétiques (``model == "<synthetic>"``, p.ex. erreur 403 ou 429) et
+   toute ligne dont les trois compteurs valent zéro : ce ne sont pas des appels.
 2. Une pièce de démarrage est un delta qui arrive avant le 10e appel distinct.
 3. Après une compaction (``system`` de sous-type ``compact_boundary``), des deltas
    reviennent : ils ne sont pas des pièces de démarrage, et aucune pièce suivante
@@ -42,6 +44,7 @@ import json
 import re
 import statistics
 import sys
+from datetime import datetime
 from pathlib import Path
 
 PROJETS_PAR_DEFAUT = Path.home() / ".claude" / "projects"
@@ -57,6 +60,7 @@ PIECES_TYPES = (
 )
 DELTAS_DE_DEMARRAGE = ("deferred_tools_delta", "mcp_instructions_delta")
 CHAMPS_CONTEXTE = ("input_tokens", "cache_creation_input_tokens", "cache_read_input_tokens")
+MODELE_SYNTHETIQUE = "<synthetic>"
 
 
 def taille_piece(at: str, a: dict) -> int:
@@ -116,8 +120,12 @@ def analyser(lignes: list) -> dict | None:
             usage = msg.get("usage")
             if not mid or not isinstance(usage, dict) or mid in vus:
                 continue
-            vus.add(mid)
+            if msg.get("model") == MODELE_SYNTHETIQUE:
+                continue
             contexte = sum(int(usage.get(c) or 0) for c in CHAMPS_CONTEXTE)
+            if contexte == 0:
+                continue
+            vus.add(mid)
             appels.append((position, contexte))
             continue
         if t == "attachment":
@@ -187,17 +195,22 @@ def lire_identifiants(fichier: Path) -> list[str]:
     return [ligne[0].strip() for ligne in lignes[1:] if ligne and ligne[0].strip()]
 
 
-def journaux_a_lire(projets: Path, identifiants: list[str] | None) -> list[Path]:
+def journaux_a_lire(projets: Path, identifiants: list[str] | None, depuis_ts: float | None = None) -> list[Path]:
+    """Journaux à analyser. Un fichier modifié avant ``depuis_ts`` n'est pas lu :
+    il ne peut contenir aucun message de la fenêtre (le filtre fin reste sur le début de session)."""
     if identifiants is None:
-        return sorted(Path(p) for p in glob.glob(str(projets / "*" / "*.jsonl")))
-    trouves = []
-    for identifiant in identifiants:
-        correspondants = sorted(projets.glob(f"*/{identifiant}.jsonl")) if "/" not in identifiant else []
-        if correspondants:
-            trouves.append(correspondants[0])
-        else:
-            print(f"identifiant introuvable, ignoré : {identifiant}", file=sys.stderr)
-    return trouves
+        chemins = sorted(Path(p) for p in glob.glob(str(projets / "*" / "*.jsonl")))
+    else:
+        chemins = []
+        for identifiant in identifiants:
+            correspondants = sorted(projets.glob(f"*/{identifiant}.jsonl")) if "/" not in identifiant else []
+            if correspondants:
+                chemins.append(correspondants[0])
+            else:
+                print(f"identifiant introuvable, ignoré : {identifiant}", file=sys.stderr)
+    if depuis_ts is None:
+        return chemins
+    return [c for c in chemins if c.stat().st_mtime >= depuis_ts]
 
 
 def mediane(valeurs: list) -> int | float | None:
@@ -208,13 +221,44 @@ def mediane(valeurs: list) -> int | float | None:
     return int(m) if float(m).is_integer() else m
 
 
+def comptes_serveurs(deferred: dict) -> dict:
+    """Noms d'un deferred_tools_delta par serveur MCP, ``natifs`` compris si non nul."""
+    compte = dict(deferred["par_serveur"])
+    if deferred["natifs"]:
+        compte["natifs"] = deferred["natifs"]
+    return compte
+
+
+def ordonner(compte: dict) -> list[tuple[str, int]]:
+    """Serveurs par nombre décroissant, à égalité par nom."""
+    return sorted(compte.items(), key=lambda kv: (-kv[1], kv[0]))
+
+
+def medianes_par_serveur(sessions: list[dict]) -> dict:
+    """Médiane du nombre de noms par serveur ; un serveur absent d'une session compte 0."""
+    serveurs = set()
+    for s in sessions:
+        serveurs |= set(comptes_serveurs(s["pieces"]["deferred_tools_delta"]))
+    medianes_brutes = {
+        serveur: mediane([comptes_serveurs(s["pieces"]["deferred_tools_delta"]).get(serveur, 0) for s in sessions])
+        for serveur in serveurs
+    }
+    return dict(sorted(medianes_brutes.items(), key=lambda kv: (-kv[1], kv[0])))
+
+
 def medianes(sessions: list[dict]) -> dict:
     return {
         "premier_appel": mediane([s["premier_appel"] for s in sessions]),
         "socle": mediane([s["socle"] for s in sessions]),
         "pieces": {t: mediane([s["pieces"][t]["caracteres"] for s in sessions]) for t in PIECES_TYPES},
         "deferred_tools_noms": mediane([s["pieces"]["deferred_tools_delta"]["noms"] for s in sessions]),
+        "deferred_par_serveur": medianes_par_serveur(sessions),
     }
+
+
+def texte_deferred(p: dict) -> str:
+    detail = ", ".join(f"{k}={v}" for k, v in ordonner(comptes_serveurs(p)))
+    return f"deferred_tools_delta={p['caracteres']}({p['noms']} noms" + (f": {detail}" if detail else "") + ")"
 
 
 def texte_pieces(pieces: dict) -> str:
@@ -222,7 +266,7 @@ def texte_pieces(pieces: dict) -> str:
     for t in PIECES_TYPES:
         p = pieces[t]
         if t == "deferred_tools_delta":
-            morceaux.append(f"{t}={p['caracteres']}({p['noms']} noms)")
+            morceaux.append(texte_deferred(p))
         else:
             morceaux.append(f"{t}={p['caracteres']}")
     return "  ".join(morceaux)
@@ -237,8 +281,12 @@ def main(argv: list[str] | None = None) -> int:
                         help="dossier des journaux (défaut : ~/.claude/projects)")
     args = parser.parse_args(argv)
 
-    if args.depuis is not None and not re.fullmatch(r"\d{4}-\d{2}-\d{2}", args.depuis):
-        parser.error("--depuis attend une date AAAA-MM-JJ")
+    depuis_ts = None
+    if args.depuis is not None:
+        try:
+            depuis_ts = datetime.strptime(args.depuis, "%Y-%m-%d").timestamp()
+        except ValueError:
+            parser.error("--depuis attend une date AAAA-MM-JJ")
 
     identifiants = None
     if args.sessions is not None:
@@ -249,7 +297,7 @@ def main(argv: list[str] | None = None) -> int:
             return 2
 
     sessions = []
-    for chemin in journaux_a_lire(args.projets, identifiants):
+    for chemin in journaux_a_lire(args.projets, identifiants, depuis_ts):
         lignes = lire_journal(chemin)
         resume = analyser(lignes) if lignes is not None else None
         if resume is None:
@@ -284,9 +332,11 @@ def main(argv: list[str] | None = None) -> int:
               f"socle={socle}  {texte_pieces(s['pieces'])}")
     m = mediane_globale
     socle = "-" if m["socle"] is None else m["socle"]
+    par_serveur = ", ".join(f"{k}={v}" for k, v in m["deferred_par_serveur"].items())
     print(f"médiane ({len(sessions)} sessions)  premier_appel={m['premier_appel']}  socle={socle}  "
           + "  ".join(f"{t}={v}" for t, v in m["pieces"].items())
-          + f"  deferred_tools_noms={m['deferred_tools_noms']}")
+          + f"  deferred_tools_noms={m['deferred_tools_noms']}"
+          + f"  deferred_par_serveur=[{par_serveur}]")
     return 0
 
 
