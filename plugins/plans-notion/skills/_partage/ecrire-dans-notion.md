@@ -5,6 +5,14 @@ première écriture dans une page de la base **Plans Claude** — pas de mémoir
 chacune de ces règles a été écrite après un dégât réel, et les citer de tête est
 exactement la façon dont on en oublie une.
 
+Sommaire :
+
+- Pourquoi ces règles existent
+- Le protocole, dans cet ordre, à chaque passe
+- Le bleu des retouches
+- Sept pièges de l'API Notion, vérifiés sur pièce
+- Rappel de vocabulaire
+
 Il ne dit pas *quoi* écrire — ça, c'est le skill qui appelle. Il dit *comment*
 écrire sans détruire ce qui est déjà là.
 

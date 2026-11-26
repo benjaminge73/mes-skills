@@ -4,6 +4,13 @@ Fichier référencé par `executer-plan-notion` (§6 et §7), à lire à la clô
 **tout** plan, et dès qu'un reste à faire apparaît sur un plan déjà `a merger` ou
 `execute`.
 
+Sommaire :
+
+- Le reste à faire se recopie en entier dans la session
+- Le tri, avant le passage à `a merger`
+- Un reste qui attend un cron se lance à la main
+- Le plan de suite
+
 **Benjamin ne relit pas un plan terminé.** Un reste à faire écrit dans la page d'un
 plan clos (journal, `État final`, `La suite`) n'est lu par personne : il dort là
 jusqu'à ce qu'on le redécouvre. Chaque ligne de reste à faire atterrit donc là

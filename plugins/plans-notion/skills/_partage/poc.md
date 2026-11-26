@@ -8,6 +8,16 @@ pour que les skills gardent leur taille : la règle ne se duplique pas, elle se
 référence. Écarté : écrire ce gabarit dans `plan-notion/SKILL.md`, qui pèse déjà
 près de 800 lignes.
 
+Sommaire :
+
+- Pourquoi ce fichier
+- La répétition à blanc
+- Le POC de décision : le gabarit en douze points
+- La preuve de chaque réponse
+- Qui joue le POC
+- La frontière : ce qui est un POC, ce qui est une étape
+- Le code jetable
+
 Il ne dit pas *comment* découper un plan en étapes ni *quand* les paralléliser
 (`${CLAUDE_PLUGIN_ROOT}/skills/_partage/vagues.md`), ni *comment* prouver qu'un
 test a mordu (`${CLAUDE_PLUGIN_ROOT}/skills/_partage/preuve-du-rouge.md`).

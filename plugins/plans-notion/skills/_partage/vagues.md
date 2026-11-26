@@ -6,6 +6,19 @@ plan, une fois pour toutes, avant la première étape. Comme `ecrire-dans-notion
 et `schemas.md`, il vit à un seul endroit pour que le skill garde sa taille : la
 règle ne se duplique pas, elle se référence.
 
+Sommaire :
+
+- Pourquoi ce fichier
+- Calculer les vagues
+- Une étape parallèle = un worktree
+- Une étape relue seule : sa branche d'étape
+- Le plafond de concurrence
+- Au retour
+- Regrouper deux étapes dans un seul sous-agent
+- Le journal garde l'ordre des numéros
+- Plusieurs sous-agents, un même dossier de sortie
+- Ce que ça coûte, et ce que ça protège
+
 Il ne dit pas *comment* écrire dans Notion (`ecrire-dans-notion.md`) ni *quels*
 schémas poser (`schemas.md`). Il dit *quand* deux étapes peuvent tourner en
 parallèle, *comment* les isoler pendant qu'elles tournent, et *comment* reporter

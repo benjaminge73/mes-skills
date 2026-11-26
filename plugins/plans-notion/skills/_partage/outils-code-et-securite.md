@@ -2,6 +2,13 @@
 
 Fiches du registre `outils-et-quotas.md` (fichier d'entrée : règles générales et index des fiches). Ce fichier porte les outils qui lisent un dépôt de code (graphes de code, revue de sécurité) et l'isolement d'une source codée. Il se lit quand un plan touche l'un de ces outils ; les règles générales sont dans `outils-et-quotas.md`.
 
+Sommaire :
+
+- Fiche — codebase-memory (graphe de code, serveur MCP)
+- Fiche — Cage d'une source codée (bwrap, AppArmor, srt, systemd)
+- Fiche — graphify (graphe de code, sans serveur MCP)
+- Fiche — hermes-security (revue de sécurité d'un dépôt, plugin Hermes)
+
 ## Fiche — codebase-memory (graphe de code, serveur MCP)
 
 **Quota ou coût** : aucun quota, l'outil tourne en local (relevé au 2026-10-09).

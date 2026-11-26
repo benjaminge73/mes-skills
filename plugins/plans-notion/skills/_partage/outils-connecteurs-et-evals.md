@@ -2,6 +2,12 @@
 
 Fiches du registre `outils-et-quotas.md` (fichier d'entrée : règles générales et index des fiches). Ce fichier porte la chaîne de repli des connecteurs Notion et Composio, et les deux bancs d'évaluation (`claude plugin eval`, `inspect_ai`). Il se lit quand un appel de connecteur échoue ou quand un plan chiffre le coût d'un banc ; les règles générales sont dans `outils-et-quotas.md`.
 
+Sommaire :
+
+- Fiche — Connecteurs MCP d'une session Claude Code (Notion, Composio)
+- Fiche — claude plugin eval
+- Fiche — inspect_ai (banc d'évaluation Python)
+
 ## Fiche — Connecteurs MCP d'une session Claude Code (Notion, Composio)
 
 **Quota ou coût** : aucun quota rencontré au 2026-10-08. Le repli par Hermes

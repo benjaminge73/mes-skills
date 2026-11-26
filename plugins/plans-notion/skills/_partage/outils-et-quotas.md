@@ -2,6 +2,16 @@
 
 Fichier **d'entrée** du registre, lu par `plan-notion` (avant d'écrire une étape qui lance un lot d'appels sur un outil externe), par `executer-plan-notion` (avant de déléguer un lot) et par l'agent `chercheur` (quand un outil n'a pas de fiche). Il porte les règles générales et l'**index** des fiches. Comme `vagues.md` et `bons-tests.md`, il vit à un seul endroit pour que les skills gardent leur taille : la règle ne se duplique pas, elle se référence.
 
+Sommaire :
+
+- Pourquoi ce fichier
+- Règle pour un outil absent
+- Règle de vie du registre
+- Règle de publication
+- Forme d'une fiche
+- Choisir entre CLI et serveur MCP
+- Index des fiches
+
 Les fiches, une par outil, sont réparties par thème dans cinq fichiers `outils-*.md` du même dossier. Un fichier de thème ne se lit que quand un plan touche un de ses outils ; l'index plus bas dit où se trouve chaque fiche. Pourquoi par thème : un fichier par outil ferait trente fichiers à citer, et un seul fichier de 78 000 caractères se lisait en entier à chaque usage. Cinq thèmes voisins tiennent chacun sous le seuil de 30 000 caractères.
 
 Il ne dit pas *comment* prouver qu'une étape est finie (`preuve-du-rouge.md`)

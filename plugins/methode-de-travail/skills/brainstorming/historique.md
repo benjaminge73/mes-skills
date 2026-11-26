@@ -4,6 +4,13 @@ Annexe de `SKILL.md` : provenance, garde de version, et chaque écart avec l'amo
 (obra/superpowers). Le skill ne la lit pas au chargement ; elle répond à « pourquoi
 cette règle a-t-elle bougé ? ».
 
+Sommaire :
+
+- Provenance
+- Garde de version
+- Notes datées antérieures au 2026-10-16
+- Écarts avec l'amont ajoutés le 2026-10-16
+
 ## Provenance
 
 *Adapté de [obra/superpowers](https://github.com/obra/superpowers) (MIT, Jesse

@@ -4,6 +4,19 @@ Fichier référencé par `executer-plan-notion` (§6). À lire dès qu'un plan a
 PR ouverte ou qu'on s'apprête à en ouvrir une : à la clôture elle-même, sur une
 demande de Benjamin, ou dans une session qui reprend un plan déjà à `a merger`.
 
+Sommaire :
+
+- 1. Ouvrir la PR
+- 2. Attendre la CI et lire son verdict
+- 3. Le merge, fait par la CI
+- 4. Constater le merge, sur pièce
+- 4 bis. Mettre le poste à jour
+- 4 ter. Rejouer le cron touché
+- 5. Statut = `execute`
+- 6. Entrée de journal `Remontée sur main`
+- La session suit la PR jusqu'au merge
+- Le message qui annonce le merge
+
 **La PR s'ouvre à la clôture, prête, sans attendre de demande.** Décision de
 Benjamin du 2026-10-14 : un plan = une branche, et la clôture ouvre sa PR vers
 `main` une fois la suite complète jouée en local (`cloture.md`, points 1 à 4).
