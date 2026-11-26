@@ -59,6 +59,18 @@ def page(chapitre=None, repo=DEPOT):
     return texte
 
 
+def reprises(n):
+    """``n`` lignes ouvertes de DEPOT, chacune reprise par sa puce (lien vers sa page)."""
+    lignes, puces = [], []
+    for k in range(1, n + 1):
+        id_ = f"00000000-0000-4000-8000-{k:012d}"
+        titre = f"Reste numéro {k:02d} du plan de test"
+        url = "https://app.notion.com/p/" + id_.replace("-", "")
+        lignes.append(ligne(titre, id_=id_))
+        puces.append(f"- [{titre}]({url}) — reprise.")
+    return lignes, puces
+
+
 class _Dossier(unittest.TestCase):
     def setUp(self):
         self._tmp = tempfile.TemporaryDirectory()
@@ -123,7 +135,8 @@ class RestesRepris(_Dossier):
                 code, sortie, _ = self.jouer(p, self.ecrire_export([ligne(TITRE_A)]))
                 self.assertEqual(code, 1, sortie)
                 self.assertIn(TITRE_A, sortie)
-        avec_raison = f"- [{TITRE_A}]({URL_A}) — laissée ouverte : hors sujet, Benjamin tranche."
+        # La raison seule ne suffit plus : la lettre (d) de la liste fermée la range (étape 2).
+        avec_raison = f"- [{TITRE_A}]({URL_A}) — laissée ouverte (d) : hors sujet, Benjamin tranche."
         p = self.ecrire("page.md", page(chapitre=[avec_raison]))
         code, sortie, _ = self.jouer(p, self.ecrire_export([ligne(TITRE_A)]))
         self.assertEqual(code, 0, sortie)
@@ -149,6 +162,80 @@ class RestesRepris(_Dossier):
         p = self.ecrire("page.md", page(chapitre=[f"- [{TITRE_A}]({URL_A}) — reprise."]))
         lignes = self.ecrire_export([ligne(TITRE_A), ligne(TITRE_C, NON_NOMME, ID_C)])
         code, sortie, _ = self.jouer(p, lignes)
+        self.assertEqual(code, 0, sortie)
+
+    def test_laissee_sans_lettre_rend_1_raison_hors_liste(self):
+        # Panne : une ligne « laissée ouverte » sans lettre de la liste fermée passe. La raison
+        # libre ne se juge pas ; c'est la lettre qui la range dans la liste.
+        p = self.ecrire("page.md", page(chapitre=[
+            f"- [{TITRE_A}]({URL_A}) — laissée ouverte : hors sujet, Benjamin tranche."]))
+        code, sortie, _ = self.jouer(p, self.ecrire_export([ligne(TITRE_A)]))
+        self.assertEqual(code, 1, sortie)
+        self.assertIn("raison hors liste", sortie)
+        self.assertIn(TITRE_A, sortie)
+
+    def test_laissee_lettre_hors_liste_rend_1(self):
+        # Panne : une lettre absente de la liste fermée (ici (z)) passe comme une raison valide.
+        p = self.ecrire("page.md", page(chapitre=[
+            f"- [{TITRE_A}]({URL_A}) — laissée ouverte (z) : hors sujet, Benjamin tranche."]))
+        code, sortie, _ = self.jouer(p, self.ecrire_export([ligne(TITRE_A)]))
+        self.assertEqual(code, 1, sortie)
+        self.assertIn("raison hors liste", sortie)
+
+    def test_laissee_lettre_sans_raison_rend_1(self):
+        # Panne : une lettre valide sans aucune raison après elle passe pour une décision motivée.
+        p = self.ecrire("page.md", page(chapitre=[
+            f"- [{TITRE_A}]({URL_A}) — laissée ouverte (a)"]))
+        code, sortie, _ = self.jouer(p, self.ecrire_export([ligne(TITRE_A)]))
+        self.assertEqual(code, 1, sortie)
+        self.assertIn("raison hors liste", sortie)
+        self.assertIn(TITRE_A, sortie)
+
+    def test_laisse_au_masculin_avec_lettre_et_raison_rend_0(self):
+        # Panne : la forme au masculin « laissé ouvert (a) : … » est refusée alors qu'elle porte
+        # sa lettre et sa raison ; la ligne serait comptée oubliée à tort.
+        p = self.ecrire("page.md", page(chapitre=[
+            f"- [{TITRE_A}]({URL_A}) — laissé ouvert (a) : échéance 2026-12-09 non atteinte."]))
+        code, sortie, _ = self.jouer(p, self.ecrire_export([ligne(TITRE_A)]))
+        self.assertEqual(code, 0, sortie)
+
+    def test_onze_reprises_rend_1_plafond_depasse(self):
+        # Panne : un plan qui reprend plus de 10 lignes passe le garde : le plafond de la règle 7
+        # n'est jamais contrôlé.
+        lignes, puces = reprises(11)
+        p = self.ecrire("page.md", page(chapitre=puces))
+        code, sortie, _ = self.jouer(p, self.ecrire_export(lignes))
+        self.assertEqual(code, 1, sortie)
+        self.assertIn("plafond dépassé", sortie)
+        self.assertIn("11 reprises", sortie)
+
+    def test_p_sous_plafond_sur_une_ligne_non_decision_rend_1(self):
+        # Panne : une ligne « au-delà du plafond » (p) posée sur un geste, alors que le plafond
+        # n'est pas atteint, passe le garde. La règle ne l'accepte que pour une décision.
+        p = self.ecrire("page.md", page(chapitre=[
+            f"- [{TITRE_A}]({URL_A}) — laissée ouverte (p) : au-delà du plafond."]))
+        code, sortie, _ = self.jouer(p, self.ecrire_export([ligne(TITRE_A)]))
+        self.assertEqual(code, 1, sortie)
+        self.assertIn(TITRE_A, sortie)
+
+    def test_p_au_dela_du_plafond_rend_0(self):
+        # Panne : une ligne (p) posée une fois les 10 reprises atteintes est refusée. Le plafond
+        # est atteint : le surplus reste ouvert pour un plan suivant, c'est la règle.
+        lignes, puces = reprises(10)
+        lignes.append(ligne(TITRE_B, id_=ID_B))
+        puces.append(f"- [{TITRE_B}]({URL_B}) — laissée ouverte (p) : au-delà du plafond.")
+        p = self.ecrire("page.md", page(chapitre=puces))
+        code, sortie, _ = self.jouer(p, self.ecrire_export(lignes))
+        self.assertEqual(code, 0, sortie)
+
+    def test_p_sur_une_decision_sous_plafond_rend_0(self):
+        # Panne : une décision posée en (p) sous le plafond est refusée alors que la règle
+        # l'accepte : seule une ligne de Type « décision » peut porter (p) sous 10 reprises.
+        decision = dict(ligne(TITRE_B, id_=ID_B), Type="décision")
+        p = self.ecrire("page.md", page(chapitre=[
+            f"- [{TITRE_A}]({URL_A}) — reprise.",
+            f"- [{TITRE_B}]({URL_B}) — laissée ouverte (p) : au-delà du plafond."]))
+        code, sortie, _ = self.jouer(p, self.ecrire_export([ligne(TITRE_A), decision]))
         self.assertEqual(code, 0, sortie)
 
     def test_export_illisible_rend_2(self):
