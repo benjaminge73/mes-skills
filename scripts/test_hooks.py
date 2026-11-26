@@ -1465,6 +1465,19 @@ class RefuserBalisesComposio(unittest.TestCase):
         charge = json.dumps(self.charge(old_str="x", new_str="**propre**"), ensure_ascii=False)
         self.refuse(f"echo '{charge}' > args.json && composio execute NOTION_UPDATE_PAGE_MARKDOWN -d @args.json")
 
+    def test_le_refus_d_un_fichier_cree_dit_de_le_construire_dans_un_appel_a_part(self):
+        # Panne R1 (message) : le refus doit dire quoi faire, en une phrase, sans ambiguïté.
+        charge = json.dumps(self.charge(old_str="x", new_str="**propre**"), ensure_ascii=False)
+        r = self.jouer(f"echo '{charge}' > args.json && composio execute NOTION_UPDATE_PAGE_MARKDOWN -d @args.json")
+        self.assertEqual(r.returncode, 2, r.stderr)
+        self.assertIn("construis le fichier dans un appel à part, puis écris dans le suivant", r.stderr)
+
+    def test_un_fichier_de_charge_modifie_sur_place_avant_composio_laisse_passer(self):
+        # Panne R2 : le hook lisait l'ancien contenu (avec <b>) alors que sed le corrige avant
+        # composio. Un fichier nommé avant composio est illisible au contrôle : on laisse passer.
+        self.fichier("args.json", self.charge(old_str="x", new_str="<b>gras</b>"))
+        self.permis("sed -i 's/gras/cuit/' args.json && composio execute NOTION_UPDATE_PAGE_MARKDOWN -d @args.json")
+
     def test_un_fichier_de_charge_introuvable_sans_creation_laisse_passer(self):
         # Doute (fichier absent pour une autre raison) : le hook laisse passer.
         self.permis("composio execute NOTION_UPDATE_PAGE_MARKDOWN -d @absent.json")

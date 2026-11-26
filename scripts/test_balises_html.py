@@ -93,6 +93,17 @@ class BalisesHtml(unittest.TestCase):
         lignes = self.nettoyer(texte).splitlines()
         self.assertEqual(lignes, ["- [ ] **faire**", "- [x] fait", "`<b>garde</b>`"])
 
+    def test_deux_code_adjacents_font_un_seul_span(self):
+        # Panne R3 : « <code>a</code><code>b</code> » donnait `a``b`, deux spans cassés au lieu d'un.
+        # Les formes échappée et avec lien automatique (défait dans le code) suivent la même fusion.
+        with self.subTest("brut"):
+            self.assertEqual(self.nettoyer("<code>a</code><code>b</code>\n"), "`ab`")
+        with self.subTest("échappé"):
+            self.assertEqual(self.nettoyer(r"\<code\>a\</code\>\<code\>b\</code\>" + "\n"), "`ab`")
+        with self.subTest("avec lien automatique"):
+            self.assertEqual(self.nettoyer("<code>[x.py](http://x.py)</code><code>[y.py](http://y.py)</code>\n"),
+                             "`x.pyy.py`")
+
 
 if __name__ == "__main__":
     unittest.main()
