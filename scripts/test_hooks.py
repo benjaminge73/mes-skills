@@ -1376,5 +1376,102 @@ class RefuserRelectureRegles(unittest.TestCase):
         self.assertEqual([p for p in ecrits if self.etat not in p.parents], [])
 
 
+class RefuserBalisesComposio(unittest.TestCase):
+    """Hook PreToolUse Bash : pas d'écriture ``composio`` Notion avec des balises HTML en texte neuf.
+
+    Lancé en sous-processus, dans un dossier temporaire qui sert de ``cwd`` au hook.
+    Un hook absent fait échouer ``setUp`` : sans cela, le code 2 que Python rend pour un
+    fichier introuvable aurait l'air d'un refus réussi.
+    """
+    SCRIPT = "refuser_balises_composio.py"
+    PAGE = "3a1f5c2e-8b7d-4e6a-9f10-2c3d4e5f6a7b"
+
+    def setUp(self):
+        self.assertTrue((HOOKS / self.SCRIPT).is_file(), f"hook absent : {HOOKS / self.SCRIPT}")
+        temporaire = tempfile.TemporaryDirectory()
+        self.addCleanup(temporaire.cleanup)
+        self.racine = Path(temporaire.name)
+
+    def jouer(self, commande: str, cwd: Path | None = None) -> subprocess.CompletedProcess:
+        entree = {"tool_name": "Bash", "tool_input": {"command": commande},
+                  "cwd": str(cwd or self.racine)}
+        return subprocess.run([sys.executable, str(HOOKS / self.SCRIPT)],
+                              input=json.dumps(entree), capture_output=True, text=True, timeout=30)
+
+    def refuse(self, commande: str, cwd: Path | None = None):
+        r = self.jouer(commande, cwd)
+        self.assertEqual(r.returncode, 2, f"aurait dû être refusée : {commande!r} {r.stderr}")
+        self.assertIn("balises-html.py nettoyer", r.stderr)
+
+    def permis(self, commande: str, cwd: Path | None = None):
+        r = self.jouer(commande, cwd)
+        self.assertEqual(r.returncode, 0, f"aurait dû passer : {commande!r} {r.stderr}")
+        self.assertEqual(r.stdout + r.stderr, "")
+
+    def charge(self, **champs):
+        return {"page_id": self.PAGE, "type": "update_content",
+                "update_content": {"content_updates": [champs]}}
+
+    def composio(self, slug: str, charge) -> str:
+        return f"composio execute {slug} -d '{json.dumps(charge, ensure_ascii=False)}'"
+
+    def fichier(self, nom: str, charge, dossier: Path | None = None) -> Path:
+        chemin = (dossier or self.racine) / nom
+        chemin.parent.mkdir(parents=True, exist_ok=True)
+        chemin.write_text(json.dumps(charge, ensure_ascii=False), encoding="utf-8")
+        return chemin
+
+    def test_une_balise_en_ligne_dans_une_ecriture_composio_est_refusee(self):
+        self.refuse(self.composio("NOTION_UPDATE_PAGE_MARKDOWN",
+                                  self.charge(old_str="Statut", new_str="<b>gras</b>")))
+
+    def test_une_balise_dans_un_fichier_de_charge_est_refusee(self):
+        chemin = self.fichier("args.json", self.charge(old_str="x", new_str="<code>y</code>"))
+        self.refuse(f"composio execute NOTION_UPDATE_PAGE_MARKDOWN -d @{chemin}")
+
+    def test_une_balise_echappee_dans_une_ecriture_composio_est_refusee(self):
+        # Forme réelle relevée : « \<b\> » dans le texte neuf, en ligne et en fichier.
+        charge = self.charge(old_str="x", new_str=r"\<b\>gras\</b\>")
+        with self.subTest("en ligne"):
+            self.refuse(self.composio("NOTION_UPDATE_PAGE_MARKDOWN", charge))
+        with self.subTest("par fichier"):
+            chemin = self.fichier("echappe.json", charge)
+            self.refuse(f"composio execute NOTION_UPDATE_PAGE_MARKDOWN -d @{chemin}")
+
+    def test_une_balise_passee_par_stdin_construit_dans_la_commande_est_refusee(self):
+        charge = json.dumps(self.charge(old_str="x", new_str="<b>gras</b>"), ensure_ascii=False)
+        self.refuse(f"echo '{charge}' | composio execute NOTION_UPDATE_PAGE_MARKDOWN -d -")
+
+    def test_une_charge_relative_se_resout_contre_le_cd_de_la_commande(self):
+        sous = self.racine / "sous"
+        self.fichier("args.json", self.charge(old_str="x", new_str="<i>y</i>"), dossier=sous)
+        self.refuse("cd sous && composio execute NOTION_UPDATE_PAGE_MARKDOWN -d @args.json")
+
+    def test_le_meme_texte_en_markdown_passe(self):
+        self.permis(self.composio("NOTION_UPDATE_PAGE_MARKDOWN",
+                                  self.charge(old_str="x", new_str="**gras** et `<b>code</b>`")))
+
+    def test_old_str_avec_balise_et_new_str_propre_passe(self):
+        # old_str doit pouvoir viser le texte fautif : seule la forme neuve est contrôlée.
+        self.permis(self.composio("NOTION_UPDATE_PAGE_MARKDOWN",
+                                  self.charge(old_str="<b>gras</b>", new_str="**gras**")))
+
+    def test_une_lecture_composio_avec_balise_passe(self):
+        self.permis(self.composio("NOTION_GET_PAGE_MARKDOWN", {"page_id": self.PAGE, "new_str": "<b>x</b>"}))
+
+    def test_un_fichier_de_charge_cree_dans_la_meme_commande_est_refuse_meme_propre(self):
+        # Le hook ne peut pas lire un fichier qui naît dans la commande : on refuse, et on dit
+        # de le construire d'abord. Le texte, ici markdown pur, ne change rien à la règle.
+        charge = json.dumps(self.charge(old_str="x", new_str="**propre**"), ensure_ascii=False)
+        self.refuse(f"echo '{charge}' > args.json && composio execute NOTION_UPDATE_PAGE_MARKDOWN -d @args.json")
+
+    def test_un_fichier_de_charge_introuvable_sans_creation_laisse_passer(self):
+        # Doute (fichier absent pour une autre raison) : le hook laisse passer.
+        self.permis("composio execute NOTION_UPDATE_PAGE_MARKDOWN -d @absent.json")
+
+    def test_une_commande_sans_composio_passe(self):
+        self.permis('git commit -m "<b>x</b>" && echo \'<i>y</i>\' > notes.md')
+
+
 if __name__ == "__main__":
     unittest.main()
