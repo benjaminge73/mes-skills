@@ -387,3 +387,5 @@ claude --plugin-dir ./plugins/<nom>
 `plugins/methode-de-travail/skills/` dérive de
 [obra/superpowers](https://github.com/obra/superpowers) (MIT) — voir
 `plugins/methode-de-travail/LICENSE-SUPERPOWERS.txt`.
+
+Les plugins n'ont pas de fichier `LICENSE` propre. La validation d'annuaire de la CLI Claude Code signale donc `LICENSE_MISSING` : c'est une erreur d'annuaire, non bloquante pour la CI de ce dépôt, mais à trancher avant toute soumission d'un plugin à un annuaire public.
