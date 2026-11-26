@@ -77,7 +77,8 @@ sens non documenté : aucun script ne l'écrit.
    vérification), une question ouverte si c'est une décision, ou une puce de `La suite`
    avec son déclencheur (suivi). Les décisions d'un même thème partagent une question (une
    option par ligne, chaque ligne en lien) ; la clôture passe la ligne `fait` avec la réponse
-   à son `Journal`, ou la remet `ouvert` si Benjamin n'a pas répondu et a contesté la reco.
+   à son `Journal` (sans réponse, la reco appliquée par défaut, dite telle), ou la remet
+   `ouvert` si Benjamin a contesté la reco sans trancher.
    Une ligne n'est laissée ouverte que pour une des raisons suivantes,
    citée à côté de la ligne par sa lettre, sous la forme `laissée ouverte (<lettre>) : <raison>` :
    - **(a)** condition ou échéance pas encore atteinte. Confrontée à l'état réel (règle 5), elle
@@ -92,7 +93,8 @@ sens non documenté : aucun script ne l'écrit.
    Un plan reprend **au plus 10 lignes**, dont **au plus 5 questions** venues des restes, les
    plus anciennes d'abord. Le surplus se laisse en **(p)** « au-delà du plafond » et reste
    ouvert pour un plan suivant du même dépôt. Benjamin retire une reprise : la ligne passe
-   alors « laissée ouverte » (Q3), avec la lettre de son motif, (d) à défaut.
+   alors « laissée ouverte » (Q3), avec la lettre de son motif ; à défaut
+   `(a) : retirée par Benjamin, attend sa demande`.
 8. **Qui agit.** À la clôture, le pilote propose `Pour`. Hal confirme, ou renvoie la ligne
    à Benjamin (Q5). Hal peut agir lui-même, déployer compris ; à la fin d'un plan, il
    ouvre une PR que la CI merge si elle est verte (décision de Benjamin, 2026-11-16).
