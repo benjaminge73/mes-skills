@@ -696,3 +696,18 @@ Une entrée par passe, la plus récente en dernier. Le titre est
 - **Ce qui a changé** : rien après la 2.1.332 au changelog ; un billet d'ingénierie du 25 novembre sans rapport avec hooks ni skills. Côté Notion : la version `v1` du markdown de l'API (encore le défaut) est dépréciée ; la `v2` accepte `<b>`, `<i>`, `<s>`, `<u>` et enregistre en texte les autres balises.
 - **Faits porteurs** : aucun changé au tableau. Confirmés sur la page hooks, dont dépendent les deux hooks neufs : refus par `permissionDecision: "deny"` ou par le code 2 ; `PostToolUse` seulement après une réussite ; `PreCompact` ; `agent_id` dans l'entrée d'un appel de sous-agent.
 - **Ce qu'on en fait** : rien ne change pour la PR. À surveiller : quand la `v2` du markdown Notion devient le défaut de la commande `composio`, le hook `refuser_balises_composio.py` refuserait des `<b>` devenus valides : le revoir à ce moment.
+
+### Essai de `/steward` — 2026-11-26 (en cours au moment de l'écriture)
+
+Ce n'est pas une passe de veille. Le titre ne commence pas par une date `AAAA-MM-JJ` exprès : `scripts/check_veille.py` ne lit que les entrées datées de ce type, et une entrée d'essai ne doit pas repousser la date de la dernière passe.
+
+- **Ce qui est essayé** : `/steward` (surveillance d'une PR par Claude Code) sur la PR hermes-custom #1129, par Hal. Session tmux `rc-essai-steward-1129`, Sonnet en effort medium, mode auto, Claude Code 2.1.332. Le plan (étape 17) demande de noter : si la surveillance a démarré (sinon le message exact), les commits poussés, le quota avant et après.
+- **Messages reçus**, copiés tels quels depuis le rapport de Hal :
+  - 1er essai, `/steward` passé comme objectif au lancement (12:22 UTC) : « Nothing started. /steward starts only from a line that you type, not from claude -p or a program. »
+  - 2e essai, ligne tapée : « /steward didn't start. I can't watch pull request #1129 here: remote control is on in this session, and Claude Code can't tell messages sent through it from yours (to turn it off, run /rc and pick Disconnect this session). »
+  - 3e essai, tapé à 12:24 UTC, après `/rc` → Disconnect this session : « Le premier passage de surveillance de la PR #1129 démarre dans une minute environ ; /steward stop arrête la surveillance. »
+- **Ce que ça apprend** : `/steward` exige une ligne tapée (ni objectif initial, ni `claude -p`) et une session sans Remote Control. Le troisième message annonce le démarrage ; il ne prouve pas à lui seul qu'un passage a eu lieu. Les commits et le quota le diront à l'arrêt.
+- **PR écartée** : #1116 était d'abord prévue, puis écartée : c'est la branche du robot d'instantané, poussée en force chaque nuit.
+- **État au moment de l'écriture** : essai **en cours**. Commits poussés pendant la surveillance : non relevés. Coût (quota avant et après) : non mesuré au démarrage ; Hal le relèvera depuis le transcript à l'arrêt.
+- **Arrêt programmé** : cron `verif-essai-steward-1129-stop` (`cac6b43ad0db`), le 2026-11-27 à 13:20 (Paris) : `/steward stop`, puis relevé des commits.
+- **Ce qu'on en fait** : la fin d'essai s'ajoute à cette entrée quand Hal la rapporte (étape 17 du plan : une petite PR de doc à part si la PR du plan est déjà mergée). Aucun écart avec le plan à ce stade.
