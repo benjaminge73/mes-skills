@@ -20,7 +20,7 @@ graders:
     target: {source: file, path: ouverture.md}
   - name: reste-valide
     type: regex
-    pattern: 'reste[a-z ]* `?valide`?'
+    pattern: '(?:reste|laiss)[a-z ]* `?valide`?'
     flags: i
   - name: pret-pas-pose
     type: regex
