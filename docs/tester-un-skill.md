@@ -366,7 +366,7 @@ cas qu'elle regroupe et les fichiers qu'elle exerce. Pour `plans-notion` :
 | `bruit` | `skills/plan-notion/` |
 | `etat-de-depart` | `skills/plan-notion/`, `agents/enqueteur.md`, `agents/lecteur.md` |
 | `maquette` | `skills/plan-notion/` |
-| `decouvertes` | `skills/executer-plan-notion/`, `agents/executant.md`, `agents/relecteur.md` |
+| `decouvertes` | `skills/executer-plan-notion/`, `agents/executant.md`, `agents/relecteur.md`, `agents/cloturier.md` |
 | `perimetre` | `skills/executer-plan-notion/`, `agents/executant.md` |
 | `revue-hors-plan` | `skills/executer-plan-notion/`, `agents/relecteur.md` |
 | `escalade-bornee` | `skills/executer-plan-notion/`, `agents/executant.md`, `skills/deleguer-a-haiku/` |
@@ -717,7 +717,7 @@ donne 0,77 (0,65 avant).
 
 Pour rejouer cette mesure, un fichier du banc (par exemple `evals/bruit-plans-notion.json`)
 doit changer dans la PR, pour que la portée de la CI déclenche le plugin ; la ligne
-`Evals: decouvertes — …` limite alors la sélection aux 8 cas. Toucher `evals/categories.json`
+`Evals: decouvertes — …` limite alors la sélection aux cas de `decouvertes` (15 au 2026-11-26). Toucher `evals/categories.json`
 ou `evals/plans-notion/` forcerait tout le banc.
 
 Ces valeurs sont l'origine des planchers ; ceux que la CI applique sont dans son
