@@ -114,7 +114,9 @@ première réponse qui s'applique décide :
    Le seuil d'une étape est un total, pas une mesure par élément comme pour les
    découvertes en route (`decouvertes.md` § 2, sans plafond) : à la clôture, empiler
    des `D<n>` de sa propre initiative ferait ne jamais clore. Seul l'accord de
-   Benjamin, donné dans la session, lève ce seuil.
+   Benjamin, donné dans la session, lève ce seuil. Seul le petit reste ci-dessus se
+   mesure par élément : la liste s'arrête au tri, et un reste né en le faisant n'est
+   plus « petit », il suit le seuil d'une étape.
 3. **C'est un geste que seul Benjamin peut poser** (une option à activer dans
    l'interface, une action sur un compte qu'aucun outil de la session n'atteint) →
    rien à décider, donc pas de question : la session le **dit dans son message**, avec
