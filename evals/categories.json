@@ -121,7 +121,7 @@
         "hooks/retirer_worktrees_clos.py",
         "agents/cloturier.md"
       ],
-      "cas": ["case-cochee", "decouverte-irreversible", "decouverte-reversible", "decouverte-secret", "decouverte-trop-grande", "cloture-ouvre-la-pr", "fraicheur-avant-push", "cloture-preuve-doc", "cloture-porte-doc", "relecteur-garde-fou", "go-deja-valide", "declenchement-executer", "go-plafond-depasse", "prerequis-avant-pret", "declenchement-negatif-executer"],
+      "cas": ["case-cochee", "decouverte-irreversible", "decouverte-reversible", "decouverte-secret", "decouverte-trop-grande", "cloture-ouvre-la-pr", "fraicheur-avant-push", "cloture-preuve-doc", "cloture-porte-doc", "relecteur-garde-fou", "go-deja-valide", "geste-dans-la-page", "declenchement-executer", "go-plafond-depasse", "prerequis-avant-pret", "declenchement-negatif-executer"],
       "plancher": 0.47
     },
     "perimetre": {

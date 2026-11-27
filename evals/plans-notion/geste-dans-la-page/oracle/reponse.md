@@ -1,0 +1,1 @@
+Étape 3 : geste irréversible (force push sur une branche partagée), donc réservé à Benjamin ; il est consigné dans Tes gestes, dans la page du plan, sans message Slack. Étape 4 : faite, elle ne dépend pas de ce geste.

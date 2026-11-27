@@ -178,7 +178,9 @@ Une exécution se termine parfois avec du travail restant : des étapes en éche
 étapes sautées faute de dépendance, un chantier mis de côté. Une question sans
 réponse n'en fait pas partie : elle devient une ligne `décision`. **Quand le tri
 ci-dessus y mène — Benjamin a choisi de le créer, ou n'a pas répondu alors qu'il
-reste du travail — et seulement alors, créer un plan de suite.** L'autonomie ne se
+reste du travail —, ou quand il ne reste que des étapes bloquées par ses gestes
+(« Un plan bloqué par les seuls gestes de Benjamin », plus bas), et seulement alors,
+créer un plan de suite.** L'autonomie ne se
 paie qu'à condition que ce qui a été mis de côté atterrisse quelque part de visible.
 
 - **Même titre que le plan courant, suffixé du numéro suivant** :
@@ -222,6 +224,24 @@ paie qu'à condition que ce qui a été mis de côté atterrisse quelque part de
   « Le deuxième plan d'un projet crée le maître »).
 - Le lien du plan de suite va aussi dans la rubrique ⏭️ du Récap et dans le compte
   rendu : c'est là que Benjamin le trouve.
+
+### Un plan bloqué par les seuls gestes de Benjamin
+
+Troisième cas où le plan de suite se crée **sans question à Benjamin** : tout ce qui pouvait se
+faire sans lui est fait, et les étapes qui restent n'attendent que ses gestes (la section
+`## Tes gestes` de la page, `demander-a-hal.md` § 4). Ses gestes ne sont ni postés dans Slack ni
+attendus par la session : le plan se clôt, et la suite est un plan fait pour être lancé **quand
+Benjamin aura fait ses gestes**.
+
+- Le plan de suite suit les règles ci-dessus (titre `#N+1`, `Branche`, `Statut` = `brouillon`, liens
+  croisés, maître). Ses étapes sont celles que les gestes bloquaient, reprises et renumérotées dans
+  `Exécution`, chacune dit de quel geste elle dépend.
+- **En tête, avant `Exécution`, la liste des gestes préalables** : une ligne par entrée de
+  `## Tes gestes` du plan précédent (quoi, commande ou chemins exacts, étapes débloquées, reco),
+  case non cochée. Elle se recopie de la section, qui reste intacte dans le plan clos : Benjamin
+  coche ses gestes dans la suite, et la suite ne se lance qu'une fois ces cases cochées.
+- Aucun message Slack, nulle part : le lien du plan de suite va dans la rubrique ⏭️ du Récap et dans
+  le compte rendu, comme pour tout plan de suite.
 
 Ne pas créer de plan de suite quand rien ne reste, ou que le reste tient dans une
 étape `D<n>`, une question posée, une ligne de la base « Restes » (décision, geste ou
