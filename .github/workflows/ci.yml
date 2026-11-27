@@ -165,9 +165,11 @@ jobs:
     # joue du Bash. Un fork n'a de toute façon pas les secrets ; on le dit ici
     # plutôt que de laisser `evals` échouer sur « secret absent ».
     if: >-
-      (github.event_name == 'workflow_dispatch' && github.actor == 'benjaminge73')
+      (github.event_name == 'workflow_dispatch'
+       && (github.actor == 'benjaminge73' || github.actor == 'hal-vps-benjaminge73[bot]'))
       || (github.event_name == 'pull_request'
-          && github.event.pull_request.user.login == 'benjaminge73'
+          && (github.event.pull_request.user.login == 'benjaminge73'
+              || github.event.pull_request.user.login == 'hal-vps-benjaminge73[bot]')
           && github.event.pull_request.draft == false
           && github.event.pull_request.head.repo.full_name == github.repository)
     runs-on: ubuntu-latest
@@ -1440,7 +1442,8 @@ jobs:
       && (needs.evals.result == 'success' || needs.evals.result == 'skipped')
       && (needs.evals-verdict.result == 'success' || needs.evals-verdict.result == 'skipped')
       && github.event_name == 'pull_request'
-      && github.event.pull_request.user.login == 'benjaminge73'
+      && (github.event.pull_request.user.login == 'benjaminge73'
+          || github.event.pull_request.user.login == 'hal-vps-benjaminge73[bot]')
       && github.event.pull_request.draft == false
       && !contains(github.event.pull_request.labels.*.name, 'review-required')
     runs-on: ubuntu-latest
