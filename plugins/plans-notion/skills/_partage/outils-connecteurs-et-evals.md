@@ -160,13 +160,13 @@ commune pour comparer les postes.
 | `bruit` | 5 | 3 | 4,81 $ | 1,60 $ |
 | `etat-de-depart` | 7 | 4 | 7,13 $ | 2,38 $ |
 | `maquette` | 1 | 1 | 1,61 $ | 0,54 $ |
-| `decouvertes` | 15 | 4 | 4,98 $ | 1,66 $ |
+| `decouvertes` | 16 | 4 | 4,98 $ | 1,66 $ |
 | `perimetre` | 7 | 2 | 2,56 $ | 0,85 $ |
 | `delegation` | 1 | — | non mesuré | non mesuré |
 | `preuves` | 14 | — | non mesuré | non mesuré |
 | `revue-hors-plan` | 5 | — | non mesuré | non mesuré |
 | `escalade-bornee` | 1 | — | non mesuré | non mesuré |
-| **tout le banc** | 59 | 16 | 27,53 $ | ≈ 9,2 $ |
+| **tout le banc** | 60 | 16 | 27,53 $ | ≈ 9,2 $ |
 
 Les coûts datent du 2026-09-30 et ne sont extrapolés à aucune catégorie. Les
 catégories `existant` et `decouvertes` ont gagné des cas depuis : elles coûtent

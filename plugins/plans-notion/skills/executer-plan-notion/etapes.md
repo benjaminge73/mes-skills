@@ -303,6 +303,16 @@ Même là, s'arrêter ne veut pas dire attendre les bras ballants : faire **tout
 qui ne dépend pas** du point bloquant, écrire ce qui bloque au journal, et clore
 avec un plan de suite (§7).
 
+**Un geste que seul Benjamin peut faire se consigne dans la page, il ne se poste pas.** Un geste
+irréversible, secret, merge ou envoi à un tiers (`demander-a-hal.md`, § 4) ne part dans aucun message
+Slack, ni vers Benjamin, ni vers Hal, ni vers `#arbitrage` : la session ajoute une entrée à la section
+`## Tes gestes` de la page du plan (quoi, pourquoi, commande ou chemins exacts, étapes débloquées, reco),
+en insertion seule, sans réécrire une ligne existante ni doubler un geste déjà consigné. Elle écrit
+l'étape bloquée au journal, **continue tout ce qui n'en dépend pas**, et ne s'arrête pas pour attendre.
+Quand il ne reste que des étapes bloquées par ces gestes, elle clôt le plan et crée le plan de suite
+(`plan-de-suite.md`, « Un plan bloqué par les seuls gestes de Benjamin »). Benjamin traite ses gestes
+en une fois, depuis la page.
+
 **Avant de s'arrêter pour Benjamin, demander à Hal.** Une question qu'il a déjà
 tranchée dans sa mémoire, ou un geste que la session ne peut pas tenir (commande
 longue, interactive, dans tmux), se pose d'abord à Hal :

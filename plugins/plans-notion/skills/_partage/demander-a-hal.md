@@ -139,8 +139,8 @@ dépense de 20 $ était déjà validée. Le « go » n'ajoute rien à ce que la 
 **Mise en service** : cette transmission passe par une classe de lettre, `depense_validee`, qui arrive
 avec la PR (demande de fusion) jumelle de `hermes-custom` (`feat/depense-validee-par-hal`). Tant qu'elle
 n'est pas mergée et que le prompt du cron (tâche planifiée) `plans-veille` n'est pas réappliqué, Hal ne
-reconnaît pas cette classe : il renvoie la lettre au canal `#arbitrage`, où Benjamin tranche. Le compte
-rendu de la session le dit alors tel quel.
+reconnaît pas cette classe : il consigne la lettre dans la section `## Tes gestes` de la page du plan (§ 4),
+où Benjamin tranche, sans message Slack. Le compte rendu de la session le dit alors tel quel.
 
 ## 3. Ce qu'on met dans la demande
 
@@ -165,8 +165,18 @@ minimum :
 - dépenser de l'argent au-delà de ce que Benjamin a validé dans le plan ;
 - toucher à un secret (jeton, mot de passe, clé, `.env`).
 
-Ces gestes-là se disent à Benjamin, en une ligne, avec la raison. Le script les classe
-`a_renvoyer` : Hal ne les exécute pas, et la demande part à #arbitrage.
+Ces gestes-là sont à Benjamin, et ils **s'écrivent dans la page du plan, pas dans Slack**
+(décision de Benjamin du 2026-11-27 : « consolide plutôt le document Notion, je traiterai tout une fois
+le plan terminé ou bloqué par mes gestes »). Le script les classe `a_renvoyer` : Hal ne les exécute pas,
+ne poste rien dans `#arbitrage` ni ailleurs, et les consigne lui-même dans la section `## Tes gestes` de
+la page (`plans_veille.py geste`). La session fait de même pour un geste qu'elle découvre : elle ajoute
+l'entrée dans `## Tes gestes` et n'envoie aucun message Slack pour lui (ni à Benjamin, ni à Hal, ni à
+`#arbitrage`) ; l'entrée dit **quoi** (le geste), **pourquoi** (la raison pour laquelle seul Benjamin
+peut le faire), la **commande ou les chemins exacts**, les **étapes qu'il débloque** et la **reco**.
+Insertion seule : une entrée ajoutée sous le titre `## Tes gestes` (créé en fin de page s'il manque),
+aucune ligne existante réécrite, et pas de seconde entrée pour un geste déjà consigné. La session
+continue tout ce qui n'en dépend pas ; la fin du plan suit `plan-de-suite.md` (« Un plan bloqué par
+les seuls gestes de Benjamin »).
 
 Le merge vers `main` reste à la CI, au vert : ni la session ni Hal ne le font.
 
